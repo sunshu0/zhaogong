@@ -1,8 +1,9 @@
 // Browser tests for the job seekers' pages (line A). Run with `npm run test:e2e`; not part of `npm run check`.
-// Uses line A's dev server on port 8702, starting one if none is running.
+// Uses a dev server on E2E_PORT (default 8702, line A's), starting one if none is running;
+// line B runs its own specs with E2E_PORT=8703. Specs must not depend on how many jobs exist, since others publish.
 import { defineConfig } from "@playwright/test";
 
-const PORT = 8702;
+const PORT = Number(process.env.E2E_PORT) || 8702;
 
 export default defineConfig({
   testDir: "e2e",

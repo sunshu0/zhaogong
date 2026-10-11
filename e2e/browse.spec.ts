@@ -3,10 +3,13 @@ import { expect, test } from "@playwright/test";
 test("list → filter → detail → back to the filtered list", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "奥克兰中文工作" })).toBeVisible();
-  await expect(page.getByText("共 16 个职位，最新发布在前").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(/共 \d+ 个职位，最新发布在前/).filter({ visible: true })).toBeVisible();
 
-  // Newest first: today's urgent job leads the list.
-  await expect(page.getByRole("main").getByRole("listitem").first()).toContainText("超市理货员");
+  // Newest first (other specs may publish newer jobs, so compare demo jobs with each other).
+  const titles = await page.getByRole("main").getByRole("heading", { level: 2 }).allTextContents();
+  expect(titles).toEqual(expect.arrayContaining(["超市理货员", "前厅服务员", "店长"]));
+  expect(titles.indexOf("超市理货员")).toBeLessThan(titles.indexOf("前厅服务员"));
+  expect(titles.indexOf("前厅服务员")).toBeLessThan(titles.indexOf("店长"));
 
   await page.getByRole("button", { name: /^筛选/ }).click();
   await page.getByRole("group", { name: "行业" }).getByText("餐饮", { exact: true }).click();
@@ -14,8 +17,9 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   await page.getByRole("button", { name: "查看职位" }).click();
 
   await expect(page).toHaveURL("/?industry=hospitality&meals=1");
-  await expect(page.getByText("找到 7 个职位").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(/找到 \d+ 个职位/).filter({ visible: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /超市理货员/ })).toHaveCount(0); // retail, no meals
 
   await page.getByRole("link", { name: /点心师傅/ }).click();
   await expect(page).toHaveURL("/jobs/j3");
@@ -28,7 +32,7 @@ test("list → filter → detail → back to the filtered list", async ({ page }
 
   await page.getByRole("link", { name: "职位列表" }).click();
   await expect(page).toHaveURL("/?industry=hospitality&meals=1");
-  await expect(page.getByText("找到 7 个职位").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(/找到 \d+ 个职位/).filter({ visible: true })).toBeVisible();
 });
 
 test("a keyword with no match shows the empty state, which clears the filters", async ({ page }) => {
@@ -41,7 +45,7 @@ test("a keyword with no match shows the empty state, which clears the filters", 
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
   await page.getByRole("link", { name: "清除筛选，看全部职位" }).click();
   await expect(page).toHaveURL("/");
-  await expect(page.getByText("共 16 个职位，最新发布在前").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(/共 \d+ 个职位，最新发布在前/).filter({ visible: true })).toBeVisible();
 });
 
 test("a job near the minimum wage says so, and an unknown job is not found", async ({ page }) => {
