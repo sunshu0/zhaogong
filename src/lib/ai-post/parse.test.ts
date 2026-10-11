@@ -45,6 +45,7 @@ describe("parsePost", () => {
   it("keeps contact details out of the description", async () => {
     const { draft } = await parsePost(MSG.frontOfHouse, "NZ");
     expect(draft.descriptionZh).toContain("学签可做");
+    expect(draft.descriptionZh).toContain("时薪 $25-27，每周"); // full-width punctuation kept as written
     expect(draft.descriptionZh).not.toContain("021");
     expect(draft.descriptionZh).not.toContain("demo_chuanwei");
     expect(draft.descriptionZh).not.toContain("有意者");
@@ -181,6 +182,13 @@ describe("parsePost", () => {
     const { draft, missing } = await parsePost(MSG.minimal, "NZ");
     expect(draft).toMatchObject({ titleZh: "洗碗工", titleEn: "Dishwasher", industry: "hospitality" });
     expect(missing).toEqual(["employmentType", "pay", "regionId", "visaAccepted", "contact"]);
+  });
+
+  it("reads full-width digits and letters but keeps the text as written", async () => {
+    const { draft } = await parsePost("招服务员，时薪２５刀，ＫＴＶ旁边，电话 ０２１ ５５５ ０１０９", "NZ");
+    expect(draft.pay).toEqual({ min: 25 });
+    expect(draft.contact).toEqual({ phone: "021 555 0109" });
+    expect(draft.descriptionZh).toBe("招服务员，时薪２５刀，ＫＴＶ旁边");
   });
 
   it("returns an empty draft for empty text", async () => {

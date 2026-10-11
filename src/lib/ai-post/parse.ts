@@ -211,15 +211,16 @@ const EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
 const CLAUSE_END = /([，,。；;！!]|\.\s)/;
 
 /** The original text without the clauses that carry contact details: those are shown only after sign-in. */
-function describe(text: string, contactValues: string[]): string {
-  return text
+function describe(original: string, contactValues: string[]): string {
+  return original
     .split("\n")
     .map((line) => {
       const parts = line.split(CLAUSE_END);
       let out = "";
       for (let i = 0; i < parts.length; i += 2) {
         const clause = parts[i];
-        if (contactValues.some((v) => clause.includes(v))) continue;
+        const normal = clause.normalize("NFKC");
+        if (contactValues.some((v) => normal.includes(v))) continue;
         out += clause + (parts[i + 1] ?? "");
       }
       return out.trim().replace(/[，,；;]+$/, "");
@@ -229,7 +230,10 @@ function describe(text: string, contactValues: string[]): string {
 }
 
 function parseText(raw: string, country: CountryCode): ParsedPost {
-  const text = raw.normalize("NFKC").trim();
+  // Read the normalized text (full-width digits and letters folded), but copy shifts and the
+  // description from what the employer wrote: NFKC would also turn ， into ,.
+  const original = raw.trim();
+  const text = original.normalize("NFKC");
   const draft: JobDraft = { country };
   const notes_zh: string[] = [];
   if (!text) return { draft, missing: missingFields(draft), notes_zh };
@@ -252,7 +256,7 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
 
   const regionId = findRegion(lower, country);
   if (regionId) draft.regionId = regionId;
-  const shift = text.split(/[，,。；;！!\n]/).map((c) => c.trim()).find((c) => SHIFT.test(c) && c.length <= 20);
+  const shift = original.split(/[，,。；;！!\n]/).map((c) => c.trim()).find((c) => SHIFT.test(c) && c.length <= 20);
   if (shift) draft.shiftsZh = shift;
 
   const meals = findIncluded(lower, MEALS, NO_MEALS);
@@ -269,7 +273,7 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
   const email = EMAIL.exec(text)?.[0];
   draft.contact = { ...(phone && { phone }), ...(wechat && { wechat }), ...(email && { email }) };
 
-  draft.descriptionZh = describe(text, [phone, wechat, email].filter((v) => v != null));
+  draft.descriptionZh = describe(original, [phone, wechat, email].filter((v) => v != null));
   draft.descriptionEn = englishSummary(draft, country);
 
   return { draft, missing: missingFields(draft), notes_zh };
