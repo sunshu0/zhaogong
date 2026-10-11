@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
-import { DraftEditor } from "@/components/employer/DraftEditor";
+import { DraftEditor, WIDE_ON_DESKTOP, WideOnDesktop } from "@/components/employer/DraftEditor";
 import { completeJob, emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
@@ -151,7 +151,11 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         </section>
       )}
 
-      {step === "form" && <DraftEditor state={state} country={country} notes={notes} />}
+      {step === "form" && (
+        <WideOnDesktop>
+          <DraftEditor state={state} country={country} notes={notes} />
+        </WideOnDesktop>
+      )}
 
       {step === "preview" && preview && (
         <section className="space-y-4">
@@ -171,7 +175,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       )}
 
       {step !== "paste" && (
-        <div className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur">
+        <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${step === "form" ? WIDE_ON_DESKTOP : ""}`}>
           {step === "form" ? (
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setStep("paste")} className="text-sm text-muted underline">

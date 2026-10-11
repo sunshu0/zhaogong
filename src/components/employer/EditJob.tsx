@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { editMyJob, getMyJob } from "@/app/employer/actions";
-import { DraftEditor } from "@/components/employer/DraftEditor";
+import { DraftEditor, WIDE_ON_DESKTOP, WideOnDesktop } from "@/components/employer/DraftEditor";
 import { canEdit } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
@@ -90,8 +90,10 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
     <div className="space-y-4 pb-24">
       <h1 className="text-lg font-semibold">编辑职位</h1>
       {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
-      <DraftEditor state={state} country={country} />
-      <div className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur">
+      <WideOnDesktop>
+        <DraftEditor state={state} country={country} />
+      </WideOnDesktop>
+      <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">
           <Link href="/employer/jobs" className="text-sm text-muted underline">
             取消
