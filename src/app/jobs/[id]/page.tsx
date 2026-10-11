@@ -13,6 +13,7 @@ import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { requestTime } from "@/components/seeker/request-time";
 import { shareSummary } from "@/components/seeker/share";
+import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Promise<Metadata> {
   const job = await getJob((await params).id);
@@ -24,14 +25,14 @@ export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Pro
 
 export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
   return (
-    <>
+    <div className={WIDE_ON_DESKTOP}>
       <div className="mb-2">
         <BackLink />
       </div>
       <Suspense fallback={<JobDetailSkeleton />}>
         <Job params={params} />
       </Suspense>
-    </>
+    </div>
   );
 }
 
@@ -41,15 +42,23 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   const [employer, now] = await Promise.all([getEmployer(job.employerId), requestTime()]);
 
   return (
-    <JobDetail job={job} employer={employer} now={now}>
+    <JobDetail
+      job={job}
+      employer={employer}
+      now={now}
+      aside={
+        <>
+          <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+          <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
+        </>
+      }
+    >
       <RecordView
         jobId={job.id}
         title={job.titleZh}
         pay={formatPay(job.pay, job.country)}
         region={regionById(job.country, job.regionId)?.nameZh ?? ""}
       />
-      <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
-      <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
       <ReportJob jobId={job.id} jobTitle={job.titleZh} />
     </JobDetail>
   );

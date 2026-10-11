@@ -27,7 +27,7 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
   }
 
   return (
-    <form action="/" onSubmit={submit} role="search" className="mb-3">
+    <form action="/" onSubmit={submit} role="search" className="mb-3 lg:mb-0">
       <div className="flex gap-2">
         <input
           type="search"
@@ -44,7 +44,7 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-controls="job-filters"
-          className={`shrink-0 rounded-lg border px-3 py-2 text-sm ${
+          className={`shrink-0 rounded-lg border px-3 py-2 text-sm lg:hidden ${
             open || active ? "border-brand bg-brand-soft text-brand" : "border-border bg-surface"
           }`}
         >
@@ -52,7 +52,8 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
         </button>
       </div>
 
-      <div id="job-filters" hidden={!open} className="mt-2 space-y-4 rounded-xl border border-border bg-surface p-4">
+      {/* Phones open the panel with 筛选; from 1024 px it is always shown, in the page's left column. */}
+      <div id="job-filters" className={`mt-2 space-y-4 rounded-xl border border-border bg-surface p-4 lg:block ${open ? "" : "hidden"}`}>
         <Group title="地区">
           {country.regions.map((r) => (
             <Chip key={r.id} type="checkbox" name="region" value={r.id} checked={filter.regionIds?.includes(r.id)}>

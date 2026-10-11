@@ -5,6 +5,7 @@ import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags, postedAgoZh } from "@/components/seeker/format";
 import { expiryZh, formatDateZh, isExpired, minimumWageNote, verificationNote } from "@/components/seeker/job-facts";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { STICKY_COLUMN } from "@/components/ui/wide";
 
 const NOTE_STYLES = {
   below: "bg-danger-soft text-danger",
@@ -16,12 +17,15 @@ export function JobDetail({
   job,
   employer,
   now,
+  aside,
   children,
 }: {
   job: Job;
   employer?: Employer;
   now: number;
-  /** Contact, report and share blocks, shown after the description. */
+  /** Blocks for a right-hand column that stays in view from 1024 px (contact, share); on phones they follow the description. */
+  aside?: ReactNode;
+  /** Blocks shown after the description (and after `aside` on phones), e.g. report. */
   children?: ReactNode;
 }) {
   const region = regionById(job.country, job.regionId);
@@ -29,8 +33,8 @@ export function JobDetail({
   const tags = jobTags(job);
   const hours = [formatHours(job.hoursPerWeek), job.shiftsZh].filter(Boolean).join("，");
 
-  return (
-    <article className="space-y-3">
+  const details = (
+    <>
       {isExpired(job, now) && (
         <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">这个职位已截止，可能已经招满。</p>
       )}
@@ -115,8 +119,25 @@ export function JobDetail({
           <p className="text-sm leading-relaxed whitespace-pre-line">{job.descriptionEn}</p>
         </section>
       </div>
+    </>
+  );
 
-      {children}
+  if (!aside) {
+    return (
+      <article className="space-y-3">
+        {details}
+        {children}
+      </article>
+    );
+  }
+
+  return (
+    <article className="space-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0">
+      <div className="space-y-3 lg:col-start-1">{details}</div>
+      <aside aria-label="联系与分享" className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}>
+        {aside}
+      </aside>
+      {children && <div className="space-y-3 lg:col-start-1">{children}</div>}
     </article>
   );
 }
