@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { ContactReveal } from "@/components/seeker/ContactReveal";
+import { ReportJob } from "@/components/seeker/ReportJob";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { requestTime } from "@/components/seeker/request-time";
@@ -37,6 +38,7 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   return (
     <JobDetail job={job} employer={employer} now={now}>
       <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+      <ReportJob jobId={job.id} jobTitle={job.titleZh} />
     </JobDetail>
   );
 }

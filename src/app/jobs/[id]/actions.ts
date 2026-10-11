@@ -1,8 +1,9 @@
 "use server";
 
-import { getJob } from "@/lib/data";
+import { getJob, submitReport } from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { isPublic } from "@/components/seeker/job-facts";
+import { parseReport } from "@/components/seeker/report";
 import { isValidEmail, normalizeEmail } from "@/components/seeker/session";
 
 /**
@@ -16,4 +17,16 @@ export async function revealContact(jobId: string, email: string): Promise<Job["
   if (!job || !isPublic(job)) return null;
   const { phone, wechat, email: contactEmail } = job.contact;
   return { phone, wechat, email: contactEmail };
+}
+
+export type ReportResult = { ok: true; reportId: string } | { ok: false; error: string };
+
+/** Sends a report on a job seekers can see. Anyone can report; signing in is not needed. */
+export async function reportJob(jobId: string, reason: string, note?: string): Promise<ReportResult> {
+  const parsed = parseReport({ reason, note });
+  if (!parsed.ok) return parsed;
+  const job = typeof jobId === "string" ? await getJob(jobId) : undefined;
+  if (!job || !isPublic(job)) return { ok: false, error: "找不到这个职位，可能已经下架" };
+  const report = await submitReport(job.id, parsed.reason, parsed.note);
+  return { ok: true, reportId: report.id };
 }
