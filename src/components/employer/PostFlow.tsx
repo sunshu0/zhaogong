@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
-import { DraftEditor, WIDE_ON_DESKTOP, WideOnDesktop } from "@/components/employer/DraftEditor";
+import { DraftEditor } from "@/components/employer/DraftEditor";
 import { completeJob, emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
@@ -12,6 +12,7 @@ import { holdReason, useDraftForm } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
+import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 type Step = "paste" | "form" | "preview" | "done";
 
@@ -152,9 +153,9 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       )}
 
       {step === "form" && (
-        <WideOnDesktop>
+        <div className={WIDE_ON_DESKTOP}>
           <DraftEditor state={state} country={country} notes={notes} />
-        </WideOnDesktop>
+        </div>
       )}
 
       {step === "preview" && preview && (
