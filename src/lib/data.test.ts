@@ -27,3 +27,40 @@ describe("job filter", () => {
     expect(await listJobs({ country: "AU" })).toEqual([]);
   });
 });
+
+describe("employer and moderation data", () => {
+  it("updates a job and lists it whatever its status", async () => {
+    const { listAllJobs, updateJob, getJob } = await import("@/lib/data");
+    await updateJob("j9", { status: "expired" });
+    expect((await getJob("j9"))?.status).toBe("expired");
+    expect((await listAllJobs("NZ")).some((j) => j.id === "j9")).toBe(true);
+    expect((await listJobs({ country: "NZ" })).some((j) => j.id === "j9")).toBe(false);
+    expect(await updateJob("nope", { status: "active" })).toBeUndefined();
+  });
+
+  it("bans an employer and takes down their jobs", async () => {
+    const { banEmployer, getEmployer, listJobsByEmployer } = await import("@/lib/data");
+    const removed = await banEmployer("e6");
+    expect(removed).toEqual(["j10"]);
+    expect((await getEmployer("e6"))?.bannedAt).toBeDefined();
+    expect((await listJobsByEmployer("e6")).every((j) => j.status === "removed")).toBe(true);
+  });
+
+  it("sets verification without touching the demo data", async () => {
+    const { setEmployerVerification, getEmployer } = await import("@/lib/data");
+    const { MOCK_EMPLOYERS } = await import("@/mock/data");
+    await setEmployerVerification("e4", "business_verified", { legalName: "Demo Yuemei Limited", businessNumber: "9429000000004" });
+    expect((await getEmployer("e4"))?.verification).toBe("business_verified");
+    expect(MOCK_EMPLOYERS.find((e) => e.id === "e4")?.verification).toBe("unverified");
+  });
+
+  it("records contact views and updates reports", async () => {
+    const { recordContactView, listContactViews, submitReport, updateReport, listReports } = await import("@/lib/data");
+    await recordContactView("j1", "a@example.com");
+    await recordContactView("j1", "b@example.com");
+    expect((await listContactViews("j1")).length).toBe(2);
+    const r = await submitReport("j2", "charges_fee");
+    await updateReport(r.id, "actioned");
+    expect((await listReports()).find((x) => x.id === r.id)?.status).toBe("actioned");
+  });
+});

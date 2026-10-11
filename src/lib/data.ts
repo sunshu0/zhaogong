@@ -1,10 +1,14 @@
 // Data access. Today it reads the demo data in memory; the backend will replace the bodies,
 // not the signatures, so pages should only ever go through these functions.
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
-import type { Employer, Job, JobFilter, Report, ReportReason } from "@/lib/types";
+import type { ContactView, CountryCode, Employer, EmployerVerification, Job, JobFilter, Report, ReportReason } from "@/lib/types";
 
-const jobs: Job[] = [...MOCK_JOBS];
+// One copy per server process. Pages and Server Functions share it, so a job published by an
+// employer shows on the home page until the server restarts.
+const jobs: Job[] = MOCK_JOBS.map((j) => ({ ...j }));
+const employers: Employer[] = MOCK_EMPLOYERS.map((e) => ({ ...e }));
 const reports: Report[] = [];
+const contactViews: ContactView[] = [];
 
 export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
@@ -39,7 +43,7 @@ export async function getJob(id: string): Promise<Job | undefined> {
 }
 
 export async function getEmployer(id: string): Promise<Employer | undefined> {
-  return MOCK_EMPLOYERS.find((e) => e.id === id);
+  return employers.find((e) => e.id === id);
 }
 
 export async function listJobsByEmployer(employerId: string): Promise<Job[]> {
@@ -67,4 +71,61 @@ export async function submitReport(jobId: string, reason: ReportReason, note?: s
 
 export async function listReports(): Promise<Report[]> {
   return [...reports];
+}
+
+/** Every job in a market, whatever its status, newest first. For employer and moderation pages. */
+export async function listAllJobs(country: CountryCode): Promise<Job[]> {
+  return jobs.filter((j) => j.country === country).sort((a, b) => b.postedAt.localeCompare(a.postedAt));
+}
+
+/** Edit, close, refresh or take down a job. The id and market cannot change. */
+export async function updateJob(id: string, patch: Partial<Omit<Job, "id" | "country">>): Promise<Job | undefined> {
+  const job = jobs.find((j) => j.id === id);
+  if (!job) return undefined;
+  Object.assign(job, patch);
+  return job;
+}
+
+export async function updateReport(id: string, status: Report["status"]): Promise<Report | undefined> {
+  const report = reports.find((r) => r.id === id);
+  if (!report) return undefined;
+  report.status = status;
+  return report;
+}
+
+export async function listEmployers(): Promise<Employer[]> {
+  return [...employers];
+}
+
+export async function setEmployerVerification(
+  id: string,
+  verification: EmployerVerification,
+  details: { legalName?: string; businessNumber?: string } = {},
+): Promise<Employer | undefined> {
+  const employer = employers.find((e) => e.id === id);
+  if (!employer) return undefined;
+  Object.assign(employer, { verification, ...details });
+  return employer;
+}
+
+/** Ban an employer and take down all of their jobs. Returns the ids of the jobs taken down. */
+export async function banEmployer(id: string): Promise<string[]> {
+  const employer = employers.find((e) => e.id === id);
+  if (!employer) return [];
+  employer.bannedAt = new Date().toISOString();
+  const takenDown = jobs.filter((j) => j.employerId === id && j.status !== "removed");
+  for (const j of takenDown) j.status = "removed";
+  return takenDown.map((j) => j.id);
+}
+
+/** Record that a signed-in job seeker revealed a job's contact details. */
+export async function recordContactView(jobId: string, viewerEmail: string): Promise<ContactView> {
+  const view: ContactView = { jobId, viewerEmail, viewedAt: new Date().toISOString() };
+  contactViews.push(view);
+  return view;
+}
+
+/** Contact reveals for one job, newest first. */
+export async function listContactViews(jobId: string): Promise<ContactView[]> {
+  return contactViews.filter((v) => v.jobId === jobId).sort((a, b) => b.viewedAt.localeCompare(a.viewedAt));
 }

@@ -38,6 +38,8 @@ export interface Employer {
   verification: EmployerVerification;
   regionId: string;
   createdAt: string; // ISO date
+  /** Set when moderation bans the employer; their jobs are taken down too. */
+  bannedAt?: string;
 }
 
 export interface PayRange {
@@ -104,4 +106,12 @@ export interface Report {
   note?: string;
   createdAt: string;
   status: "open" | "actioned" | "dismissed";
+}
+
+/** A signed-in job seeker revealed a job's contact details. */
+export interface ContactView {
+  jobId: string;
+  /** Demo identity; the real backend will use a user id from the session. */
+  viewerEmail: string;
+  viewedAt: string;
 }

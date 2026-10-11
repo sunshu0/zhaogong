@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { AccountLink } from "@/components/seeker/AccountLink";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/" className="hover:text-brand">
                 找工作
               </Link>
+              <AccountLink className="hover:text-brand" />
               <Link href="/employer" className="rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90">
                 发布招聘
               </Link>
