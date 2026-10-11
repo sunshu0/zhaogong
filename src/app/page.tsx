@@ -7,6 +7,7 @@ import { ActiveFilters } from "@/components/seeker/ActiveFilters";
 import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
+import { RememberListQuery } from "@/components/seeker/last-list";
 import { requestTime } from "@/components/seeker/request-time";
 
 export default function Home({ searchParams }: PageProps<"/">) {
@@ -26,10 +27,12 @@ async function Results({ searchParams }: Pick<PageProps<"/">, "searchParams">) {
   const jobs = await listJobs(filter);
   const employers = await employersOf(jobs);
   const filtered = isFiltered(filter);
+  const query = filterToQuery(filter);
 
   return (
     <>
-      <FilterForm key={filterToQuery(filter)} filter={filter} />
+      <RememberListQuery query={query} />
+      <FilterForm key={query} filter={filter} />
       <ActiveFilters filter={filter} />
       <p className="mb-3 text-sm text-muted">
         {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}

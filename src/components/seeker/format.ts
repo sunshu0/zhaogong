@@ -2,17 +2,17 @@
 import { COUNTRIES } from "@/config/countries";
 import type { CountryCode, Job, PayRange } from "@/lib/types";
 
-const DAY_MS = 86_400_000;
+export const DAY_MS = 86_400_000;
 
 /** 25 → "25", 24.5 → "24.50". */
-function money(n: number): string {
+export function formatMoney(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
 
 /** "$25–27/小时", or "$24/小时" for a single rate. */
 export function formatPay(pay: PayRange, country: CountryCode): string {
   const symbol = COUNTRIES[country].currencySymbol;
-  const range = pay.max != null && pay.max !== pay.min ? `${money(pay.min)}–${money(pay.max)}` : money(pay.min);
+  const range = pay.max != null && pay.max !== pay.min ? `${formatMoney(pay.min)}–${formatMoney(pay.max)}` : formatMoney(pay.min);
   return `${symbol}${range}/小时`;
 }
 
