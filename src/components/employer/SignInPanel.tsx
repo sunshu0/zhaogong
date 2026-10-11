@@ -2,14 +2,21 @@
 import { useId, useState, type FormEvent } from "react";
 import type { Employer } from "@/lib/types";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
-import { signInEmployer } from "@/components/employer/session";
+import { isValidCode, isValidEmail, normalizeEmail } from "@/components/seeker/session";
+import { useSession } from "@/components/seeker/session-client";
+import { linkEmployer, signInEmployer, signOutEmployer } from "@/components/employer/session";
 
 export type DemoAccount = Pick<Employer, "id" | "name" | "verification">;
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const input = "h-11 w-full rounded-lg border border-border bg-background px-3";
+const primary = "h-11 w-full rounded-lg bg-brand font-medium text-white";
 
-/** Email + 6-digit code, then pick which demo business to post for. Any code works in the demo. */
-export function SignInPanel({ accounts, intro, onSignedIn }: { accounts: DemoAccount[]; intro?: string; onSignedIn?: () => void }) {
+/**
+ * Line A's demo sign-in (email, then any 6-digit code), then which demo business to post for.
+ * Someone already signed in on the site only picks the business.
+ */
+export function SignInPanel({ accounts, intro }: { accounts: DemoAccount[]; intro?: string }) {
+  const session = useSession();
   const [email, setEmail] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
@@ -19,16 +26,58 @@ export function SignInPanel({ accounts, intro, onSignedIn }: { accounts: DemoAcc
 
   function sendCode(e: FormEvent) {
     e.preventDefault();
-    if (!EMAIL.test(email.trim())) return setError("请输入正确的邮箱地址");
+    if (!isValidEmail(normalizeEmail(email))) return setError("请输入正确的邮箱地址");
     setError(undefined);
     setCodeSent(true);
   }
 
-  function signIn(e: FormEvent) {
+  function finish(e: FormEvent) {
     e.preventDefault();
-    if (!/^\d{6}$/.test(code)) return setError("请输入 6 位数字验证码");
-    signInEmployer({ email: email.trim(), employerId });
-    onSignedIn?.();
+    if (session) return linkEmployer(session.email, employerId);
+    if (!isValidCode(code)) return setError("请输入 6 位数字验证码");
+    signInEmployer(email, employerId);
+  }
+
+  const picker = (
+    <fieldset>
+      <legend className="text-sm font-medium">演示账号：以哪家店的身份发布</legend>
+      <div className="mt-2 space-y-2">
+        {accounts.map((a) => (
+          <label
+            key={a.id}
+            className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 has-checked:border-brand has-checked:bg-brand-soft"
+          >
+            <input
+              type="radio"
+              name={`${id}-account`}
+              value={a.id}
+              checked={employerId === a.id}
+              onChange={() => setEmployerId(a.id)}
+              className="accent-brand"
+            />
+            <span className="text-sm">{a.name}</span>
+            <VerificationBadge verification={a.verification} />
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+
+  if (session) {
+    return (
+      <form onSubmit={finish} className="space-y-3 rounded-xl border border-border bg-surface p-4">
+        <p className="text-sm">
+          已登录 <span className="font-medium">{session.email}</span>
+          <button type="button" onClick={signOutEmployer} className="ml-2 text-muted underline">
+            换个邮箱
+          </button>
+        </p>
+        {picker}
+        <button type="submit" className={primary}>
+          确定
+        </button>
+      </form>
+    );
   }
 
   return (
@@ -47,23 +96,24 @@ export function SignInPanel({ accounts, intro, onSignedIn }: { accounts: DemoAcc
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
-            className="h-11 w-full rounded-lg border border-border bg-background px-3"
+            className={input}
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <button type="submit" className="h-11 w-full rounded-lg bg-brand font-medium text-white">
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          <button type="submit" className={primary}>
             获取验证码
           </button>
         </form>
       ) : (
-        <form onSubmit={signIn} className="mt-3 space-y-3" noValidate>
+        <form onSubmit={finish} className="mt-3 space-y-3" noValidate>
           <p className="text-sm">
-            验证码已发到 <span className="font-medium">{email.trim()}</span>
+            验证码已发到 <span className="font-medium">{normalizeEmail(email)}</span>
             <button type="button" onClick={() => setCodeSent(false)} className="ml-2 text-brand underline">
               改邮箱
             </button>
           </p>
+          <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">演示版不会真的发送邮件，输入任意 6 位数字即可登录。</p>
           <label htmlFor={`${id}-code`} className="block text-sm font-medium">
-            验证码 <span className="font-normal text-muted">（演示：任意 6 位数字）</span>
+            验证码
           </label>
           <input
             id={`${id}-code`}
@@ -72,32 +122,11 @@ export function SignInPanel({ accounts, intro, onSignedIn }: { accounts: DemoAcc
             maxLength={6}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="h-11 w-full rounded-lg border border-border bg-background px-3 tracking-[0.3em]"
+            className={`${input} tracking-[0.3em]`}
           />
-          <fieldset>
-            <legend className="text-sm font-medium">演示账号：以哪家店的身份发布</legend>
-            <div className="mt-2 space-y-2">
-              {accounts.map((a) => (
-                <label
-                  key={a.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 has-checked:border-brand has-checked:bg-brand-soft"
-                >
-                  <input
-                    type="radio"
-                    name={`${id}-account`}
-                    value={a.id}
-                    checked={employerId === a.id}
-                    onChange={() => setEmployerId(a.id)}
-                    className="accent-brand"
-                  />
-                  <span className="text-sm">{a.name}</span>
-                  <VerificationBadge verification={a.verification} />
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <button type="submit" className="h-11 w-full rounded-lg bg-brand font-medium text-white">
+          {picker}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          <button type="submit" className={primary}>
             登录
           </button>
         </form>

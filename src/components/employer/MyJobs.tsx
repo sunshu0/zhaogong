@@ -1,11 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { Job } from "@/lib/types";
-import { getMyJobs } from "@/app/employer/actions";
+import { useState } from "react";
 import { effectiveStatus, expiryLabelZh, STATUS_LABELS } from "@/components/employer/job-status";
 import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
 import { SignInPanel, type DemoAccount } from "@/components/employer/SignInPanel";
+import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 const SHOWN = 5;
@@ -14,24 +13,13 @@ const SHOWN = 5;
 export function MyJobs({ accounts }: { accounts: DemoAccount[] }) {
   const session = useEmployerSession();
   const [signingIn, setSigningIn] = useState(false);
-  const [loaded, setLoaded] = useState<{ employerId: string; jobs: Job[]; now: number }>();
-
-  useEffect(() => {
-    if (!session) return;
-    let live = true;
-    getMyJobs(session.employerId).then((jobs) => {
-      if (live) setLoaded({ employerId: session.employerId, jobs, now: Date.now() });
-    });
-    return () => {
-      live = false;
-    };
-  }, [session]);
+  const { ready } = useMyJobs(session?.employerId);
 
   if (session === undefined) return <div className="h-28 animate-pulse rounded-xl border border-border bg-surface" />;
 
-  if (!session) {
+  if (!session?.employerId) {
     return signingIn ? (
-      <SignInPanel accounts={accounts} intro="登录后在这里查看你发布的职位。" onSignedIn={() => setSigningIn(false)} />
+      <SignInPanel accounts={accounts} intro="登录后在这里查看你发布的职位。" />
     ) : (
       <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center">
         <p className="text-sm text-muted">登录后在这里查看和管理你发布的职位。</p>
@@ -40,14 +28,13 @@ export function MyJobs({ accounts }: { accounts: DemoAccount[] }) {
           onClick={() => setSigningIn(true)}
           className="mt-3 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand"
         >
-          登录
+          {session ? "选择店铺" : "登录"}
         </button>
       </div>
     );
   }
 
   const account = accounts.find((a) => a.id === session.employerId);
-  const ready = loaded?.employerId === session.employerId ? loaded : undefined;
 
   return (
     <div className="space-y-3">

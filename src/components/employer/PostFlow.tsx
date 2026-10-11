@@ -43,7 +43,8 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const missing = useMemo(() => missingFields(draft), [draft]);
   const decision = publishDecision(findings);
   const ready = decision.canPublish && missing.length === 0;
-  const employer = session ? accounts.find((a) => a.id === session.employerId) : undefined;
+  const employerId = session?.employerId;
+  const employer = accounts.find((a) => a.id === employerId);
 
   function update(patch: Partial<PostForm>) {
     if ("descriptionEn" in patch) setEnEdited(true);
@@ -73,10 +74,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   }
 
   function publish() {
-    if (!session) return;
+    if (!employerId) return;
     setError(undefined);
     startTransition(async () => {
-      const result = await publishJob(draft, session.employerId);
+      const result = await publishJob(draft, employerId);
       if (result.ok) {
         setPublished(result.job);
         setStep("done");
@@ -91,7 +92,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
     return <Published job={published} onAgain={() => { setText(""); setForm(emptyForm()); setPublished(undefined); setStep("paste"); }} />;
   }
 
-  const preview = step === "preview" ? completeJob(draft, session?.employerId ?? "preview", previewAt, decision.status) : undefined;
+  const preview = step === "preview" ? completeJob(draft, employerId ?? "preview", previewAt, decision.status) : undefined;
 
   return (
     <div className="space-y-4 pb-24">
@@ -186,7 +187,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
               <p className="mt-1 text-sm text-muted">登录后可以查看雇主的{contactKinds({ ...preview, id: "preview" }).join("、")}。</p>
             </section>
           </JobDetail>
-          {session === null && <SignInPanel accounts={accounts} intro="发布前请先登录，不用设密码。" />}
+          {session !== undefined && !employerId && <SignInPanel accounts={accounts} intro="发布前请先登录，不用设密码。" />}
         </section>
       )}
 
@@ -209,10 +210,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
               <button type="button" onClick={() => setStep("form")} className="text-sm text-muted underline">
                 返回修改
               </button>
-              <p className="flex-1 text-xs text-muted">{employer ? `以「${employer.name}」发布` : session === null ? "登录后发布" : ""}</p>
+              <p className="flex-1 text-xs text-muted">{employer ? `以「${employer.name}」发布` : session === undefined ? "" : session ? "选好店铺后发布" : "登录后发布"}</p>
               <button
                 type="button"
-                disabled={!session || pending}
+                disabled={!employerId || pending}
                 onClick={publish}
                 className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40"
               >
