@@ -12,7 +12,7 @@ test("Chrome parses the web app manifest: name, standalone, start URL, theme col
   expect(url).toMatch(/\/manifest\.webmanifest$/);
   expect(manifest?.name).toBe("找工 · 奥克兰中文工作");
   expect(manifest?.display).toBe("kStandalone");
-  expect(manifest?.startUrl).toMatch(/:8702\/$/);
+  expect(manifest?.startUrl).toBe(new URL("/", page.url()).href); // whatever port the run uses (E2E_PORT)
   expect(manifest?.themeColor).toBe("rgba(15,118,110,1)");
 
   const icons = manifest?.icons ?? [];
@@ -21,5 +21,32 @@ test("Chrome parses the web app manifest: name, standalone, start URL, theme col
     const response = await page.request.get(icon.url);
     expect(response.status(), icon.url).toBe(200);
     expect(response.headers()["content-type"]).toBe("image/png");
+  }
+});
+
+test.describe("iOS 添加到主屏幕", () => {
+  test.use({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+  });
+
+  // On job pages the metadata streams after the shell, so the server HTML has these tags in <body>;
+  // React moves them into <head> as the page loads, which is where Safari looks when adding to the home screen.
+  for (const path of ["/", "/jobs/j3"]) {
+    test(`${path} has the home-screen name and icon in <head>`, async ({ page }) => {
+      await page.goto(path);
+      const head = page.locator("head");
+      await expect(head.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "找工");
+      await expect(head.locator('meta[name="mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
+      await expect(head.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "/icons/apple-touch-icon.png");
+      await expect(head.locator('link[rel="icon"][href="/icons/favicon-32.png"]')).toHaveCount(1);
+      await expect(head.locator('link[rel="manifest"]')).toHaveCount(1);
+
+      for (const icon of ["/icons/apple-touch-icon.png", "/icons/favicon-32.png"]) {
+        const response = await page.request.get(icon);
+        expect(response.status(), icon).toBe(200);
+        expect(response.headers()["content-type"]).toBe("image/png");
+      }
+    });
   }
 });
