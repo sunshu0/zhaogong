@@ -115,3 +115,22 @@ export interface ContactView {
   viewerEmail: string;
   viewedAt: string;
 }
+
+export type ModerationAction = "approve" | "take_down" | "dismiss" | "ban";
+
+/** One moderation decision, kept for complaints and audits. */
+export interface ModerationLogEntry {
+  id: string;
+  at: string; // ISO datetime
+  action: ModerationAction;
+  jobId?: string;
+  jobTitle?: string;
+  employerId?: string;
+  employerName?: string;
+  /** Report reasons behind the action, when it came from reports. */
+  reasons?: ReportReason[];
+  /** Compliance rule ids that flagged the job at posting. */
+  rules?: string[];
+  /** Jobs a ban took down. */
+  takenDown?: number;
+}

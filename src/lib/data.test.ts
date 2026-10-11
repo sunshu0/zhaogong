@@ -64,3 +64,14 @@ describe("employer and moderation data", () => {
     expect((await listReports()).find((x) => x.id === r.id)?.status).toBe("actioned");
   });
 });
+
+describe("moderation log", () => {
+  it("keeps decisions newest first", async () => {
+    const { addModerationLog, listModerationLog } = await import("@/lib/data");
+    await addModerationLog({ action: "take_down", jobId: "j2", reasons: ["charges_fee"] });
+    await addModerationLog({ action: "ban", employerId: "e6", takenDown: 1 });
+    const log = await listModerationLog();
+    expect(log.map((e) => e.action).slice(0, 2)).toEqual(["ban", "take_down"]);
+    expect(log[0].id).not.toBe(log[1].id);
+  });
+});

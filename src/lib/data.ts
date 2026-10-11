@@ -1,7 +1,17 @@
 // Data access. Today it reads the demo data in memory; the backend will replace the bodies,
 // not the signatures, so pages should only ever go through these functions.
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
-import type { ContactView, CountryCode, Employer, EmployerVerification, Job, JobFilter, Report, ReportReason } from "@/lib/types";
+import type {
+  ContactView,
+  CountryCode,
+  Employer,
+  EmployerVerification,
+  Job,
+  JobFilter,
+  ModerationLogEntry,
+  Report,
+  ReportReason,
+} from "@/lib/types";
 
 // One copy per server process. Pages and Server Functions share it, so a job published by an
 // employer shows on the home page until the server restarts.
@@ -9,6 +19,7 @@ const jobs: Job[] = MOCK_JOBS.map((j) => ({ ...j }));
 const employers: Employer[] = MOCK_EMPLOYERS.map((e) => ({ ...e }));
 const reports: Report[] = [];
 const contactViews: ContactView[] = [];
+const moderationLog: ModerationLogEntry[] = [];
 
 export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
@@ -128,4 +139,16 @@ export async function recordContactView(jobId: string, viewerEmail: string): Pro
 /** Contact reveals for one job, newest first. */
 export async function listContactViews(jobId: string): Promise<ContactView[]> {
   return contactViews.filter((v) => v.jobId === jobId).sort((a, b) => b.viewedAt.localeCompare(a.viewedAt));
+}
+
+/** Record a moderation decision. */
+export async function addModerationLog(entry: Omit<ModerationLogEntry, "id" | "at">): Promise<ModerationLogEntry> {
+  const full: ModerationLogEntry = { ...entry, id: `a${moderationLog.length + 1}`, at: new Date().toISOString() };
+  moderationLog.push(full);
+  return full;
+}
+
+/** Moderation decisions, newest first. */
+export async function listModerationLog(): Promise<ModerationLogEntry[]> {
+  return [...moderationLog].reverse();
 }
