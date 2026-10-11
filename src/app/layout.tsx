@@ -7,6 +7,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: `${PRODUCT_NAME} · 奥克兰中文工作`, template: `%s · ${PRODUCT_NAME}` },
   description: "奥克兰的中文工作信息：时薪、地区、签证要求一目了然，雇主经过验证。",
+  appleWebApp: { capable: true, title: PRODUCT_NAME },
+  icons: {
+    icon: [{ url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -20,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4">
+          <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4 lg:max-w-[min(64rem,_100vw_-_3rem)] lg:px-0">
             <Link href="/" className="text-lg font-semibold text-brand">
               {PRODUCT_NAME}
             </Link>
