@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completeJob, draftFromForm, emptyForm, formFromDraft, sanitizeDraft } from "@/components/employer/post-form";
+import { completeJob, draftFromForm, editPatch, emptyForm, formFromDraft, sanitizeDraft } from "@/components/employer/post-form";
 import type { JobDraft } from "@/lib/compliance";
 
 const full: JobDraft = {
@@ -53,6 +53,17 @@ describe("completeJob", () => {
 
   it("returns nothing while a required field is missing", () => {
     expect(completeJob({ ...full, regionId: undefined }, "e1", now, "active")).toBeUndefined();
+  });
+});
+
+describe("editPatch", () => {
+  it("carries the form's fields, clears emptied optional ones, and leaves dates, owner and status alone", () => {
+    const job = completeJob({ ...full, shiftsZh: undefined }, "e1", Date.UTC(2026, 9, 12), "active")!;
+    const patch = editPatch(job);
+    expect(patch).toMatchObject({ titleZh: "前厅服务员", pay: { min: 25, max: 27 } });
+    expect("shiftsZh" in patch && patch.shiftsZh).toBeUndefined();
+    expect(Object.keys(patch)).toContain("shiftsZh");
+    for (const key of ["postedAt", "expiresAt", "employerId", "country", "status"]) expect(patch).not.toHaveProperty(key);
   });
 });
 

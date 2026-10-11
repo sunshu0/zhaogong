@@ -1,20 +1,24 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { englishSummary, missingFields } from "@/lib/ai-post";
-import { checkJob, publishDecision } from "@/lib/compliance";
+import { useState, useTransition } from "react";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
-import { DraftForm } from "@/components/employer/DraftForm";
-import { FindingsPanel } from "@/components/employer/FindingsPanel";
-import { completeJob, draftFromForm, emptyForm, formFromDraft, type PostForm } from "@/components/employer/post-form";
+import { DraftEditor } from "@/components/employer/DraftEditor";
+import { completeJob, emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
+import { holdReason, useDraftForm } from "@/components/employer/use-draft-form";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
 
 type Step = "paste" | "form" | "preview" | "done";
+
+const PUBLISH_ERRORS = {
+  unknown_employer: "找不到这个雇主账号，请退出后重新登录。",
+  banned: "这个雇主账号已被停用，不能发布职位。",
+  not_ready: "服务器检查没有通过，请回到上一步修改。",
+};
 
 const STEPS: { key: Exclude<Step, "done">; label: string }[] = [
   { key: "paste", label: "粘贴" },
@@ -31,38 +35,23 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const session = useEmployerSession();
   const [step, setStep] = useState<Step>("paste");
   const [text, setText] = useState("");
-  const [form, setForm] = useState<PostForm>(emptyForm);
-  const [enEdited, setEnEdited] = useState(false);
+  const state = useDraftForm(country);
+  const { draft, findings, missing, decision, ready } = state;
   const [notes, setNotes] = useState<string[]>([]);
   const [previewAt, setPreviewAt] = useState(0);
   const [published, setPublished] = useState<Job>();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
 
-  const draft = useMemo(() => draftFromForm(form, country), [form, country]);
-  const findings = useMemo(() => checkJob(draft, country), [draft, country]);
-  const missing = useMemo(() => missingFields(draft), [draft]);
-  const decision = publishDecision(findings);
-  const ready = decision.canPublish && missing.length === 0;
   const employerId = session?.employerId;
   const employer = accounts.find((a) => a.id === employerId);
-
-  function update(patch: Partial<PostForm>) {
-    if ("descriptionEn" in patch) setEnEdited(true);
-    setForm((prev) => {
-      const next = { ...prev, ...patch };
-      // Keep the generated English in step with the form until the employer edits it by hand.
-      return enEdited || "descriptionEn" in patch ? next : { ...next, descriptionEn: englishSummary(draftFromForm(next, country), country) };
-    });
-  }
 
   function parse() {
     setError(undefined);
     startTransition(async () => {
       const result = await parseDraft(text);
-      setForm(formFromDraft(result.draft));
+      state.reset(formFromDraft(result.draft));
       setNotes(result.notes_zh);
-      setEnEdited(false);
       setStep("form");
       window.scrollTo({ top: 0 });
     });
@@ -83,7 +72,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         setPublished(result.job);
         setStep("done");
       } else {
-        setError(result.reason === "unknown_employer" ? "找不到这个雇主账号，请退出后重新登录。" : "服务器检查没有通过，请回到上一步修改。");
+        setError(PUBLISH_ERRORS[result.reason]);
       }
       window.scrollTo({ top: 0 });
     });
@@ -96,7 +85,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         employer={employer}
         onAgain={() => {
           setText("");
-          setForm(emptyForm());
+          state.reset(emptyForm());
           setPublished(undefined);
           setStep("paste");
         }}
@@ -148,7 +137,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
           <button
             type="button"
             onClick={() => {
-              setForm(emptyForm());
+              state.reset(emptyForm());
               setNotes([]);
               setStep("form");
             }}
@@ -159,33 +148,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         </section>
       )}
 
-      {step === "form" && (
-        <div className="gap-4 md:grid md:grid-cols-[minmax(0,1fr)_16rem]">
-          <aside className="mb-4 md:order-2 md:mb-0">
-            <div className="md:sticky md:top-18">
-              <FindingsPanel findings={findings} missing={missing} />
-            </div>
-          </aside>
-          <div className="space-y-4">
-            {notes.map((n) => (
-              <p key={n} className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
-                {n}
-              </p>
-            ))}
-            <DraftForm
-              form={form}
-              set={update}
-              findings={findings}
-              missing={missing}
-              country={country}
-              onRegenerateEn={() => {
-                setEnEdited(false);
-                setForm((prev) => ({ ...prev, descriptionEn: englishSummary(draftFromForm(prev, country), country) }));
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {step === "form" && <DraftEditor state={state} country={country} notes={notes} />}
 
       {step === "preview" && preview && (
         <section className="space-y-4">
@@ -237,11 +200,6 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       )}
     </div>
   );
-}
-
-function holdReason(problems: number, missing: number): string {
-  const parts = [problems && `${problems} 个问题要处理`, missing && `${missing} 项没填`].filter(Boolean);
-  return parts.join("，");
 }
 
 function Published({ job, employer, onAgain }: { job: Job; employer?: Employer; onAgain: () => void }) {

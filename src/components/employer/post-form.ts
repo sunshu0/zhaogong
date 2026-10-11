@@ -140,6 +140,32 @@ export function completeJob(draft: JobDraft, employerId: string, now: number, st
   };
 }
 
+/** What an employer's edit may change. Dates, owner, market and status are not in the form. */
+const EDITABLE_FIELDS = [
+  "titleZh",
+  "titleEn",
+  "industry",
+  "employmentType",
+  "regionId",
+  "address",
+  "pay",
+  "hoursPerWeek",
+  "shiftsZh",
+  "mealsIncluded",
+  "accommodationIncluded",
+  "visaAccepted",
+  "languages",
+  "descriptionZh",
+  "descriptionEn",
+  "contact",
+  "urgent",
+] as const satisfies readonly (keyof Job)[];
+
+/** The edited fields as a patch; optional fields left empty in the form are cleared (undefined). */
+export function editPatch(job: Omit<Job, "id">): Pick<Job, (typeof EDITABLE_FIELDS)[number]> {
+  return Object.fromEntries(EDITABLE_FIELDS.map((k) => [k, job[k]])) as Pick<Job, (typeof EDITABLE_FIELDS)[number]>;
+}
+
 // ---- server side: never trust the shape of what a Server Function receives ----
 
 const LIMITS = { short: 80, address: 120, contact: 60, long: 3000 };
