@@ -3,10 +3,20 @@
 // says 演示后台); the backend must check a moderator session in every function here.
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
-import { banEmployer, getEmployer, getJob, listAllJobs, listReports, updateJob, updateReport } from "@/lib/data";
-import type { Employer, Job, Report } from "@/lib/types";
+import {
+  addModerationLog,
+  banEmployer,
+  getEmployer,
+  getJob,
+  listAllJobs,
+  listModerationLog,
+  listReports,
+  updateJob,
+  updateReport,
+} from "@/lib/data";
+import type { Employer, Job, ModerationLogEntry, Report } from "@/lib/types";
 import { refreshedDates } from "@/components/employer/job-status";
-import { addLog, describeAction, groupOpenReports, listLog, type LogEntry } from "@/app/admin/moderation";
+import { describeAction, groupOpenReports } from "@/app/admin/moderation";
 
 export interface QueueItem {
   job: Job;
@@ -17,7 +27,7 @@ export interface QueueItem {
 export interface ModerationQueue {
   flagged: QueueItem[];
   reported: (QueueItem & { reports: Report[] })[];
-  log: (LogEntry & { text: string })[];
+  log: (ModerationLogEntry & { text: string })[];
 }
 
 async function item(job: Job): Promise<QueueItem> {
@@ -36,7 +46,8 @@ export async function getModerationQueue(): Promise<ModerationQueue> {
       }),
     )
   ).filter((r) => r != null);
-  return { flagged, reported, log: listLog().map((e) => ({ ...e, text: describeAction(e) })) };
+  const log = (await listModerationLog()).map((e) => ({ ...e, text: describeAction(e) }));
+  return { flagged, reported, log };
 }
 
 export type AdminResult = { ok: true; text: string } | { ok: false; error_zh: string };
@@ -64,7 +75,7 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   const findings = checkJob(s.job, s.job.country);
   if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
   await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
-  const entry = addLog({ action: "approve", ...s.names, rules: findings.map((f) => f.rule) });
+  const entry = await addModerationLog({ action: "approve", ...s.names, rules: findings.map((f) => f.rule) });
   return { ok: true, text: describeAction(entry) };
 }
 
@@ -76,7 +87,7 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
   if (s.job.status !== "removed") await updateJob(s.job.id, { status: "removed" });
   await close(reports, "actioned");
   const rules = s.job.status === "pending_review" ? checkJob(s.job, s.job.country).map((f) => f.rule) : undefined;
-  const entry = addLog({ action: "take_down", ...s.names, reasons: reports.map((r) => r.reason), rules });
+  const entry = await addModerationLog({ action: "take_down", ...s.names, reasons: reports.map((r) => r.reason), rules });
   return { ok: true, text: describeAction(entry) };
 }
 
@@ -87,7 +98,7 @@ export async function dismissReports(jobId: string): Promise<AdminResult> {
   const reports = await openReportsFor(s.job.id);
   if (!reports.length) return { ok: false, error_zh: "这个职位没有待处理的举报。" };
   await close(reports, "dismissed");
-  const entry = addLog({ action: "dismiss", ...s.names, reasons: reports.map((r) => r.reason) });
+  const entry = await addModerationLog({ action: "dismiss", ...s.names, reasons: reports.map((r) => r.reason) });
   return { ok: true, text: describeAction(entry) };
 }
 
@@ -99,6 +110,6 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
   const takenDown = await banEmployer(s.employer.id);
   const reports = (await listReports()).filter((r) => r.status === "open" && (takenDown.includes(r.jobId) || r.jobId === s.job.id));
   await close(reports, "actioned");
-  const entry = addLog({ action: "ban", employerId: s.employer.id, employerName: s.employer.name, takenDown: takenDown.length });
+  const entry = await addModerationLog({ action: "ban", employerId: s.employer.id, employerName: s.employer.name, takenDown: takenDown.length });
   return { ok: true, text: describeAction(entry) };
 }
