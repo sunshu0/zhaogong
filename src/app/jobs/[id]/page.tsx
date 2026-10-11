@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { regionById } from "@/config/countries";
 import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { ContactReveal } from "@/components/seeker/ContactReveal";
+import { RecordView } from "@/components/seeker/RecordView";
 import { ReportJob } from "@/components/seeker/ReportJob";
 import { ShareJob } from "@/components/seeker/ShareJob";
+import { formatPay } from "@/components/seeker/format";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { requestTime } from "@/components/seeker/request-time";
@@ -39,6 +42,12 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
 
   return (
     <JobDetail job={job} employer={employer} now={now}>
+      <RecordView
+        jobId={job.id}
+        title={job.titleZh}
+        pay={formatPay(job.pay, job.country)}
+        region={regionById(job.country, job.regionId)?.nameZh ?? ""}
+      />
       <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
       <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
       <ReportJob jobId={job.id} jobTitle={job.titleZh} />

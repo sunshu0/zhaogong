@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import { reportJob } from "@/app/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
@@ -35,6 +36,13 @@ export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string
       <section role="status" className="rounded-xl border border-ok/30 bg-ok-soft p-4">
         <h2 className="font-medium text-ok">谢谢你的举报</h2>
         <p className="mt-1 text-sm">我们会尽快核查这个职位。在此之前，如果雇主要求你付钱或交出证件，请不要照做。</p>
+        <p className="mt-2 text-xs text-muted">
+          发出的举报可以在
+          <Link href="/me" className="mx-0.5 underline underline-offset-2">
+            「我的」
+          </Link>
+          里看到。
+        </p>
       </section>
     );
   }

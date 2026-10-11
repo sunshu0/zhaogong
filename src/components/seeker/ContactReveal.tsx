@@ -82,7 +82,12 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">
             联系雇主时，不要预先支付押金、介绍费或任何费用，也不要交出护照原件。遇到这种情况请举报这个职位。
           </p>
-          <p className="mt-2 text-xs text-muted">已登录：{session.email}</p>
+          <p className="mt-2 text-xs text-muted">
+            已登录：{session.email} ·{" "}
+            <Link href="/me" className="underline underline-offset-2">
+              我的
+            </Link>
+          </p>
         </>
       )}
     </section>
