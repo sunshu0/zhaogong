@@ -3,7 +3,6 @@ import Link from "next/link";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getEmployer, listJobs } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
-import { AccountLink } from "@/components/seeker/AccountLink";
 import { ActiveFilters } from "@/components/seeker/ActiveFilters";
 import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, parseFilter } from "@/components/seeker/filter-query";
@@ -14,10 +13,7 @@ import { requestTime } from "@/components/seeker/request-time";
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
     <>
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h1 className="text-lg font-semibold">奥克兰中文工作</h1>
-        <AccountLink className="text-sm text-brand" />
-      </div>
+      <h1 className="mb-3 text-lg font-semibold">奥克兰中文工作</h1>
       <Suspense fallback={<JobListSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>
