@@ -9,6 +9,7 @@ import { DraftForm } from "@/components/employer/DraftForm";
 import { FindingsPanel } from "@/components/employer/FindingsPanel";
 import { completeJob, draftFromForm, emptyForm, formFromDraft, type PostForm } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
+import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
@@ -89,7 +90,18 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   }
 
   if (step === "done" && published) {
-    return <Published job={published} onAgain={() => { setText(""); setForm(emptyForm()); setPublished(undefined); setStep("paste"); }} />;
+    return (
+      <Published
+        job={published}
+        employer={employer}
+        onAgain={() => {
+          setText("");
+          setForm(emptyForm());
+          setPublished(undefined);
+          setStep("paste");
+        }}
+      />
+    );
   }
 
   const preview = step === "preview" ? completeJob(draft, employerId ?? "preview", previewAt, decision.status) : undefined;
@@ -232,7 +244,7 @@ function holdReason(problems: number, missing: number): string {
   return parts.join("，");
 }
 
-function Published({ job, onAgain }: { job: Job; onAgain: () => void }) {
+function Published({ job, employer, onAgain }: { job: Job; employer?: Employer; onAgain: () => void }) {
   const live = job.status === "active";
   return (
     <section className="space-y-4">
@@ -247,6 +259,11 @@ function Published({ job, onAgain }: { job: Job; onAgain: () => void }) {
           </Link>
         )}
       </div>
+      {live ? (
+        <ShareTexts job={job} employer={employer} />
+      ) : (
+        <p className="text-sm text-muted">审核通过后，可以在「管理职位」里复制发到微信群、小红书和 Skykiwi 的文案。</p>
+      )}
       <div className="flex gap-3">
         <button type="button" onClick={onAgain} className="h-11 flex-1 rounded-xl border border-brand font-medium text-brand">
           再发一条
