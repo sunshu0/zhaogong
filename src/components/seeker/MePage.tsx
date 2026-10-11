@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
 import { formatDateZh } from "@/components/seeker/job-facts";
@@ -113,10 +113,11 @@ export function MePage() {
 }
 
 function Panel({ title, count, action, children }: { title: string; count: number; action?: ReactNode; children: ReactNode }) {
+  const headingId = useId();
   return (
-    <section className="rounded-xl border border-border bg-surface p-4">
+    <section aria-labelledby={headingId} className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 className="font-medium">
+        <h2 id={headingId} className="font-medium">
           {title}
           {count > 0 && <span className="ml-1.5 text-sm font-normal text-muted">{count}</span>}
         </h2>
