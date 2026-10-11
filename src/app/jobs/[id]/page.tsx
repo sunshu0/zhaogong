@@ -5,9 +5,11 @@ import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { ContactReveal } from "@/components/seeker/ContactReveal";
 import { ReportJob } from "@/components/seeker/ReportJob";
+import { ShareJob } from "@/components/seeker/ShareJob";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { requestTime } from "@/components/seeker/request-time";
+import { shareSummary } from "@/components/seeker/share";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Promise<Metadata> {
   const job = await getJob((await params).id);
@@ -38,6 +40,7 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   return (
     <JobDetail job={job} employer={employer} now={now}>
       <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+      <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
       <ReportJob jobId={job.id} jobTitle={job.titleZh} />
     </JobDetail>
   );
