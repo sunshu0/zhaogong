@@ -9,6 +9,7 @@ import { useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
 import { holdReason, useDraftForm } from "@/components/employer/use-draft-form";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
 
@@ -44,7 +45,9 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const [pending, startTransition] = useTransition();
 
   const employerId = session?.employerId;
-  const employer = accounts.find((a) => a.id === employerId);
+  const { profile } = useEmployerProfile(employerId);
+  const employer = profile ?? accounts.find((a) => a.id === employerId);
+  const banned = !!employer?.bannedAt;
 
   function parse() {
     setError(undefined);
@@ -162,6 +165,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
               <p className="mt-1 text-sm text-muted">登录后可以查看雇主的{contactKinds({ ...preview, id: "preview" }).join("、")}。</p>
             </section>
           </JobDetail>
+          {banned && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
           {session !== undefined && !employerId && <SignInPanel accounts={accounts} intro="发布前请先登录，不用设密码。" />}
         </section>
       )}
@@ -188,7 +192,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
               <p className="flex-1 text-xs text-muted">{employer ? `以「${employer.name}」发布` : session === undefined ? "" : session ? "选好店铺后发布" : "登录后发布"}</p>
               <button
                 type="button"
-                disabled={!employerId || pending}
+                disabled={!employerId || banned || pending}
                 onClick={publish}
                 className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40"
               >

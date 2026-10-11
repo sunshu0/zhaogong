@@ -8,6 +8,7 @@ import { canClose, canEdit, effectiveStatus, expiryLabelZh, refreshState, STATUS
 import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { formatPay } from "@/components/seeker/format";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
@@ -23,13 +24,14 @@ const TABS: { key: "all" | ShownStatus; label: string }[] = [
 export function ManageJobs({ accounts }: { accounts: Employer[] }) {
   const session = useEmployerSession();
   const { ready, reload } = useMyJobs(session?.employerId);
+  const { profile } = useEmployerProfile(session?.employerId);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
 
   if (session === undefined) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
   if (!session?.employerId) return <SignInPanel accounts={accounts} intro="登录后管理你发布的职位。" />;
 
-  const employer = accounts.find((a) => a.id === session.employerId);
+  const employer = profile ?? accounts.find((a) => a.id === session.employerId);
   const counts = new Map<string, number>();
   for (const job of ready?.jobs ?? []) {
     const s = effectiveStatus(job, ready!.now);
@@ -70,6 +72,8 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
           </button>
         ))}
       </div>
+
+      {employer?.bannedAt && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
 
       {notice && (
         <p role="status" className={`rounded-lg px-3 py-2 text-sm ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>

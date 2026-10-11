@@ -4,6 +4,7 @@ import { useState } from "react";
 import { effectiveStatus, expiryLabelZh, STATUS_LABELS } from "@/components/employer/job-status";
 import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
 import { SignInPanel, type DemoAccount } from "@/components/employer/SignInPanel";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
@@ -14,6 +15,7 @@ export function MyJobs({ accounts }: { accounts: DemoAccount[] }) {
   const session = useEmployerSession();
   const [signingIn, setSigningIn] = useState(false);
   const { ready } = useMyJobs(session?.employerId);
+  const { profile } = useEmployerProfile(session?.employerId);
 
   if (session === undefined) return <div className="h-28 animate-pulse rounded-xl border border-border bg-surface" />;
 
@@ -34,7 +36,7 @@ export function MyJobs({ accounts }: { accounts: DemoAccount[] }) {
     );
   }
 
-  const account = accounts.find((a) => a.id === session.employerId);
+  const account = profile ?? accounts.find((a) => a.id === session.employerId);
 
   return (
     <div className="space-y-3">

@@ -3,11 +3,14 @@ import {
   closeMyJob,
   editMyJob,
   getContactViewCounts,
+  getEmployerProfile,
   getMyJob,
   getMyJobs,
+  lookupBusiness,
   parseDraft,
   publishJob,
   refreshMyJob,
+  verifyBusiness,
 } from "@/app/employer/actions";
 import { banEmployer, getJob, listJobs, recordContactView } from "@/lib/data";
 
@@ -96,5 +99,30 @@ describe("managing published jobs", () => {
     const { draft } = await parseDraft(MESSAGE);
     expect(await publishJob(draft, "e5")).toMatchObject({ ok: false, reason: "banned" });
     expect(await refreshMyJob("j8", "e5")).toMatchObject({ ok: false, error_zh: "账号已被停用，不能再修改职位。" });
+  });
+});
+
+describe("business verification", () => {
+  it("looks up the demo register by name or NZBN", async () => {
+    expect((await lookupBusiness("悦美")).results.map((e) => e.nzbn)).toEqual(["9429000000004"]);
+    expect((await lookupBusiness("123")).error_zh).toContain("13 位");
+  });
+
+  it("verifies an unverified shop with its register entry", async () => {
+    const result = await verifyBusiness("e4", "9429 0000 0000 4");
+    expect(result.ok && result.employer).toMatchObject({ verification: "business_verified", legalName: "Demo Yuemei Hair Studio Limited" });
+    expect(await getEmployerProfile("e4")).toMatchObject({ verification: "business_verified", businessNumber: "9429000000004" });
+  });
+
+  it("refuses a struck-off company, an unknown number and another shop's NZBN", async () => {
+    expect(await verifyBusiness("e6", "9429000000099")).toMatchObject({ ok: false, error_zh: expect.stringContaining("已注销") });
+    expect(await verifyBusiness("e6", "9429000000123")).toMatchObject({ ok: false });
+    expect(await verifyBusiness("e6", "9429000000001")).toMatchObject({ ok: false, error_zh: expect.stringContaining("其他店铺") });
+    expect((await getEmployerProfile("e6"))?.verification).toBe("unverified");
+  });
+
+  it("keeps an accredited employer's badge", async () => {
+    const result = await verifyBusiness("e2", "9429000000002");
+    expect(result.ok && result.employer.verification).toBe("accredited_employer");
   });
 });

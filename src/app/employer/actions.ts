@@ -5,8 +5,18 @@
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { parsePost, missingFields, type ParsedPost, type RequiredField } from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
-import { createJob, getEmployer, getJob, listContactViews, listJobsByEmployer, updateJob } from "@/lib/data";
+import {
+  createJob,
+  getEmployer,
+  getJob,
+  listContactViews,
+  listEmployers,
+  listJobsByEmployer,
+  setEmployerVerification,
+  updateJob,
+} from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
+import { buildRegister, normalizeNzbn, searchRegister, type RegisterEntry } from "@/components/employer/business-register";
 import { canClose, canEdit, effectiveStatus, refreshedDates, refreshState } from "@/components/employer/job-status";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
@@ -113,4 +123,40 @@ export async function editMyJob(jobId: string, employerId: string, input: unknow
   const live = job.status === "active" || job.status === "pending_review";
   const status = live ? decision.status : job.status;
   return { ok: true, job: (await updateJob(job.id, { ...editPatch(edited), status }))! };
+}
+
+// ---- business verification (B7) ----
+
+/** The employer as it is now (verification and ban can change after the page was built). */
+export async function getEmployerProfile(employerId: string): Promise<Employer | null> {
+  return (await getEmployer(String(employerId))) ?? null;
+}
+
+export async function lookupBusiness(query: string): Promise<{ results: RegisterEntry[]; error_zh?: string }> {
+  return searchRegister(buildRegister(await listEmployers()), String(query).slice(0, 100));
+}
+
+export type VerifyResult = { ok: true; employer: Employer } | { ok: false; error_zh: string };
+
+/**
+ * Links a register entry to the employer and shows 已验证企业. An accredited employer keeps its
+ * higher badge. Demo: the real version must also prove the person speaks for the company.
+ */
+export async function verifyBusiness(employerId: string, nzbn: string): Promise<VerifyResult> {
+  const employer = await postingEmployer(employerId);
+  if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能验证。" };
+  if (employer === "unknown_employer") return { ok: false, error_zh: "找不到这个雇主账号，请重新登录。" };
+
+  const employers = await listEmployers();
+  const number = normalizeNzbn(String(nzbn));
+  const entry = buildRegister(employers).find((e) => e.nzbn === number);
+  if (!entry) return { ok: false, error_zh: "企业登记里没有这个 NZBN。" };
+  if (entry.status !== "registered") return { ok: false, error_zh: "这家公司在企业登记里已注销，不能用来验证。" };
+  if (employers.some((e) => e.id !== employer.id && e.businessNumber === number)) {
+    return { ok: false, error_zh: "这个 NZBN 已经被其他店铺验证。如果是你的公司，请联系我们。" };
+  }
+
+  const verification = employer.verification === "accredited_employer" ? "accredited_employer" : "business_verified";
+  const updated = await setEmployerVerification(employer.id, verification, { legalName: entry.legalName, businessNumber: entry.nzbn });
+  return { ok: true, employer: { ...updated! } };
 }
