@@ -3,7 +3,7 @@
 // job seekers' pages read. Demo only: there is no real session, so the caller says who it is.
 // The backend must check the signed-in employer here before trusting employerId.
 import { DEFAULT_COUNTRY } from "@/config/countries";
-import { parsePost, missingFields, type ParsedPost, type RequiredField } from "@/lib/ai-post";
+import { missingFields, nextTurn, parsePost, restoreChat, type ChatState, type ParsedPost, type RequiredField } from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import {
   createJob,
@@ -37,6 +37,11 @@ export async function getContactViewCounts(employerId: string): Promise<Record<s
 /** Runs on the server so a real model call can replace the stub without exposing a key. */
 export async function parseDraft(text: string): Promise<ParsedPost> {
   return parsePost(String(text).slice(0, 5000), DEFAULT_COUNTRY);
+}
+
+/** One turn of the posting chat. On the server for the same reason; the state from the browser is rebuilt first. */
+export async function chatTurn(state: unknown, message: string): Promise<ChatState> {
+  return nextTurn(restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY)), String(message ?? ""));
 }
 
 export type PublishResult =

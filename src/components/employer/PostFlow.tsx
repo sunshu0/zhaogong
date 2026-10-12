@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useState, useTransition, type RefObject } from "react";
+import { resumeChat, SAMPLE_POST, startChat, type ChatState } from "@/lib/ai-post";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
+import { ChatPost } from "@/components/employer/ChatPost";
 import { DraftEditor } from "@/components/employer/DraftEditor";
 import { completeJob, emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
@@ -15,7 +17,8 @@ import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
-type Step = "paste" | "form" | "preview" | "done";
+type Step = "chat" | "paste" | "form" | "preview" | "done";
+type Mode = "chat" | "form";
 
 const PUBLISH_ERRORS = {
   unknown_employer: "找不到这个雇主账号，请退出后重新登录。",
@@ -23,20 +26,25 @@ const PUBLISH_ERRORS = {
   not_ready: "服务器检查没有通过，请回到上一步修改。",
 };
 
-const STEPS: { key: Exclude<Step, "done">; label: string }[] = [
-  { key: "paste", label: "粘贴" },
-  { key: "form", label: "核对" },
-  { key: "preview", label: "预览发布" },
-];
+const STEPS: Record<Mode, { key: Exclude<Step, "done">; label: string }[]> = {
+  chat: [
+    { key: "chat", label: "和助手对话" },
+    { key: "preview", label: "预览发布" },
+  ],
+  form: [
+    { key: "paste", label: "粘贴" },
+    { key: "form", label: "核对" },
+    { key: "preview", label: "预览发布" },
+  ],
+};
 
-const SAMPLE = `【急招】Mt Eden 川菜馆招前厅服务员 2 名
-时薪 $25-27，每周 15-25 小时，周五至周日晚班
-包工作餐，学签可做，需会普通话和基本英语
-有意者请加微信 demo_chuanwei 或电话 021 555 0101`;
+const SAMPLE = SAMPLE_POST;
 
 export function PostFlow({ accounts, country }: { accounts: Employer[]; country: CountryCode }) {
   const session = useEmployerSession();
-  const [step, setStep] = useState<Step>("paste");
+  const [mode, setMode] = useState<Mode>("chat");
+  const [step, setStep] = useState<Step>("chat");
+  const [chat, setChat] = useState<ChatState>(() => startChat(country));
   const [text, setText] = useState("");
   const state = useDraftForm(country);
   const { draft, findings, missing, decision, ready } = state;
@@ -61,6 +69,34 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       setStep("form");
       window.scrollTo({ top: 0 });
     });
+  }
+
+  function previewFromChat(next: ChatState) {
+    state.reset(formFromDraft(next.draft));
+    toPreview();
+  }
+
+  function switchToForm() {
+    setMode("form");
+    if (chat.messages.length > 1) {
+      state.reset(formFromDraft(chat.draft));
+      setNotes([]);
+      setStep("form");
+    } else setStep("paste");
+  }
+
+  function switchMode(next: Mode) {
+    if (next === mode) return;
+    if (next === "form") return switchToForm();
+    setMode("chat");
+    setStep("chat");
+  }
+
+  function backFromPreview() {
+    if (mode === "chat") {
+      setChat(resumeChat(chat));
+      setStep("chat");
+    } else setStep("form");
   }
 
   function toPreview() {
@@ -93,8 +129,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         onAgain={() => {
           setText("");
           state.reset(emptyForm());
+          setChat(startChat(country));
           setPublished(undefined);
-          setStep("paste");
+          setMode("chat");
+          setStep("chat");
         }}
       />
     );
@@ -105,14 +143,39 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   return (
     <div onFocus={keepFocusClear} className={`space-y-4 pb-24 ${CLEAR_OF_STICKY_BARS}`}>
       <ol aria-label="发布步骤" className="flex gap-2 text-xs">
-        {STEPS.map((s, i) => (
+        {STEPS[mode].map((s, i) => (
           <li key={s.key} aria-current={s.key === step ? "step" : undefined} className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}>
             {i + 1} {s.label}
           </li>
         ))}
       </ol>
 
+      {(step === "chat" || step === "paste") && (
+        <div role="group" aria-label="发布方式" className="flex gap-2">
+          {(
+            [
+              ["chat", "对话发布"],
+              ["form", "直接填表"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={mode === key}
+              onClick={() => switchMode(key)}
+              className={`h-9 rounded-full px-4 text-sm ${mode === key ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+
+      {step === "chat" && (
+        <ChatPost chat={chat} setChat={setChat} country={country} headingRef={heading} onPreview={previewFromChat} onUseForm={switchToForm} />
+      )}
 
       {step === "paste" && (
         <section className="space-y-3">
@@ -187,7 +250,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         </section>
       )}
 
-      {step !== "paste" && (
+      {(step === "form" || step === "preview") && (
         <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${step === "form" ? WIDE_ON_DESKTOP : ""}`}>
           {step === "form" ? (
             <div className="flex items-center gap-3">
@@ -203,7 +266,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setStep("form")} className="text-sm text-muted underline">
+              <button type="button" onClick={backFromPreview} className="text-sm text-muted underline">
                 返回修改
               </button>
               <p className="flex-1 text-xs text-muted">{employer ? `以「${employer.name}」发布` : session === undefined ? "" : session ? "选好店铺后发布" : "登录后发布"}</p>

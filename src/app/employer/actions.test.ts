@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  chatTurn,
   closeMyJob,
   confirmHires,
   editMyJob,
@@ -155,5 +156,20 @@ describe("hires confirmed when a job ends", () => {
     expect((await getJob("j15"))?.status).toBe("active"); // a refused answer does not end the job
     expect(await confirmHires("j13", "e1", { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
     expect(await confirmHires("j15", "e3", { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "职位结束后才能记录招到几人。" });
+  });
+});
+
+describe("chatTurn", () => {
+  it("runs a turn on the server and rebuilds what the browser sent", async () => {
+    const first = await chatTurn(undefined, "招洗碗工");
+    expect(first.draft.titleZh).toBe("洗碗工");
+    expect(first.asking).toBe("pay");
+
+    const tampered = { ...first, asking: "launch_rockets", ready: true, draft: { ...first.draft, status: "active", employerId: "e9", pay: { min: "lots" } } };
+    const next = await chatTurn(tampered, "25");
+    expect(next.draft).not.toHaveProperty("status");
+    expect(next.draft).not.toHaveProperty("employerId");
+    expect(next.ready).toBe(false);
+    expect(next.messages.at(-2)).toMatchObject({ from: "employer", text: "25" });
   });
 });

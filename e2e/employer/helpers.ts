@@ -43,11 +43,18 @@ export async function publishFromPreview(page: Page, button: "发布" | "提交�
 /** Pastes a message, gives the job its own title, and publishes it. */
 export async function publishJob(page: Page, title: string, message = CLEAN_MESSAGE): Promise<string | undefined> {
   await page.goto("/employer/post");
+  await openTheForm(page);
   await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(message);
   await page.getByRole("button", { name: "整理成职位" }).click();
   await page.getByLabel("职位名称（中文）").fill(title);
   await page.getByRole("button", { name: "预览", exact: true }).click();
   return publishFromPreview(page, /KTV|按摩/.test(message) ? "提交审核" : "发布");
+}
+
+/** /employer/post opens in chat mode; the paste → form flow is behind 直接填表. */
+export async function openTheForm(page: Page) {
+  await page.getByRole("button", { name: "直接填表", exact: true }).click();
+  await expect(page.getByLabel(/把微信群里的招聘消息粘贴进来/)).toBeVisible();
 }
 
 /** The public job list at /jobs (not / since A11), searched for one title. */
@@ -60,4 +67,29 @@ export async function searchJobList(page: Page, title: string) {
 /** A job card on the seekers' list (not the "去掉条件" chip, whose name also holds the search). */
 export function jobCard(page: Page, title: string) {
   return page.getByRole("link", { name: new RegExp(`^${title}`) });
+}
+
+const CJK_DIGITS = "零一二三四五六七八九";
+
+/**
+ * A unique title the chat can read back: the parser takes 2–10 Chinese characters, so the run's
+ * number is written in 汉字 digits. Keep `base` to 3 characters or fewer.
+ */
+export function uniqueCjkTitle(base: string, testInfo: TestInfo): string {
+  const n = String(Date.now() % 100_000).padStart(5, "0");
+  return base + (testInfo.project.name === "mobile" ? "甲" : "乙") + CJK_DIGITS[testInfo.workerIndex % 10] + [...n].map((d) => CJK_DIGITS[Number(d)]).join("");
+}
+
+/** Sends a chat message the way a person types it: fill the box, press Enter. */
+export async function sayInChat(page: Page, text: string) {
+  const box = page.getByLabel("回复助手");
+  await box.fill(text);
+  await box.press("Enter");
+  await expect(box).toHaveValue("");
+  await expect(page.getByText("助手正在整理…")).toHaveCount(0);
+}
+
+/** The assistant's latest message. */
+export function lastAssistant(page: Page) {
+  return page.getByRole("log").getByRole("listitem").filter({ hasText: "助手：" }).last();
 }

@@ -3,7 +3,7 @@
 import { COUNTRIES, regionById } from "@/config/countries";
 import type { JobDraft } from "@/lib/compliance";
 import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
-import type { CountryCode, EmploymentType, Job } from "@/lib/types";
+import type { CountryCode, EmploymentType, Industry, Job, VisaAccepted } from "@/lib/types";
 import { INDUSTRY_WORDS, LANGUAGE_WORDS, REGION_ALIASES, TITLES, VISA_WORDS, type TitleEntry } from "./vocabulary";
 
 /** Fields a job needs before it can be published, in the order the form shows them. */
@@ -277,4 +277,46 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
   draft.descriptionEn = englishSummary(draft, country);
 
   return { draft, missing: missingFields(draft), notes_zh };
+}
+
+// ---- one field at a time: the chat (chat.ts) asks one question per turn and reads short answers ----
+
+const lowerOf = (text: string) => text.normalize("NFKC").toLowerCase();
+
+/** A job title from an answer like 厨房帮工, 招洗碗工两名 or a title the vocabulary does not know (水电工). */
+export function readTitle(text: string): { titleZh?: string; titleEn?: string; industry?: Industry } {
+  const t = text.normalize("NFKC").trim();
+  const found = findTitle(t, t.toLowerCase());
+  const bare = t.replace(/^(招聘|招)/, "").replace(HEAD_COUNT, "");
+  const zh = found.zh ?? (/^[\u4e00-\u9fff]{2,10}$/.test(bare) ? bare : undefined);
+  const entry = found.entry ?? (zh ? TITLES_BY_LENGTH.find((e) => zh.includes(e.zh)) : undefined);
+  return { titleZh: zh, titleEn: entry?.en, industry: entry?.industry };
+}
+
+/** The employment type only when the text says it (no guessing from hours). */
+export function readEmploymentType(text: string): EmploymentType | undefined {
+  return findEmploymentType(lowerOf(text), undefined);
+}
+
+export function readRegion(text: string, country: CountryCode): string | undefined {
+  return findRegion(lowerOf(text), country);
+}
+
+/** Visas named in the text, not negated (不要学签 names none), in the usual order. */
+export function readVisas(text: string): VisaAccepted[] {
+  const lower = lowerOf(text);
+  return VISA_WORDS.filter(([, words]) => firstMention(lower, words) >= 0).map(([visa]) => visa);
+}
+
+export function readPerks(text: string): { mealsIncluded?: boolean; accommodationIncluded?: boolean } {
+  const lower = lowerOf(text);
+  return { mealsIncluded: findIncluded(lower, MEALS, NO_MEALS), accommodationIncluded: findIncluded(lower, ACCOMMODATION, NO_ACCOMMODATION) };
+}
+
+export function readContact(text: string): Job["contact"] {
+  const t = text.normalize("NFKC");
+  const phone = PHONE.exec(t)?.[0];
+  const wechat = WECHAT.exec(t)?.[1];
+  const email = EMAIL.exec(t)?.[0];
+  return { ...(phone && { phone }), ...(wechat && { wechat }), ...(email && { email }) };
 }

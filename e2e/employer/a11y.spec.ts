@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { CLEAN_MESSAGE, publishJob, signInAs, uniqueTitle } from "./helpers";
+import { CLEAN_MESSAGE, publishJob, signInAs, uniqueTitle, openTheForm } from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
@@ -12,6 +12,15 @@ async function expectNoViolations(page: Page, state: string) {
 
 test("post flow, every step", async ({ page }, testInfo) => {
   await page.goto("/employer/post");
+  await expectNoViolations(page, "post: chat, greeting");
+  await page.getByLabel("回复助手").fill("奶茶店招兼职店员，市中心，时薪 18，入职交押金200。学签OK。微信 cbdtea_demo");
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect(page.getByRole("button", { name: "删掉这句" }).or(page.getByText("时薪改成多少").filter({ visible: true })).first()).toBeVisible();
+  await expectNoViolations(page, "post: chat, a compliance question");
+
+  // After chatting, 直接填表 opens the form with the chat's draft; start over for the paste step.
+  await page.goto("/employer/post");
+  await openTheForm(page);
   await expectNoViolations(page, "post: paste step");
 
   await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill("奶茶店招兼职店员，市中心，时薪 20，入职交押金200，限华人。学签OK。微信 cbdtea_demo");
@@ -20,6 +29,7 @@ test("post flow, every step", async ({ page }, testInfo) => {
   await expectNoViolations(page, "post: form with findings");
 
   await page.goto("/employer/post");
+  await openTheForm(page);
   await page.getByRole("button", { name: "不用粘贴，直接填表" }).click();
   await expectNoViolations(page, "post: empty form, everything missing");
 
