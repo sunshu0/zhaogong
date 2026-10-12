@@ -12,7 +12,8 @@ import { getPlatformStats, listFeaturedJobs } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobCard } from "@/components/seeker/JobCard";
-import { EMPLOYER_EXAMPLE, formatCount, POSITIONING } from "@/components/seeker/landing";
+import { CountUpStats } from "@/components/seeker/CountUpStats";
+import { EMPLOYER_EXAMPLE, POSITIONING } from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, JobStack, PositioningIconSvg } from "@/components/seeker/landing-parts";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
@@ -145,7 +146,7 @@ async function HeroPicture() {
   return <JobStack jobs={jobs} employers={await employersOf(jobs)} />;
 }
 
-/** Real counts from getPlatformStats, per request; while the data is demo data it says so. */
+/** Real counts from getPlatformStats, per request, counting up on screen; while the data is demo data it says so. */
 async function StatsBand() {
   await connection();
   const stats = visibleStats(await getPlatformStats(DEFAULT_COUNTRY));
@@ -159,14 +160,7 @@ async function StatsBand() {
           </h2>
           {DEMO_DATA && <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">演示数据</span>}
         </div>
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.key} className="flex flex-col-reverse gap-2 bg-surface px-5 py-6">
-              <dt className="text-sm text-muted">{stat.label}</dt>
-              <dd className="text-[2.5rem] leading-none font-semibold text-brand tabular-nums">{formatCount(stat.value)}</dd>
-            </div>
-          ))}
-        </dl>
+        <CountUpStats stats={stats} />
       </div>
     </section>
   );

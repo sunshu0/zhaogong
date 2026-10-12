@@ -49,7 +49,11 @@ test("landing: stats band with real counts and the 演示数据 tag", async ({ p
     await expect(cells).toHaveCount(shown.length);
     await expect(stats.getByRole("term")).toHaveText(shown.map((s) => s.label));
   }
-  for (const cell of await cells.all()) await expect(cell).toHaveText(/^\d{1,3}(,\d{3})*$/);
+  // Screen readers get the real number only; the counting digits are aria-hidden.
+  for (const cell of await cells.all()) {
+    await expect(cell.locator(".sr-only")).toHaveText(/^\d{1,3}(,\d{3})*$/);
+    await expect(cell.locator("[data-count-up]")).toHaveAttribute("aria-hidden", "true");
+  }
 
   const tops = await Promise.all((await cells.all()).map(async (c) => Math.round((await c.boundingBox())!.y)));
   if (testInfo.project.name === "desktop") expect(new Set(tops).size).toBe(1); // one row of four
