@@ -9,7 +9,7 @@ const inputClass =
   "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-brand aria-invalid:border-danger";
 const primaryClass = "w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white";
 
-/** Demo email sign-in: any address, then any six-digit code. Goes to `next` afterwards. */
+/** Demo email sign-up / sign-in (the same step): any address, then any six-digit code. Goes to `next` afterwards. */
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
   const hydrated = useHydrated();
@@ -73,14 +73,14 @@ export function LoginForm({ next }: { next: string }) {
       <button type="submit" className={primaryClass}>
         获取验证码
       </button>
-      <p className="text-xs text-muted">邮箱只用来登录，不会显示给雇主。</p>
+      <p className="text-xs text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
     </form>
   ) : (
     <form onSubmit={submitCode} noValidate className="space-y-3 rounded-xl border border-border bg-surface p-4">
       <p className="text-sm">
         验证码已发送到 <span className="font-medium">{email}</span>
       </p>
-      <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">演示版不会真的发送邮件，输入任意 6 位数字即可登录。</p>
+      <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">演示版不会真的发送邮件，输入任意 6 位数字即可注册或登录。</p>
       <label className="block">
         <span className="mb-1 block text-sm font-medium">验证码</span>
         <input
