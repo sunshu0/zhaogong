@@ -13,7 +13,7 @@
   --warn-soft: #fef3e2;
   --danger: #b91c1c;
   --danger-soft: #fdecec;
-  --ok: #15803d;
+  --ok: #147638; /* 5.08:1 on --ok-soft (WCAG AA) */
   --ok-soft: #e8f5ec;
 }
 
