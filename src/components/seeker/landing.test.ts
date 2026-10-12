@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { employersOf } from "@/components/seeker/employers";
-import { EMPLOYER_EXAMPLE, formatCount, POSITIONING } from "@/components/seeker/landing";
+import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount } from "@/components/seeker/landing";
 import { englishSummary, parsePost } from "@/lib/ai-post";
 import { listFeaturedJobs } from "@/lib/data";
 
@@ -21,14 +21,13 @@ describe("employersOf", () => {
   });
 });
 
-describe("POSITIONING", () => {
-  it("has three or four short blocks with an icon each and makes no number claims", () => {
-    expect(POSITIONING.length).toBeGreaterThanOrEqual(3);
-    expect(POSITIONING.length).toBeLessThanOrEqual(4);
-    for (const block of POSITIONING) {
-      expect(block.text.length).toBeLessThanOrEqual(60);
-      expect(["language", "check", "shield", "free"]).toContain(block.icon);
-      expect(`${block.title}${block.text}`).not.toMatch(/[0-9０-９]|万|千|百/);
+describe("FEATURES", () => {
+  it("shows the AI chat post and three more, short, with an icon each and no number claims", () => {
+    expect(FEATURES.map((f) => f.title)).toEqual(["发布前合规检查", "雇主验证与防骗", "中文为主"]);
+    for (const block of [...FEATURES, { ...AI_FEATURE, icon: "chat" as const }]) {
+      expect(block.text.length).toBeLessThanOrEqual(70);
+      expect(["chat", "language", "check", "shield"]).toContain(block.icon);
+      expect(`${block.title}${block.text}`.replace("AI", "")).not.toMatch(/[0-9０-９]|万|千|百/);
     }
   });
 });

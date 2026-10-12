@@ -13,8 +13,11 @@ import { employersOf } from "@/components/seeker/employers";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobCard } from "@/components/seeker/JobCard";
 import { CountUpStats } from "@/components/seeker/CountUpStats";
-import { EMPLOYER_EXAMPLE, POSITIONING } from "@/components/seeker/landing";
-import { BeforeAfter, CheckIcon, JobStack, PositioningIconSvg } from "@/components/seeker/landing-parts";
+import { PostJobLink } from "@/components/seeker/AccountMenu";
+import { buildReplay } from "@/components/seeker/chat-replay";
+import { ChatReplay } from "@/components/seeker/ChatReplay";
+import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES } from "@/components/seeker/landing";
+import { BeforeAfter, CheckIcon, FeatureIconSvg, JobStack } from "@/components/seeker/landing-parts";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
@@ -72,10 +75,10 @@ export default function Home({ searchParams }: PageProps<"/">) {
             </p>
             <div className="mt-7 flex gap-3">
               <Link
-                href={`/login?next=${encodeURIComponent(jobsHref(""))}`}
+                href="/login?role=seeker"
                 className="flex-1 rounded-lg bg-white px-6 py-3 text-center font-semibold text-brand hover:bg-white/90 lg:flex-none"
               >
-                注册
+                注册找工作
               </Link>
               <Link
                 href={jobsHref("")}
@@ -84,7 +87,11 @@ export default function Home({ searchParams }: PageProps<"/">) {
                 直接浏览工作
               </Link>
             </div>
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white" aria-label="我们的承诺">
+            <p className="mt-4 text-sm text-white">
+              招人？{" "}
+              <PostJobLink className="font-medium underline underline-offset-4 hover:no-underline">我要招人 →</PostJobLink>
+            </p>
+            <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white" aria-label="我们的承诺">
               {TRUST.map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <CheckIcon />
@@ -106,28 +113,11 @@ export default function Home({ searchParams }: PageProps<"/">) {
         <StatsBand />
       </Suspense>
 
+      <FeaturesBand />
+
       <Suspense fallback={<div className={`${FULL_BLEED} h-96`} />}>
         <FeaturedBand />
       </Suspense>
-
-      <section aria-labelledby="positioning-heading" className={`${FULL_BLEED} border-y border-border bg-surface`}>
-        <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
-          <h2 id="positioning-heading" className="text-2xl font-bold">
-            我们的定位
-          </h2>
-          <ul className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {POSITIONING.map((block) => (
-              <li key={block.title}>
-                <span className="flex size-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
-                  <PositioningIconSvg name={block.icon} />
-                </span>
-                <p className="mt-4 font-semibold">{block.title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{block.text}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
 
       <EmployerBand />
     </div>
@@ -196,6 +186,49 @@ async function FeaturedBand() {
   );
 }
 
+/** 功能展示: the AI chat post with a replay of a real conversation, then three more features. */
+async function FeaturesBand() {
+  const replay = await buildReplay();
+  return (
+    <section aria-labelledby="features-heading" className={`${FULL_BLEED} border-y border-border bg-surface`}>
+      <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
+        <h2 id="features-heading" className="text-2xl font-bold">
+          功能展示
+        </h2>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
+          <article aria-labelledby="ai-feature-heading" className="rounded-2xl border border-brand/30 bg-brand-soft/50 p-4 lg:p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
+                <FeatureIconSvg name="chat" />
+              </span>
+              <div>
+                <h3 id="ai-feature-heading" className="font-semibold">
+                  {AI_FEATURE.title}
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{AI_FEATURE.text}</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <ChatReplay messages={replay} />
+            </div>
+          </article>
+          <ul className="grid gap-4">
+            {FEATURES.map((feature) => (
+              <li key={feature.title} className="rounded-2xl border border-border p-5">
+                <span className="flex size-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <FeatureIconSvg name={feature.icon} />
+                </span>
+                <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{feature.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /** For employers: a WeChat message turned into a job by the same parser the post flow uses. */
 async function EmployerBand() {
   const { draft } = await parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY);
@@ -215,12 +248,14 @@ async function EmployerBand() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/employer"
-            className="mt-6 inline-block rounded-lg bg-white px-5 py-2.5 font-semibold text-foreground hover:bg-white/90"
-          >
-            雇主发布招聘 →
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <PostJobLink className="inline-block rounded-lg bg-white px-5 py-2.5 font-semibold text-foreground hover:bg-white/90">
+              注册雇主 →
+            </PostJobLink>
+            <Link href="/employer" className="text-sm text-white underline underline-offset-4 hover:no-underline">
+              看看雇主能做什么
+            </Link>
+          </div>
         </div>
         <BeforeAfter message={EMPLOYER_EXAMPLE} draft={draft} summaryEn={englishSummary(draft, DEFAULT_COUNTRY)} />
       </div>

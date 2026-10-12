@@ -4,7 +4,7 @@ import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
 import type { JobDraft } from "@/lib/compliance";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
-import type { PositioningIcon } from "@/components/seeker/landing";
+import type { FeatureIcon } from "@/components/seeker/landing";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
@@ -71,18 +71,18 @@ export function CheckIcon({ className = "size-4" }: { className?: string }) {
   );
 }
 
-const ICON_PATHS: Record<PositioningIcon, string[]> = {
-  // A speech bubble with lines of text.
-  language: ["M4 5h16v10H9l-5 4z", "M8 9h8", "M8 12h5"],
+const ICON_PATHS: Record<FeatureIcon, string[]> = {
+  // Two speech bubbles.
+  chat: ["M3 5h12v8H7l-4 3z", "M9 16v1h8l4 3V9h-3"],
+  // A speech bubble with 文-like strokes.
+  language: ["M4 5h16v10H9l-5 4z", "M8 9h8", "M12 7v2", "M9.5 13l2.5-4 2.5 4"],
   // A checklist.
   check: ["M10 6h10", "M10 12h10", "M10 18h10", "m3.5 6 1.5 1.5L8 4.5", "m3.5 12 1.5 1.5L8 10.5", "m3.5 18 1.5 1.5L8 16.5"],
   // A shield with a tick.
   shield: ["M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z", "m9 12 2 2 4-4"],
-  // A gift.
-  free: ["M4 11h16v9H4z", "M3 7h18v4H3z", "M12 7v13", "M12 7C10.5 4 7 4 7 6s3 1 5 1c2 0 5 1 5-1s-3.5-2-5 1z"],
 };
 
-export function PositioningIconSvg({ name }: { name: PositioningIcon }) {
+export function FeatureIconSvg({ name }: { name: FeatureIcon }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       {ICON_PATHS[name].map((d) => (

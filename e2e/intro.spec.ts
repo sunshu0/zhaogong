@@ -8,7 +8,10 @@ test("landing: hero with logo, headline, buttons and trust row; height by conten
   await expect(hero.locator('img[src*="icon-192"]')).toBeVisible();
   await expect(hero.getByText("找工", { exact: true })).toBeVisible();
   await expect(hero.getByRole("heading", { level: 1, name: "奥克兰的中文工作平台" })).toBeVisible();
-  await expect(hero.getByRole("link", { name: "注册", exact: true })).toBeInViewport();
+  await expect(hero.getByRole("link", { name: "注册找工作" })).toBeInViewport();
+  await expect(hero.getByRole("link", { name: "注册找工作" })).toHaveAttribute("href", "/login?role=seeker");
+  // The quieter way in for employers (signed out: employer sign-up, then posting).
+  await expect(hero.getByRole("link", { name: "我要招人 →" })).toHaveAttribute("href", "/login?role=employer&next=%2Femployer%2Fpost");
   await expect(hero.getByRole("link", { name: "直接浏览工作" })).toBeInViewport();
   await expect(hero.getByRole("list", { name: "我们的承诺" }).getByRole("listitem")).toHaveText(["雇主验证", "发布前查合规", "对求职者免费"]);
 
@@ -60,7 +63,7 @@ test("landing: stats band with real counts and the 演示数据 tag", async ({ p
   else expect(new Set(tops).size).toBe(2); // 2 × 2
 });
 
-test("landing: featured jobs, positioning and the employer before → after", async ({ page }, testInfo) => {
+test("landing: features with the AI chat post, featured jobs, and the employer before → after", async ({ page }, testInfo) => {
   await page.goto("/");
   const featured = page.getByRole("region", { name: "精选工作" });
   const cards = featured.getByRole("listitem").getByRole("link");
@@ -70,13 +73,11 @@ test("landing: featured jobs, positioning and the employer before → after", as
   }
   await expect(featured.getByText("未验证")).toHaveCount(0);
 
-  const positioning = page.getByRole("region", { name: "我们的定位" });
-  const blocks = positioning.getByRole("listitem");
-  await expect(blocks).toHaveCount(4);
-  for (const title of ["中文为主", "发布前查合规", "雇主可信", "对求职者免费"]) {
-    await expect(positioning.getByText(title, { exact: true })).toBeVisible();
-  }
-  await expect(positioning.locator("svg")).toHaveCount(4);
+  const features = page.getByRole("region", { name: "功能展示" });
+  const ai = features.getByRole("article", { name: "AI 对话发帖" });
+  await expect(ai).toBeVisible();
+  const others = features.getByRole("heading", { level: 3 });
+  await expect(others).toHaveText(["AI 对话发帖", "发布前合规检查", "雇主验证与防骗", "中文为主"]);
 
   if (testInfo.project.name === "desktop") {
     const titles = featured.locator("li h2");
@@ -84,8 +85,10 @@ test("landing: featured jobs, positioning and the employer before → after", as
     expect(ys[0]).toBe(ys[1]);
     expect(ys[1]).toBe(ys[2]); // three columns
     expect(ys[3]).toBeGreaterThan(ys[0]);
-    const blockYs = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.y)));
-    expect(new Set(blockYs).size).toBe(1); // four columns
+    // The AI chat post on the left, the three other features beside it.
+    const aiBox = (await ai.boundingBox())!;
+    const firstOther = (await features.getByRole("heading", { level: 3, name: "发布前合规检查" }).boundingBox())!;
+    expect(firstOther.x).toBeGreaterThan(aiBox.x + aiBox.width);
   }
 
   const employer = page.getByRole("region", { name: "招人？一分钟发布招聘" });
@@ -94,7 +97,8 @@ test("landing: featured jobs, positioning and the employer before → after", as
   for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "学签可做", "联系方式：登录后可见"]) {
     await expect(after).toContainText(text);
   }
-  await expect(employer.getByRole("link", { name: "雇主发布招聘 →" })).toHaveAttribute("href", "/employer");
+  await expect(employer.getByRole("link", { name: "注册雇主 →" })).toHaveAttribute("href", "/login?role=employer&next=%2Femployer%2Fpost");
+  await expect(employer.getByRole("link", { name: "看看雇主能做什么" })).toHaveAttribute("href", "/employer");
 
   await cards.first().click();
   await expect(page).toHaveURL(/\/jobs\/j\d+$/);
@@ -103,13 +107,14 @@ test("landing: featured jobs, positioning and the employer before → after", as
   await expect(page).toHaveURL("/jobs");
 });
 
-test("注册 goes through 注册或登录 and lands on the job list", async ({ page }) => {
+test("注册找工作 goes through 注册或登录 and lands on the job list", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "注册", exact: true }).click();
-  await expect(page).toHaveURL("/login?next=%2Fjobs");
+  await page.getByRole("link", { name: "注册找工作" }).click();
+  await expect(page).toHaveURL("/login?role=seeker");
+  await expect(page.getByRole("radio", { name: /我要找工作/ })).toBeChecked();
   await expect(page.getByRole("heading", { level: 1, name: "注册或登录" })).toBeVisible();
 
-  await page.getByLabel("邮箱", { exact: true }).fill("new.seeker@example.com");
+  await page.getByLabel("邮箱", { exact: true }).fill(`new.seeker.${Date.now()}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
   await expect(page.getByText("输入任意 6 位数字即可注册或登录").filter({ visible: true })).toBeVisible();
   await page.getByLabel("验证码").fill("135790");

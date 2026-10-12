@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { accountStatus } from "@/app/login/actions";
 import { employerSignUpHref, identityLabel, postJobHref, reconcileIdentity } from "@/components/seeker/identity";
 import { setIdentity, signOut, useHydrated, useSession } from "@/components/seeker/session-client";
@@ -155,10 +155,10 @@ export function AccountMenu() {
 }
 
 /**
- * Header: 发布招聘. With an employer identity it switches to it and goes to posting; otherwise it goes
- * through employer sign-up (the email step when signed out, the business step when signed in).
+ * 发布招聘 (header) and the landing page's employer links. With an employer identity it switches to it and goes
+ * to posting; otherwise it goes through employer sign-up (the email step signed out, the business step signed in).
  */
-export function PostJobLink({ className = "" }: { className?: string }) {
+export function PostJobLink({ className = "", children = "发布招聘" }: { className?: string; children?: ReactNode }) {
   const hydrated = useHydrated();
   const session = useSession();
   const current = hydrated ? session : null;
@@ -172,7 +172,7 @@ export function PostJobLink({ className = "" }: { className?: string }) {
       }}
       className={className}
     >
-      发布招聘
+      {children}
     </Link>
   );
 }
