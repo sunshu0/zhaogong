@@ -10,7 +10,7 @@ import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/s
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
 import { RememberListQuery } from "@/components/seeker/last-list";
 import { requestTime } from "@/components/seeker/request-time";
-import { STICKY_COLUMN, WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
 
@@ -34,12 +34,9 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
   const query = filterToQuery(filter);
 
   return (
-    // From 1024 px: filters in a left column that stays in view, results on the right.
-    <div className="lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <>
       <RememberListQuery query={query} />
-      <aside aria-label="筛选职位" className={STICKY_COLUMN}>
-        <FilterForm key={query} filter={filter} />
-      </aside>
+      <FilterForm key={query} filter={filter} />
       <section aria-label="职位列表">
         <ActiveFilters filter={filter} />
         <p className="mb-3 text-sm text-muted">
@@ -58,7 +55,7 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
           }
         />
       </section>
-    </div>
+    </>
   );
 }
 

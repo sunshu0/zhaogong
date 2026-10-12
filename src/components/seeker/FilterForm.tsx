@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { COUNTRIES } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
@@ -10,15 +10,44 @@ import { filterChips, filterToQuery, jobsHref, parseFilter, toParams } from "@/c
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
 
 /**
- * Keyword box plus a filter panel. Submitting writes the filter into the URL; without JavaScript the
- * form still works as a plain GET. Give it `key={query}` so it resets when the URL changes elsewhere.
+ * One bar above the list at every width: keyword box + 筛选 · N. The panel drops down under the bar, closed by
+ * default; 查看职位 applies it, Esc or a tap outside closes it without applying. Submitting writes the filter into
+ * the URL; without JavaScript the form still works as a plain GET. Give it `key={query}` so it resets (and closes)
+ * when the URL changes.
  */
 export function FilterForm({ filter }: { filter: JobFilter }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const country = COUNTRIES[filter.country];
   const active = filterChips(filter).filter((c) => c.id !== "q").length;
+
+  // Closing without 查看职位 puts the panel back to the filters in the URL.
+  const close = useCallback((returnFocus: boolean) => {
+    for (const input of formRef.current?.querySelectorAll<HTMLInputElement>("#job-filters input") ?? []) {
+      input.checked = input.defaultChecked;
+    }
+    setOpen(false);
+    if (returnFocus) toggleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!formRef.current?.contains(e.target as Node)) close(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close(true);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, close]);
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -27,7 +56,7 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
   }
 
   return (
-    <form action={jobsHref("")} onSubmit={submit} role="search" className="mb-3 lg:mb-0">
+    <form ref={formRef} action={jobsHref("")} onSubmit={submit} role="search" className="relative mb-3">
       <div className="flex gap-2">
         <input
           type="search"
@@ -40,11 +69,12 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
           className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand"
         />
         <button
+          ref={toggleRef}
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => (open ? close(false) : setOpen(true))}
           aria-expanded={open}
           aria-controls="job-filters"
-          className={`shrink-0 rounded-lg border px-3 py-2 text-sm lg:hidden ${
+          className={`shrink-0 rounded-lg border px-3 py-2 text-sm ${
             open || active ? "border-brand bg-brand-soft text-brand" : "border-border bg-surface"
           }`}
         >
@@ -52,8 +82,13 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
         </button>
       </div>
 
-      {/* Phones open the panel with 筛选; from 1024 px it is always shown, in the page's left column. */}
-      <div id="job-filters" className={`mt-2 space-y-4 rounded-xl border border-border bg-surface p-4 lg:block ${open ? "" : "hidden"}`}>
+      <div
+        id="job-filters"
+        className={`absolute inset-x-0 top-full z-10 mt-2 max-h-[min(75vh,40rem)] space-y-4 overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-lg ${
+          // Two columns of groups from 1024 px; only while open, since lg:grid would override hidden.
+          open ? "lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-4 lg:space-y-0" : "hidden"
+        }`}
+      >
         <Group title="地区">
           {country.regions.map((r) => (
             <Chip key={r.id} type="checkbox" name="region" value={r.id} checked={filter.regionIds?.includes(r.id)}>
@@ -105,7 +140,8 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
           </Chip>
         </Group>
 
-        <div className="flex gap-2 pt-1">
+        {/* Stays at the bottom of the panel while the groups scroll, so 查看职位 is always in reach. */}
+        <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2 border-t border-border bg-surface px-4 py-3 lg:col-span-2">
           <button
             type="button"
             className="flex-1 rounded-lg border border-border px-3 py-2.5 text-sm"

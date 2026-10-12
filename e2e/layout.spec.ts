@@ -4,29 +4,55 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
-test("home: filters in a left column that stays in view on desktop, behind 筛选 on phones", async ({ page }, testInfo) => {
-  await page.goto("/jobs");
+test("job list: filters collapsed in one bar at every width; Esc or a tap outside closes them unapplied", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/jobs?industry=hospitality");
   const panel = page.locator("#job-filters");
-  const toggle = page.getByRole("button", { name: /^筛选/ });
+  const toggle = page.getByRole("button", { name: "筛选 · 1" });
   const list = page.getByRole("region", { name: "职位列表" });
+  const search = page.getByRole("searchbox", { name: "搜索职位" });
   await expect(list.getByRole("listitem").first()).toBeVisible();
   expect(await noSideScroll(page)).toBe(true);
 
-  if (testInfo.project.name === "mobile") {
-    await expect(panel).toBeHidden();
-    await toggle.click();
-    await expect(panel).toBeVisible();
-    expect((await box(panel)).y).toBeLessThan((await box(list)).y);
-    return;
+  // Closed by default; the active filter shows as a chip under the bar; search and 筛选 share one row.
+  await expect(panel).toBeHidden();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
+  expect(Math.abs((await box(search)).y - (await box(toggle)).y)).toBeLessThan(4);
+
+  // The list takes the full width of the bar: two columns of cards on desktop, one on phones.
+  const titles = list.getByRole("heading", { level: 2 });
+  const [first, second] = [await box(titles.nth(0)), await box(titles.nth(1))];
+  const grid = await box(list.locator("ul").first());
+  expect(grid.width).toBeGreaterThan((await box(page.getByRole("search"))).width - 2);
+  if (testInfo.project.name === "desktop") {
+    expect(second.y).toBe(first.y);
+    expect(second.x).toBeGreaterThan(first.x + grid.width / 3);
+  } else {
+    expect(second.y).toBeGreaterThan(first.y);
   }
 
-  await expect(toggle).toBeHidden();
+  // Opens as a drop-down over the list; Esc closes it and puts focus back on 筛选.
+  await toggle.click();
   await expect(panel).toBeVisible();
-  const filters = page.getByRole("complementary", { name: "筛选职位" });
-  expect((await box(filters)).x + (await box(filters)).width).toBeLessThanOrEqual((await box(list)).x);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect((await box(panel)).y).toBeGreaterThan((await box(toggle)).y);
+  await expect(page.getByRole("button", { name: "查看职位" })).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(toggle).toBeFocused();
 
-  await page.mouse.wheel(0, 1500);
-  await expect.poll(async () => Math.round((await box(filters)).y)).toBe(72); // just below the 3.5rem header
+  // A tap outside closes it and drops choices that were not applied.
+  await toggle.click();
+  await page.getByRole("group", { name: "地区" }).getByText("Albany", { exact: true }).click();
+  await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
+  await page.getByRole("heading", { name: "奥克兰中文工作" }).click();
+  await expect(panel).toBeHidden();
+  await expect(page).toHaveURL("/jobs?industry=hospitality");
+  await toggle.click();
+  await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).not.toBeChecked();
+  await expect(page.getByRole("group", { name: "行业" }).getByLabel("餐饮")).toBeChecked();
 });
 
 test("job page: contact and share in a right column that stays in view on desktop, after the description on phones", async ({

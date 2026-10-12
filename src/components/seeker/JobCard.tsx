@@ -15,7 +15,7 @@ export function JobCard({ job, employer, now }: { job: Job; employer?: Employer;
   return (
     <Link
       href={`/jobs/${job.id}`}
-      className="block rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40 active:bg-background"
+      className="block h-full rounded-xl border border-border bg-surface p-4 transition-colors hover:border-brand/40 active:bg-background"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

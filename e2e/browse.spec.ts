@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("list → filter → detail → back to the filtered list", async ({ page }, testInfo) => {
+test("list → filter → detail → back to the filtered list", async ({ page }) => {
   await page.goto("/jobs");
   await expect(page.getByRole("heading", { name: "奥克兰中文工作" })).toBeVisible();
   await expect(page.getByText(/共 \d+ 个职位，最新发布在前/).filter({ visible: true })).toBeVisible();
@@ -11,14 +11,15 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   expect(titles.indexOf("超市理货员")).toBeLessThan(titles.indexOf("前厅服务员"));
   expect(titles.indexOf("前厅服务员")).toBeLessThan(titles.indexOf("店长"));
 
-  // Phones open the filter panel; from 1024 px it is always shown in the left column.
-  if (testInfo.project.name === "mobile") await page.getByRole("button", { name: /^筛选/ }).click();
+  await page.getByRole("button", { name: /^筛选/ }).click();
   await page.getByRole("group", { name: "行业" }).getByText("餐饮", { exact: true }).click();
   await page.getByRole("group", { name: "食宿" }).getByText("包餐", { exact: true }).click();
   await page.getByRole("button", { name: "查看职位" }).click();
 
   await expect(page).toHaveURL("/jobs?industry=hospitality&meals=1");
   await expect(page.getByText(/找到 \d+ 个职位/).filter({ visible: true })).toBeVisible();
+  await expect(page.locator("#job-filters")).toBeHidden(); // 查看职位 closes the panel
+  await expect(page.getByRole("button", { name: "筛选 · 2" })).toBeVisible();
   await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
   await expect(page.getByRole("link", { name: /超市理货员/ })).toHaveCount(0); // retail, no meals
 

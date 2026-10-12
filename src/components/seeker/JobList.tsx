@@ -25,7 +25,8 @@ export function JobList({
   }
 
   return (
-    <ul className="space-y-3">
+    // Two columns of cards from 1024 px, where the list is as wide as the page.
+    <ul className="grid gap-3 lg:grid-cols-2">
       {jobs.map((job) => (
         <li key={job.id}>
           <JobCard job={job} employer={employers.get(job.employerId)} now={now} />
@@ -37,7 +38,7 @@ export function JobList({
 
 export function JobListSkeleton() {
   return (
-    <ul className="space-y-3" aria-hidden="true">
+    <ul className="grid gap-3 lg:grid-cols-2" aria-hidden="true">
       {[0, 1, 2, 3].map((i) => (
         <li key={i} className="h-36 animate-pulse rounded-xl border border-border bg-surface" />
       ))}
