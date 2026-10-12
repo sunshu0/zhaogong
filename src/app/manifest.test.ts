@@ -23,11 +23,11 @@ function pngSize(publicPath: string): { width: number; height: number } {
 describe("web app manifest", () => {
   const m = manifest();
 
-  it("names the app and opens the job list full screen", () => {
+  it("names the app and opens on the job list, full screen", () => {
     expect(m.short_name).toBe(PRODUCT_NAME);
     expect(m.name).toContain(PRODUCT_NAME);
     expect(m.lang).toBe("zh-CN");
-    expect(m.start_url).toBe("/");
+    expect(m.start_url).toBe("/jobs");
     expect(m.scope).toBe("/");
     expect(m.display).toBe("standalone");
   });

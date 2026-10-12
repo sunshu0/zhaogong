@@ -5,7 +5,7 @@ const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
 test("home: filters in a left column that stays in view on desktop, behind 筛选 on phones", async ({ page }, testInfo) => {
-  await page.goto("/");
+  await page.goto("/jobs");
   const panel = page.locator("#job-filters");
   const toggle = page.getByRole("button", { name: /^筛选/ });
   const list = page.getByRole("region", { name: "职位列表" });

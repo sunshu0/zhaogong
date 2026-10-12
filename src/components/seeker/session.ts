@@ -27,11 +27,11 @@ export function isValidCode(code: string): boolean {
   return /^[0-9]{6}$/.test(code.trim());
 }
 
-/** Where to go after signing in: a path on this site, never another origin or the login page itself. */
+/** Where to go after signing in: a path on this site, never another origin or the login page itself; the job list otherwise. */
 export function safeNext(next: string | string[] | undefined): string {
   const path = Array.isArray(next) ? next[0] : next;
-  if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return "/";
-  if (path === "/login" || path.startsWith("/login?") || path.startsWith("/login/")) return "/";
+  if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return "/jobs";
+  if (path === "/login" || path.startsWith("/login?") || path.startsWith("/login/")) return "/jobs";
   return path;
 }
 

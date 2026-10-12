@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterChips, filterToQuery, isFiltered, parseFilter, toParams } from "@/components/seeker/filter-query";
+import { filterChips, filterToQuery, isFiltered, jobsHref, parseFilter, toParams } from "@/components/seeker/filter-query";
 import { listJobs } from "@/lib/data";
 import type { JobFilter } from "@/lib/types";
 
@@ -85,6 +85,14 @@ describe("filterToQuery", () => {
       query: "a&b=c,d",
     };
     expect(parse(filterToQuery(filter))).toEqual(filter);
+  });
+});
+
+describe("jobsHref", () => {
+  it("links to the job list at /jobs, with the filters when there are any", () => {
+    expect(jobsHref("")).toBe("/jobs");
+    expect(jobsHref("industry=retail&meals=1")).toBe("/jobs?industry=retail&meals=1");
+    expect(jobsHref(filterToQuery({ country: "NZ", regionIds: ["akl-cbd"] }))).toBe("/jobs?region=akl-cbd");
   });
 });
 

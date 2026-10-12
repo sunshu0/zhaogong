@@ -39,18 +39,19 @@ describe("sign-in input", () => {
 describe("safeNext", () => {
   it("returns to a page on this site", () => {
     expect(safeNext("/jobs/j1")).toBe("/jobs/j1");
-    expect(safeNext("/?industry=retail")).toBe("/?industry=retail");
+    expect(safeNext("/jobs?industry=retail")).toBe("/jobs?industry=retail");
+    expect(safeNext("/")).toBe("/");
   });
 
-  it("falls back to the home page for anything that could leave the site", () => {
+  it("falls back to the job list for anything that could leave the site", () => {
     for (const bad of [undefined, "", "jobs/j1", "//evil.example", "/\\evil.example", "https://evil.example", "javascript:alert(1)"]) {
-      expect(safeNext(bad)).toBe("/");
+      expect(safeNext(bad)).toBe("/jobs");
     }
     expect(safeNext(["/jobs/j1", "/jobs/j2"])).toBe("/jobs/j1");
   });
 
   it("does not send the user back to the login page", () => {
-    expect(safeNext("/login?next=/jobs/j1")).toBe("/");
+    expect(safeNext("/login?next=/jobs/j1")).toBe("/jobs");
   });
 });
 

@@ -81,6 +81,11 @@ export function filterToQuery(filter: JobFilter): string {
   return parts.join("&");
 }
 
+/** The job list's URL for a query from filterToQuery. */
+export function jobsHref(query: string): string {
+  return query ? `/jobs?${query}` : "/jobs";
+}
+
 export interface FilterChip {
   id: string;
   label: string;

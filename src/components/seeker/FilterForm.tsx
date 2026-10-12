@@ -5,7 +5,7 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { COUNTRIES } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
-import { filterChips, filterToQuery, parseFilter, toParams } from "@/components/seeker/filter-query";
+import { filterChips, filterToQuery, jobsHref, parseFilter, toParams } from "@/components/seeker/filter-query";
 
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
 
@@ -23,11 +23,11 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const query = filterToQuery(parseFilter(toParams(new FormData(e.currentTarget)), filter.country));
-    startTransition(() => router.push(query ? `/?${query}` : "/"));
+    startTransition(() => router.push(jobsHref(query)));
   }
 
   return (
-    <form action="/" onSubmit={submit} role="search" className="mb-3 lg:mb-0">
+    <form action={jobsHref("")} onSubmit={submit} role="search" className="mb-3 lg:mb-0">
       <div className="flex gap-2">
         <input
           type="search"

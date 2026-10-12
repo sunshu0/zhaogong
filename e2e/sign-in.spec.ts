@@ -39,5 +39,5 @@ test("sign-in never sends the user to another site", async ({ page }) => {
   await page.getByRole("button", { name: "获取验证码" }).click();
   await page.getByLabel("验证码").fill("000000");
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/jobs");
 });

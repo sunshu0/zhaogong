@@ -43,7 +43,7 @@ export function MePage() {
           type="button"
           onClick={() => {
             signOut();
-            router.push("/");
+            router.push("/jobs");
           }}
           className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm"
         >
@@ -64,7 +64,7 @@ export function MePage() {
       >
         {views.length === 0 ? (
           <Empty>
-            还没有看过职位。<Link href="/" className="text-brand underline underline-offset-2">去看看</Link>
+            还没有看过职位。<Link href="/jobs" className="text-brand underline underline-offset-2">去看看</Link>
           </Empty>
         ) : (
           <ul className="divide-y divide-border">

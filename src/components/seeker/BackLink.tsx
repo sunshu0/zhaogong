@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { lastListHref } from "@/components/seeker/last-list";
 
-/** Back to the list the user last looked at in this tab, with its filters, or to the home page. */
+/** Back to the list the user last looked at in this tab, with its filters, or to /jobs. */
 export function BackLink() {
   const router = useRouter();
   return (
     <Link
-      href="/"
+      href="/jobs"
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();

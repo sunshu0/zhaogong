@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: PRODUCT_NAME,
     description: "奥克兰的中文工作信息：时薪、地区、签证要求一目了然，雇主经过验证。",
     lang: "zh-CN",
-    start_url: "/",
+    start_url: "/jobs",
     scope: "/",
     display: "standalone",
     theme_color: "#0f766e",

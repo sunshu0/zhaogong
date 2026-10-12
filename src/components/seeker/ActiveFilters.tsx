@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { JobFilter } from "@/lib/types";
-import { filterChips } from "@/components/seeker/filter-query";
+import { filterChips, jobsHref } from "@/components/seeker/filter-query";
 
 /** The filters in the URL, each removable on its own. */
 export function ActiveFilters({ filter }: { filter: JobFilter }) {
@@ -12,7 +12,7 @@ export function ActiveFilters({ filter }: { filter: JobFilter }) {
       {chips.map((chip) => (
         <Link
           key={chip.id}
-          href={chip.query ? `/?${chip.query}` : "/"}
+          href={jobsHref(chip.query)}
           aria-label={`去掉条件：${chip.label}`}
           className="inline-flex items-center gap-1 rounded-full bg-brand-soft py-1 pr-2 pl-3 text-sm text-brand"
         >
@@ -23,7 +23,7 @@ export function ActiveFilters({ filter }: { filter: JobFilter }) {
         </Link>
       ))}
       {chips.length > 1 && (
-        <Link href="/" className="px-1 text-sm text-muted underline underline-offset-2">
+        <Link href={jobsHref("")} className="px-1 text-sm text-muted underline underline-offset-2">
           全部清除
         </Link>
       )}

@@ -31,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Link>
             <span className="text-sm text-muted">奥克兰</span>
             <nav className="ml-auto flex items-center gap-4 text-sm">
-              <Link href="/" className="hover:text-brand">
+              <Link href="/jobs" className="hover:text-brand">
                 找工作
               </Link>
               <AccountLink className="hover:text-brand" />
