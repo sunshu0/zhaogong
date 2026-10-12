@@ -3,27 +3,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { CLEAN_MESSAGE, publishJob, signInAs, uniqueTitle } from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
-// 1280 px (the two projects). WCAG 2.1 A and AA.
-
-/**
- * The shared --ok / --ok-soft pair is 4.47:1, just under 4.5. That is a token in globals.css (the
- * lead's), requested in the queue; until it changes, only that exact pair is skipped and counted.
- */
-const PENDING_TOKEN_PAIR = "foreground color: #15803d, background color: #e8f5ec";
-
+// 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
 async function expectNoViolations(page: Page, state: string) {
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-  let skipped = 0;
-  const open = violations
-    .map((v) => {
-      if (v.id !== "color-contrast") return v;
-      const nodes = v.nodes.filter((n) => !n.failureSummary?.includes(PENDING_TOKEN_PAIR));
-      skipped += v.nodes.length - nodes.length;
-      return { ...v, nodes };
-    })
-    .filter((v) => v.nodes.length > 0);
-  if (skipped) test.info().annotations.push({ type: "pending token", description: `${state}: ${skipped} node(s) with --ok on --ok-soft` });
-  const found = open.map((v) => `${v.id} (${v.impact}): ${v.help}\n${v.nodes.map((n) => `    ${n.target.join(" ")} — ${n.failureSummary?.split("\n").join(" ")}`).join("\n")}`);
+  const found = violations.map((v) => `${v.id} (${v.impact}): ${v.help}\n${v.nodes.map((n) => `    ${n.target.join(" ")} — ${n.failureSummary?.split("\n").join(" ")}`).join("\n")}`);
   expect.soft(found, `${state}\n${found.join("\n")}`).toEqual([]);
 }
 
