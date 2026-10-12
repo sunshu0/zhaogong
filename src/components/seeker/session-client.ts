@@ -20,11 +20,6 @@ export function useSession(): DemoSession | null {
   return store.useValue();
 }
 
-/** Starts a session as a job seeker with no business. Kept for line B's sign-in panel until B15. */
-export function signIn(email: string): DemoSession | undefined {
-  return store.update((storage) => writeSession(storage, email));
-}
-
 /** Starts a session with the identity the server confirmed (see src/app/login/actions.ts). */
 export function startSession(email: string, identity: SessionIdentity): DemoSession | undefined {
   return store.update((storage) => writeSession(storage, email, new Date(), identity));
