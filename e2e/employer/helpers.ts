@@ -50,9 +50,11 @@ export async function publishJob(page: Page, title: string, message = CLEAN_MESS
   return publishFromPreview(page, /KTV|按摩/.test(message) ? "提交审核" : "发布");
 }
 
-/** The seekers' list searched for one title. */
-export async function searchHome(page: Page, title: string) {
-  await page.goto(`/?q=${encodeURIComponent(title)}`);
+/** The public job list at /jobs (not / since A11), searched for one title. */
+export async function searchJobList(page: Page, title: string) {
+  const query = `q=${encodeURIComponent(title)}`;
+  await page.goto(`/jobs?${query}`);
+  await expect(page).toHaveURL(`/jobs?${query}`);
 }
 
 /** A job card on the seekers' list (not the "去掉条件" chip, whose name also holds the search). */

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { CLEAN_MESSAGE, jobCard, publishJob, searchHome, uniqueTitle } from "./helpers";
+import { CLEAN_MESSAGE, jobCard, publishJob, searchJobList, uniqueTitle } from "./helpers";
 
 test("report a job → /admin takes it down → gone from the list and in the log", async ({ page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
@@ -28,7 +28,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await page.getByRole("tab", { name: /操作记录/ }).click();
   await expect(page.getByRole("listitem").filter({ hasText: done })).toBeVisible();
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
 });
 
@@ -36,7 +36,7 @@ test("a job flagged at posting waits for review, then /admin approves it onto th
   const title = uniqueTitle("前厅服务员", testInfo);
   await publishJob(page, title, CLEAN_MESSAGE.replace("Mt Eden 川菜馆", "Mt Eden KTV 楼下川菜馆"));
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
 
   await page.goto("/admin");
@@ -45,6 +45,6 @@ test("a job flagged at posting waits for review, then /admin approves it onto th
   await card.getByRole("button", { name: "没问题，通过" }).click();
   await expect(page.getByRole("status")).toHaveText(`已处理：审核通过「${title}」（川味小馆） · 标记：高风险行业`);
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(jobCard(page, title)).toBeVisible();
 });

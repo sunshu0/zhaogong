@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { jobCard, publishJob, searchHome, uniqueTitle } from "./helpers";
+import { jobCard, publishJob, searchJobList, uniqueTitle } from "./helpers";
 
 test("manage → end a job → it leaves the list; reopen → it is back", async ({ page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
@@ -15,7 +15,7 @@ test("manage → end a job → it leaves the list; reopen → it is back", async
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘`);
   await expect(card).toContainText("已结束");
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
 
   await page.goto("/employer/jobs");
@@ -23,6 +23,6 @@ test("manage → end a job → it leaves the list; reopen → it is back", async
   await expect(page.getByRole("status")).toHaveText(`${title}：已重新开放 30 天`);
   await expect(card.getByRole("button", { name: "今天已刷新过" })).toBeDisabled();
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(jobCard(page, title)).toBeVisible();
 });

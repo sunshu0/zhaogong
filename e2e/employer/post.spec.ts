@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { findingsPanel, jobCard, publishFromPreview, searchHome, uniqueTitle } from "./helpers";
+import { findingsPanel, jobCard, publishFromPreview, searchJobList, uniqueTitle } from "./helpers";
 
 test("paste → findings hold publishing → fix → publish → the job is on the list", async ({ page }, testInfo) => {
   const title = uniqueTitle("奶茶店店员", testInfo);
@@ -27,7 +27,7 @@ test("paste → findings hold publishing → fix → publish → the job is on t
   const id = await publishFromPreview(page);
   expect(id).toMatch(/^j\d+$/);
 
-  await searchHome(page, title);
+  await searchJobList(page, title);
   await expect(page.getByText("找到 1 个职位").filter({ visible: true })).toBeVisible();
   await jobCard(page, title).click();
   await expect(page).toHaveURL(`/jobs/${id}`);
