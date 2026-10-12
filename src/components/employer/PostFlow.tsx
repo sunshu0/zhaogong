@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type RefObject } from "react";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
 import { DraftEditor } from "@/components/employer/DraftEditor";
@@ -8,8 +8,9 @@ import { completeJob, emptyForm, formFromDraft } from "@/components/employer/pos
 import { useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
-import { holdReason, useDraftForm } from "@/components/employer/use-draft-form";
+import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
@@ -44,6 +45,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const [published, setPublished] = useState<Job>();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  const heading = useFocusOnChange<HTMLHeadingElement>(step);
 
   const employerId = session?.employerId;
   const { profile } = useEmployerProfile(employerId);
@@ -87,6 +89,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       <Published
         job={published}
         employer={employer}
+        headingRef={heading}
         onAgain={() => {
           setText("");
           state.reset(emptyForm());
@@ -100,10 +103,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const preview = step === "preview" ? completeJob(draft, employerId ?? "preview", previewAt, decision.status) : undefined;
 
   return (
-    <div className="space-y-4 pb-24">
-      <ol className="flex gap-2 text-xs">
+    <div onFocus={keepFocusClear} className={`space-y-4 pb-24 ${CLEAR_OF_STICKY_BARS}`}>
+      <ol aria-label="发布步骤" className="flex gap-2 text-xs">
         {STEPS.map((s, i) => (
-          <li key={s.key} className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}>
+          <li key={s.key} aria-current={s.key === step ? "step" : undefined} className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}>
             {i + 1} {s.label}
           </li>
         ))}
@@ -113,7 +116,9 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
 
       {step === "paste" && (
         <section className="space-y-3">
-          <h1 className="text-xl font-semibold">一分钟发布招聘</h1>
+          <h1 ref={heading} tabIndex={-1} className="text-xl font-semibold outline-none">
+            一分钟发布招聘
+          </h1>
           <label htmlFor="post-text" className="block text-sm text-muted">
             把微信群里的招聘消息粘贴进来，或者直接写：招什么人、在哪个区、时薪多少、怎么联系你。
           </label>
@@ -153,6 +158,11 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       )}
 
       {step === "form" && (
+        <h1 ref={heading} tabIndex={-1} className="text-lg font-semibold outline-none">
+          核对职位信息
+        </h1>
+      )}
+      {step === "form" && (
         <div className={WIDE_ON_DESKTOP}>
           <DraftEditor state={state} country={country} notes={notes} />
         </div>
@@ -160,7 +170,9 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
 
       {step === "preview" && preview && (
         <section className="space-y-4">
-          <p className="rounded-lg bg-brand-soft px-3 py-2 text-sm text-brand">这是求职者看到的样子。确认无误就可以发布了。</p>
+          <h1 ref={heading} tabIndex={-1} className="rounded-lg bg-brand-soft px-3 py-2 text-sm font-normal text-brand outline-none">
+            预览：这是求职者看到的样子。确认无误就可以发布了。
+          </h1>
           {decision.status === "pending_review" && (
             <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">这个职位会先经过人工审核，通过后才公开。</p>
           )}
@@ -211,12 +223,22 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   );
 }
 
-function Published({ job, employer, onAgain }: { job: Job; employer?: Employer; onAgain: () => void }) {
+function Published({
+  job,
+  employer,
+  headingRef,
+  onAgain,
+}: {
+  job: Job;
+  employer?: Employer;
+  headingRef: RefObject<HTMLHeadingElement | null>;
+  onAgain: () => void;
+}) {
   const live = job.status === "active";
   return (
     <section className="space-y-4">
       <div className={`rounded-xl px-4 py-5 ${live ? "bg-ok-soft" : "bg-warn-soft"}`}>
-        <h1 className={`text-xl font-semibold ${live ? "text-ok" : "text-warn"}`}>{live ? "已发布" : "已提交审核"}</h1>
+        <h1 ref={headingRef} tabIndex={-1} className={`text-xl font-semibold outline-none ${live ? "text-ok" : "text-warn"}`}>{live ? "已发布" : "已提交审核"}</h1>
         <p className="mt-1 text-sm">
           {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「管理职位」里看到进度。"}
         </p>

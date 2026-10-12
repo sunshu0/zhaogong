@@ -3,6 +3,7 @@ import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import type { Employer, Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { SHARE_PLATFORMS, shareTexts, type SharePlatform } from "@/components/employer/share-texts";
+import { TabList, TabPanel } from "@/components/employer/Tabs";
 
 const noop = () => () => {};
 
@@ -17,23 +18,16 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
   return (
     <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
       <h2 className="font-medium">发到其他平台</h2>
-      <div role="tablist" aria-label="平台" className="flex gap-2">
-        {SHARE_PLATFORMS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            role="tab"
-            id={`${id}-${p.key}`}
-            aria-selected={p.key === platform}
-            aria-controls={`${id}-panel`}
-            onClick={() => setPlatform(p.key)}
-            className={`h-9 flex-1 rounded-full text-sm ${p.key === platform ? "bg-brand text-white" : "border border-border text-muted"}`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${platform}`} className="space-y-2">
+      <TabList
+        label="平台"
+        idBase={id}
+        tabs={SHARE_PLATFORMS.map((p) => ({ key: p.key, label: p.label }))}
+        value={platform}
+        onChange={setPlatform}
+        className="flex gap-2"
+        tabClassName={(selected) => `h-9 flex-1 rounded-full text-sm ${selected ? "bg-brand text-white" : "border border-border text-muted"}`}
+      />
+      <TabPanel idBase={id} value={platform} className="space-y-2">
         <p className="text-xs text-muted">{current.hint}文案里没有联系方式，求职者点链接查看。</p>
         <textarea
           readOnly
@@ -43,7 +37,7 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
           className="w-full rounded-lg border border-border bg-background p-3 text-sm leading-relaxed"
         />
         <CopyButton text={texts[platform]} label={`复制${current.label}文案`} size="md" className="w-full" />
-      </div>
+      </TabPanel>
     </section>
   );
 }

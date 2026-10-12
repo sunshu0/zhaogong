@@ -14,6 +14,8 @@ import {
   type QueueItem,
 } from "@/app/admin/actions";
 import { FindingItem } from "@/components/employer/FindingsPanel";
+import { TabList, TabPanel } from "@/components/employer/Tabs";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { STATUS_LABELS } from "@/components/employer/job-status";
 import { formatPay } from "@/components/seeker/format";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
@@ -26,6 +28,7 @@ export function ModerationQueue() {
   const [queue, setQueue] = useState<Queue>();
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
+  const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
@@ -53,27 +56,23 @@ export function ModerationQueue() {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">审核后台</h1>
-      <div role="tablist" aria-label="审核队列" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`h-9 shrink-0 rounded-full px-3 text-sm ${tab === t.key ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
-          >
-            {t.label} {t.count ?? ""}
-          </button>
-        ))}
-      </div>
+      <TabList
+        label="审核队列"
+        idBase="admin"
+        tabs={tabs.map((t) => ({ key: t.key, label: `${t.label} ${t.count ?? ""}` }))}
+        value={tab}
+        onChange={setTab}
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        tabClassName={(selected) => `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
+      />
 
       {result && (
-        <p role="status" className={`rounded-lg px-3 py-2 text-sm ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+        <p ref={resultRef} tabIndex={-1} role="status" className={`rounded-lg px-3 py-2 text-sm outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
           {result.ok ? `已处理：${result.text}` : result.error_zh}
         </p>
       )}
 
+      <TabPanel idBase="admin" value={tab}>
       {!queue ? (
         <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
       ) : tab === "log" ? (
@@ -95,18 +94,23 @@ export function ModerationQueue() {
           </ol>
         )
       ) : (
-        <ul className="space-y-3">
-          {(tab === "flagged" ? queue.flagged : queue.reported).map((entry) => (
-            <li key={entry.job.id}>
-              <QueueCard item={entry} reports={"reports" in entry ? (entry.reports as Report[]) : undefined} onDone={done} />
-            </li>
-          ))}
-          {(tab === "flagged" ? queue.flagged : queue.reported).length === 0 && (
-            <Empty>{tab === "flagged" ? "没有待审核的职位。" : "没有待处理的举报。"}</Empty>
-          )}
-        </ul>
+        <QueueList items={tab === "flagged" ? queue.flagged : queue.reported} empty={tab === "flagged" ? "没有待审核的职位。" : "没有待处理的举报。"} onDone={done} />
       )}
+      </TabPanel>
     </div>
+  );
+}
+
+function QueueList({ items, empty, onDone }: { items: (QueueItem & { reports?: Report[] })[]; empty: string; onDone: (r: AdminResult) => void }) {
+  if (items.length === 0) return <Empty>{empty}</Empty>;
+  return (
+    <ul className="space-y-3">
+      {items.map((entry) => (
+        <li key={entry.job.id}>
+          <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -149,7 +153,7 @@ function QueueCard({ item, reports, onDone }: { item: QueueItem; reports?: Repor
               <li key={r.id} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
                 <span className="font-medium">{REPORT_REASON_LABELS[r.reason].zh}</span>
                 {r.note && <span>：{r.note}</span>}
-                <span className="ml-1 text-xs opacity-70">{time.format(new Date(r.createdAt))}</span>
+                <span className="ml-1 text-xs">{time.format(new Date(r.createdAt))}</span>
               </li>
             ))}
           </ul>
@@ -181,7 +185,7 @@ function QueueCard({ item, reports, onDone }: { item: QueueItem; reports?: Repor
         {!employer?.bannedAt &&
           (confirmBan ? (
             <>
-              <button type="button" disabled={pending} onClick={() => run(() => banJobEmployer(job.id))} className={`${button} border-danger bg-danger text-white`}>
+              <button type="button" disabled={pending} onClick={() => run(() => banJobEmployer(job.id))} autoFocus className={`${button} border-danger bg-danger text-white`}>
                 确定封禁「{employer?.name}」并下架全部职位
               </button>
               <button type="button" onClick={() => setConfirmBan(false)} className="h-9 px-2 text-sm text-muted underline">

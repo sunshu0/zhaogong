@@ -8,7 +8,9 @@ import { canClose, canEdit, effectiveStatus, expiryLabelZh, refreshState, STATUS
 import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { SignInPanel } from "@/components/employer/SignInPanel";
+import { TabList, TabPanel } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { formatPay } from "@/components/seeker/format";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
@@ -27,6 +29,7 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
   const { profile } = useEmployerProfile(session?.employerId);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
+  const noticeRef = useFocusOnChange<HTMLParagraphElement>(notice);
 
   if (session === undefined) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
   if (!session?.employerId) return <SignInPanel accounts={accounts} intro="登录后管理你发布的职位。" />;
@@ -58,29 +61,25 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
         </Link>
       </div>
 
-      <div role="tablist" aria-label="按状态" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`h-9 shrink-0 rounded-full px-3 text-sm ${tab === t.key ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
-          >
-            {t.label} {t.key === "all" ? (ready?.jobs.length ?? "") : (counts.get(t.key) ?? 0)}
-          </button>
-        ))}
-      </div>
+      <TabList
+        label="按状态"
+        idBase="manage"
+        tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${t.key === "all" ? (ready?.jobs.length ?? "") : (counts.get(t.key) ?? 0)}` }))}
+        value={tab}
+        onChange={setTab}
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
+        tabClassName={(selected) => `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
+      />
 
       {employer?.bannedAt && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
 
       {notice && (
-        <p role="status" className={`rounded-lg px-3 py-2 text-sm ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+        <p ref={noticeRef} tabIndex={-1} role="status" className={`rounded-lg px-3 py-2 text-sm outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
           {notice.text}
         </p>
       )}
 
+      <TabPanel idBase="manage" value={tab}>
       {!ready ? (
         <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
       ) : shown.length === 0 ? (
@@ -103,6 +102,7 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
           ))}
         </ul>
       )}
+      </TabPanel>
     </div>
   );
 }
@@ -173,7 +173,7 @@ function ManagedJob({
           {canClose(job, now) &&
             (confirmClose ? (
               <>
-                <button type="button" disabled={pending} onClick={() => run(() => closeMyJob(job.id, employerId), "已结束招聘")} className={`${button} border-danger text-danger`}>
+                <button type="button" disabled={pending} onClick={() => run(() => closeMyJob(job.id, employerId), "已结束招聘")} autoFocus className={`${button} border-danger text-danger`}>
                   确定结束招聘
                 </button>
                 <button type="button" onClick={() => setConfirmClose(false)} className="h-9 px-2 text-sm text-muted underline">

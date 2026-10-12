@@ -38,8 +38,11 @@ export function FindingItem({ finding }: { finding: Finding }) {
 export function FindingsPanel({ findings, missing }: { findings: Finding[]; missing: RequiredField[] }) {
   const clean = findings.length === 0 && missing.length === 0;
   return (
-    <section aria-live="polite" className="rounded-xl border border-border bg-surface p-4">
+    <section className="rounded-xl border border-border bg-surface p-4">
       <h2 className="font-medium">发布前检查</h2>
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {clean ? "发布前检查：没有发现问题" : `发布前检查：${[findings.length && `${findings.length} 个问题`, missing.length && `${missing.length} 项没填`].filter(Boolean).join("，")}`}
+      </p>
       {clean ? (
         <p className="mt-2 rounded-lg bg-ok-soft px-3 py-2 text-sm text-ok">没有发现问题，可以预览发布。</p>
       ) : (

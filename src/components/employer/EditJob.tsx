@@ -8,7 +8,8 @@ import { canEdit } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
 import { useEmployerSession } from "@/components/employer/session";
 import { SignInPanel } from "@/components/employer/SignInPanel";
-import { holdReason, useDraftForm } from "@/components/employer/use-draft-form";
+import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 /** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
@@ -50,6 +51,7 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
   const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true });
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Job>();
+  const heading = useFocusOnChange<HTMLHeadingElement>(saved?.id);
   const [error, setError] = useState<string>();
   const live = job.status === "active";
   const willReview = live && state.decision.status === "pending_review";
@@ -68,7 +70,7 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
     return (
       <section className="space-y-4">
         <div className={`rounded-xl px-4 py-5 ${saved.status === "pending_review" ? "bg-warn-soft" : "bg-ok-soft"}`}>
-          <h1 className={`text-xl font-semibold ${saved.status === "pending_review" ? "text-warn" : "text-ok"}`}>已保存</h1>
+          <h1 ref={heading} tabIndex={-1} className={`text-xl font-semibold outline-none ${saved.status === "pending_review" ? "text-warn" : "text-ok"}`}>已保存</h1>
           <p className="mt-1 text-sm">
             {saved.titleZh} · {saved.status === "pending_review" ? "修改的内容需要重新审核，通过后公开。" : "修改已生效。"}
           </p>
@@ -88,7 +90,7 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
   }
 
   return (
-    <div className="space-y-4 pb-24">
+    <div onFocus={keepFocusClear} className={`space-y-4 pb-24 ${CLEAR_OF_STICKY_BARS}`}>
       <h1 className="text-lg font-semibold">编辑职位</h1>
       {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
       <div className={WIDE_ON_DESKTOP}>

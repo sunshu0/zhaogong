@@ -8,6 +8,7 @@ import type { RegisterEntry } from "@/components/employer/business-register";
 import { useEmployerSession } from "@/components/employer/session";
 import { SignInPanel } from "@/components/employer/SignInPanel";
 import { useEmployerProfile } from "@/components/employer/use-employer";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 /** Look up the business register by name or NZBN, then claim the entry to show 已验证企业. */
@@ -20,6 +21,7 @@ export function VerifyBusiness({ accounts }: { accounts: Employer[] }) {
   const [found, setFound] = useState<{ results: RegisterEntry[]; error_zh?: string }>();
   const [claiming, setClaiming] = useState<string>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
   const [pending, startTransition] = useTransition();
 
   function search(e: FormEvent) {
@@ -78,7 +80,7 @@ export function VerifyBusiness({ accounts }: { accounts: Employer[] }) {
       </form>
 
       {message && (
-        <p role="status" className={`rounded-lg px-3 py-2 text-sm ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+        <p ref={messageRef} tabIndex={-1} role="status" className={`rounded-lg px-3 py-2 text-sm outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
           {message.text}
         </p>
       )}

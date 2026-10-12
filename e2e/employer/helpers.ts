@@ -1,7 +1,7 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
 import { expect, type Page, type TestInfo } from "@playwright/test";
 
-/** A job message with nothing for the checks to object to. */
+/** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
 export const CLEAN_MESSAGE = "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做，需会普通话。微信 demo_e2e_b";
 
 /**
