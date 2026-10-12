@@ -149,3 +149,18 @@ export interface PlatformStats {
   /** Times signed-in job seekers revealed contact details (咨询). */
   contactViews: number;
 }
+
+/** Which side of the site a signed-in person is using right now. */
+export type AccountRole = "seeker" | "employer";
+
+/**
+ * One person, one email. Every account can look for work; an account can also open an employer
+ * identity for one business and switch between the two.
+ */
+export interface Account {
+  /** Lower-cased, trimmed. */
+  email: string;
+  createdAt: string; // ISO datetime
+  /** Set once the employer identity is opened. */
+  employerId?: string;
+}

@@ -2,6 +2,7 @@
 // not the signatures, so pages should only ever go through these functions.
 import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 import type {
+  Account,
   ContactView,
   CountryCode,
   Employer,
@@ -21,6 +22,7 @@ const employers: Employer[] = MOCK_EMPLOYERS.map((e) => ({ ...e }));
 const reports: Report[] = [];
 const contactViews: ContactView[] = MOCK_CONTACT_VIEWS.map((v) => ({ ...v }));
 const moderationLog: ModerationLogEntry[] = [];
+const accounts = new Map<string, Account>();
 
 export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
@@ -177,4 +179,65 @@ export async function listFeaturedJobs(country: CountryCode, limit = 6): Promise
     .filter((j) => j.country === country && j.status === "active" && trusted.has(j.employerId))
     .sort((a, b) => (b.pay.max ?? b.pay.min) - (a.pay.max ?? a.pay.min) || b.postedAt.localeCompare(a.postedAt))
     .slice(0, limit);
+}
+
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export async function getAccount(email: string): Promise<Account | undefined> {
+  return accounts.get(normalizeEmail(email));
+}
+
+/** Sign-up and sign-in both land here: the account is created on first use. */
+export async function ensureAccount(email: string): Promise<Account> {
+  const key = normalizeEmail(email);
+  let account = accounts.get(key);
+  if (!account) {
+    account = { email: key, createdAt: new Date().toISOString() };
+    accounts.set(key, account);
+  }
+  return account;
+}
+
+/** A new business an employer signs up with. Starts unverified. */
+export async function createEmployer(details: { name: string; regionId: string }): Promise<Employer> {
+  const employer: Employer = {
+    id: `e${employers.length + 1}`,
+    name: details.name.trim(),
+    verification: "unverified",
+    regionId: details.regionId,
+    createdAt: new Date().toISOString().slice(0, 10),
+  };
+  employers.push(employer);
+  return employer;
+}
+
+export type OpenEmployerResult =
+  | { ok: true; account: Account; employer: Employer }
+  | { ok: false; reason: "no_employer" | "banned" | "taken" | "already_employer" };
+
+/**
+ * Open the employer identity of an account for one business. A business belongs to one account;
+ * an account has one business. Banned businesses cannot be taken on.
+ */
+export async function openEmployerIdentity(email: string, employerId: string): Promise<OpenEmployerResult> {
+  const account = await ensureAccount(email);
+  const employer = employers.find((e) => e.id === employerId);
+  if (!employer) return { ok: false, reason: "no_employer" };
+  if (employer.bannedAt) return { ok: false, reason: "banned" };
+  if (account.employerId && account.employerId !== employerId) return { ok: false, reason: "already_employer" };
+  for (const other of accounts.values()) {
+    if (other !== account && other.employerId === employerId) return { ok: false, reason: "taken" };
+  }
+  account.employerId = employerId;
+  return { ok: true, account, employer };
+}
+
+/** The business an account posts for, if its employer identity is open and the business is not banned. */
+export async function getAccountEmployer(email: string): Promise<Employer | undefined> {
+  const account = accounts.get(normalizeEmail(email));
+  if (!account?.employerId) return undefined;
+  const employer = employers.find((e) => e.id === account.employerId);
+  return employer && !employer.bannedAt ? employer : undefined;
 }

@@ -102,3 +102,42 @@ describe("landing page data", () => {
     for (let i = 1; i < featured.length; i++) expect(top(featured[i - 1])).toBeGreaterThanOrEqual(top(featured[i]));
   });
 });
+
+describe("accounts and the employer identity", () => {
+  it("creates one account per email, whatever the case or spaces", async () => {
+    const { ensureAccount, getAccount } = await import("@/lib/data");
+    const a = await ensureAccount("  Mei@Example.com ");
+    const b = await ensureAccount("mei@example.com");
+    expect(a).toBe(b);
+    expect((await getAccount("MEI@example.com"))?.employerId).toBeUndefined();
+  });
+
+  it("opens the employer identity for a new business and finds it again", async () => {
+    const { createEmployer, openEmployerIdentity, getAccountEmployer } = await import("@/lib/data");
+    const shop = await createEmployer({ name: " 新店 ", regionId: "akl-cbd" });
+    expect(shop).toMatchObject({ name: "新店", verification: "unverified" });
+    const opened = await openEmployerIdentity("boss@example.com", shop.id);
+    expect(opened.ok).toBe(true);
+    expect((await getAccountEmployer("BOSS@example.com"))?.id).toBe(shop.id);
+  });
+
+  it("refuses a second business, a business someone else holds, a banned or unknown one", async () => {
+    const { createEmployer, openEmployerIdentity, banEmployer } = await import("@/lib/data");
+    const one = await createEmployer({ name: "一号店", regionId: "akl-cbd" });
+    const two = await createEmployer({ name: "二号店", regionId: "akl-cbd" });
+    expect((await openEmployerIdentity("owner1@example.com", one.id)).ok).toBe(true);
+    expect(await openEmployerIdentity("owner1@example.com", two.id)).toEqual({ ok: false, reason: "already_employer" });
+    expect(await openEmployerIdentity("owner2@example.com", one.id)).toEqual({ ok: false, reason: "taken" });
+    await banEmployer(two.id);
+    expect(await openEmployerIdentity("owner3@example.com", two.id)).toEqual({ ok: false, reason: "banned" });
+    expect(await openEmployerIdentity("owner3@example.com", "nope")).toEqual({ ok: false, reason: "no_employer" });
+  });
+
+  it("stops posting for a business once it is banned", async () => {
+    const { createEmployer, openEmployerIdentity, banEmployer, getAccountEmployer } = await import("@/lib/data");
+    const shop = await createEmployer({ name: "将被封的店", regionId: "akl-cbd" });
+    await openEmployerIdentity("owner4@example.com", shop.id);
+    await banEmployer(shop.id);
+    expect(await getAccountEmployer("owner4@example.com")).toBeUndefined();
+  });
+});
