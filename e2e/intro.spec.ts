@@ -24,6 +24,16 @@ test("landing: hero with logo, headline, buttons and trust row; height by conten
     const headerLogo = (await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).boundingBox())!;
     const heroLogo = (await hero.locator("img").boundingBox())!;
     expect(Math.abs(headerLogo.x - heroLogo.x)).toBeLessThanOrEqual(1);
+
+    // The stacked cards on the right overlap only at their edges: each card starts below the last line
+    // (tags or facts) of the card above it.
+    const stack = hero.locator("[data-job-stack] > div");
+    await expect(stack).toHaveCount(3);
+    for (let i = 0; i < 2; i++) {
+      const lastLine = (await stack.nth(i).locator(":scope > *").last().boundingBox())!;
+      const next = (await stack.nth(i + 1).boundingBox())!;
+      expect(next.y, `card ${i + 2} covers card ${i + 1}`).toBeGreaterThanOrEqual(lastLine.y + lastLine.height);
+    }
   } else {
     expect(height).toBeLessThan(page.viewportSize()!.height); // no empty first screen on phones
   }

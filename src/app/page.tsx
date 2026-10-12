@@ -94,7 +94,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
           </div>
 
           <div className="hidden lg:block">
-            <Suspense fallback={<div className="h-[27rem]" />}>
+            <Suspense fallback={<div className="h-[26rem]" />}>
               <HeroPicture />
             </Suspense>
           </div>

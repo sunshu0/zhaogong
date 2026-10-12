@@ -18,6 +18,7 @@ function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
 /** A job card as a picture: same facts as the list's card, but not a link. */
 function PictureCard({ job, employer, className }: { job: Job; employer?: Employer; className: string }) {
   const facts = [regionById(job.country, job.regionId)?.nameZh, EMPLOYMENT_TYPE_LABELS[job.employmentType].zh].filter(Boolean);
+  const tags = jobTags(job);
   return (
     <div className={`w-80 rounded-xl bg-surface p-4 text-foreground shadow-2xl ring-1 ring-black/5 ${className}`}>
       <div className="flex items-start justify-between gap-3">
@@ -34,25 +35,29 @@ function PictureCard({ job, employer, className }: { job: Job; employer?: Employ
         </p>
       )}
       <p className="mt-1 text-xs text-muted">{facts.join(" · ")}</p>
-      <ul className="mt-3 flex flex-wrap gap-1.5">
-        {jobTags(job).map((tag) => (
-          <Tag key={tag} urgent={tag === "急招"}>
-            {tag}
-          </Tag>
-        ))}
-      </ul>
+      {tags.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <Tag key={tag} urgent={tag === "急招"}>
+              {tag}
+            </Tag>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-const STACK_POSITIONS = ["top-0 right-28 -rotate-3", "top-32 right-2 rotate-2", "top-64 right-20 -rotate-1"];
+// Each card overlaps the one above by 0.25rem and turns at most 2°, so the overlap (under 1rem with the turn)
+// stays inside the card's 1rem bottom padding: only card edges are covered, never text or tags.
+const STACK_POSITIONS = ["ml-2 -rotate-2", "-mt-1 ml-24 rotate-[1.5deg]", "-mt-1 ml-10 -rotate-1"];
 
 /** Three featured jobs stacked with a slight offset: the hero's picture on desktop. Decorative; the list below has the links. */
 export function JobStack({ jobs, employers }: { jobs: Job[]; employers: Map<string, Employer> }) {
   return (
-    <div aria-hidden="true" className="relative h-[27rem]">
+    <div aria-hidden="true" className="flex flex-col py-4" data-job-stack="">
       {jobs.slice(0, STACK_POSITIONS.length).map((job, i) => (
-        <PictureCard key={job.id} job={job} employer={employers.get(job.employerId)} className={`absolute ${STACK_POSITIONS[i]}`} />
+        <PictureCard key={job.id} job={job} employer={employers.get(job.employerId)} className={`relative ${STACK_POSITIONS[i]}`} />
       ))}
     </div>
   );
