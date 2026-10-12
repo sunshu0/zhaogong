@@ -3,10 +3,12 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
-import { closeMyJob, refreshMyJob, type ChangeResult } from "@/app/employer/actions";
+import { closeMyJob, confirmHires, refreshMyJob, type ChangeResult } from "@/app/employer/actions";
 import { canClose, canEdit, effectiveStatus, expiryLabelZh, refreshState, STATUS_LABELS, type ShownStatus } from "@/components/employer/job-status";
 import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
 import { ShareTexts } from "@/components/employer/ShareTexts";
+import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
+import { HiresQuestion } from "@/components/employer/HiresQuestion";
 import { SignInPanel } from "@/components/employer/SignInPanel";
 import { TabList, TabPanel } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
@@ -123,7 +125,7 @@ function ManagedJob({
   onDone: (result: ChangeResult, okText: string) => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const [confirmClose, setConfirmClose] = useState(false);
+  const [asking, setAsking] = useState<"close" | "hires">();
   const [sharing, setSharing] = useState(false);
   const status = effectiveStatus(job, now);
   const label = STATUS_LABELS[status];
@@ -133,7 +135,7 @@ function ManagedJob({
   const run = (action: () => Promise<ChangeResult>, okText: string) =>
     startTransition(async () => {
       onDone(await action(), okText);
-      setConfirmClose(false);
+      setAsking(undefined);
     });
 
   return (
@@ -151,6 +153,7 @@ function ManagedJob({
         <span className="font-medium text-brand">{formatPay(job.pay, job.country)}</span>
         <span className="text-muted">{expiryLabelZh(job, now)}</span>
         <span className="text-muted">{views} 人查看了联系方式</span>
+        {hiresLabelZh(job) && <span className="font-medium text-ok">{hiresLabelZh(job)}</span>}
       </p>
 
       {status === "removed" && <p className="mt-2 text-sm text-danger">这个职位已被后台下架。如有疑问请联系我们。</p>}
@@ -170,21 +173,16 @@ function ManagedJob({
           >
             {status === "expired" ? "重新开放" : refresh.allowed ? "刷新" : (refresh.reason_zh ?? "刷新")}
           </button>
-          {canClose(job, now) &&
-            (confirmClose ? (
-              <>
-                <button type="button" disabled={pending} onClick={() => run(() => closeMyJob(job.id, employerId), "已结束招聘")} autoFocus className={`${button} border-danger text-danger`}>
-                  确定结束招聘
-                </button>
-                <button type="button" onClick={() => setConfirmClose(false)} className="h-9 px-2 text-sm text-muted underline">
-                  取消
-                </button>
-              </>
-            ) : (
-              <button type="button" onClick={() => setConfirmClose(true)} className={button}>
-                结束招聘
-              </button>
-            ))}
+          {canClose(job, now) && !asking && (
+            <button type="button" onClick={() => setAsking("close")} className={button}>
+              结束招聘
+            </button>
+          )}
+          {status === "expired" && !asking && (
+            <button type="button" onClick={() => setAsking("hires")} className={button}>
+              {job.hiresConfirmed == null ? "记录招到几人" : "更正招到人数"}
+            </button>
+          )}
           {status === "active" && (
             <>
               <button type="button" aria-expanded={sharing} onClick={() => setSharing((s) => !s)} className={button}>
@@ -197,6 +195,27 @@ function ManagedJob({
           )}
         </div>
       )}
+      {asking === "close" && (
+        <HiresQuestion
+          optional
+          submitLabel="确定结束招聘"
+          submitClassName={`${button} border-danger text-danger`}
+          pending={pending}
+          onSubmit={(answer) => run(() => closeMyJob(job.id, employerId, answer), `已结束招聘${answer ? `，${answerText(answer)}` : ""}`)}
+          onCancel={() => setAsking(undefined)}
+        />
+      )}
+      {asking === "hires" && (
+        <HiresQuestion
+          initial={job.hiresConfirmed}
+          optional={false}
+          submitLabel="保存"
+          submitClassName={`${button} border-brand text-brand`}
+          pending={pending}
+          onSubmit={(answer) => answer && run(() => confirmHires(job.id, employerId, answer), `已记录，${answerText(answer)}`)}
+          onCancel={() => setAsking(undefined)}
+        />
+      )}
       {sharing && status === "active" && (
         <div className="mt-3">
           <ShareTexts job={job} employer={employer} />
@@ -205,3 +224,5 @@ function ManagedJob({
     </article>
   );
 }
+
+const answerText = (answer: HiresAnswer) => hiresLabelZh({ hiresConfirmed: answer.hired ? answer.count : 0 })!;

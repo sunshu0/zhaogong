@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   closeMyJob,
+  confirmHires,
   editMyJob,
   getContactViewCounts,
   getEmployerProfile,
@@ -12,7 +13,7 @@ import {
   refreshMyJob,
   verifyBusiness,
 } from "@/app/employer/actions";
-import { banEmployer, getJob, listJobs, recordContactView } from "@/lib/data";
+import { banEmployer, getJob, getPlatformStats, listJobs, recordContactView } from "@/lib/data";
 
 const MESSAGE = `Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做。微信 demo_chuanwei`;
 
@@ -124,5 +125,35 @@ describe("business verification", () => {
   it("keeps an accredited employer's badge", async () => {
     const result = await verifyBusiness("e2", "9429000000002");
     expect(result.ok && result.employer.verification).toBe("accredited_employer");
+  });
+});
+
+describe("hires confirmed when a job ends", () => {
+  it("saves the count with the close, and the platform total adds it up", async () => {
+    const before = (await getPlatformStats("NZ")).hiresConfirmed;
+    const closed = await closeMyJob("j13", "e8", { hired: true, count: 2 });
+    expect(closed.ok && closed.job).toMatchObject({ status: "expired", hiresConfirmed: 2 });
+    expect(closed.ok && closed.job.hiresConfirmedAt).toBeTruthy();
+    expect((await getPlatformStats("NZ")).hiresConfirmed).toBe(before + 2);
+  });
+
+  it("ends a job without an answer, and records 没有 / 不确定 as zero", async () => {
+    const skipped = await closeMyJob("j14", "e8");
+    expect(skipped.ok && skipped.job.hiresConfirmed).toBeUndefined();
+    const none = await confirmHires("j14", "e8", { hired: false });
+    expect(none.ok && none.job.hiresConfirmed).toBe(0);
+  });
+
+  it("corrects the count later on the ended job", async () => {
+    const corrected = await confirmHires("j13", "e8", { hired: true, count: 3 });
+    expect(corrected.ok && corrected.job.hiresConfirmed).toBe(3);
+  });
+
+  it("refuses a bad count, another employer's job and a job that has not ended", async () => {
+    expect(await confirmHires("j13", "e8", { hired: true, count: 21 })).toMatchObject({ ok: false, error_zh: "人数请填 1 到 20。" });
+    expect(await closeMyJob("j15", "e3", { hired: true, count: 0 })).toMatchObject({ ok: false });
+    expect((await getJob("j15"))?.status).toBe("active"); // a refused answer does not end the job
+    expect(await confirmHires("j13", "e1", { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
+    expect(await confirmHires("j15", "e3", { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "职位结束后才能记录招到几人。" });
   });
 });

@@ -116,8 +116,13 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
   await card.getByRole("button", { name: "结束招聘" }).focus();
   await page.keyboard.press("Enter");
-  await expect(card.getByRole("button", { name: "确定结束招聘" })).toBeFocused();
+  // The optional hires question opens with focus on its first choice; Space answers, Tab moves on.
+  await expect(card.getByLabel("招到了")).toBeFocused();
+  await page.keyboard.press("Space");
+  await tabUntil(page, (f) => f.label === "招到的人数");
+  await page.keyboard.press("ArrowDown");
+  await tabUntil(page, (f) => f.label === "确定结束招聘");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("status")).toBeFocused();
-  await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘`);
+  await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 2 人`);
 });

@@ -17,6 +17,7 @@ import {
 } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
 import { buildRegister, normalizeNzbn, searchRegister, type RegisterEntry } from "@/components/employer/business-register";
+import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
 import { canClose, canEdit, effectiveStatus, refreshedDates, refreshState } from "@/components/employer/job-status";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
@@ -82,12 +83,24 @@ export async function getMyJob(jobId: string, employerId: string): Promise<Job |
 }
 
 /** Ends a live or waiting job now. Refreshing reopens it. */
-export async function closeMyJob(jobId: string, employerId: string): Promise<ChangeResult> {
+export async function closeMyJob(jobId: string, employerId: string, hires?: HiresAnswer | null): Promise<ChangeResult> {
   const job = await ownJob(jobId, employerId);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
   if (!canClose(job, now)) return { ok: false, error_zh: "这个职位已经结束或已被下架。" };
-  return { ok: true, job: (await updateJob(job.id, { status: "expired", expiresAt: new Date(now).toISOString() }))! };
+  const answer = hiresFromAnswer(hires, now);
+  if (!answer.ok) return answer;
+  return { ok: true, job: (await updateJob(job.id, { status: "expired", expiresAt: new Date(now).toISOString(), ...answer.fields }))! };
+}
+
+/** Records or corrects how many people an ended job hired. */
+export async function confirmHires(jobId: string, employerId: string, hires: HiresAnswer): Promise<ChangeResult> {
+  const job = await ownJob(jobId, employerId);
+  if (typeof job === "string") return { ok: false, error_zh: job };
+  if (effectiveStatus(job, Date.now()) !== "expired") return { ok: false, error_zh: "职位结束后才能记录招到几人。" };
+  const answer = hiresFromAnswer(hires ?? {}, Date.now());
+  if (!answer.ok) return answer;
+  return { ok: true, job: (await updateJob(job.id, answer.fields))! };
 }
 
 /** Back on top for 30 more days. An ended job is checked again and reopens, or waits for review. */
