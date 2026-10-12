@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { DEFAULT_COUNTRY } from "@/config/countries";
-import { getEmployer, listJobs } from "@/lib/data";
-import type { Employer, Job } from "@/lib/types";
+import { listJobs } from "@/lib/data";
 import { ActiveFilters } from "@/components/seeker/ActiveFilters";
+import { employersOf } from "@/components/seeker/employers";
 import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
@@ -57,10 +57,4 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
       </section>
     </>
   );
-}
-
-async function employersOf(jobs: Job[]): Promise<Map<string, Employer>> {
-  const ids = [...new Set(jobs.map((j) => j.employerId))];
-  const found = await Promise.all(ids.map((id) => getEmployer(id)));
-  return new Map(found.filter((e): e is Employer => e != null).map((e) => [e.id, e]));
 }
