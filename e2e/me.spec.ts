@@ -32,5 +32,5 @@ test("/me lists jobs viewed and reports sent, clears history and signs out", asy
 
   await page.getByRole("button", { name: "退出登录" }).click();
   await expect(page).toHaveURL("/jobs");
-  await expect(page.getByRole("banner").getByRole("link", { name: "登录" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "登录 / 注册" })).toBeVisible();
 });

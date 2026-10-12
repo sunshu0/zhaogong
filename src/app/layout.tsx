@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
-import { AccountLink } from "@/components/seeker/AccountLink";
+import { AccountMenu, PostJobLink } from "@/components/seeker/AccountMenu";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
 
@@ -34,10 +34,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/jobs" className="hover:text-brand">
                 找工作
               </Link>
-              <AccountLink className="hover:text-brand" />
-              <Link href="/employer" className="rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90">
-                发布招聘
-              </Link>
+              <AccountMenu />
+              <PostJobLink className="rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90" />
             </nav>
           </div>
         </header>

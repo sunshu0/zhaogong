@@ -7,6 +7,7 @@ import {
   readSession,
   safeNext,
   writeSession,
+  type DemoSession,
   type StorageLike,
 } from "@/components/seeker/session";
 
@@ -60,7 +61,7 @@ describe("session storage", () => {
     const storage = memoryStorage();
     expect(readSession(storage)).toBeNull();
     const session = writeSession(storage, " Li@Example.com ", new Date("2026-10-12T01:00:00Z"));
-    expect(session).toEqual({ email: "li@example.com", signedInAt: "2026-10-12T01:00:00.000Z" });
+    expect(session).toEqual({ email: "li@example.com", signedInAt: "2026-10-12T01:00:00.000Z", activeRole: "seeker" });
     expect(readSession(storage)).toEqual(session);
     clearSession(storage);
     expect(readSession(storage)).toBeNull();
@@ -72,5 +73,53 @@ describe("session storage", () => {
       storage.data.set("zhaogong:session", raw);
       expect(readSession(storage)).toBeNull();
     }
+  });
+});
+
+describe("identities in the session", () => {
+  const at = new Date("2026-10-12T01:00:00Z");
+
+  it("stores the active identity and the business the server confirmed", () => {
+    const storage = memoryStorage();
+    const session = writeSession(storage, "boss@example.com", at, {
+      activeRole: "employer",
+      employer: { id: "e4", name: "悦美发型工作室" },
+    });
+    expect(session).toEqual<DemoSession>({
+      email: "boss@example.com",
+      signedInAt: "2026-10-12T01:00:00.000Z",
+      activeRole: "employer",
+      employerId: "e4",
+      employerName: "悦美发型工作室",
+    });
+    expect(readSession(storage)).toEqual(session);
+  });
+
+  it("reads sessions saved before identities existed as job seekers", () => {
+    const storage = memoryStorage();
+    storage.data.set("zhaogong:session", JSON.stringify({ email: "old@example.com", signedInAt: at.toISOString() }));
+    expect(readSession(storage)).toEqual({ email: "old@example.com", signedInAt: at.toISOString(), activeRole: "seeker" });
+  });
+
+  it("never treats a session as an employer without a business", () => {
+    const storage = memoryStorage();
+    storage.data.set(
+      "zhaogong:session",
+      JSON.stringify({ email: "x@example.com", signedInAt: at.toISOString(), activeRole: "employer" }),
+    );
+    expect(readSession(storage)?.activeRole).toBe("seeker");
+    storage.data.set(
+      "zhaogong:session",
+      JSON.stringify({ email: "x@example.com", signedInAt: at.toISOString(), activeRole: "boss", employerId: 7 }),
+    );
+    expect(readSession(storage)).toEqual({ email: "x@example.com", signedInAt: at.toISOString(), activeRole: "seeker" });
+  });
+});
+
+describe("safeNext with a fallback", () => {
+  it("uses the given fallback for anything unsafe", () => {
+    expect(safeNext(undefined, "/employer/post")).toBe("/employer/post");
+    expect(safeNext("//evil.example", "/employer/post")).toBe("/employer/post");
+    expect(safeNext("/employer/jobs", "/employer/post")).toBe("/employer/jobs");
   });
 });

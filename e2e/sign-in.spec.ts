@@ -30,7 +30,7 @@ test("contact details stay hidden until sign-in, then show on the same job", asy
   await expect(contactBlock(page).getByRole("link", { name: "021 555 0101" })).toHaveAttribute("href", "tel:0215550101");
   await expect(contactBlock(page)).toContainText("demo_chuanwei");
   await expect(contactBlock(page)).toContainText("已登录：e2e.seeker@example.com");
-  await expect(page.getByRole("banner").getByRole("link", { name: "我的" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
 });
 
 test("sign-in never sends the user to another site", async ({ page }) => {

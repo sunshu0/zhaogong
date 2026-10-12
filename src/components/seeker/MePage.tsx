@@ -6,6 +6,7 @@ import { useId, type ReactNode } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
 import { formatDateZh } from "@/components/seeker/job-facts";
+import { employerSignUpHref, identityLabel } from "@/components/seeker/identity";
 import { signOut, useHydrated, useSession } from "@/components/seeker/session-client";
 
 /** /me: who is signed in, jobs viewed and reports sent from this device, sign out. */
@@ -38,6 +39,17 @@ export function MePage() {
         <div className="min-w-0">
           <p className="text-xs text-muted">已登录</p>
           <p className="truncate font-medium">{session.email}</p>
+          <p className="mt-1 text-xs text-muted">
+            当前身份：{identityLabel(session)}
+            {!session.employerId && (
+              <>
+                {" · "}
+                <Link href={employerSignUpHref()} className="text-brand underline underline-offset-2">
+                  开通雇主身份
+                </Link>
+              </>
+            )}
+          </p>
         </div>
         <button
           type="button"

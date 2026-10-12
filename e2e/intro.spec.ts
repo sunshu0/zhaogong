@@ -115,7 +115,7 @@ test("注册 goes through 注册或登录 and lands on the job list", async ({ p
   await page.getByLabel("验证码").fill("135790");
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/jobs");
-  await expect(page.getByRole("banner").getByRole("link", { name: "我的" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
 });
 
 test("直接浏览工作 opens the job list; the logo leads back to the intro", async ({ page }) => {
