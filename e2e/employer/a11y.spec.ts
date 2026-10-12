@@ -66,7 +66,8 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await page.goto("/employer/verify");
   await page.getByLabel("公司名称或 NZBN").fill("demo");
   await page.getByRole("button", { name: "查询" }).click();
-  await expect(page.getByText("NZBN 9429000000001").filter({ visible: true })).toBeVisible();
+  // The signed-in shop's own NZBN is also in the header, so wait for the result line itself.
+  await expect(page.getByText("NZBN 9429000000001 · 商号：川味小馆").filter({ visible: true })).toBeVisible();
   await expectNoViolations(page, "/employer/verify with results");
 });
 
