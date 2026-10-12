@@ -25,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4 lg:max-w-[min(64rem,_100vw_-_3rem)] lg:px-0">
+          <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
             <Link href="/" className="text-lg font-semibold text-brand">
               {PRODUCT_NAME}
             </Link>

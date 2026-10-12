@@ -39,4 +39,6 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  /* Full-bleed bands are 100vw wide, which includes a classic scrollbar; never let that scroll sideways. */
+  overflow-x: clip;
 }

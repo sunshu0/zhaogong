@@ -7,12 +7,15 @@ import { Suspense } from "react";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { DEMO_DATA, visibleStats } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
+import { englishSummary, parsePost } from "@/lib/ai-post";
 import { getPlatformStats, listFeaturedJobs } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
-import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
-import { formatCount, POSITIONING } from "@/components/seeker/landing";
+import { JobCard } from "@/components/seeker/JobCard";
+import { EMPLOYER_EXAMPLE, formatCount, POSITIONING } from "@/components/seeker/landing";
+import { BeforeAfter, CheckIcon, JobStack, PositioningIconSvg } from "@/components/seeker/landing-parts";
 import { requestTime } from "@/components/seeker/request-time";
+import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
 const DESCRIPTION = "时薪、地区、签证一目了然；雇主经过验证，职位发布前检查最低工资和违规收费；登录后才显示联系方式。";
@@ -23,6 +26,8 @@ export const metadata: Metadata = {
   openGraph: { title: TITLE, description: DESCRIPTION, type: "website", locale: "zh_CN" },
 };
 
+const TRUST = ["雇主验证", "发布前查合规", "对求职者免费"];
+
 const EMPLOYER_POINTS = [
   "粘贴微信群里的招聘消息，自动整理成中英文职位",
   "发布前自动检查最低工资和违规用词",
@@ -31,136 +36,200 @@ const EMPLOYER_POINTS = [
 
 const FEATURED_COUNT = 6;
 
-/** The landing page: a first screen of its own, then featured jobs, what we stand for, and a part for employers. */
+/** The landing page: full-bleed bands, content in the site container. Pictures and numbers come from real data. */
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
-    <div className="space-y-8">
+    // The bands meet the header and the footer: cancel main's vertical padding.
+    <div className="-mt-4 -mb-4">
       <Suspense fallback={null}>
         <LegacyListLink searchParams={searchParams} />
       </Suspense>
 
-      {/* Fills the first phone screen below the 3.5rem header and main's 1rem top padding. */}
       <section
         aria-labelledby="hero-heading"
-        className="flex min-h-[calc(100svh_-_4.5rem)] flex-col justify-center rounded-2xl bg-brand-soft px-5 py-8"
+        className={`${FULL_BLEED} relative overflow-hidden bg-linear-135 from-brand via-[#0c5f59] to-[#073b37] text-white`}
       >
-        <p className="flex items-center gap-3">
-          <Image src="/icons/icon-192.png" alt="" width={64} height={64} preload className="size-16" />
-          <span className="text-4xl font-bold tracking-wider text-brand">{PRODUCT_NAME}</span>
-        </p>
-        <h1 id="hero-heading" className="mt-6 text-2xl leading-snug font-semibold">
-          奥克兰的中文工作平台
-        </h1>
-        <p className="mt-2 text-muted">餐饮、零售、清洁、装修等工作，时薪、地区、签证写清楚，联系雇主更放心。</p>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={DOT_GRID} />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -bottom-20 text-[18rem] leading-none font-bold text-white/[0.06] select-none lg:right-[4%] lg:-bottom-28 lg:text-[30rem]"
+        >
+          找
+        </span>
 
-        <div className="mt-6 flex gap-3">
-          <Link
-            href={`/login?next=${encodeURIComponent(jobsHref(""))}`}
-            className="flex-1 rounded-lg bg-brand px-4 py-3 text-center font-medium text-white"
-          >
-            注册
-          </Link>
-          <Link
-            href={jobsHref("")}
-            className="flex-1 rounded-lg border border-brand bg-surface px-4 py-3 text-center font-medium text-brand"
-          >
-            直接浏览工作
-          </Link>
+        <div className={`${SITE_CONTAINER} relative grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:py-20`}>
+          <div>
+            <p className="flex items-center gap-3">
+              <Image src="/icons/icon-192.png" alt="" width={56} height={56} preload className="size-14 rounded-[22%] ring-2 ring-white/40" />
+              <span className="text-3xl font-bold tracking-wider">{PRODUCT_NAME}</span>
+            </p>
+            <h1 id="hero-heading" className="mt-6 text-3xl leading-tight font-bold lg:text-[3.25rem]">
+              奥克兰的中文工作平台
+            </h1>
+            <p className="mt-3 max-w-xl text-base text-white lg:mt-4 lg:max-w-[40rem] lg:text-lg">
+              餐饮、零售、清洁、装修等工作，时薪、地区、签证写清楚，联系雇主更放心。
+            </p>
+            <div className="mt-7 flex gap-3">
+              <Link
+                href={`/login?next=${encodeURIComponent(jobsHref(""))}`}
+                className="flex-1 rounded-lg bg-white px-6 py-3 text-center font-semibold text-brand hover:bg-white/90 lg:flex-none"
+              >
+                注册
+              </Link>
+              <Link
+                href={jobsHref("")}
+                className="flex-1 rounded-lg border border-white/80 px-6 py-3 text-center font-semibold text-white hover:bg-white/10 lg:flex-none"
+              >
+                直接浏览工作
+              </Link>
+            </div>
+            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white" aria-label="我们的承诺">
+              {TRUST.map((item) => (
+                <li key={item} className="flex items-center gap-1.5">
+                  <CheckIcon />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="hidden lg:block">
+            <Suspense fallback={<div className="h-[27rem]" />}>
+              <HeroPicture />
+            </Suspense>
+          </div>
         </div>
-
-        <Suspense fallback={<div className="mt-8 h-32 animate-pulse rounded-xl bg-surface/60" aria-hidden="true" />}>
-          <StatsStrip />
-        </Suspense>
-
-        <a href="#featured" className="mt-6 self-center text-sm text-muted hover:text-brand">
-          看看精选工作 <span aria-hidden="true">↓</span>
-        </a>
       </section>
 
-      <Suspense fallback={<JobListSkeleton />}>
-        <FeaturedJobs />
+      <Suspense fallback={<div className={`${FULL_BLEED} h-56 border-b border-border bg-surface`} />}>
+        <StatsBand />
       </Suspense>
 
-      <section aria-labelledby="positioning-heading">
-        <h2 id="positioning-heading" className="mb-3 text-lg font-semibold">
-          我们的定位
-        </h2>
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {POSITIONING.map((block) => (
-            <li key={block.title} className="rounded-xl border border-border bg-surface p-4">
-              <p className="flex items-start gap-2 font-medium">
-                <Check />
-                {block.title}
-              </p>
-              <p className="mt-1 text-sm text-muted">{block.text}</p>
-            </li>
-          ))}
-        </ul>
+      <Suspense fallback={<div className={`${FULL_BLEED} h-96`} />}>
+        <FeaturedBand />
+      </Suspense>
+
+      <section aria-labelledby="positioning-heading" className={`${FULL_BLEED} border-y border-border bg-surface`}>
+        <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
+          <h2 id="positioning-heading" className="text-2xl font-bold">
+            我们的定位
+          </h2>
+          <ul className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {POSITIONING.map((block) => (
+              <li key={block.title}>
+                <span className="flex size-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <PositioningIconSvg name={block.icon} />
+                </span>
+                <p className="mt-4 font-semibold">{block.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{block.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <section aria-labelledby="employer-heading" className="rounded-xl border border-border bg-surface p-4">
-        <h2 id="employer-heading" className="font-medium">
-          招人？一分钟发布招聘
-        </h2>
-        <ul className="mt-2 space-y-1 text-sm text-muted">
-          {EMPLOYER_POINTS.map((point) => (
-            <li key={point} className="flex items-start gap-2">
-              <span aria-hidden="true">·</span>
-              {point}
-            </li>
-          ))}
-        </ul>
-        <Link
-          href="/employer"
-          className="mt-3 inline-block rounded-lg border border-border px-4 py-2 text-sm hover:border-brand hover:text-brand"
-        >
-          雇主发布招聘 →
-        </Link>
-      </section>
+      <EmployerBand />
     </div>
   );
 }
 
+const DOT_GRID = {
+  backgroundImage: "radial-gradient(rgb(255 255 255 / 0.13) 1px, transparent 1.6px)",
+  backgroundSize: "22px 22px",
+  maskImage: "linear-gradient(to bottom, black, transparent 90%)",
+};
+
+async function HeroPicture() {
+  await connection();
+  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, 3);
+  return <JobStack jobs={jobs} employers={await employersOf(jobs)} />;
+}
+
 /** Real counts from getPlatformStats, per request; while the data is demo data it says so. */
-async function StatsStrip() {
+async function StatsBand() {
   await connection();
   const stats = visibleStats(await getPlatformStats(DEFAULT_COUNTRY));
   if (stats.length === 0) return null;
   return (
-    <section aria-label="平台数据" className="mt-8 rounded-xl bg-surface p-4">
-      {DEMO_DATA && (
-        <p className="mb-2 flex justify-end">
-          <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">演示数据</span>
-        </p>
-      )}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.key} className="flex flex-col-reverse">
-            <dt className="text-xs text-muted">{stat.label}</dt>
-            <dd className="text-2xl font-semibold text-brand tabular-nums">{formatCount(stat.value)}</dd>
-          </div>
-        ))}
-      </dl>
+    <section aria-labelledby="stats-heading" className={`${FULL_BLEED} border-b border-border bg-surface`}>
+      <div className={`${SITE_CONTAINER} py-8 lg:py-10`}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="stats-heading" className="text-sm font-medium text-muted">
+            平台数据
+          </h2>
+          {DEMO_DATA && <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">演示数据</span>}
+        </div>
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.key} className="flex flex-col-reverse gap-2 bg-surface px-5 py-6">
+              <dt className="text-sm text-muted">{stat.label}</dt>
+              <dd className="text-[2.5rem] leading-none font-semibold text-brand tabular-nums">{formatCount(stat.value)}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </section>
   );
 }
 
-async function FeaturedJobs() {
+async function FeaturedBand() {
   const now = await requestTime();
   const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT);
   const employers = await employersOf(jobs);
   return (
-    <section id="featured" aria-labelledby="featured-heading" className="scroll-mt-20">
-      <div className="mb-1 flex items-baseline justify-between gap-3">
-        <h2 id="featured-heading" className="text-lg font-semibold">
-          精选工作
-        </h2>
-        <Link href={jobsHref("")} className="text-sm text-brand">
-          查看全部职位 →
-        </Link>
+    <section id="featured" aria-labelledby="featured-heading" className={`${FULL_BLEED} scroll-mt-16`}>
+      <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="featured-heading" className="text-2xl font-bold">
+              精选工作
+            </h2>
+            <p className="mt-1 text-sm text-muted">来自已验证雇主、正在招聘的职位，时薪高的在前。</p>
+          </div>
+          <Link href={jobsHref("")} className="font-medium text-brand">
+            查看全部职位 →
+          </Link>
+        </div>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {jobs.map((job) => (
+            <li key={job.id}>
+              <JobCard job={job} employer={employers.get(job.employerId)} now={now} />
+            </li>
+          ))}
+        </ul>
       </div>
-      <p className="mb-3 text-xs text-muted">来自已验证雇主、正在招聘的职位，时薪高的在前。</p>
-      <JobList jobs={jobs} employers={employers} now={now} />
+    </section>
+  );
+}
+
+/** For employers: a WeChat message turned into a job by the same parser the post flow uses. */
+async function EmployerBand() {
+  const { draft } = await parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY);
+  return (
+    <section aria-labelledby="employer-heading" className={`${FULL_BLEED} bg-foreground text-white`}>
+      <div className={`${SITE_CONTAINER} grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:py-16`}>
+        <div>
+          <p className="text-sm text-white/75">给雇主</p>
+          <h2 id="employer-heading" className="mt-1 text-2xl font-bold">
+            招人？一分钟发布招聘
+          </h2>
+          <ul className="mt-4 space-y-2 text-sm text-white/90">
+            {EMPLOYER_POINTS.map((point) => (
+              <li key={point} className="flex items-start gap-2">
+                <CheckIcon className="mt-0.5 size-4" />
+                {point}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/employer"
+            className="mt-6 inline-block rounded-lg bg-white px-5 py-2.5 font-semibold text-foreground hover:bg-white/90"
+          >
+            雇主发布招聘 →
+          </Link>
+        </div>
+        <BeforeAfter message={EMPLOYER_EXAMPLE} draft={draft} summaryEn={englishSummary(draft, DEFAULT_COUNTRY)} />
+      </div>
     </section>
   );
 }
@@ -170,12 +239,4 @@ async function LegacyListLink({ searchParams }: Pick<PageProps<"/">, "searchPara
   const query = filterToQuery(parseFilter(await searchParams, DEFAULT_COUNTRY));
   if (query) redirect(jobsHref(query));
   return null;
-}
-
-function Check() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className="mt-1 size-4 shrink-0 fill-brand">
-      <path d="M6.4 11.2 3.2 8l1.1-1.1 2.1 2.1 5.3-5.3 1.1 1.1z" />
-    </svg>
-  );
 }

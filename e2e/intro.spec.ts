@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { DEMO_DATA, visibleStats } from "../src/config/landing";
 
-test("landing: the first screen has the logo, positioning, both buttons and real stats", async ({ page }) => {
+test("landing: hero with logo, headline, buttons and trust row; height by content", async ({ page }, testInfo) => {
   await page.goto("/");
   await expect(page).toHaveTitle("找工 · 奥克兰的中文工作平台");
   const hero = page.getByRole("region", { name: "奥克兰的中文工作平台" });
@@ -10,25 +10,43 @@ test("landing: the first screen has the logo, positioning, both buttons and real
   await expect(hero.getByRole("heading", { level: 1, name: "奥克兰的中文工作平台" })).toBeVisible();
   await expect(hero.getByRole("link", { name: "注册", exact: true })).toBeInViewport();
   await expect(hero.getByRole("link", { name: "直接浏览工作" })).toBeInViewport();
+  await expect(hero.getByRole("list", { name: "我们的承诺" }).getByRole("listitem")).toHaveText(["雇主验证", "发布前查合规", "对求职者免费"]);
 
-  // Fills the screen below the header, and nothing below it shows yet.
-  const viewport = page.viewportSize()!;
-  const box = (await hero.boundingBox())!;
-  expect(box.y + box.height).toBeGreaterThanOrEqual(viewport.height - 2);
-  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 2);
-  await expect(page.getByRole("heading", { name: "精选工作" })).not.toBeInViewport();
-
-  const stats = hero.getByRole("region", { name: "平台数据" });
-  await expect(stats).toBeInViewport();
-  const shown = visibleStats({ employersPosting: 0, jobsPosted: 0, hiresConfirmed: 0, contactViews: 0 });
-  for (const { label } of DEMO_DATA ? shown : []) {
-    const value = stats.getByRole("term").filter({ hasText: label }).locator("xpath=following-sibling::dd | preceding-sibling::dd");
-    await expect(value).toHaveText(/^\d{1,3}(,\d{3})*$/);
+  const height = (await hero.boundingBox())!.height;
+  if (testInfo.project.name === "desktop") {
+    expect(height).toBeGreaterThanOrEqual(520);
+    expect(height).toBeLessThanOrEqual(680);
+    // The headline is large on desktop (48–56 px).
+    const size = await hero.getByRole("heading", { level: 1 }).evaluate((h) => parseFloat(getComputedStyle(h).fontSize));
+    expect(size).toBeGreaterThanOrEqual(48);
+    expect(size).toBeLessThanOrEqual(56);
+    // The header's logo and the hero's content start at the same x: one site container.
+    const headerLogo = (await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).boundingBox())!;
+    const heroLogo = (await hero.locator("img").boundingBox())!;
+    expect(Math.abs(headerLogo.x - heroLogo.x)).toBeLessThanOrEqual(1);
+  } else {
+    expect(height).toBeLessThan(page.viewportSize()!.height); // no empty first screen on phones
   }
-  if (DEMO_DATA) await expect(stats.getByText("演示数据", { exact: true })).toBeVisible();
 });
 
-test("landing: featured jobs from verified employers, our positioning, and the employer part", async ({ page }) => {
+test("landing: stats band with real counts and the 演示数据 tag", async ({ page }, testInfo) => {
+  await page.goto("/");
+  const stats = page.getByRole("region", { name: "平台数据" });
+  const shown = visibleStats({ employersPosting: 0, jobsPosted: 0, hiresConfirmed: 0, contactViews: 0 });
+  const cells = stats.getByRole("definition");
+  if (DEMO_DATA) {
+    await expect(stats.getByText("演示数据", { exact: true })).toBeVisible();
+    await expect(cells).toHaveCount(shown.length);
+    await expect(stats.getByRole("term")).toHaveText(shown.map((s) => s.label));
+  }
+  for (const cell of await cells.all()) await expect(cell).toHaveText(/^\d{1,3}(,\d{3})*$/);
+
+  const tops = await Promise.all((await cells.all()).map(async (c) => Math.round((await c.boundingBox())!.y)));
+  if (testInfo.project.name === "desktop") expect(new Set(tops).size).toBe(1); // one row of four
+  else expect(new Set(tops).size).toBe(2); // 2 × 2
+});
+
+test("landing: featured jobs, positioning and the employer before → after", async ({ page }, testInfo) => {
   await page.goto("/");
   const featured = page.getByRole("region", { name: "精选工作" });
   const cards = featured.getByRole("listitem").getByRole("link");
@@ -39,12 +57,30 @@ test("landing: featured jobs from verified employers, our positioning, and the e
   await expect(featured.getByText("未验证")).toHaveCount(0);
 
   const positioning = page.getByRole("region", { name: "我们的定位" });
+  const blocks = positioning.getByRole("listitem");
+  await expect(blocks).toHaveCount(4);
   for (const title of ["中文为主", "发布前查合规", "雇主可信", "对求职者免费"]) {
     await expect(positioning.getByText(title, { exact: true })).toBeVisible();
   }
+  await expect(positioning.locator("svg")).toHaveCount(4);
+
+  if (testInfo.project.name === "desktop") {
+    const titles = featured.locator("li h2");
+    const ys = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await titles.nth(i).boundingBox())!.y)));
+    expect(ys[0]).toBe(ys[1]);
+    expect(ys[1]).toBe(ys[2]); // three columns
+    expect(ys[3]).toBeGreaterThan(ys[0]);
+    const blockYs = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await blocks.nth(i).boundingBox())!.y)));
+    expect(new Set(blockYs).size).toBe(1); // four columns
+  }
+
   const employer = page.getByRole("region", { name: "招人？一分钟发布招聘" });
+  await expect(employer.getByText("【急招】Mt Eden 川菜馆招前厅服务员 2 名", { exact: false })).toBeVisible();
+  const after = employer.getByRole("figure");
+  for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "学签可做", "联系方式：登录后可见"]) {
+    await expect(after).toContainText(text);
+  }
   await expect(employer.getByRole("link", { name: "雇主发布招聘 →" })).toHaveAttribute("href", "/employer");
-  expect((await employer.boundingBox())!.y).toBeGreaterThan((await positioning.boundingBox())!.y);
 
   await cards.first().click();
   await expect(page).toHaveURL(/\/jobs\/j\d+$/);
