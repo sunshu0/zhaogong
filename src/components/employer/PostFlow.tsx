@@ -7,9 +7,8 @@ import { parseDraft, publishJob } from "@/app/employer/actions";
 import { ChatPost } from "@/components/employer/ChatPost";
 import { DraftEditor } from "@/components/employer/DraftEditor";
 import { completeJob, emptyForm, formFromDraft } from "@/components/employer/post-form";
-import { useEmployerSession } from "@/components/employer/session";
+import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ShareTexts } from "@/components/employer/ShareTexts";
-import { SignInPanel } from "@/components/employer/SignInPanel";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -21,7 +20,7 @@ type Step = "chat" | "paste" | "form" | "preview" | "done";
 type Mode = "chat" | "form";
 
 const PUBLISH_ERRORS = {
-  unknown_employer: "找不到这个雇主账号，请退出后重新登录。",
+  no_identity: "需要先开通雇主身份，请从页头的「发布招聘」重新进入。",
   banned: "这个雇主账号已被停用，不能发布职位。",
   not_ready: "服务器检查没有通过，请回到上一步修改。",
 };
@@ -40,8 +39,12 @@ const STEPS: Record<Mode, { key: Exclude<Step, "done">; label: string }[]> = {
 
 const SAMPLE = SAMPLE_POST;
 
-export function PostFlow({ accounts, country }: { accounts: Employer[]; country: CountryCode }) {
-  const session = useEmployerSession();
+/** /employer/post: the employer identity first, then the chat or the form. */
+export function PostFlow({ country }: { country: CountryCode }) {
+  return <EmployerGate next="/employer/post">{(me) => <Posting me={me} country={country} />}</EmployerGate>;
+}
+
+function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }) {
   const [mode, setMode] = useState<Mode>("chat");
   const [step, setStep] = useState<Step>("chat");
   const [chat, setChat] = useState<ChatState>(() => startChat(country));
@@ -55,10 +58,11 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   const [pending, startTransition] = useTransition();
   const heading = useFocusOnChange<HTMLHeadingElement>(step);
 
-  const employerId = session?.employerId;
-  const { profile } = useEmployerProfile(employerId);
-  const employer = profile ?? accounts.find((a) => a.id === employerId);
-  const banned = !!employer?.bannedAt;
+  // The badge and a ban come from the server; the session only has the name.
+  const { profile } = useEmployerProfile(me.email);
+  const employer = profile ?? undefined;
+  const shopName = profile?.name ?? me.employerName;
+  const banned = !!profile?.bannedAt;
 
   function parse() {
     setError(undefined);
@@ -106,10 +110,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
   }
 
   function publish() {
-    if (!employerId) return;
+
     setError(undefined);
     startTransition(async () => {
-      const result = await publishJob(draft, employerId);
+      const result = await publishJob(draft, me.email);
       if (result.ok) {
         setPublished(result.job);
         setStep("done");
@@ -138,10 +142,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
     );
   }
 
-  const preview = step === "preview" ? completeJob(draft, employerId ?? "preview", previewAt, decision.status) : undefined;
+  const preview = step === "preview" ? completeJob(draft, me.employerId, previewAt, decision.status) : undefined;
 
   return (
-    <div onFocus={keepFocusClear} className={`space-y-4 pb-24 ${CLEAR_OF_STICKY_BARS}`}>
+    <div className="space-y-4 pb-24">
       <ol aria-label="发布步骤" className="flex gap-2 text-xs">
         {STEPS[mode].map((s, i) => (
           <li key={s.key} aria-current={s.key === step ? "step" : undefined} className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}>
@@ -178,7 +182,7 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
       )}
 
       {step === "paste" && (
-        <section className="space-y-3">
+        <section onFocus={keepFocusClear} className={`space-y-3 ${CLEAR_OF_STICKY_BARS}`}>
           <h1 ref={heading} tabIndex={-1} className="text-xl font-semibold outline-none">
             一分钟发布招聘
           </h1>
@@ -226,13 +230,13 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
         </h1>
       )}
       {step === "form" && (
-        <div className={WIDE_ON_DESKTOP}>
+        <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
           <DraftEditor state={state} country={country} notes={notes} />
         </div>
       )}
 
       {step === "preview" && preview && (
-        <section className="space-y-4">
+        <section onFocus={keepFocusClear} className={`space-y-4 ${CLEAR_OF_STICKY_BARS}`}>
           <h1 ref={heading} tabIndex={-1} className="rounded-lg bg-brand-soft px-3 py-2 text-sm font-normal text-brand outline-none">
             预览：这是求职者看到的样子。确认无误就可以发布了。
           </h1>
@@ -246,7 +250,6 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
             </section>
           </JobDetail>
           {banned && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
-          {session !== undefined && !employerId && <SignInPanel accounts={accounts} intro="发布前请先登录，不用设密码。" />}
         </section>
       )}
 
@@ -269,10 +272,10 @@ export function PostFlow({ accounts, country }: { accounts: Employer[]; country:
               <button type="button" onClick={backFromPreview} className="text-sm text-muted underline">
                 返回修改
               </button>
-              <p className="flex-1 text-xs text-muted">{employer ? `以「${employer.name}」发布` : session === undefined ? "" : session ? "选好店铺后发布" : "登录后发布"}</p>
+              <p className="flex-1 text-xs text-muted">{`以「${shopName}」发布`}</p>
               <button
                 type="button"
-                disabled={!employerId || banned || pending}
+                disabled={banned || pending}
                 onClick={publish}
                 className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40"
               >

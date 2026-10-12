@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { CLEAN_MESSAGE, lastAssistant, publishJob, uniqueCjkTitle, uniqueTitle } from "./helpers";
+import { CLEAN_MESSAGE, lastAssistant, publishJob, signUpEmployer, uniqueCjkTitle, uniqueTitle } from "./helpers";
 
 // The whole post flow with the keyboard only: every control can be reached with Tab, shows a
 // visible focus indicator, and is not hidden under the sticky header or the sticky bottom bar.
@@ -39,7 +39,12 @@ async function tabUntil(page: Page, done: (f: Focused) => boolean, max = 80): Pr
 }
 
 test("post a job with the keyboard only", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   await page.goto("/employer/post");
+  // The page shows once the employer identity is read from the session; wait, then start Tab from the
+  // top (after a reload Chrome may start sequential focus anywhere on the page).
+  await expect(page.getByRole("button", { name: "直接填表", exact: true })).toBeVisible();
+  await page.getByRole("banner").getByRole("link").first().focus();
 
   await tabUntil(page, (f) => f.label === "直接填表");
   await page.keyboard.press("Enter");
@@ -84,13 +89,6 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
   await page.keyboard.press("Enter");
 
   await expect(page.getByRole("heading", { name: /^预览/ })).toBeFocused();
-  await tabUntil(page, (f) => f.label === "邮箱");
-  await page.keyboard.insertText("keyboard@example.com");
-  await page.keyboard.press("Enter");
-  await tabUntil(page, (f) => f.label === "验证码");
-  await page.keyboard.insertText("123456");
-  await tabUntil(page, (f) => f.label === "登录");
-  await page.keyboard.press("Enter");
   await tabUntil(page, (f) => f.label === "发布");
   await page.keyboard.press("Enter");
 
@@ -100,6 +98,7 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
 
 test("tabs move with the arrow keys; confirming and the result keep the focus", async ({ page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
+  await signUpEmployer(page, testInfo);
   await publishJob(page, title);
   await page.goto("/employer/jobs");
 
@@ -131,7 +130,10 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
 
 test("chat with the keyboard only: type, Enter, Shift+Tab to the quick replies", async ({ page }, testInfo) => {
   const title = uniqueCjkTitle("厨师", testInfo);
+  await signUpEmployer(page, testInfo);
   await page.goto("/employer/post");
+  await expect(page.getByLabel("回复助手")).toBeVisible();
+  await page.getByRole("banner").getByRole("link").first().focus();
   await tabUntil(page, (f) => f.label === "回复助手");
   await page.keyboard.insertText(`Mt Eden 川菜馆招${title}，全职，时薪 $28-30，包工作餐，学签可做。微信 demo_kbd_chat`);
   await page.keyboard.press("Enter");

@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { CLEAN_MESSAGE, jobCard, publishJob, searchJobList, uniqueTitle } from "./helpers";
+import { CLEAN_MESSAGE, jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("report a job → /admin takes it down → gone from the list and in the log", async ({ page }, testInfo) => {
+  const shop = await signUpEmployer(page, testInfo);
   const title = uniqueTitle("前厅服务员", testInfo);
   const id = await publishJob(page, title);
 
@@ -21,7 +22,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await expect(card).toContainText(`收押金 / 介绍费：打电话说要先交押金（${title}）`);
 
   await card.getByRole("button", { name: "下架" }).click();
-  const done = `下架「${title}」（川味小馆） · 举报：收押金 / 介绍费`;
+  const done = `下架「${title}」（${shop}） · 举报：收押金 / 介绍费`;
   await expect(page.getByRole("status")).toHaveText(`已处理：${done}`);
   await expect(card).toHaveCount(0);
 
@@ -33,6 +34,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
 });
 
 test("a job flagged at posting waits for review, then /admin approves it onto the list", async ({ page }, testInfo) => {
+  const shop = await signUpEmployer(page, testInfo);
   const title = uniqueTitle("前厅服务员", testInfo);
   await publishJob(page, title, CLEAN_MESSAGE.replace("Mt Eden 川菜馆", "Mt Eden KTV 楼下川菜馆"));
 
@@ -43,7 +45,7 @@ test("a job flagged at posting waits for review, then /admin approves it onto th
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
   await expect(card).toContainText("需审核：含有「KTV」");
   await card.getByRole("button", { name: "没问题，通过" }).click();
-  await expect(page.getByRole("status")).toHaveText(`已处理：审核通过「${title}」（川味小馆） · 标记：高风险行业`);
+  await expect(page.getByRole("status")).toHaveText(`已处理：审核通过「${title}」（${shop}） · 标记：高风险行业`);
 
   await searchJobList(page, title);
   await expect(jobCard(page, title)).toBeVisible();

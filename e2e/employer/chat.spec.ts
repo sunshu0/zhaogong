@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { jobCard, lastAssistant, publishFromPreview, sayInChat, searchJobList, uniqueCjkTitle } from "./helpers";
+import { jobCard, lastAssistant, publishFromPreview, sayInChat, searchJobList, signUpEmployer, uniqueCjkTitle } from "./helpers";
 
 // /employer/post opens on the chat: one question at a time, quick replies as buttons, a live card.
 
 test("a full conversation, from a short message to a published job", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   const title = uniqueCjkTitle("洗碗工", testInfo);
   await page.goto("/employer/post");
   await expect(page.getByRole("heading", { name: "和发帖助手一起写招聘" })).toBeVisible();
@@ -51,6 +52,7 @@ test("a full conversation, from a short message to a published job", async ({ pa
 });
 
 test("compliance questions arrive in the chat and the employer's fixes reach the job", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   const title = uniqueCjkTitle("店员", testInfo);
   await page.goto("/employer/post");
   await sayInChat(page, `奶茶店招兼职${title}，市中心 Queen St，时薪 18，入职交押金200，限华人。学签OK。微信 cbdtea_demo`);

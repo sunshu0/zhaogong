@@ -5,11 +5,10 @@ import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
 import { closeMyJob, confirmHires, refreshMyJob, type ChangeResult } from "@/app/employer/actions";
 import { canClose, canEdit, effectiveStatus, expiryLabelZh, refreshState, STATUS_LABELS, type ShownStatus } from "@/components/employer/job-status";
-import { signOutEmployer, useEmployerSession } from "@/components/employer/session";
+import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
 import { HiresQuestion } from "@/components/employer/HiresQuestion";
-import { SignInPanel } from "@/components/employer/SignInPanel";
 import { TabList, TabPanel } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -25,18 +24,19 @@ const TABS: { key: "all" | ShownStatus; label: string }[] = [
   { key: "removed", label: "已下架" },
 ];
 
-export function ManageJobs({ accounts }: { accounts: Employer[] }) {
-  const session = useEmployerSession();
-  const { ready, reload } = useMyJobs(session?.employerId);
-  const { profile } = useEmployerProfile(session?.employerId);
+export function ManageJobs() {
+  return <EmployerGate next="/employer/jobs">{(me) => <Manage me={me} />}</EmployerGate>;
+}
+
+function Manage({ me }: { me: EmployerIdentity }) {
+  const { ready, reload } = useMyJobs(me.email);
+  const { profile } = useEmployerProfile(me.email);
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
   const noticeRef = useFocusOnChange<HTMLParagraphElement>(notice);
 
-  if (session === undefined) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
-  if (!session?.employerId) return <SignInPanel accounts={accounts} intro="登录后管理你发布的职位。" />;
 
-  const employer = profile ?? accounts.find((a) => a.id === session.employerId);
+  const employer = profile ?? undefined;
   const counts = new Map<string, number>();
   for (const job of ready?.jobs ?? []) {
     const s = effectiveStatus(job, ready!.now);
@@ -53,11 +53,8 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
         <h1 className="text-lg font-semibold">管理职位</h1>
-        <span className="text-sm">{employer?.name}</span>
+        <span className="text-sm">{employer?.name ?? me.employerName}</span>
         {employer && <VerificationBadge verification={employer.verification} />}
-        <button type="button" onClick={signOutEmployer} className="text-sm text-muted underline">
-          退出
-        </button>
         <Link href="/employer/post" className="ml-auto rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white">
           发布新职位
         </Link>
@@ -95,7 +92,7 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
               <ManagedJob
                 job={job}
                 employer={employer}
-                employerId={session.employerId!}
+                email={me.email}
                 views={ready.views[job.id] ?? 0}
                 now={ready.now}
                 onDone={done}
@@ -112,14 +109,14 @@ export function ManageJobs({ accounts }: { accounts: Employer[] }) {
 function ManagedJob({
   job,
   employer,
-  employerId,
+  email,
   views,
   now,
   onDone,
 }: {
   job: Job;
   employer?: Employer;
-  employerId: string;
+  email: string;
   views: number;
   now: number;
   onDone: (result: ChangeResult, okText: string) => void;
@@ -168,7 +165,7 @@ function ManagedJob({
             type="button"
             disabled={!refresh.allowed || pending}
             title={refresh.reason_zh}
-            onClick={() => run(() => refreshMyJob(job.id, employerId), status === "expired" ? "已重新开放 30 天" : "已刷新，排到前面")}
+            onClick={() => run(() => refreshMyJob(job.id, email), status === "expired" ? "已重新开放 30 天" : "已刷新，排到前面")}
             className={button}
           >
             {status === "expired" ? "重新开放" : refresh.allowed ? "刷新" : (refresh.reason_zh ?? "刷新")}
@@ -201,7 +198,7 @@ function ManagedJob({
           submitLabel="确定结束招聘"
           submitClassName={`${button} border-danger text-danger`}
           pending={pending}
-          onSubmit={(answer) => run(() => closeMyJob(job.id, employerId, answer), `已结束招聘${answer ? `，${answerText(answer)}` : ""}`)}
+          onSubmit={(answer) => run(() => closeMyJob(job.id, email, answer), `已结束招聘${answer ? `，${answerText(answer)}` : ""}`)}
           onCancel={() => setAsking(undefined)}
         />
       )}
@@ -212,7 +209,7 @@ function ManagedJob({
           submitLabel="保存"
           submitClassName={`${button} border-brand text-brand`}
           pending={pending}
-          onSubmit={(answer) => answer && run(() => confirmHires(job.id, employerId, answer), `已记录，${answerText(answer)}`)}
+          onSubmit={(answer) => answer && run(() => confirmHires(job.id, email, answer), `已记录，${answerText(answer)}`)}
           onCancel={() => setAsking(undefined)}
         />
       )}

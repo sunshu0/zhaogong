@@ -16,20 +16,32 @@ export function findingsPanel(page: Page) {
   return page.locator("section", { has: page.getByRole("heading", { name: "发布前检查" }) });
 }
 
-/** Signs in on the preview step's panel as a demo business. */
-export async function signInAs(page: Page, business = "川味小馆", email = "e2e.employer@example.com") {
-  await page.getByLabel("邮箱", { exact: true }).fill(email);
+/**
+ * Signs up as an employer through line A's sign-up (/login?role=employer): a fresh email and a new
+ * business each time, because a business belongs to one account only and the specs run side by side.
+ * Ends on `next`. Returns the business name.
+ */
+export async function signUpEmployer(page: Page, testInfo: TestInfo, next = "/employer/post"): Promise<string> {
+  const run = `${testInfo.project.name === "mobile" ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
+  const shop = `测试店${run}`;
+  await page.goto(`/login?role=employer&next=${encodeURIComponent(next)}`);
+  await page.getByLabel("邮箱", { exact: true }).fill(`e2e.b.${run}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码", { exact: true }).fill("123456");
-  await page.getByRole("radio", { name: new RegExp(business) }).check();
+  await page.getByLabel("验证码").fill("123456");
   await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  await page.getByLabel("店名", { exact: true }).fill(shop);
+  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(page).toHaveURL(next);
+  return shop;
 }
 
-/** From the preview step: sign in if needed, publish, and return the new job's id. */
+/** From the preview step: publish as the signed-up business and return the new job's id. */
 export async function publishFromPreview(page: Page, button: "发布" | "提交审核" = "发布"): Promise<string | undefined> {
   await expect(page.getByText("这是求职者看到的样子").filter({ visible: true })).toBeVisible();
-  if (await page.getByLabel("邮箱", { exact: true }).isVisible()) await signInAs(page);
-  await expect(page.getByText("以「川味小馆」发布").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(/^以「.+」发布$/).filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: button, exact: true }).click();
   if (button === "提交审核") {
     await expect(page.getByRole("heading", { name: "已提交审核" })).toBeVisible();
@@ -40,7 +52,7 @@ export async function publishFromPreview(page: Page, button: "发布" | "提交�
   return href?.split("/").pop();
 }
 
-/** Pastes a message, gives the job its own title, and publishes it. */
+/** Pastes a message, gives the job its own title, and publishes it. Sign up first (signUpEmployer). */
 export async function publishJob(page: Page, title: string, message = CLEAN_MESSAGE): Promise<string | undefined> {
   await page.goto("/employer/post");
   await openTheForm(page);

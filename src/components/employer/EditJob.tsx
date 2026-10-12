@@ -1,37 +1,36 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import type { CountryCode, Employer, Job } from "@/lib/types";
+import type { CountryCode, Job } from "@/lib/types";
 import { editMyJob, getMyJob } from "@/app/employer/actions";
 import { DraftEditor } from "@/components/employer/DraftEditor";
 import { canEdit } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
-import { useEmployerSession } from "@/components/employer/session";
-import { SignInPanel } from "@/components/employer/SignInPanel";
+import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 /** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
-export function EditJob({ jobId, accounts, country }: { jobId: string; accounts: Employer[]; country: CountryCode }) {
-  const session = useEmployerSession();
-  const employerId = session?.employerId;
-  const [loaded, setLoaded] = useState<{ employerId: string; job: Job | null }>();
+export function EditJob({ jobId, country }: { jobId: string; country: CountryCode }) {
+  return <EmployerGate next={`/employer/jobs/${jobId}`}>{(me) => <Edit jobId={jobId} me={me} country={country} />}</EmployerGate>;
+}
+
+function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
+  const email = me.email;
+  const [loaded, setLoaded] = useState<{ email: string; job: Job | null }>();
 
   useEffect(() => {
-    if (!employerId) return;
     let live = true;
-    getMyJob(jobId, employerId).then((job) => {
-      if (live) setLoaded({ employerId, job });
+    getMyJob(jobId, email).then((job) => {
+      if (live) setLoaded({ email, job });
     });
     return () => {
       live = false;
     };
-  }, [jobId, employerId]);
+  }, [jobId, email]);
 
-  if (session === undefined) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
-  if (!employerId) return <SignInPanel accounts={accounts} intro="登录后编辑你发布的职位。" />;
-  if (loaded?.employerId !== employerId) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
+  if (loaded?.email !== email) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
 
   const job = loaded.job;
   if (!job || !canEdit(job)) {
@@ -44,10 +43,10 @@ export function EditJob({ jobId, accounts, country }: { jobId: string; accounts:
       </div>
     );
   }
-  return <EditForm key={job.id} job={job} employerId={employerId} country={country} />;
+  return <EditForm key={job.id} job={job} email={email} country={country} />;
 }
 
-function EditForm({ job, employerId, country }: { job: Job; employerId: string; country: CountryCode }) {
+function EditForm({ job, email, country }: { job: Job; email: string; country: CountryCode }) {
   const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true });
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Job>();
@@ -59,7 +58,7 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
   function save() {
     setError(undefined);
     startTransition(async () => {
-      const result = await editMyJob(job.id, employerId, state.draft);
+      const result = await editMyJob(job.id, email, state.draft);
       if (result.ok) setSaved(result.job);
       else setError(result.error_zh);
       window.scrollTo({ top: 0 });
@@ -90,10 +89,10 @@ function EditForm({ job, employerId, country }: { job: Job; employerId: string; 
   }
 
   return (
-    <div onFocus={keepFocusClear} className={`space-y-4 pb-24 ${CLEAR_OF_STICKY_BARS}`}>
+    <div className="space-y-4 pb-24">
       <h1 className="text-lg font-semibold">编辑职位</h1>
       {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
-      <div className={WIDE_ON_DESKTOP}>
+      <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <DraftEditor state={state} country={country} />
       </div>
       <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${WIDE_ON_DESKTOP}`}>

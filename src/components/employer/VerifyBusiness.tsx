@@ -5,21 +5,21 @@ import { VERIFICATION_LABELS } from "@/i18n/labels";
 import type { Employer } from "@/lib/types";
 import { lookupBusiness, verifyBusiness } from "@/app/employer/actions";
 import type { RegisterEntry } from "@/components/employer/business-register";
-import { useEmployerSession } from "@/components/employer/session";
-import { SignInPanel } from "@/components/employer/SignInPanel";
+import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 /** Look up the business register by name or NZBN, then claim the entry to show 已验证企业. */
-export function VerifyBusiness({ accounts }: { accounts: Employer[] }) {
-  const session = useEmployerSession();
-  const employerId = session?.employerId;
-  const { profile, reload } = useEmployerProfile(employerId);
-  const employer = profile ?? accounts.find((a) => a.id === employerId);
+export function VerifyBusiness() {
+  return <EmployerGate next="/employer/verify">{(me) => <Verify me={me} />}</EmployerGate>;
+}
+
+function Verify({ me }: { me: EmployerIdentity }) {
+  const { profile, reload } = useEmployerProfile(me.email);
+  const employer: Pick<Employer, "name" | "verification" | "businessNumber"> = profile ?? { name: me.employerName, verification: "unverified" };
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<{ results: RegisterEntry[]; error_zh?: string }>();
-  const [claiming, setClaiming] = useState<string>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
   const [pending, startTransition] = useTransition();
@@ -31,15 +31,13 @@ export function VerifyBusiness({ accounts }: { accounts: Employer[] }) {
   }
 
   function verify(nzbn: string) {
-    if (!employerId) return setClaiming(nzbn);
     startTransition(async () => {
-      const result = await verifyBusiness(employerId, nzbn);
+      const result = await verifyBusiness(me.email, nzbn);
       setMessage(
         result.ok
           ? { ok: true, text: `已验证：${result.employer.legalName}（NZBN ${result.employer.businessNumber}）。你的职位会显示「${VERIFICATION_LABELS[result.employer.verification].zh}」。` }
           : { ok: false, text: result.error_zh },
       );
-      setClaiming(undefined);
       reload();
     });
   }
@@ -112,11 +110,6 @@ export function VerifyBusiness({ accounts }: { accounts: Employer[] }) {
                   >
                     这是我的公司，用它验证
                   </button>
-                )}
-                {claiming === entry.nzbn && !employerId && (
-                  <div className="mt-3">
-                    <SignInPanel accounts={accounts} intro="验证前请先登录，选好要验证的店铺。" />
-                  </div>
                 )}
               </li>
             );

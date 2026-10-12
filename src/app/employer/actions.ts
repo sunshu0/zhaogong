@@ -1,12 +1,15 @@
 "use server";
 // Server Functions for the employer pages, so reads and writes hit the same in-memory data the
-// job seekers' pages read. Demo only: there is no real session, so the caller says who it is.
-// The backend must check the signed-in employer here before trusting employerId.
+// job seekers' pages read. The caller sends the signed-in email; the business always comes from the
+// account on the server (getAccountEmployer), never from the browser. Demo: as elsewhere, the server
+// trusts the email it is sent; real authentication checks the session here instead.
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { missingFields, nextTurn, parsePost, restoreChat, type ChatState, type ParsedPost, type RequiredField } from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import {
   createJob,
+  getAccount,
+  getAccountEmployer,
   getEmployer,
   getJob,
   listContactViews,
@@ -21,15 +24,34 @@ import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
 import { canClose, canEdit, effectiveStatus, refreshedDates, refreshState } from "@/components/employer/job-status";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
-/** Every job of one employer, newest first, whatever its status. */
-export async function getMyJobs(employerId: string): Promise<Job[]> {
-  const jobs = await listJobsByEmployer(String(employerId));
+/** The account's business, or why it cannot act as one. */
+async function postingEmployer(email: unknown): Promise<Employer | "no_identity" | "banned"> {
+  if (typeof email !== "string" || !email.trim()) return "no_identity";
+  const employer = await getAccountEmployer(email);
+  if (employer) return employer;
+  // getAccountEmployer hides banned businesses; tell that case apart for the message.
+  const linked = (await getAccount(email))?.employerId;
+  return linked && (await getEmployer(linked))?.bannedAt ? "banned" : "no_identity";
+}
+
+const IDENTITY_ERRORS = {
+  no_identity: "需要先开通雇主身份。",
+  banned: "账号已被停用，不能再修改职位。",
+};
+
+/** The account's jobs, newest first, whatever their status. None without an employer identity. */
+export async function getMyJobs(email: string): Promise<Job[]> {
+  const employer = await postingEmployer(email);
+  if (typeof employer === "string") return [];
+  const jobs = await listJobsByEmployer(employer.id);
   return [...jobs].sort((a, b) => b.postedAt.localeCompare(a.postedAt));
 }
 
 /** How many signed-in seekers revealed each job's contact details. Counts only, never who. */
-export async function getContactViewCounts(employerId: string): Promise<Record<string, number>> {
-  const jobs = await listJobsByEmployer(String(employerId));
+export async function getContactViewCounts(email: string): Promise<Record<string, number>> {
+  const employer = await postingEmployer(email);
+  if (typeof employer === "string") return {};
+  const jobs = await listJobsByEmployer(employer.id);
   const counts = await Promise.all(jobs.map(async (j) => [j.id, (await listContactViews(j.id)).length] as const));
   return Object.fromEntries(counts);
 }
@@ -46,20 +68,14 @@ export async function chatTurn(state: unknown, message: string): Promise<ChatSta
 
 export type PublishResult =
   | { ok: true; job: Job }
-  | { ok: false; reason: "unknown_employer" | "banned" | "not_ready"; findings: Finding[]; missing: RequiredField[] };
-
-async function postingEmployer(employerId: unknown): Promise<Employer | "unknown_employer" | "banned"> {
-  const employer = await getEmployer(String(employerId));
-  if (!employer) return "unknown_employer";
-  return employer.bannedAt ? "banned" : employer;
-}
+  | { ok: false; reason: "no_identity" | "banned" | "not_ready"; findings: Finding[]; missing: RequiredField[] };
 
 /** Checks the draft again on the server, then publishes it as active or pending review. */
-export async function publishJob(input: unknown, employerId: string): Promise<PublishResult> {
+export async function publishJob(input: unknown, email: string): Promise<PublishResult> {
   const draft = sanitizeDraft(input, DEFAULT_COUNTRY);
   const findings = checkJob(draft, DEFAULT_COUNTRY);
   const missing = missingFields(draft);
-  const employer = await postingEmployer(employerId);
+  const employer = await postingEmployer(email);
   if (typeof employer === "string") return { ok: false, reason: employer, findings, missing };
 
   const decision = publishDecision(findings);
@@ -72,24 +88,23 @@ export async function publishJob(input: unknown, employerId: string): Promise<Pu
 
 export type ChangeResult = { ok: true; job: Job } | { ok: false; error_zh: string; findings?: Finding[] };
 
-/** The job, if it belongs to this employer and the employer may still post. */
-async function ownJob(jobId: unknown, employerId: unknown): Promise<Job | string> {
-  const employer = await postingEmployer(employerId);
-  if (employer === "banned") return "账号已被停用，不能再修改职位。";
-  if (employer === "unknown_employer") return "找不到这个雇主账号，请重新登录。";
+/** The job, if it belongs to the account's business and that business may still post. */
+async function ownJob(jobId: unknown, email: unknown): Promise<Job | string> {
+  const employer = await postingEmployer(email);
+  if (typeof employer === "string") return IDENTITY_ERRORS[employer];
   const job = await getJob(String(jobId));
   if (!job || job.employerId !== employer.id) return "找不到这个职位。";
   return job;
 }
 
-export async function getMyJob(jobId: string, employerId: string): Promise<Job | null> {
-  const job = await ownJob(jobId, employerId);
+export async function getMyJob(jobId: string, email: string): Promise<Job | null> {
+  const job = await ownJob(jobId, email);
   return typeof job === "string" ? null : job;
 }
 
 /** Ends a live or waiting job now. Refreshing reopens it. */
-export async function closeMyJob(jobId: string, employerId: string, hires?: HiresAnswer | null): Promise<ChangeResult> {
-  const job = await ownJob(jobId, employerId);
+export async function closeMyJob(jobId: string, email: string, hires?: HiresAnswer | null): Promise<ChangeResult> {
+  const job = await ownJob(jobId, email);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
   if (!canClose(job, now)) return { ok: false, error_zh: "这个职位已经结束或已被下架。" };
@@ -99,8 +114,8 @@ export async function closeMyJob(jobId: string, employerId: string, hires?: Hire
 }
 
 /** Records or corrects how many people an ended job hired. */
-export async function confirmHires(jobId: string, employerId: string, hires: HiresAnswer): Promise<ChangeResult> {
-  const job = await ownJob(jobId, employerId);
+export async function confirmHires(jobId: string, email: string, hires: HiresAnswer): Promise<ChangeResult> {
+  const job = await ownJob(jobId, email);
   if (typeof job === "string") return { ok: false, error_zh: job };
   if (effectiveStatus(job, Date.now()) !== "expired") return { ok: false, error_zh: "职位结束后才能记录招到几人。" };
   const answer = hiresFromAnswer(hires ?? {}, Date.now());
@@ -109,8 +124,8 @@ export async function confirmHires(jobId: string, employerId: string, hires: Hir
 }
 
 /** Back on top for 30 more days. An ended job is checked again and reopens, or waits for review. */
-export async function refreshMyJob(jobId: string, employerId: string): Promise<ChangeResult> {
-  const job = await ownJob(jobId, employerId);
+export async function refreshMyJob(jobId: string, email: string): Promise<ChangeResult> {
+  const job = await ownJob(jobId, email);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
   const state = refreshState(job, now);
@@ -127,8 +142,8 @@ export async function refreshMyJob(jobId: string, employerId: string): Promise<C
  * Saves an edited job after the same checks as publishing. A live job whose new text needs review
  * goes back to review; dates and the employer never change here.
  */
-export async function editMyJob(jobId: string, employerId: string, input: unknown): Promise<ChangeResult> {
-  const job = await ownJob(jobId, employerId);
+export async function editMyJob(jobId: string, email: string, input: unknown): Promise<ChangeResult> {
+  const job = await ownJob(jobId, email);
   if (typeof job === "string") return { ok: false, error_zh: job };
   if (!canEdit(job)) return { ok: false, error_zh: "这个职位已被下架，不能修改。" };
 
@@ -145,9 +160,11 @@ export async function editMyJob(jobId: string, employerId: string, input: unknow
 
 // ---- business verification (B7) ----
 
-/** The employer as it is now (verification and ban can change after the page was built). */
-export async function getEmployerProfile(employerId: string): Promise<Employer | null> {
-  return (await getEmployer(String(employerId))) ?? null;
+/** The account's business as it is now (verification and a ban can change after the page was built). */
+export async function getMyEmployer(email: string): Promise<Employer | null> {
+  if (typeof email !== "string") return null;
+  const linked = (await getAccount(email))?.employerId;
+  return (linked && (await getEmployer(linked))) || null;
 }
 
 export async function lookupBusiness(query: string): Promise<{ results: RegisterEntry[]; error_zh?: string }> {
@@ -160,10 +177,10 @@ export type VerifyResult = { ok: true; employer: Employer } | { ok: false; error
  * Links a register entry to the employer and shows 已验证企业. An accredited employer keeps its
  * higher badge. Demo: the real version must also prove the person speaks for the company.
  */
-export async function verifyBusiness(employerId: string, nzbn: string): Promise<VerifyResult> {
-  const employer = await postingEmployer(employerId);
+export async function verifyBusiness(email: string, nzbn: string): Promise<VerifyResult> {
+  const employer = await postingEmployer(email);
   if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能验证。" };
-  if (employer === "unknown_employer") return { ok: false, error_zh: "找不到这个雇主账号，请重新登录。" };
+  if (employer === "no_identity") return { ok: false, error_zh: IDENTITY_ERRORS.no_identity };
 
   const employers = await listEmployers();
   const number = normalizeNzbn(String(nzbn));

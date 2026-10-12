@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { jobCard, publishJob, searchJobList, uniqueTitle } from "./helpers";
+import { jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("manage → end a job → it leaves the list; reopen → it is back", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   const title = uniqueTitle("前厅服务员", testInfo);
   await publishJob(page, title);
 
@@ -28,6 +29,7 @@ test("manage → end a job → it leaves the list; reopen → it is back", async
 });
 
 test("ending a job asks how many were hired; the count shows and can be corrected", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   const title = uniqueTitle("前厅服务员", testInfo);
   await publishJob(page, title);
   await page.goto("/employer/jobs");

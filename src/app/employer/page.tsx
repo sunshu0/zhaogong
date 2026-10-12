@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { demoAccounts } from "@/components/employer/demo-accounts";
 import { MyJobs } from "@/components/employer/MyJobs";
 
 export const metadata: Metadata = {
@@ -14,9 +13,7 @@ const POINTS = [
   "一键复制到 Skykiwi、小红书和微信群，带职位链接",
 ];
 
-export default async function EmployerHome() {
-  const accounts = (await demoAccounts()).map(({ id, name, verification }) => ({ id, name, verification }));
-
+export default function EmployerHome() {
   return (
     <div className="space-y-6">
       <section className="rounded-2xl bg-brand-soft px-4 py-5">
@@ -37,12 +34,12 @@ export default async function EmployerHome() {
         >
           一分钟发布招聘
         </Link>
-        <p className="mt-2 text-center text-xs text-muted">不用先注册，写好了发布时再登录。</p>
+        <p className="mt-2 text-center text-xs text-muted">用邮箱开通雇主身份，不用设密码，开通后马上开始写。</p>
       </section>
 
       <section>
         <h2 className="mb-3 font-semibold">我的职位</h2>
-        <MyJobs accounts={accounts} />
+        <MyJobs />
       </section>
 
       <section className="grid grid-cols-2 gap-3 text-sm">

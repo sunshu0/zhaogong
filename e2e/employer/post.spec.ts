@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { findingsPanel, jobCard, publishFromPreview, searchJobList, uniqueTitle, openTheForm } from "./helpers";
+import { findingsPanel, jobCard, openTheForm, publishFromPreview, searchJobList, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("paste → findings hold publishing → fix → publish → the job is on the list", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   const title = uniqueTitle("奶茶店店员", testInfo);
 
   await page.goto("/employer/post");
@@ -37,6 +38,7 @@ test("paste → findings hold publishing → fix → publish → the job is on t
 });
 
 test("the checks sit beside the form on a wide screen and above it on a phone", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   await page.goto("/employer/post");
   await openTheForm(page);
   await page.getByRole("button", { name: "不用粘贴，直接填表" }).click();

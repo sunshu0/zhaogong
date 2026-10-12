@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { CLEAN_MESSAGE, publishJob, signInAs, uniqueTitle, openTheForm } from "./helpers";
+import { CLEAN_MESSAGE, openTheForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
@@ -11,6 +11,7 @@ async function expectNoViolations(page: Page, state: string) {
 }
 
 test("post flow, every step", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
   await page.goto("/employer/post");
   await expectNoViolations(page, "post: chat, greeting");
   await page.getByLabel("回复助手").fill("奶茶店招兼职店员，市中心，时薪 18，入职交押金200。学签OK。微信 cbdtea_demo");
@@ -40,9 +41,8 @@ test("post flow, every step", async ({ page }, testInfo) => {
   await page.getByLabel("职位名称（中文）").fill(uniqueTitle("前厅服务员", testInfo));
   await page.getByRole("button", { name: "预览", exact: true }).click();
   await expect(page.getByText("这是求职者看到的样子").filter({ visible: true })).toBeVisible();
-  await expectNoViolations(page, "post: preview, signed out");
+  await expectNoViolations(page, "post: preview");
 
-  await signInAs(page);
   await page.getByRole("button", { name: "发布", exact: true }).click();
   await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
   await expectNoViolations(page, "post: published, share texts");
@@ -52,6 +52,7 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await page.goto("/employer");
   await expectNoViolations(page, "/employer signed out");
 
+  await signUpEmployer(page, testInfo, "/employer");
   await publishJob(page, uniqueTitle("前厅服务员", testInfo));
   await page.goto("/employer");
   await expect(page.getByText("管理全部").filter({ visible: true })).toBeVisible();
@@ -73,6 +74,7 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
 
 test("moderation queue, each tab", async ({ page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
+  await signUpEmployer(page, testInfo);
   const id = await publishJob(page, title);
   await publishJob(page, uniqueTitle("前厅服务员", testInfo), CLEAN_MESSAGE.replace("Mt Eden 川菜馆", "Mt Eden KTV 楼下川菜馆"));
   await page.goto(`/jobs/${id}`);
