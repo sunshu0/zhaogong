@@ -1,6 +1,6 @@
 // Data access. Today it reads the demo data in memory; the backend will replace the bodies,
 // not the signatures, so pages should only ever go through these functions.
-import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
+import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 import type {
   ContactView,
   CountryCode,
@@ -9,6 +9,7 @@ import type {
   Job,
   JobFilter,
   ModerationLogEntry,
+  PlatformStats,
   Report,
   ReportReason,
 } from "@/lib/types";
@@ -18,7 +19,7 @@ import type {
 const jobs: Job[] = MOCK_JOBS.map((j) => ({ ...j }));
 const employers: Employer[] = MOCK_EMPLOYERS.map((e) => ({ ...e }));
 const reports: Report[] = [];
-const contactViews: ContactView[] = [];
+const contactViews: ContactView[] = MOCK_CONTACT_VIEWS.map((v) => ({ ...v }));
 const moderationLog: ModerationLogEntry[] = [];
 
 export function matchesFilter(job: Job, f: JobFilter): boolean {
@@ -119,12 +120,13 @@ export async function setEmployerVerification(
   return employer;
 }
 
-/** Ban an employer and take down all of their jobs. Returns the ids of the jobs taken down. */
+/** Ban an employer and take down their live jobs (active or pending review). Returns the ids taken down. */
 export async function banEmployer(id: string): Promise<string[]> {
   const employer = employers.find((e) => e.id === id);
   if (!employer) return [];
   employer.bannedAt = new Date().toISOString();
-  const takenDown = jobs.filter((j) => j.employerId === id && j.status !== "removed");
+  // Only jobs that are public or waiting to be: closed jobs are not shown, so there is nothing to take down.
+  const takenDown = jobs.filter((j) => j.employerId === id && (j.status === "active" || j.status === "pending_review"));
   for (const j of takenDown) j.status = "removed";
   return takenDown.map((j) => j.id);
 }
@@ -151,4 +153,28 @@ export async function addModerationLog(entry: Omit<ModerationLogEntry, "id" | "a
 /** Moderation decisions, newest first. */
 export async function listModerationLog(): Promise<ModerationLogEntry[]> {
   return [...moderationLog].reverse();
+}
+
+/** Real counts for the landing page. Taken-down jobs and banned employers are left out. */
+export async function getPlatformStats(country: CountryCode): Promise<PlatformStats> {
+  const banned = new Set(employers.filter((e) => e.bannedAt).map((e) => e.id));
+  const posted = jobs.filter((j) => j.country === country && j.status !== "removed" && !banned.has(j.employerId));
+  const ids = new Set(posted.map((j) => j.id));
+  return {
+    employersPosting: new Set(posted.map((j) => j.employerId)).size,
+    jobsPosted: posted.length,
+    hiresConfirmed: posted.reduce((sum, j) => sum + (j.hiresConfirmed ?? 0), 0),
+    contactViews: contactViews.filter((v) => ids.has(v.jobId)).length,
+  };
+}
+
+/** Good jobs to show off: active, from a verified and not banned employer, best pay first, then newest. */
+export async function listFeaturedJobs(country: CountryCode, limit = 6): Promise<Job[]> {
+  const trusted = new Set(
+    employers.filter((e) => e.verification !== "unverified" && !e.bannedAt).map((e) => e.id),
+  );
+  return jobs
+    .filter((j) => j.country === country && j.status === "active" && trusted.has(j.employerId))
+    .sort((a, b) => (b.pay.max ?? b.pay.min) - (a.pay.max ?? a.pay.min) || b.postedAt.localeCompare(a.postedAt))
+    .slice(0, limit);
 }

@@ -1,5 +1,5 @@
 // Demo data for the frontend. Every business, phone number and WeChat ID here is invented.
-import type { Employer, Job } from "@/lib/types";
+import type { ContactView, Employer, Job } from "@/lib/types";
 
 export const MOCK_EMPLOYERS: Employer[] = [
   { id: "e1", name: "川味小馆", legalName: "Demo Sichuan Kitchen Limited", businessNumber: "9429000000001", verification: "business_verified", regionId: "akl-mt-eden", createdAt: "2026-09-01" },
@@ -176,4 +176,41 @@ export const MOCK_JOBS: Job[] = [
     descriptionEn: "Dishes and kitchen cleaning, no experience needed.",
     contact: { phone: "021 555 0102" }, status: "active", postedAt: days(4), expiresAt: expires(4), urgent: false,
   },
+  // Closed jobs where the employer confirmed hires, so the demo landing page has hires to count.
+  {
+    id: "j17", country: "NZ", employerId: "e1", titleZh: "收银员", titleEn: "Cashier",
+    industry: "hospitality", employmentType: "part_time", regionId: "akl-mt-eden",
+    pay: { min: 24 }, hoursPerWeek: { min: 15, max: 20 },
+    mealsIncluded: true, accommodationIncluded: false, visaAccepted: ["citizen_resident", "open_work", "student"],
+    languages: ["mandarin", "english"],
+    descriptionZh: "收银和外卖打包。", descriptionEn: "Till and takeaway packing.",
+    contact: { phone: "021 555 0101" }, status: "expired", postedAt: days(25), expiresAt: expires(25), urgent: false,
+    hiresConfirmed: 1, hiresConfirmedAt: days(20),
+  },
+  {
+    id: "j18", country: "NZ", employerId: "e2", titleZh: "楼面服务员", titleEn: "Floor staff",
+    industry: "hospitality", employmentType: "casual", regionId: "akl-northcote",
+    pay: { min: 24 }, hoursPerWeek: { min: 10, max: 20 },
+    mealsIncluded: true, accommodationIncluded: false, visaAccepted: ["citizen_resident", "open_work", "student", "working_holiday"],
+    languages: ["mandarin"],
+    descriptionZh: "周末早茶楼面。", descriptionEn: "Weekend yum cha floor.",
+    contact: { phone: "021 555 0102" }, status: "expired", postedAt: days(28), expiresAt: expires(28), urgent: false,
+    hiresConfirmed: 2, hiresConfirmedAt: days(22),
+  },
+  {
+    id: "j19", country: "NZ", employerId: "e7", titleZh: "仓库包装员", titleEn: "Warehouse packer",
+    industry: "logistics", employmentType: "full_time", regionId: "akl-mt-wellington",
+    pay: { min: 25 }, hoursPerWeek: { min: 40 },
+    mealsIncluded: false, accommodationIncluded: false, visaAccepted: ["citizen_resident", "open_work", "aewv"],
+    languages: ["mandarin", "english"],
+    descriptionZh: "打包和贴单。", descriptionEn: "Packing and labelling.",
+    contact: { phone: "021 555 0107" }, status: "expired", postedAt: days(27), expiresAt: expires(27), urgent: false,
+    hiresConfirmed: 2, hiresConfirmedAt: days(19),
+  },
 ];
+
+// Contact reveals already recorded, so the demo landing page has 咨询 to count. Invented viewers.
+const VIEWS_PER_JOB: Record<string, number> = { j1: 9, j3: 6, j5: 5, j11: 7, j13: 4, j17: 3, j18: 5, j19: 4 };
+export const MOCK_CONTACT_VIEWS: ContactView[] = Object.entries(VIEWS_PER_JOB).flatMap(([jobId, n]) =>
+  Array.from({ length: n }, (_, k) => ({ jobId, viewerEmail: `viewer${k + 1}@example.com`, viewedAt: days(k % 5) })),
+);

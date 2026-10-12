@@ -76,6 +76,9 @@ export interface Job {
   postedAt: string; // ISO datetime
   expiresAt: string; // ISO datetime
   urgent: boolean;
+  /** People the employer says they hired through this job, confirmed when closing it. */
+  hiresConfirmed?: number;
+  hiresConfirmedAt?: string; // ISO datetime
 }
 
 export interface JobFilter {
@@ -133,4 +136,16 @@ export interface ModerationLogEntry {
   rules?: string[];
   /** Jobs a ban took down. */
   takenDown?: number;
+}
+
+/** Platform-wide counts for the landing page. Real counts only, never estimates. */
+export interface PlatformStats {
+  /** Employers with at least one job that was not taken down. */
+  employersPosting: number;
+  /** Jobs ever published and not taken down. */
+  jobsPosted: number;
+  /** Sum of hires employers confirmed. */
+  hiresConfirmed: number;
+  /** Times signed-in job seekers revealed contact details (咨询). */
+  contactViews: number;
 }

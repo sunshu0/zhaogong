@@ -5,7 +5,7 @@ import { MOCK_JOBS } from "@/mock/data";
 describe("job filter", () => {
   it("lists only active NZ jobs, newest first", async () => {
     const jobs = await listJobs({ country: "NZ" });
-    expect(jobs.length).toBe(MOCK_JOBS.length);
+    expect(jobs.length).toBe(MOCK_JOBS.filter((j) => j.status === "active").length);
     for (let i = 1; i < jobs.length; i++) {
       expect(jobs[i - 1].postedAt.slice(0, 10) >= jobs[i].postedAt.slice(0, 10)).toBe(true);
     }
@@ -56,9 +56,10 @@ describe("employer and moderation data", () => {
 
   it("records contact views and updates reports", async () => {
     const { recordContactView, listContactViews, submitReport, updateReport, listReports } = await import("@/lib/data");
+    const before = (await listContactViews("j1")).length;
     await recordContactView("j1", "a@example.com");
     await recordContactView("j1", "b@example.com");
-    expect((await listContactViews("j1")).length).toBe(2);
+    expect((await listContactViews("j1")).length).toBe(before + 2);
     const r = await submitReport("j2", "charges_fee");
     await updateReport(r.id, "actioned");
     expect((await listReports()).find((x) => x.id === r.id)?.status).toBe("actioned");
@@ -73,5 +74,31 @@ describe("moderation log", () => {
     const log = await listModerationLog();
     expect(log.map((e) => e.action).slice(0, 2)).toEqual(["ban", "take_down"]);
     expect(log[0].id).not.toBe(log[1].id);
+  });
+});
+
+describe("landing page data", () => {
+  it("counts posting employers, jobs, confirmed hires and contact views", async () => {
+    const { getPlatformStats } = await import("@/lib/data");
+    const stats = await getPlatformStats("NZ");
+    expect(stats.hiresConfirmed).toBeGreaterThanOrEqual(5);
+    expect(stats.jobsPosted).toBeGreaterThan(0);
+    expect(stats.employersPosting).toBeLessThanOrEqual(stats.jobsPosted);
+    expect(stats.contactViews).toBeGreaterThan(0);
+    expect(await getPlatformStats("AU")).toEqual({ employersPosting: 0, jobsPosted: 0, hiresConfirmed: 0, contactViews: 0 });
+  });
+
+  it("features only active jobs from verified, not banned employers, best pay first", async () => {
+    const { listFeaturedJobs, getEmployer } = await import("@/lib/data");
+    const featured = await listFeaturedJobs("NZ", 4);
+    expect(featured.length).toBe(4);
+    for (const j of featured) {
+      expect(j.status).toBe("active");
+      const e = await getEmployer(j.employerId);
+      expect(e?.verification).not.toBe("unverified");
+      expect(e?.bannedAt).toBeUndefined();
+    }
+    const top = (j: (typeof featured)[number]) => j.pay.max ?? j.pay.min;
+    for (let i = 1; i < featured.length; i++) expect(top(featured[i - 1])).toBeGreaterThanOrEqual(top(featured[i]));
   });
 });
