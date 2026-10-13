@@ -43,7 +43,7 @@ test("in the job-seeker identity, an employer page asks to switch instead of swi
   const shop = await signUpEmployer(page, testInfo, "/employer/jobs");
   await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
   await page.getByRole("button", { name: "切换为求职者" }).click();
-  await expect(page).toHaveURL("/jobs");
+  await expect(page).toHaveURL("/workspace");
 
   await page.goto("/employer/jobs");
   await expect(page.getByText("你现在用的是求职者身份").filter({ visible: true })).toBeVisible();

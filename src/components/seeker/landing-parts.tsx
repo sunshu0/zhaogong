@@ -1,6 +1,7 @@
 // Building blocks of the landing page (/). Pictures are made from real data, never stock photos.
 import { regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
+import { LANGUAGE_LABELS } from "@/i18n/labels";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { JobDraft } from "@/lib/compliance";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
@@ -17,7 +18,7 @@ function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
 
 /** A job card as a picture: same facts as the list's card, but not a link. */
 function PictureCard({ job, employer, className }: { job: Job; employer?: Employer; className: string }) {
-  const facts = [regionById(job.country, job.regionId)?.nameZh, EMPLOYMENT_TYPE_LABELS[job.employmentType].zh].filter(Boolean);
+  const facts = [regionById(job.country, job.regionId)?.nameZh, formatEmploymentTypes(job.employmentType)].filter(Boolean);
   const tags = jobTags(job);
   return (
     <div className={`w-80 rounded-xl bg-surface p-4 text-foreground shadow-2xl ring-1 ring-black/5 ${className}`}>
@@ -96,7 +97,7 @@ export function FeatureIconSvg({ name }: { name: FeatureIcon }) {
 export function BeforeAfter({ message, draft, summaryEn }: { message: string; draft: JobDraft; summaryEn: string }) {
   const facts = [
     draft.regionId ? regionById("NZ", draft.regionId)?.nameZh : undefined,
-    draft.employmentType ? EMPLOYMENT_TYPE_LABELS[draft.employmentType].zh : undefined,
+    formatEmploymentTypes(draft.employmentType),
     formatHours(draft.hoursPerWeek),
   ].filter(Boolean);
   const tags = [

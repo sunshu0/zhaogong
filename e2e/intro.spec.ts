@@ -82,9 +82,7 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   if (testInfo.project.name === "desktop") {
     const titles = featured.locator("li h2");
     const ys = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await titles.nth(i).boundingBox())!.y)));
-    expect(ys[0]).toBe(ys[1]);
-    expect(ys[1]).toBe(ys[2]); // three columns
-    expect(ys[3]).toBeGreaterThan(ys[0]);
+    for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThan(ys[i - 1]);
     // The AI chat post on the left, the three other features beside it.
     const aiBox = (await ai.boundingBox())!;
     const firstOther = (await features.getByRole("heading", { level: 3, name: "发布前合规检查" }).boundingBox())!;

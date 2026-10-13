@@ -54,10 +54,18 @@ export function AccountMenu() {
     };
   }, [open]);
 
-  if (!hydrated) return <span className="invisible">登录 / 注册</span>;
+  // Keep a real link in the server shell so a no-JavaScript browser can still sign in.
+  // Once hydrated, this is replaced by the session-aware menu when a session exists.
+  if (!hydrated) {
+    return (
+      <Link href="/login" className="inline-flex min-h-11 items-center px-1 hover:text-brand">
+        登录 / 注册
+      </Link>
+    );
+  }
   if (!session) {
     return (
-      <Link href="/login" className="hover:text-brand">
+      <Link href="/login" className="inline-flex min-h-11 items-center px-1 hover:text-brand">
         登录 / 注册
       </Link>
     );
@@ -73,7 +81,7 @@ export function AccountMenu() {
     const identity = reconcileIdentity("employer", status ?? {});
     setIdentity(identity);
     setOpen(false);
-    if (identity.activeRole === "employer") router.push("/employer");
+    if (identity.activeRole === "employer") router.push("/workspace");
     else setNotice("这个账号的雇主身份已不可用，请重新开通。");
   }
 
@@ -81,7 +89,7 @@ export function AccountMenu() {
     if (!employer) return;
     setIdentity({ activeRole: "seeker", employer });
     setOpen(false);
-    router.push("/jobs");
+    router.push("/workspace");
   }
 
   const item = "block w-full rounded-md px-2 py-2 text-left text-sm hover:bg-background";
@@ -98,7 +106,7 @@ export function AccountMenu() {
         aria-expanded={open}
         aria-controls="account-menu"
         aria-label={`账号菜单，当前身份：${label}`}
-        className="flex max-w-[9rem] items-center gap-1 hover:text-brand sm:max-w-[14rem]"
+        className="flex min-h-11 max-w-[9rem] items-center gap-1 px-1 hover:text-brand sm:max-w-[14rem]"
       >
         <span className="truncate">
           <span className="sm:hidden">{session.activeRole === "employer" ? "雇主" : "求职者"}</span>
@@ -118,6 +126,9 @@ export function AccountMenu() {
             当前身份：<span className="font-medium">{label}</span>
           </p>
           <div className="border-t border-border pt-1">
+            <Link href="/workspace" className={`${item} font-medium text-brand`} onClick={() => setOpen(false)}>
+              进入工作台
+            </Link>
             <Link href="/me" className={item} onClick={() => setOpen(false)}>
               我的
             </Link>

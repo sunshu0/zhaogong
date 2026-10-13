@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { contactBlock } from "./helpers";
 
-test("contact details stay hidden until sign-in, then show on the same job", async ({ page }) => {
+test("sign-in returns to the job but contact details still require mutual consent", async ({ page }) => {
   const response = await page.goto("/jobs/j1");
   const html = await response!.text();
   expect(html).not.toContain("021 555 0101");
   expect(html).not.toContain("demo_chuanwei");
 
-  await expect(contactBlock(page)).toContainText("登录后可以查看雇主的电话、微信。");
-  await contactBlock(page).getByRole("link", { name: "登录查看联系方式" }).click();
-  await expect(page).toHaveURL("/login?next=%2Fjobs%2Fj1");
+  await expect(contactBlock(page)).toContainText("双方同意后才会互相展示");
+  await page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true }).click();
+  await expect(page).toHaveURL("/login?role=seeker&next=%2Fjobs%2Fj1");
 
   await page.getByLabel("邮箱", { exact: true }).fill("not-an-email");
   await page.getByRole("button", { name: "获取验证码" }).click();
@@ -27,9 +27,9 @@ test("contact details stay hidden until sign-in, then show on the same job", asy
   await page.getByRole("button", { name: "登录", exact: true }).click();
 
   await expect(page).toHaveURL("/jobs/j1");
-  await expect(contactBlock(page).getByRole("link", { name: "021 555 0101" })).toHaveAttribute("href", "tel:0215550101");
-  await expect(contactBlock(page)).toContainText("demo_chuanwei");
-  await expect(contactBlock(page)).toContainText("已登录：e2e.seeker@example.com");
+  await expect(page.getByRole("main")).not.toContainText("021 555 0101");
+  await expect(page.getByRole("main")).not.toContainText("demo_chuanwei");
+  await expect(page.getByRole("button", { name: "立即沟通", exact: true })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
 });
 

@@ -22,6 +22,17 @@ const full: JobDraft = {
 };
 
 describe("form ⇄ draft", () => {
+  it("keeps all selected types through form, sanitization, publish and edit", () => {
+    const draft: JobDraft = { ...full, employmentType: ["full_time", "part_time", "casual"] };
+    const roundTrip = draftFromForm(formFromDraft(draft), "NZ");
+    expect(roundTrip.employmentType).toEqual(draft.employmentType);
+    const clean = sanitizeDraft(roundTrip, "NZ");
+    expect(clean.employmentType).toEqual(draft.employmentType);
+    const job = completeJob(clean, "e1", Date.UTC(2026, 9, 13), "active")!;
+    expect(job.employmentType).toEqual(draft.employmentType);
+    expect(editPatch(job).employmentType).toEqual(draft.employmentType);
+    expect(completeJob({ ...draft, employmentType: [] }, "e1", 0, "active")).toBeUndefined();
+  });
   it("round-trips a full draft", () => {
     expect(draftFromForm(formFromDraft(full), "NZ")).toEqual({ ...full, accommodationIncluded: false });
   });
@@ -68,6 +79,10 @@ describe("editPatch", () => {
 });
 
 describe("sanitizeDraft", () => {
+  it("deduplicates types and removes unknown array values", () => {
+    expect(sanitizeDraft({ employmentType: ["part_time", "part_time", "casual", "invalid", 42] }, "NZ").employmentType).toEqual(["part_time", "casual"]);
+    expect(sanitizeDraft({ employmentType: ["invalid"] }, "NZ").employmentType).toBeUndefined();
+  });
   it("keeps a well-formed draft as it is", () => {
     expect(sanitizeDraft(full, "NZ")).toEqual(full);
   });

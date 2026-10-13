@@ -1,5 +1,6 @@
 import { COUNTRIES, regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import { missingFields } from "@/lib/ai-post";
 import { checkJob, publishDecision, type JobDraft } from "@/lib/compliance";
 import type { CountryCode } from "@/lib/types";
@@ -45,7 +46,7 @@ export function DraftCard({ draft, country }: { draft: JobDraft; country: Countr
       <dl className="mt-2 divide-y divide-border">
         <Row label="时薪" value={draft.pay && `${COUNTRIES[country].currencySymbol}${range(draft.pay, money)}/小时`} />
         <Row label="地区" value={draft.regionId && regionById(country, draft.regionId)?.nameZh} />
-        <Row label="类型" value={draft.employmentType && EMPLOYMENT_TYPE_LABELS[draft.employmentType].zh} />
+        <Row label="类型" value={formatEmploymentTypes(draft.employmentType)} />
         <Row label="工时" value={draft.hoursPerWeek ? `每周 ${range(draft.hoursPerWeek)} 小时` : "可不填"} />
         <Row label="食宿" value={perksKnown ? perks || "不包吃住" : "可不填"} />
         <Row label="签证" value={draft.visaAccepted?.length ? draft.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、") : undefined} />

@@ -8,6 +8,7 @@ import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/
 import { formatDateZh } from "@/components/seeker/job-facts";
 import { employerSignUpHref, identityLabel } from "@/components/seeker/identity";
 import { signOut, useHydrated, useSession } from "@/components/seeker/session-client";
+import { ManageJobs } from "@/components/employer/ManageJobs";
 
 /** /me: who is signed in, jobs viewed and reports sent from this device, sign out. */
 export function MePage() {
@@ -63,7 +64,7 @@ export function MePage() {
         </button>
       </section>
 
-      <Panel
+      {session.activeRole === "employer" ? <section className="space-y-3" aria-label="招聘记录"><h2 className="text-lg font-semibold">招聘记录</h2><ManageJobs /></section> : <Panel
         title="最近看过的职位"
         count={views.length}
         action={
@@ -95,7 +96,7 @@ export function MePage() {
             ))}
           </ul>
         )}
-      </Panel>
+      </Panel>}
 
       <Panel title="我发出的举报" count={reports.length}>
         {reports.length === 0 ? (

@@ -1,12 +1,50 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
+test("single-column job rows expose useful details without private contact data at all widths", async ({ page }, testInfo) => {
+  const widths = testInfo.project.name === "desktop" ? [1280, 1440, 1920] : [375];
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: testInfo.project.name === "mobile" ? 812 : 900 });
+    await page.goto("/jobs");
+    const list = page.getByRole("region", { name: "职位列表" });
+    const rows = list.locator('a[href^="/jobs/"]');
+    await expect(rows.first()).toBeVisible();
+    const first = await box(rows.nth(0));
+    const second = await box(rows.nth(1));
+    expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+    expect(second.x).toBe(first.x);
+    expect(first.width).toBeCloseTo((await box(list)).width, 0);
+    const retail = list.locator('a[href="/jobs/j5"]');
+    for (const text of ["上货、整理货架", "早班 7:00", "工作语言", "普通话", "雇主接受的签证", "打工度假", "每周 20–30 小时"]) await expect(retail).toContainText(text);
+    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText(/最近在线：约 \d+ (分钟|小时)前在线/);
+    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("今日已回复 3 位求职者");
+    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("演示状态");
+    await expect(retail).not.toContainText("021 555");
+    const noShift = list.locator('a[href="/jobs/j6"]');
+    await expect(noShift.locator("dl > div").filter({ has: page.getByText("班次", { exact: true }) })).toContainText("未注明");
+    expect(await noSideScroll(page)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`job-rows-${width}.png`) });
+  }
+  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+});
+
+test("mobile header actions have touch-sized targets", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "Touch target check only applies to the phone layout");
+  await page.goto("/");
+  const controls = page.getByRole("banner").locator("nav a, nav button").filter({ visible: true });
+  await expect(controls).toHaveCount(4);
+  for (let i = 0; i < (await controls.count()); i += 1) {
+    expect((await controls.nth(i).boundingBox())?.height, await controls.nth(i).innerText()).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("job list: filters collapsed in one bar at every width; Esc or a tap outside closes them unapplied", async ({
   page,
-}, testInfo) => {
+}) => {
   await page.goto("/jobs?industry=hospitality");
   const panel = page.locator("#job-filters");
   const toggle = page.getByRole("button", { name: "筛选 · 1" });
@@ -21,17 +59,13 @@ test("job list: filters collapsed in one bar at every width; Esc or a tap outsid
   await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
   expect(Math.abs((await box(search)).y - (await box(toggle)).y)).toBeLessThan(4);
 
-  // The list takes the full width of the bar: two columns of cards on desktop, one on phones.
+  // Job rows use the full width of the search bar at every viewport.
   const titles = list.getByRole("heading", { level: 2 });
   const [first, second] = [await box(titles.nth(0)), await box(titles.nth(1))];
   const grid = await box(list.locator("ul").first());
   expect(grid.width).toBeGreaterThan((await box(page.getByRole("search"))).width - 2);
-  if (testInfo.project.name === "desktop") {
-    expect(second.y).toBe(first.y);
-    expect(second.x).toBeGreaterThan(first.x + grid.width / 3);
-  } else {
-    expect(second.y).toBeGreaterThan(first.y);
-  }
+  expect(second.y).toBeGreaterThan(first.y);
+  expect(second.x).toBe(first.x);
 
   // Opens as a drop-down over the list; Esc closes it and puts focus back on 筛选.
   await toggle.click();

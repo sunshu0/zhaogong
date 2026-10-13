@@ -32,7 +32,11 @@ test("a full conversation, from a short message to a published job", async ({ pa
 
   await page.getByRole("button", { name: "Northcote", exact: true }).click();
   await expect(lastAssistant(page)).toContainText("是全职、兼职还是临时工");
-  await page.getByRole("button", { name: "兼职", exact: true }).click();
+  await expect(page.getByRole("button", { name: "都可以", exact: true })).toBeVisible();
+  await sayInChat(page, "都可以");
+  await expect(lastAssistant(page)).toContainText("好，接受全职 / 兼职 / 临时工");
+  await expect(lastAssistant(page)).not.toContainText("是全职、兼职还是临时工");
+  await expect(card).toContainText("全职 / 兼职 / 临时工");
   await page.getByRole("button", { name: "学签", exact: true }).click();
   await expect(lastAssistant(page)).toContainText("已加上：学签");
   await page.getByRole("button", { name: "就这些" }).click();
@@ -46,9 +50,11 @@ test("a full conversation, from a short message to a published job", async ({ pa
 
   await expect(page.getByRole("heading", { name: /^预览/ })).toBeFocused();
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("全职 / 兼职 / 临时工");
   await publishFromPreview(page);
   await searchJobList(page, title);
   await expect(jobCard(page, title)).toBeVisible();
+  await expect(jobCard(page, title)).toContainText("全职 / 兼职 / 临时工");
 });
 
 test("compliance questions arrive in the chat and the employer's fixes reach the job", async ({ page }, testInfo) => {

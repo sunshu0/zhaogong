@@ -7,6 +7,7 @@ import type { Finding, JobDraft } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry, LanguageRequirement, VisaAccepted } from "@/lib/types";
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
+import { employmentTypes, packEmploymentTypes } from "@/lib/employment-types";
 
 type Props = {
   form: PostForm;
@@ -56,7 +57,7 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
         <Group name="employmentType" legend="工作类型" required {...state("employmentType")}>
           <div className="flex flex-wrap gap-2">
             {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([value, l]) => (
-              <Chip key={value} type="radio" name="employmentType" checked={form.employmentType === value} onChange={() => set({ employmentType: value as EmploymentType })}>
+              <Chip key={value} type="checkbox" name="employmentType" checked={employmentTypes(form.employmentType).includes(value as EmploymentType)} onChange={() => set({ employmentType: packEmploymentTypes(toggle(employmentTypes(form.employmentType), value as EmploymentType)) })}>
                 {l.zh}
               </Chip>
             ))}

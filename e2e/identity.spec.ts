@@ -116,12 +116,14 @@ test("switching between the two identities from the account menu", async ({ page
 
   await accountButton(page).click();
   await page.getByRole("button", { name: "切换为求职者" }).click();
-  await expect(page).toHaveURL("/jobs");
+  await expect(page).toHaveURL("/workspace");
+  await expect(page.getByRole("heading", { name: "求职者工作台", level: 1 })).toBeVisible();
   await expect(accountButton(page)).toHaveAccessibleName("账号菜单，当前身份：求职者");
 
   await accountButton(page).click();
   await page.getByRole("button", { name: `切换为雇主（${name}）` }).click();
-  await expect(page).toHaveURL("/employer");
+  await expect(page).toHaveURL("/workspace");
+  await expect(page.getByRole("heading", { name: "雇主工作台", level: 1 })).toBeVisible();
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 

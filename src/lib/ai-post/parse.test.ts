@@ -200,6 +200,16 @@ describe("parsePost", () => {
 });
 
 describe("englishSummary", () => {
+  it("keeps explicit multiple types instead of inferring only one from hours", async () => {
+    const { draft } = await parsePost("Mt Eden 招服务员，全职或兼职，每周20小时，时薪25，学签可做，微信 demo_multi", "NZ");
+    expect(draft.employmentType).toEqual(["full_time", "part_time"]);
+    expect(draft.descriptionEn).toContain("Full-time / Part-time");
+  });
+
+  it("does not include explicitly excluded types", async () => {
+    const { draft } = await parsePost("招服务员，不要全职，只招兼职或临时工", "NZ");
+    expect(draft.employmentType).toEqual(["part_time", "casual"]);
+  });
   it("writes an English description from the structured fields", async () => {
     const { draft } = await parsePost(MSG.frontOfHouse, "NZ");
     expect(englishSummary(draft, "NZ")).toBe(
@@ -210,6 +220,9 @@ describe("englishSummary", () => {
 });
 
 describe("missingFields", () => {
+  it("requires at least one employment type", () => {
+    expect(missingFields({ employmentType: [] })).toContain("employmentType");
+  });
   it("treats empty lists and empty contact as missing", () => {
     expect(missingFields({ titleZh: "x", visaAccepted: [], contact: {} })).toContain("visaAccepted");
     expect(missingFields({ titleZh: "x", visaAccepted: [], contact: {} })).toContain("contact");

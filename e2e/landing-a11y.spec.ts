@@ -27,3 +27,15 @@ test("/ never scrolls sideways at 375, 1280, 1440 or 1920 px", async ({ page }) 
     expect(scrollX, `${width}px`).toBe(0);
   }
 });
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("the landing page still exposes stats and jobs", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "登录 / 注册" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "平台数据" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "精选工作" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "浏览全部职位 →" })).toBeVisible();
+  });
+});

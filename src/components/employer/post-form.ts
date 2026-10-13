@@ -6,13 +6,14 @@ import { missingFields } from "@/lib/ai-post";
 import type { CountryCode, EmploymentType, Industry, Job, LanguageRequirement, VisaAccepted } from "@/lib/types";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { JOB_LIFETIME_DAYS } from "@/components/employer/job-status";
+import { packEmploymentTypes } from "@/lib/employment-types";
 
 /** What the form edits. Text is kept as typed; numbers are undefined while empty. */
 export interface PostForm {
   titleZh: string;
   titleEn: string;
   industry?: Industry;
-  employmentType?: EmploymentType;
+  employmentType?: Job["employmentType"];
   regionId?: string;
   address: string;
   payMin?: number;
@@ -198,7 +199,9 @@ export function sanitizeDraft(input: unknown, country: CountryCode): JobDraft {
     titleZh: str(input.titleZh, LIMITS.short),
     titleEn: str(input.titleEn, LIMITS.short),
     industry: oneOf(input.industry, INDUSTRIES),
-    employmentType: oneOf(input.employmentType, EMPLOYMENT_TYPES),
+    employmentType: Array.isArray(input.employmentType)
+      ? packEmploymentTypes(listOf(input.employmentType, EMPLOYMENT_TYPES) ?? [])
+      : oneOf(input.employmentType, EMPLOYMENT_TYPES),
     regionId: oneOf(input.regionId, regions),
     address: str(input.address, LIMITS.address),
     pay: numRange(input.pay),

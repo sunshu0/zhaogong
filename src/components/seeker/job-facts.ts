@@ -1,6 +1,6 @@
 // Facts shown on the job detail page and in its share metadata. Pure functions so they can be unit-tested.
 import { COUNTRIES, regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS } from "@/i18n/labels";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { CountryCode, Employer, EmployerVerification, Job, PayRange } from "@/lib/types";
 import { DAY_MS, formatMoney, formatPay } from "@/components/seeker/format";
 
@@ -49,7 +49,7 @@ export function shareTitle(job: Job): string {
 }
 
 export function shareDescription(job: Job, employer: Employer | undefined): string {
-  const head = [employer?.name, EMPLOYMENT_TYPE_LABELS[job.employmentType].zh].filter(Boolean).join(" · ");
+  const head = [employer?.name, formatEmploymentTypes(job.employmentType)].filter(Boolean).join(" · ");
   const text = `${head} · ${job.descriptionZh}`;
   return text.length > 100 ? `${text.slice(0, 99)}…` : text;
 }

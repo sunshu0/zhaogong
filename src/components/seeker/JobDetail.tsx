@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { COUNTRIES, regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags, postedAgoZh } from "@/components/seeker/format";
 import { expiryZh, formatDateZh, isExpired, minimumWageNote, verificationNote } from "@/components/seeker/job-facts";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 import { STICKY_COLUMN } from "@/components/ui/wide";
+import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 
 const NOTE_STYLES = {
   below: "bg-danger-soft text-danger",
@@ -18,6 +21,7 @@ export function JobDetail({
   employer,
   now,
   aside,
+  actions,
   children,
 }: {
   job: Job;
@@ -25,6 +29,7 @@ export function JobDetail({
   now: number;
   /** Blocks for a right-hand column that stays in view from 1024 px (contact, share); on phones they follow the description. */
   aside?: ReactNode;
+  actions?: ReactNode;
   /** Blocks shown after the description (and after `aside` on phones), e.g. report. */
   children?: ReactNode;
 }) {
@@ -45,6 +50,7 @@ export function JobDetail({
           {job.titleEn}
         </p>
         <p className="mt-3 text-2xl font-semibold text-brand">{formatPay(job.pay, job.country)}</p>
+        {actions && <div className="mt-4">{actions}</div>}
         {payNote && <p className={`mt-2 rounded-lg px-3 py-2 text-sm ${NOTE_STYLES[payNote.level]}`}>{payNote.text}</p>}
         {tags.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -66,10 +72,12 @@ export function JobDetail({
       {employer && (
         <section aria-label="雇主" className="rounded-xl border border-border bg-surface p-4">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            {employer.name}
+            <Link href={`/employers/${employer.id}`} className="inline-flex min-w-0 items-center gap-2 text-brand underline underline-offset-4"><EmployerAvatar employerId={employer.id} fallback={employer.name} /><span className="break-words">{employer.name}</span></Link>
             <VerificationBadge verification={employer.verification} />
           </p>
+          <p className="mt-2 break-words text-xs text-muted">雇主ID：{employer.id}</p>
           <p className="mt-1 text-sm text-muted">{verificationNote(employer.verification, job.country)}</p>
+          <Link href={`/employers/${employer.id}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand">查看雇主主页与其他岗位 →</Link>
           {employer.legalName && (
             <p className="mt-1 text-xs text-muted">
               {employer.legalName}
@@ -86,7 +94,7 @@ export function JobDetail({
             {job.address && <span className="text-muted">，{job.address}</span>}
           </Fact>
           <Fact term="工作类型">
-            {EMPLOYMENT_TYPE_LABELS[job.employmentType].zh} · {INDUSTRY_LABELS[job.industry].zh}
+            {formatEmploymentTypes(job.employmentType)} · {INDUSTRY_LABELS[job.industry].zh}
           </Fact>
           {hours && <Fact term="工时">{hours}</Fact>}
           <Fact term="食宿">

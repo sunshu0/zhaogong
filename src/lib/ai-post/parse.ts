@@ -2,7 +2,8 @@
 // will have later. parsePost is async on purpose; replace its body, keep its signature and result.
 import { COUNTRIES, regionById } from "@/config/countries";
 import type { JobDraft } from "@/lib/compliance";
-import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { formatEmploymentTypes, packEmploymentTypes } from "@/lib/employment-types";
 import type { CountryCode, EmploymentType, Industry, Job, VisaAccepted } from "@/lib/types";
 import { INDUSTRY_WORDS, LANGUAGE_WORDS, REGION_ALIASES, TITLES, VISA_WORDS, type TitleEntry } from "./vocabulary";
 
@@ -54,7 +55,7 @@ const range = (r: { min: number; max?: number }, f: (n: number) => string = Stri
 export function englishSummary(draft: JobDraft, country: CountryCode): string {
   const sentences: string[] = [];
 
-  const type = draft.employmentType && EMPLOYMENT_TYPE_LABELS[draft.employmentType].en;
+  const type = formatEmploymentTypes(draft.employmentType, "en");
   const title = draft.titleEn && (type ? draft.titleEn[0].toLowerCase() + draft.titleEn.slice(1) : draft.titleEn);
   const region = draft.regionId && regionById(country, draft.regionId);
   const what = [type, title].filter(Boolean).join(" ") || "Job";
@@ -165,11 +166,14 @@ const EMPLOYMENT_WORDS: [EmploymentType, RegExp][] = [
   ["casual", /临时工|临时|短期|零工|casual/],
 ];
 
-function findEmploymentType(lower: string, hours: Job["hoursPerWeek"]): EmploymentType | undefined {
-  const found = EMPLOYMENT_WORDS.map(([type, re]) => ({ type, at: lower.search(re) }))
-    .filter((f) => f.at >= 0)
-    .sort((a, b) => a.at - b.at)[0];
-  if (found) return found.type;
+function findEmploymentType(lower: string, hours: Job["hoursPerWeek"]): Job["employmentType"] | undefined {
+  const found = EMPLOYMENT_WORDS.filter(([, re]) => [...lower.matchAll(new RegExp(re.source, "g"))].some((match) => {
+    const at = match.index;
+    return !NEGATED_BEFORE.test(lower.slice(Math.max(0, at - 6), at)) && !NEGATED_AFTER.test(lower.slice(at + match[0].length));
+  })).map(([type]) => type);
+  if (found.length) return packEmploymentTypes(found);
+  // An explicit exclusion must not become an inferred choice from hours.
+  if (EMPLOYMENT_WORDS.some(([, re]) => re.test(lower))) return undefined;
   // No word for it: guess from the hours, the employer can change it in the form.
   if (hours && (hours.max ?? hours.min) <= 30) return "part_time";
   if (hours && hours.min >= 35) return "full_time";
@@ -294,7 +298,7 @@ export function readTitle(text: string): { titleZh?: string; titleEn?: string; i
 }
 
 /** The employment type only when the text says it (no guessing from hours). */
-export function readEmploymentType(text: string): EmploymentType | undefined {
+export function readEmploymentType(text: string): Job["employmentType"] | undefined {
   return findEmploymentType(lowerOf(text), undefined);
 }
 

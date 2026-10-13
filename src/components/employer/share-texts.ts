@@ -4,6 +4,7 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS, VERIFICATION_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
+import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
 
 export type SharePlatform = "wechat" | "xiaohongshu" | "skykiwi";
 
@@ -23,7 +24,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
   const region = regionById(job.country, job.regionId);
   const area = (region && AREA_ZH[region.area]) ?? country.nameZh;
   const pay = formatPay(job.pay, job.country);
-  const type = EMPLOYMENT_TYPE_LABELS[job.employmentType].zh;
+  const type = formatEmploymentTypes(job.employmentType);
   const hours = formatHours(job.hoursPerWeek);
   const tags = jobTags(job);
   const badge = employer && employer.verification !== "unverified" ? `（${VERIFICATION_LABELS[employer.verification].zh}）` : "";
@@ -43,7 +44,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
 
   const hashtags = [
     `#${area}找工作`,
-    `#${area}${type}`,
+    ...employmentTypes(job.employmentType).map((value) => `#${area}${EMPLOYMENT_TYPE_LABELS[value].zh}`),
     job.industry !== "other" && `#${area}${INDUSTRY_LABELS[job.industry].zh}`,
     job.visaAccepted.includes("student") && "#留学生兼职",
     job.visaAccepted.includes("working_holiday") && `#${country.nameZh}打工度假`,

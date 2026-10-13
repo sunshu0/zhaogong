@@ -56,7 +56,8 @@ export interface Job {
   titleZh: string;
   titleEn: string;
   industry: Industry;
-  employmentType: EmploymentType;
+  /** A single type for existing jobs, or several accepted forms of employment. */
+  employmentType: EmploymentType | EmploymentType[];
   regionId: string;
   /** Street-level address is optional; suburb comes from regionId. */
   address?: string;

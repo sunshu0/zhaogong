@@ -43,7 +43,7 @@ describe("a full conversation, one question at a time", () => {
     s = await say(s, "Northcote");
     expect(s.draft.regionId).toBe("akl-northcote");
     expect(s.asking).toBe("employmentType");
-    expect(replies(s)).toEqual(["全职", "兼职", "临时工"]);
+    expect(replies(s)).toEqual(["全职", "兼职", "临时工", "全职或兼职", "都可以"]);
 
     s = await say(s, "兼职");
     expect(s.draft.employmentType).toBe("part_time");
@@ -93,10 +93,43 @@ describe("a full conversation, one question at a time", () => {
     let s = await say(startChat("NZ"), "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做。微信 demo_chuanwei");
     expect(s.asking).toBe("employmentType");
     expect(last(s).text).toContain("先当作兼职");
-    expect(replies(s)).toEqual(["对", "全职", "临时工"]);
+    expect(replies(s)).toEqual(["对", "全职", "临时工", "全职或兼职", "都可以"]);
     s = await say(s, "对");
     expect(s.draft.employmentType).toBe("part_time");
     expect(s.asking).toBe("review");
+  });
+});
+
+describe("multiple employment types", () => {
+  it("does not turn an excluded type into accepting everything", async () => {
+    let s = await say(startChat("NZ"), "招洗碗工", "25", "不固定", "Northcote");
+    s = await say(s, "不要全职，都可以");
+    expect(s.draft.employmentType).toBeUndefined();
+    expect(s.asking).toBe("employmentType");
+  });
+
+  it.each([
+    ["都可以", ["full_time", "part_time", "casual"]],
+    ["全职或兼职都可以", ["full_time", "part_time"]],
+    ["不要全职，兼职或临时工", ["part_time", "casual"]],
+  ])("accepts %s without asking the same question again", async (answer, expected) => {
+    let s = await say(startChat("NZ"), "招洗碗工", "25", "不固定", "Northcote");
+    expect(s.asking).toBe("employmentType");
+    s = await say(s, answer);
+    expect(s.draft.employmentType).toEqual(expected);
+    expect(s.asking).toBe("visa");
+    expect(missingFields(s.draft)).not.toContain("employmentType");
+  });
+
+  it("preserves all types when confirming a guess or changing a reviewed job", async () => {
+    let s = await say(startChat("NZ"), "Mt Eden 招服务员，时薪25，每周20小时，包餐，学签，微信 demo_multi");
+    expect(s.asking).toBe("employmentType");
+    s = await say(s, "都可以");
+    expect(s.asking).toBe("review");
+    s = await say(s, "改成兼职和临时工");
+    expect(s.draft.employmentType).toEqual(["part_time", "casual"]);
+    expect(s.asking).toBe("review");
+    expect(s.draft.descriptionEn).toContain("Part-time / Casual");
   });
 });
 

@@ -1,6 +1,7 @@
 // Data access. Today it reads the demo data in memory; the backend will replace the bodies,
 // not the signatures, so pages should only ever go through these functions.
 import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
+import { employmentTypes } from "@/lib/employment-types";
 import type {
   Account,
   ContactView,
@@ -28,7 +29,7 @@ export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
   if (f.regionIds?.length && !f.regionIds.includes(job.regionId)) return false;
   if (f.industries?.length && !f.industries.includes(job.industry)) return false;
-  if (f.employmentTypes?.length && !f.employmentTypes.includes(job.employmentType)) return false;
+  if (f.employmentTypes?.length && !employmentTypes(job.employmentType).some((type) => f.employmentTypes!.includes(type))) return false;
   if (f.minPay != null && (job.pay.max ?? job.pay.min) < f.minPay) return false;
   if (f.visa && !job.visaAccepted.includes(f.visa)) return false;
   if (f.mealsIncluded && !job.mealsIncluded) return false;

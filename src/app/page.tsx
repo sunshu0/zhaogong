@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { DEFAULT_COUNTRY } from "@/config/countries";
+import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
 import { DEMO_DATA, visibleStats } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import { englishSummary, parsePost } from "@/lib/ai-post";
@@ -19,6 +19,7 @@ import { ChatReplay } from "@/components/seeker/ChatReplay";
 import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES } from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, FeatureIconSvg, JobStack } from "@/components/seeker/landing-parts";
 import { requestTime } from "@/components/seeker/request-time";
+import { formatPay } from "@/components/seeker/format";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
@@ -48,6 +49,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
       <Suspense fallback={null}>
         <LegacyListLink searchParams={searchParams} />
       </Suspense>
+      <NoScriptLanding />
 
       <section
         aria-labelledby="hero-heading"
@@ -124,6 +126,66 @@ export default function Home({ searchParams }: PageProps<"/">) {
   );
 }
 
+/**
+ * A small server-rendered safety net for browsers with JavaScript disabled. The main stats and
+ * featured sections intentionally stream behind Suspense, but a no-JS browser cannot run the
+ * inline React swap that replaces those fallbacks. Keep the fallback data-driven and compact;
+ * with JavaScript enabled <noscript> is ignored by the browser.
+ */
+async function NoScriptLanding() {
+  const [stats, jobs] = await Promise.all([
+    getPlatformStats(DEFAULT_COUNTRY).then(visibleStats),
+    listFeaturedJobs(DEFAULT_COUNTRY, 3),
+  ]);
+  if (stats.length === 0 && jobs.length === 0) return null;
+
+  return (
+    <noscript>
+      <div className={`${SITE_CONTAINER} py-4`}>
+        <div className="rounded-xl border border-border bg-surface p-4 text-sm">
+          {stats.length > 0 && (
+            <section aria-labelledby="no-js-stats-heading">
+              <h2 id="no-js-stats-heading" className="font-semibold">
+                平台数据
+              </h2>
+              <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {stats.map((stat) => (
+                  <div key={stat.key}>
+                    <dd className="text-lg font-semibold text-brand">{stat.value}</dd>
+                    <dt className="text-xs text-muted">{stat.label}</dt>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+          {jobs.length > 0 && (
+            <section aria-labelledby="no-js-jobs-heading" className={stats.length > 0 ? "mt-4 border-t border-border pt-4" : undefined}>
+              <h2 id="no-js-jobs-heading" className="font-semibold">
+                精选工作
+              </h2>
+              <ul className="mt-2 grid grid-cols-1 gap-2">
+                {jobs.map((job) => (
+                  <li key={job.id}>
+                    <Link href={`/jobs/${job.id}`} className="block rounded-lg border border-border p-3 hover:border-brand">
+                      <span className="block font-medium">{job.titleZh}</span>
+                      <span className="block text-xs text-muted">
+                        {formatPay(job.pay, job.country)} · {regionById(job.country, job.regionId)?.nameZh ?? "奥克兰"}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link href={jobsHref("")} className="mt-3 inline-block text-brand underline underline-offset-2">
+                浏览全部职位 →
+              </Link>
+            </section>
+          )}
+        </div>
+      </div>
+    </noscript>
+  );
+}
+
 const DOT_GRID = {
   backgroundImage: "radial-gradient(rgb(255 255 255 / 0.13) 1px, transparent 1.6px)",
   backgroundSize: "22px 22px",
@@ -174,7 +236,7 @@ async function FeaturedBand() {
             查看全部职位 →
           </Link>
         </div>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid grid-cols-1 gap-4">
           {jobs.map((job) => (
             <li key={job.id}>
               <JobCard job={job} employer={employers.get(job.employerId)} now={now} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { createLocalStore } from "@/components/seeker/local-store";
+import { claimGuestActivity } from "@/components/seeker/identity-activity";
 import {
   clearSession,
   parseSession,
@@ -22,7 +23,11 @@ export function useSession(): DemoSession | null {
 
 /** Starts a session with the identity the server confirmed (see src/app/login/actions.ts). */
 export function startSession(email: string, identity: SessionIdentity): DemoSession | undefined {
-  return store.update((storage) => writeSession(storage, email, new Date(), identity));
+  return store.update((storage) => {
+    const session = writeSession(storage, email, new Date(), identity);
+    claimGuestActivity(storage, session);
+    return session;
+  });
 }
 
 /** Switches or corrects the identity of the signed-in session. */

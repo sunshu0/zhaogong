@@ -3,6 +3,11 @@ import { listJobs, matchesFilter } from "@/lib/data";
 import { MOCK_JOBS } from "@/mock/data";
 
 describe("job filter", () => {
+  it("matches any type accepted by a multi-type job", () => {
+    const job = { ...MOCK_JOBS[0], employmentType: ["full_time", "part_time"] as const };
+    for (const type of ["full_time", "part_time"] as const) expect(matchesFilter({ ...job, employmentType: [...job.employmentType] }, { country: "NZ", employmentTypes: [type] })).toBe(true);
+    expect(matchesFilter({ ...job, employmentType: [...job.employmentType] }, { country: "NZ", employmentTypes: ["casual"] })).toBe(false);
+  });
   it("lists only active NZ jobs, newest first", async () => {
     const jobs = await listJobs({ country: "NZ" });
     expect(jobs.length).toBe(MOCK_JOBS.filter((j) => j.status === "active").length);

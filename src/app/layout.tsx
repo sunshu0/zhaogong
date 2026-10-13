@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { AccountMenu, PostJobLink } from "@/components/seeker/AccountMenu";
+import { ChatEntry } from "@/components/seeker/ChatEntry";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
 
@@ -25,17 +26,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
-            <Link href="/" className="text-lg font-semibold text-brand">
+          <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
+            <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold text-brand">
               {PRODUCT_NAME}
             </Link>
-            <span className="text-sm text-muted">奥克兰</span>
-            <nav className="ml-auto flex items-center gap-4 text-sm">
-              <Link href="/jobs" className="hover:text-brand">
+            <span className="hidden text-sm text-muted sm:inline">奥克兰</span>
+            <nav className="ml-auto flex items-center gap-1 whitespace-nowrap text-sm sm:gap-4">
+              <Link href="/jobs" className="inline-flex min-h-11 items-center px-1 hover:text-brand">
                 找工作
               </Link>
+              <ChatEntry />
+              <Link href="/workspace" className="hidden min-h-11 items-center whitespace-nowrap px-1 font-medium text-brand hover:underline hover:underline-offset-4 sm:inline-flex">
+                工作台
+              </Link>
               <AccountMenu />
-              <PostJobLink className="rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90" />
+              <PostJobLink className="inline-flex min-h-11 items-center rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90" />
             </nav>
           </div>
         </header>

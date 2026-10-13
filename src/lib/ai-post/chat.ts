@@ -6,6 +6,7 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, PRODUCT_NAME, VISA_LABELS } from "@/i18n/labels";
 import { checkJob, type Finding, type JobDraft, type RuleId } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry } from "@/lib/types";
+import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
 import {
   englishSummary,
   missingFields,
@@ -207,11 +208,13 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
     }
     case "employmentType": {
       const confirming = s.unsure.includes("employmentType") && d.employmentType;
-      const type = confirming && YES.test(text) ? d.employmentType : (readEmploymentType(text) ?? labelType(text));
-      if (!type) return { ok: false, retry: "是全职、兼职还是临时工？" };
+      const named = readEmploymentType(text);
+      const acceptsAll = /^(?:都可以|都行|都接受|全部(?:可以|都可以|接受)?)[\s。！!]*$/.test(text.trim());
+      const type = confirming && YES.test(text) ? d.employmentType : named ?? (acceptsAll ? ["full_time", "part_time", "casual"] as EmploymentType[] : undefined);
+      if (!type) return { ok: false, retry: "接受全职、兼职还是临时工？可以写多种，也可以选「都可以」。" };
       d.employmentType = type;
       s.unsure = s.unsure.filter((t) => t !== "employmentType");
-      return { ok: true, state: s, ack: `好，${EMPLOYMENT_TYPE_LABELS[type].zh}。` };
+      return { ok: true, state: s, ack: `好，接受${formatEmploymentTypes(type)}。` };
     }
     case "visa": {
       const visas = COUNTRIES[s.country].visaTypes;
@@ -336,15 +339,15 @@ function question(s: ChatState, topic: Topic): Question {
       return { topic, text: "在哪个区？", quickReplies: COUNTRIES[s.country].regions.map((r) => CHIP(r.nameZh)) };
     case "employmentType": {
       if (s.unsure.includes("employmentType") && d.employmentType) {
-        const guess = EMPLOYMENT_TYPE_LABELS[d.employmentType].zh;
+        const guess = formatEmploymentTypes(d.employmentType);
         const why = d.hoursPerWeek ? `每周 ${range(d.hoursPerWeek)} 小时` : "你的描述";
         return {
           topic,
           text: `我按${why}先当作${guess}，对吗？`,
-          quickReplies: [CHIP("对"), ...types.filter(([t]) => t !== d.employmentType).map(([, l]) => CHIP(l.zh))],
+          quickReplies: [CHIP("对"), ...types.filter(([t]) => !employmentTypes(d.employmentType).includes(t)).map(([, l]) => CHIP(l.zh)), CHIP("全职或兼职"), CHIP("都可以")],
         };
       }
-      return { topic, text: "是全职、兼职还是临时工？", quickReplies: types.map(([, l]) => CHIP(l.zh)) };
+      return { topic, text: "是全职、兼职还是临时工？可以接受多种。", quickReplies: [...types.map(([, l]) => CHIP(l.zh)), CHIP("全职或兼职"), CHIP("都可以")] };
     }
     case "visa": {
       const chosen = d.visaAccepted ?? [];
@@ -484,10 +487,6 @@ function titleFields(text: string): Partial<JobDraft> {
   return { titleZh: t.titleZh ?? text, titleEn: t.titleEn, ...(t.industry && { industry: t.industry }) };
 }
 
-function labelType(text: string): EmploymentType | undefined {
-  return (Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string }][]).find(([, l]) => text.includes(l.zh))?.[0];
-}
-
 const money = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const range = (r: { min: number; max?: number }, f: (n: number) => string = String) =>
   r.max != null && r.max !== r.min ? `${f(r.min)}–${f(r.max)}` : f(r.min);
@@ -511,7 +510,7 @@ function summary(d: JobDraft): string {
     d.titleZh,
     d.pay && `${COUNTRIES[country].currencySymbol}${range(d.pay, money)}/小时`,
     d.regionId && regionById(country, d.regionId)?.nameZh,
-    d.employmentType && EMPLOYMENT_TYPE_LABELS[d.employmentType].zh,
+    formatEmploymentTypes(d.employmentType),
     d.hoursPerWeek && `每周 ${range(d.hoursPerWeek)} 小时`,
     (d.mealsIncluded != null || d.accommodationIncluded != null) && perksText(d),
     d.visaAccepted?.length && `签证：${d.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、")}`,

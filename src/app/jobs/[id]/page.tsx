@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 import { regionById } from "@/config/countries";
 import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
-import { ContactReveal } from "@/components/seeker/ContactReveal";
 import { RecordView } from "@/components/seeker/RecordView";
 import { ReportJob } from "@/components/seeker/ReportJob";
 import { ShareJob } from "@/components/seeker/ShareJob";
 import { formatPay } from "@/components/seeker/format";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
-import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
+import { isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { requestTime } from "@/components/seeker/request-time";
 import { shareSummary } from "@/components/seeker/share";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
+import { isExpired } from "@/components/seeker/job-facts";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Promise<Metadata> {
   const job = await getJob((await params).id);
@@ -46,9 +48,10 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
       job={job}
       employer={employer}
       now={now}
+      actions={employer && !employer.bannedAt ? <StartEmployerChat employer={{ id: employer.id, name: employer.name }} job={{ id: job.id, employerId: job.employerId, titleZh: job.titleZh, status: job.status, expiresAt: job.expiresAt }} closed={isExpired(job, now)} /> : undefined}
       aside={
         <>
-          <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+          <section aria-labelledby="contact-heading" className="space-y-3 rounded-lg border border-border bg-surface p-4"><h2 id="contact-heading" className="font-medium">联系方式</h2><p className="text-sm text-muted">请在聊天中申请交换联系方式，双方同意后才会互相展示。</p>{employer && <Link href={`/employers/${employer.id}`} className="inline-flex min-h-11 items-center text-sm text-brand underline">查看雇主主页</Link>}</section>
           <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
         </>
       }

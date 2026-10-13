@@ -6,9 +6,17 @@ import { reportJob } from "@/app/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { rememberReport, useSentReports } from "@/components/seeker/activity-client";
 import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/report";
+import { useSession } from "@/components/seeker/session-client";
+import { identityScope } from "@/components/seeker/identity-scope";
+import type { DemoSession } from "@/components/seeker/session";
 
 /** "举报这个职位" → reasons + optional note → thank-you. */
 export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
+  const owner = useSession();
+  return <ReportForm key={identityScope(owner)} jobId={jobId} jobTitle={jobTitle} owner={owner} />;
+}
+
+function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: string; owner: DemoSession | null }) {
   const [state, setState] = useState<"closed" | "open" | "sent">("closed");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,7 +34,7 @@ export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string
       const result = await reportJob(jobId, parsed.reason, parsed.note).catch(() => null);
       if (!result) return setError("网络有问题，举报没有发出，请稍后再试");
       if (!result.ok) return setError(result.error);
-      rememberReport({ reportId: result.reportId, jobId, jobTitle, reason: parsed.reason, at: new Date().toISOString() });
+      rememberReport({ reportId: result.reportId, jobId, jobTitle, reason: parsed.reason, at: new Date().toISOString() }, owner);
       setState("sent");
     });
   }
