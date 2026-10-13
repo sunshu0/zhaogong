@@ -3,6 +3,11 @@ import { aucklandDay } from "@/lib/chat-activity";
 type Activity = { lastActiveAt: string; replies?: { candidateId: string; sentAt: string }[] };
 const createdAt = Date.now();
 const ago = (minutes: number) => new Date(createdAt - minutes * 60_000).toISOString();
+// Demo replies count as "today": one that would fall before Auckland midnight is moved to just before start-up.
+const replyAgo = (minutes: number) => {
+  const sentAt = ago(minutes);
+  return aucklandDay(Date.parse(sentAt)) === aucklandDay(createdAt) ? sentAt : ago(0);
+};
 
 // Fictional activity stays fixed while the preview is open, so relative times can age.
 const employers: Record<string, Activity> = Object.fromEntries(
@@ -21,7 +26,7 @@ const employers: Record<string, Activity> = Object.fromEntries(
       lastActiveAt: ago(Number(minutes)),
       replies: Array.from({ length: Number(count) }, (_, index) => ({
         candidateId: `demo-person-${index}`,
-        sentAt: ago(Number(minutes) + index),
+        sentAt: replyAgo(Number(minutes) + index),
       })),
     },
   ]),
