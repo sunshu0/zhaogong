@@ -36,7 +36,10 @@ describe("moderation queue", () => {
     const result = await takeDownJob("j1");
     expect(result.ok && result.text).toBe("下架「前厅服务员」（川味小馆） · 举报：虚假职位、收押金 / 介绍费");
     expect((await getJob("j1"))?.status).toBe("removed");
-    expect((await listReports()).filter((r) => r.jobId === "j1").map((r) => r.status)).toEqual(["actioned", "actioned"]);
+    expect((await listReports()).filter((r) => r.jobId === "j1").map((r) => r.status)).toEqual([
+      "actioned",
+      "actioned",
+    ]);
     expect((await listJobs({ country: "NZ" })).map((j) => j.id)).not.toContain("j1");
   });
 

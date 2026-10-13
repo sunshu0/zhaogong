@@ -5,7 +5,9 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
-test("single-column job rows expose useful details without private contact data at all widths", async ({ page }, testInfo) => {
+test("single-column job rows expose useful details without private contact data at all widths", async ({
+  page,
+}, testInfo) => {
   const widths = testInfo.project.name === "desktop" ? [1280, 1440, 1920] : [375];
   for (const width of widths) {
     await page.setViewportSize({ width, height: testInfo.project.name === "mobile" ? 812 : 900 });
@@ -19,13 +21,26 @@ test("single-column job rows expose useful details without private contact data 
     expect(second.x).toBe(first.x);
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
     const retail = list.locator('a[href="/jobs/j5"]');
-    for (const text of ["上货、整理货架", "早班 7:00", "工作语言", "普通话", "雇主接受的签证", "打工度假", "每周 20–30 小时"]) await expect(retail).toContainText(text);
-    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText(/最近在线：约 \d+ (分钟|小时)前在线/);
+    for (const text of [
+      "上货、整理货架",
+      "早班 7:00",
+      "工作语言",
+      "普通话",
+      "雇主接受的签证",
+      "打工度假",
+      "每周 20–30 小时",
+    ])
+      await expect(retail).toContainText(text);
+    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText(
+      /最近在线：约 \d+ (分钟|小时)前在线/,
+    );
     await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("今日已回复 3 位求职者");
     await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("演示状态");
     await expect(retail).not.toContainText("021 555");
     const noShift = list.locator('a[href="/jobs/j6"]');
-    await expect(noShift.locator("dl > div").filter({ has: page.getByText("班次", { exact: true }) })).toContainText("未注明");
+    await expect(noShift.locator("dl > div").filter({ has: page.getByText("班次", { exact: true }) })).toContainText(
+      "未注明",
+    );
     expect(await noSideScroll(page)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`job-rows-${width}.png`) });
   }

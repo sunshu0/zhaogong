@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
-test("seeker finds company jobs and credentials, signs in and initiates a persistent job-specific chat", async ({ page }, testInfo) => {
+test("seeker finds company jobs and credentials, signs in and initiates a persistent job-specific chat", async ({
+  page,
+}, testInfo) => {
   await page.goto("/jobs/j1");
   await expect(page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "查看雇主主页与其他岗位" }).click();
@@ -28,7 +30,9 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
   }
   await jobs.getByRole("link", { name: "立即沟通", exact: true }).first().click();
   await expect(page).toHaveURL("/login?role=seeker&next=%2Fjobs%2Fj1");
-  await page.getByLabel("邮箱", { exact: true }).fill(`public-seeker.${testInfo.project.name}.${Date.now()}@example.com`);
+  await page
+    .getByLabel("邮箱", { exact: true })
+    .fill(`public-seeker.${testInfo.project.name}.${Date.now()}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
   await page.getByLabel("验证码").fill("123456");
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -45,7 +49,9 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
   await jobs.getByRole("button", { name: "立即沟通", exact: true }).first().click();
   await expect(page.getByRole("log")).toContainText("我想应聘前厅服务员");
   await page.goto("/messages");
-  await expect(page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /川味小馆/ })).toHaveCount(1);
+  await expect(
+    page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /川味小馆/ }),
+  ).toHaveCount(1);
   await page.goto("/jobs/j2");
   await page.getByRole("button", { name: "立即沟通", exact: true }).click();
   await expect(page.getByRole("log")).toContainText("尚未发送消息");
@@ -70,20 +76,29 @@ test("employer edits a public company home and chat remains in the seeker identi
   await expect(page.getByRole("region", { name: /在招岗位/ })).toContainText(title);
   await expect(page.getByRole("region", { name: "公司资质", exact: true })).toContainText("还没有完成企业验证");
   await expect(page.getByRole("link", { name: "管理本企业职位", exact: true })).toBeVisible();
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/profile");
   await page.getByLabel("个人介绍", { exact: true }).fill("不可公开到企业主页的个人简历");
   await page.goto(companyUrl);
   await expect(page.getByRole("main")).not.toContainText("不可公开到企业主页");
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/jobs/j1");
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.getByRole("button", { name: "立即沟通", exact: true }).click();
   await page.getByLabel("输入消息").fill("求职者发起的主动私聊");
   await page.getByRole("button", { name: "发送", exact: true }).click();
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/messages");
   await expect(page.getByRole("complementary", { name: "聊天列表" })).not.toContainText("川味小馆");

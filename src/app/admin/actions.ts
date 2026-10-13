@@ -64,7 +64,16 @@ async function subject(jobId: unknown) {
   const job = await getJob(String(jobId));
   if (!job) return undefined;
   const employer = await getEmployer(job.employerId);
-  return { job, employer, names: { jobId: job.id, jobTitle: job.titleZh, employerId: job.employerId, employerName: employer?.name ?? job.employerId } };
+  return {
+    job,
+    employer,
+    names: {
+      jobId: job.id,
+      jobTitle: job.titleZh,
+      employerId: job.employerId,
+      employerName: employer?.name ?? job.employerId,
+    },
+  };
 }
 
 /** A job flagged at posting is fine: it goes live for 30 days from now. */
@@ -87,7 +96,12 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
   if (s.job.status !== "removed") await updateJob(s.job.id, { status: "removed" });
   await close(reports, "actioned");
   const rules = s.job.status === "pending_review" ? checkJob(s.job, s.job.country).map((f) => f.rule) : undefined;
-  const entry = await addModerationLog({ action: "take_down", ...s.names, reasons: reports.map((r) => r.reason), rules });
+  const entry = await addModerationLog({
+    action: "take_down",
+    ...s.names,
+    reasons: reports.map((r) => r.reason),
+    rules,
+  });
   return { ok: true, text: describeAction(entry) };
 }
 
@@ -108,8 +122,15 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
   if (!s?.employer) return { ok: false, error_zh: "找不到这个雇主。" };
   if (s.employer.bannedAt) return { ok: false, error_zh: "这个雇主已经被封禁。" };
   const takenDown = await banEmployer(s.employer.id);
-  const reports = (await listReports()).filter((r) => r.status === "open" && (takenDown.includes(r.jobId) || r.jobId === s.job.id));
+  const reports = (await listReports()).filter(
+    (r) => r.status === "open" && (takenDown.includes(r.jobId) || r.jobId === s.job.id),
+  );
   await close(reports, "actioned");
-  const entry = await addModerationLog({ action: "ban", employerId: s.employer.id, employerName: s.employer.name, takenDown: takenDown.length });
+  const entry = await addModerationLog({
+    action: "ban",
+    employerId: s.employer.id,
+    employerName: s.employer.name,
+    takenDown: takenDown.length,
+  });
   return { ok: true, text: describeAction(entry) };
 }

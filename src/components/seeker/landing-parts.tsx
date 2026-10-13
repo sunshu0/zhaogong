@@ -10,7 +10,9 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
   return (
-    <li className={`rounded px-1.5 py-0.5 text-xs ${urgent ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}>
+    <li
+      className={`rounded px-1.5 py-0.5 text-xs ${urgent ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}
+    >
       {children}
     </li>
   );
@@ -18,7 +20,9 @@ function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
 
 /** A job card as a picture: same facts as the list's card, but not a link. */
 function PictureCard({ job, employer, className }: { job: Job; employer?: Employer; className: string }) {
-  const facts = [regionById(job.country, job.regionId)?.nameZh, formatEmploymentTypes(job.employmentType)].filter(Boolean);
+  const facts = [regionById(job.country, job.regionId)?.nameZh, formatEmploymentTypes(job.employmentType)].filter(
+    Boolean,
+  );
   const tags = jobTags(job);
   return (
     <div className={`w-80 rounded-xl bg-surface p-4 text-foreground shadow-2xl ring-1 ring-black/5 ${className}`}>
@@ -58,7 +62,12 @@ export function JobStack({ jobs, employers }: { jobs: Job[]; employers: Map<stri
   return (
     <div aria-hidden="true" className="flex flex-col py-4" data-job-stack="">
       {jobs.slice(0, STACK_POSITIONS.length).map((job, i) => (
-        <PictureCard key={job.id} job={job} employer={employers.get(job.employerId)} className={`relative ${STACK_POSITIONS[i]}`} />
+        <PictureCard
+          key={job.id}
+          job={job}
+          employer={employers.get(job.employerId)}
+          className={`relative ${STACK_POSITIONS[i]}`}
+        />
       ))}
     </div>
   );
@@ -78,14 +87,30 @@ const ICON_PATHS: Record<FeatureIcon, string[]> = {
   // A speech bubble with 文-like strokes.
   language: ["M4 5h16v10H9l-5 4z", "M8 9h8", "M12 7v2", "M9.5 13l2.5-4 2.5 4"],
   // A checklist.
-  check: ["M10 6h10", "M10 12h10", "M10 18h10", "m3.5 6 1.5 1.5L8 4.5", "m3.5 12 1.5 1.5L8 10.5", "m3.5 18 1.5 1.5L8 16.5"],
+  check: [
+    "M10 6h10",
+    "M10 12h10",
+    "M10 18h10",
+    "m3.5 6 1.5 1.5L8 4.5",
+    "m3.5 12 1.5 1.5L8 10.5",
+    "m3.5 18 1.5 1.5L8 16.5",
+  ],
   // A shield with a tick.
   shield: ["M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z", "m9 12 2 2 4-4"],
 };
 
 export function FeatureIconSvg({ name }: { name: FeatureIcon }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="size-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       {ICON_PATHS[name].map((d) => (
         <path key={d} d={d} />
       ))}
@@ -117,7 +142,16 @@ export function BeforeAfter({ message, draft, summaryEn }: { message: string; dr
         </div>
       </div>
 
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="mx-auto size-8 rotate-90 text-white/75 lg:rotate-0" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className="mx-auto size-8 rotate-90 text-white/75 lg:rotate-0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M4 12h15" />
         <path d="m13 6 6 6-6 6" />
       </svg>

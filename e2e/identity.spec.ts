@@ -50,7 +50,9 @@ test("a job seeker signs up and lands on the list as 求职者", async ({ page }
   await expect(page.getByText("当前身份：求职者").filter({ visible: true })).toBeVisible();
 });
 
-test("发布招聘 when signed out: employer sign-up with a new business, then posting as that employer", async ({ page }, testInfo) => {
+test("发布招聘 when signed out: employer sign-up with a new business, then posting as that employer", async ({
+  page,
+}, testInfo) => {
   const name = shop(testInfo);
   await page.goto("/jobs");
   await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
@@ -72,7 +74,9 @@ test("demo businesses: the list, and each can belong to only one account", async
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   // Free on a fresh server; already claimed if these tests ran before on the same server.
   const refused = page.getByRole("main").getByRole("alert");
-  const claimedHere = accountButton(page).and(page.getByRole("button", { name: "账号菜单，当前身份：雇主 · 川味小馆" }));
+  const claimedHere = accountButton(page).and(
+    page.getByRole("button", { name: "账号菜单，当前身份：雇主 · 川味小馆" }),
+  );
   await expect(refused.or(claimedHere)).toBeVisible();
   if (await refused.isVisible()) {
     await expect(refused).toContainText("已被其他账号绑定");
@@ -127,7 +131,9 @@ test("switching between the two identities from the account menu", async ({ page
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 
-test("an employer signing in again goes straight to posting; as a job seeker, 发布招聘 switches", async ({ page }, testInfo) => {
+test("an employer signing in again goes straight to posting; as a job seeker, 发布招聘 switches", async ({
+  page,
+}, testInfo) => {
   const name = shop(testInfo);
   const address = email(testInfo, "again");
   await signUpEmployer(page, address, name);
@@ -155,13 +161,21 @@ test("an employer signing in again goes straight to posting; as a job seeker, �
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 
-test("the browser's copy cannot turn an account into an employer: the server corrects it", async ({ page }, testInfo) => {
+test("the browser's copy cannot turn an account into an employer: the server corrects it", async ({
+  page,
+}, testInfo) => {
   const address = email(testInfo, "tamper");
   await signUpSeeker(page, address);
   await page.evaluate((a) => {
     localStorage.setItem(
       "zhaogong:session",
-      JSON.stringify({ email: a, signedInAt: new Date().toISOString(), activeRole: "employer", employerId: "e7", employerName: "快达物流" }),
+      JSON.stringify({
+        email: a,
+        signedInAt: new Date().toISOString(),
+        activeRole: "employer",
+        employerId: "e7",
+        employerName: "快达物流",
+      }),
     );
   }, address);
   await page.reload();

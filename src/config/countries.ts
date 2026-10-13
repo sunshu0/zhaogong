@@ -46,7 +46,12 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
       { id: "akl-albany", nameZh: "Albany", nameEn: "Albany", area: "Auckland" },
       { id: "akl-glenfield", nameZh: "Glenfield", nameEn: "Glenfield", area: "Auckland" },
       { id: "akl-henderson", nameZh: "Henderson / 西区", nameEn: "Henderson / West", area: "Auckland" },
-      { id: "akl-mt-wellington", nameZh: "Mt Wellington / Sylvia Park", nameEn: "Mt Wellington / Sylvia Park", area: "Auckland" },
+      {
+        id: "akl-mt-wellington",
+        nameZh: "Mt Wellington / Sylvia Park",
+        nameEn: "Mt Wellington / Sylvia Park",
+        area: "Auckland",
+      },
       { id: "akl-botany", nameZh: "Botany / East Tamaki", nameEn: "Botany / East Tamaki", area: "Auckland" },
       { id: "akl-howick", nameZh: "Howick / Pakuranga", nameEn: "Howick / Pakuranga", area: "Auckland" },
       { id: "akl-manukau", nameZh: "Manukau / 南区", nameEn: "Manukau / South", area: "Auckland" },

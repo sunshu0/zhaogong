@@ -49,7 +49,10 @@ describe("reports sent from this device", () => {
 
   it("drops entries that are broken or tampered with", () => {
     const storage = memoryStorage();
-    storage.data.set(REPORTS_KEY, JSON.stringify([report(1), { reportId: "r2" }, null, { ...report(3), reason: "spam" }]));
+    storage.data.set(
+      REPORTS_KEY,
+      JSON.stringify([report(1), { reportId: "r2" }, null, { ...report(3), reason: "spam" }]),
+    );
     expect(readSentReports(storage).map((r) => r.reportId)).toEqual(["r1"]);
     storage.data.set(REPORTS_KEY, "not json");
     expect(readSentReports(storage)).toEqual([]);

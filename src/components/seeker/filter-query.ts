@@ -44,7 +44,11 @@ export function parseFilter(params: SearchParams, country: CountryCode): JobFilt
   const config = COUNTRIES[country];
   const filter: JobFilter = { country };
 
-  const regionIds = list(params, "region", config.regions.map((r) => r.id));
+  const regionIds = list(
+    params,
+    "region",
+    config.regions.map((r) => r.id),
+  );
   if (regionIds) filter.regionIds = regionIds;
   const industries = list(params, "industry", Object.keys(INDUSTRY_LABELS) as Industry[]);
   if (industries) filter.industries = industries;

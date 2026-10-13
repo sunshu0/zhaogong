@@ -70,8 +70,10 @@ export function englishSummary(draft: JobDraft, country: CountryCode): string {
   else if (draft.mealsIncluded) sentences.push("Meals included.");
   else if (draft.accommodationIncluded) sentences.push("Accommodation included.");
 
-  if (draft.languages?.length) sentences.push(`Languages: ${draft.languages.map((l) => LANGUAGE_LABELS[l].en).join(", ")}.`);
-  if (draft.visaAccepted?.length) sentences.push(`Visas accepted: ${draft.visaAccepted.map((v) => VISA_LABELS[v].en).join(", ")}.`);
+  if (draft.languages?.length)
+    sentences.push(`Languages: ${draft.languages.map((l) => LANGUAGE_LABELS[l].en).join(", ")}.`);
+  if (draft.visaAccepted?.length)
+    sentences.push(`Visas accepted: ${draft.visaAccepted.map((v) => VISA_LABELS[v].en).join(", ")}.`);
 
   return sentences.join(" ");
 }
@@ -96,7 +98,8 @@ function firstMention(text: string, words: string[]): number {
   for (const word of words) {
     for (const at of positions(text, word)) {
       const negated =
-        NEGATED_BEFORE.test(text.slice(Math.max(0, at - 6), at)) || NEGATED_AFTER.test(text.slice(at + word.length, at + word.length + 4));
+        NEGATED_BEFORE.test(text.slice(Math.max(0, at - 6), at)) ||
+        NEGATED_AFTER.test(text.slice(at + word.length, at + word.length + 4));
       if (!negated && (best < 0 || at < best)) best = at;
     }
   }
@@ -130,9 +133,13 @@ function findTitle(text: string, lower: string): { zh?: string; entry?: TitleEnt
 
 const NUM = String.raw`(?<!\d)(\d{2,3}(?:\.\d{1,2})?)(?!\d)`;
 const NUM2 = String.raw`(?:\s*(?:-|~|–|—|到|至)\s*\$?\s*(\d{2,3}(?:\.\d{1,2})?)(?!\d))?`;
-const PAY_PREFIX = new RegExp(String.raw`(?:时薪|小时工资|工资|薪水|薪资|每小时|hourly rate|hourly|pay rate)\s*[:：]?\s*(?:nz)?\$?\s*` + NUM + NUM2);
+const PAY_PREFIX = new RegExp(
+  String.raw`(?:时薪|小时工资|工资|薪水|薪资|每小时|hourly rate|hourly|pay rate)\s*[:：]?\s*(?:nz)?\$?\s*` + NUM + NUM2,
+);
 const PAY_SUFFIX = new RegExp(
-  String.raw`(?:nz)?\$?\s*` + NUM + NUM2 +
+  String.raw`(?:nz)?\$?\s*` +
+    NUM +
+    NUM2 +
     String.raw`\s*(?:纽币|纽元|刀|元|nzd|dollars?)?\s*(?:/\s*(?:小时|(?:hour|hr|h)\b)|每小时|一个?小时|(?:per|an)\s+hour|p/?h\b)`,
 );
 const OTHER_PERIOD_PAY = /(周薪|年薪|月薪|salary|per annum|per year|a year)/;
@@ -148,8 +155,10 @@ function findPay(lower: string): Job["pay"] | undefined {
   return max != null && max !== min ? { min, max } : { min };
 }
 
-const HOURS_ZH = /(?:每周|一周|每星期)(?:工作)?\s*(?:约|大约)?\s*(\d{1,2})(?:\s*(?:-|~|–|—|到|至)\s*(\d{1,2}))?\s*个?\s*(?:小时|hours?|hrs?|h\b)/;
-const HOURS_PER_WEEK = /(?<!\d)(\d{1,2})(?:\s*(?:-|~|–|—|到|至)\s*(\d{1,2}))?\s*(?:小时|hours?|hrs?|h)\s*(?:\/|每|一|per|a)\s*(?:周|week|wk)/;
+const HOURS_ZH =
+  /(?:每周|一周|每星期)(?:工作)?\s*(?:约|大约)?\s*(\d{1,2})(?:\s*(?:-|~|–|—|到|至)\s*(\d{1,2}))?\s*个?\s*(?:小时|hours?|hrs?|h\b)/;
+const HOURS_PER_WEEK =
+  /(?<!\d)(\d{1,2})(?:\s*(?:-|~|–|—|到|至)\s*(\d{1,2}))?\s*(?:小时|hours?|hrs?|h)\s*(?:\/|每|一|per|a)\s*(?:周|week|wk)/;
 
 function findHours(lower: string): Job["hoursPerWeek"] {
   const m = HOURS_ZH.exec(lower) ?? HOURS_PER_WEEK.exec(lower);
@@ -167,10 +176,15 @@ const EMPLOYMENT_WORDS: [EmploymentType, RegExp][] = [
 ];
 
 function findEmploymentType(lower: string, hours: Job["hoursPerWeek"]): Job["employmentType"] | undefined {
-  const found = EMPLOYMENT_WORDS.filter(([, re]) => [...lower.matchAll(new RegExp(re.source, "g"))].some((match) => {
-    const at = match.index;
-    return !NEGATED_BEFORE.test(lower.slice(Math.max(0, at - 6), at)) && !NEGATED_AFTER.test(lower.slice(at + match[0].length));
-  })).map(([type]) => type);
+  const found = EMPLOYMENT_WORDS.filter(([, re]) =>
+    [...lower.matchAll(new RegExp(re.source, "g"))].some((match) => {
+      const at = match.index;
+      return (
+        !NEGATED_BEFORE.test(lower.slice(Math.max(0, at - 6), at)) &&
+        !NEGATED_AFTER.test(lower.slice(at + match[0].length))
+      );
+    }),
+  ).map(([type]) => type);
   if (found.length) return packEmploymentTypes(found);
   // An explicit exclusion must not become an inferred choice from hours.
   if (EMPLOYMENT_WORDS.some(([, re]) => re.test(lower))) return undefined;
@@ -186,7 +200,12 @@ function findRegion(lower: string, country: CountryCode): string | undefined {
   let best: { id: string; at: number } | undefined;
   for (const region of COUNTRIES[country].regions) {
     const names = [...region.nameZh.split("/"), ...region.nameEn.split("/")]
-      .map((n) => n.trim().toLowerCase().replace(/^auckland\s+/, ""))
+      .map((n) =>
+        n
+          .trim()
+          .toLowerCase()
+          .replace(/^auckland\s+/, ""),
+      )
       .filter((n) => n && !generic.has(n));
     for (const name of [...names, ...(REGION_ALIASES[region.id] ?? [])]) {
       const at = positions(text, name)[0];
@@ -202,7 +221,8 @@ function findIncluded(lower: string, yes: RegExp, no: RegExp): boolean | undefin
   return undefined;
 }
 
-const MEALS = /包(吃住|吃|餐|工作餐|员工餐|一餐|两餐|二餐|三餐)|提供(工作|员工)?餐|员工餐|管饭|meals? (provided|included)/;
+const MEALS =
+  /包(吃住|吃|餐|工作餐|员工餐|一餐|两餐|二餐|三餐)|提供(工作|员工)?餐|员工餐|管饭|meals? (provided|included)/;
 const NO_MEALS = /不包(吃|餐)|餐自理|不提供(工作|员工)?餐/;
 const ACCOMMODATION = /包(吃)?住|包宿|提供住宿|员工宿舍|accommodation (provided|included)/;
 const NO_ACCOMMODATION = /不包(吃)?住|住宿自理|不提供住宿/;
@@ -260,7 +280,10 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
 
   const regionId = findRegion(lower, country);
   if (regionId) draft.regionId = regionId;
-  const shift = original.split(/[，,。；;！!\n]/).map((c) => c.trim()).find((c) => SHIFT.test(c) && c.length <= 20);
+  const shift = original
+    .split(/[，,。；;！!\n]/)
+    .map((c) => c.trim())
+    .find((c) => SHIFT.test(c) && c.length <= 20);
   if (shift) draft.shiftsZh = shift;
 
   const meals = findIncluded(lower, MEALS, NO_MEALS);
@@ -277,7 +300,10 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
   const email = EMAIL.exec(text)?.[0];
   draft.contact = { ...(phone && { phone }), ...(wechat && { wechat }), ...(email && { email }) };
 
-  draft.descriptionZh = describe(original, [phone, wechat, email].filter((v) => v != null));
+  draft.descriptionZh = describe(
+    original,
+    [phone, wechat, email].filter((v) => v != null),
+  );
   draft.descriptionEn = englishSummary(draft, country);
 
   return { draft, missing: missingFields(draft), notes_zh };
@@ -314,7 +340,10 @@ export function readVisas(text: string): VisaAccepted[] {
 
 export function readPerks(text: string): { mealsIncluded?: boolean; accommodationIncluded?: boolean } {
   const lower = lowerOf(text);
-  return { mealsIncluded: findIncluded(lower, MEALS, NO_MEALS), accommodationIncluded: findIncluded(lower, ACCOMMODATION, NO_ACCOMMODATION) };
+  return {
+    mealsIncluded: findIncluded(lower, MEALS, NO_MEALS),
+    accommodationIncluded: findIncluded(lower, ACCOMMODATION, NO_ACCOMMODATION),
+  };
 }
 
 export function readContact(text: string): Job["contact"] {

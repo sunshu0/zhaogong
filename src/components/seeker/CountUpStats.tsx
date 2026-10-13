@@ -63,7 +63,10 @@ export function CountUpStats({ stats }: { stats: CountUpStat[] }) {
   }, [canAnimate, stats.length]);
 
   return (
-    <dl ref={ref} className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
+    <dl
+      ref={ref}
+      className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4"
+    >
       {stats.map((stat, i) => {
         const shown = !canAnimate ? stat.value : elapsed === null ? 0 : countAt(stat.value, elapsed, i);
         const final = formatCount(stat.value);

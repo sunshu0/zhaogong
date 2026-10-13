@@ -27,10 +27,13 @@ export function HiresQuestion({
   onSubmit: (answer: HiresAnswer | undefined) => void;
   onCancel: () => void;
 }) {
-  const [choice, setChoice] = useState<"hired" | "none" | undefined>(initial == null ? undefined : initial > 0 ? "hired" : "none");
+  const [choice, setChoice] = useState<"hired" | "none" | undefined>(
+    initial == null ? undefined : initial > 0 ? "hired" : "none",
+  );
   const [count, setCount] = useState(initial && initial > 0 ? initial : 1);
   const name = useId();
-  const answer: HiresAnswer | undefined = choice === "hired" ? { hired: true, count } : choice === "none" ? { hired: false } : undefined;
+  const answer: HiresAnswer | undefined =
+    choice === "hired" ? { hired: true, count } : choice === "none" ? { hired: false } : undefined;
   const chip =
     "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand";
 
@@ -41,7 +44,14 @@ export function HiresQuestion({
       </legend>
       <div className="flex flex-wrap items-center gap-2">
         <label className={chip}>
-          <input type="radio" name={name} checked={choice === "hired"} onChange={() => setChoice("hired")} autoFocus className="accent-brand" />
+          <input
+            type="radio"
+            name={name}
+            checked={choice === "hired"}
+            onChange={() => setChoice("hired")}
+            autoFocus
+            className="accent-brand"
+          />
           招到了
         </label>
         <label className="inline-flex items-center gap-1 text-sm">
@@ -61,13 +71,24 @@ export function HiresQuestion({
           人
         </label>
         <label className={chip}>
-          <input type="radio" name={name} checked={choice === "none"} onChange={() => setChoice("none")} className="accent-brand" />
+          <input
+            type="radio"
+            name={name}
+            checked={choice === "none"}
+            onChange={() => setChoice("none")}
+            className="accent-brand"
+          />
           没有 / 不确定
         </label>
       </div>
       <p className="text-xs text-muted">只用来统计{PRODUCT_NAME}一共帮多少人找到了工作。</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={pending || (!optional && !answer)} onClick={() => onSubmit(answer)} className={submitClassName}>
+        <button
+          type="button"
+          disabled={pending || (!optional && !answer)}
+          onClick={() => onSubmit(answer)}
+          className={submitClassName}
+        >
           {submitLabel}
         </button>
         <button type="button" onClick={onCancel} className="h-9 px-2 text-sm text-muted underline">

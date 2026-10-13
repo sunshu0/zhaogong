@@ -58,7 +58,8 @@ export type DraftFormState = ReturnType<typeof useDraftForm>;
  * Tab keep clear of the sticky header (3.5rem) and the bar (about 4.5rem), so a focused field is never
  * hidden. Spread `{...clearOfBars}` on the content's container.
  */
-export const CLEAR_OF_STICKY_BARS = "[&_:is(a,button,input,select,textarea)]:scroll-mt-20 [&_:is(a,button,input,select,textarea)]:scroll-mb-28";
+export const CLEAR_OF_STICKY_BARS =
+  "[&_:is(a,button,input,select,textarea)]:scroll-mt-20 [&_:is(a,button,input,select,textarea)]:scroll-mb-28";
 
 /**
  * Tab scrolls a field into the window but not always clear of the sticky bars (tall fields on a
@@ -69,7 +70,6 @@ export function keepFocusClear(e: FocusEvent<HTMLElement>) {
   // Keyboard focus only: scrolling on a mouse press moves the button away before the click lands.
   if (el.matches(":focus-visible")) el.scrollIntoView({ block: "nearest" });
 }
-
 
 export function holdReason(problems: number, missing: number): string {
   const parts = [problems && `${problems} 个问题要处理`, missing && `${missing} 项没填`].filter(Boolean);

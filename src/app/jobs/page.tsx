@@ -48,7 +48,10 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
           now={now}
           empty={
             filtered && (
-              <Link href={jobsHref("")} className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white">
+              <Link
+                href={jobsHref("")}
+                className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
+              >
                 清除筛选，看全部职位
               </Link>
             )

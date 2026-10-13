@@ -31,7 +31,11 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
   });
   const box = (field: keyof JobDraft) => {
     const s = state(field);
-    const tone = s.findings.some((f) => f.level !== "review") ? "border-danger" : s.missing ? "border-warn bg-warn-soft/40" : "border-border";
+    const tone = s.findings.some((f) => f.level !== "review")
+      ? "border-danger"
+      : s.missing
+        ? "border-warn bg-warn-soft/40"
+        : "border-border";
     return `w-full rounded-lg border bg-background px-3 ${tone}`;
   };
 
@@ -39,13 +43,31 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
     <div className="space-y-6">
       <Section title="职位">
         <Field name="titleZh" label="职位名称（中文）" required {...state("titleZh")}>
-          <input id="in-titleZh" value={form.titleZh} onChange={(e) => set({ titleZh: e.target.value })} placeholder="例如：前厅服务员" className={`h-11 ${box("titleZh")}`} />
+          <input
+            id="in-titleZh"
+            value={form.titleZh}
+            onChange={(e) => set({ titleZh: e.target.value })}
+            placeholder="例如：前厅服务员"
+            className={`h-11 ${box("titleZh")}`}
+          />
         </Field>
         <Field name="titleEn" label="职位名称（英文）" required {...state("titleEn")}>
-          <input id="in-titleEn" lang="en" value={form.titleEn} onChange={(e) => set({ titleEn: e.target.value })} placeholder="e.g. Front-of-house staff" className={`h-11 ${box("titleEn")}`} />
+          <input
+            id="in-titleEn"
+            lang="en"
+            value={form.titleEn}
+            onChange={(e) => set({ titleEn: e.target.value })}
+            placeholder="e.g. Front-of-house staff"
+            className={`h-11 ${box("titleEn")}`}
+          />
         </Field>
         <Field name="industry" label="行业" required {...state("industry")}>
-          <select id="in-industry" value={form.industry ?? ""} onChange={(e) => set({ industry: (e.target.value || undefined) as Industry | undefined })} className={`h-11 ${box("industry")}`}>
+          <select
+            id="in-industry"
+            value={form.industry ?? ""}
+            onChange={(e) => set({ industry: (e.target.value || undefined) as Industry | undefined })}
+            className={`h-11 ${box("industry")}`}
+          >
             <option value="">请选择</option>
             {Object.entries(INDUSTRY_LABELS).map(([value, l]) => (
               <option key={value} value={value}>
@@ -57,7 +79,19 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
         <Group name="employmentType" legend="工作类型" required {...state("employmentType")}>
           <div className="flex flex-wrap gap-2">
             {Object.entries(EMPLOYMENT_TYPE_LABELS).map(([value, l]) => (
-              <Chip key={value} type="checkbox" name="employmentType" checked={employmentTypes(form.employmentType).includes(value as EmploymentType)} onChange={() => set({ employmentType: packEmploymentTypes(toggle(employmentTypes(form.employmentType), value as EmploymentType)) })}>
+              <Chip
+                key={value}
+                type="checkbox"
+                name="employmentType"
+                checked={employmentTypes(form.employmentType).includes(value as EmploymentType)}
+                onChange={() =>
+                  set({
+                    employmentType: packEmploymentTypes(
+                      toggle(employmentTypes(form.employmentType), value as EmploymentType),
+                    ),
+                  })
+                }
+              >
                 {l.zh}
               </Chip>
             ))}
@@ -70,7 +104,12 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
 
       <Section title="地点和时间">
         <Field name="regionId" label="地区" required {...state("regionId")}>
-          <select id="in-regionId" value={form.regionId ?? ""} onChange={(e) => set({ regionId: e.target.value || undefined })} className={`h-11 ${box("regionId")}`}>
+          <select
+            id="in-regionId"
+            value={form.regionId ?? ""}
+            onChange={(e) => set({ regionId: e.target.value || undefined })}
+            className={`h-11 ${box("regionId")}`}
+          >
             <option value="">请选择</option>
             {config.regions.map((r) => (
               <option key={r.id} value={r.id}>
@@ -80,7 +119,12 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
           </select>
         </Field>
         <Field name="address" label="地址（可不填）" {...state("address")}>
-          <input id="in-address" value={form.address} onChange={(e) => set({ address: e.target.value })} className={`h-11 ${box("address")}`} />
+          <input
+            id="in-address"
+            value={form.address}
+            onChange={(e) => set({ address: e.target.value })}
+            className={`h-11 ${box("address")}`}
+          />
         </Field>
         <Group name="hoursPerWeek" legend="每周工时（可不填）" {...state("hoursPerWeek")}>
           <RangeInputs
@@ -94,7 +138,13 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
           />
         </Group>
         <Field name="shiftsZh" label="班次（可不填）" {...state("shiftsZh")}>
-          <input id="in-shiftsZh" value={form.shiftsZh} onChange={(e) => set({ shiftsZh: e.target.value })} placeholder="例如：周末晚班" className={`h-11 ${box("shiftsZh")}`} />
+          <input
+            id="in-shiftsZh"
+            value={form.shiftsZh}
+            onChange={(e) => set({ shiftsZh: e.target.value })}
+            placeholder="例如：周末晚班"
+            className={`h-11 ${box("shiftsZh")}`}
+          />
         </Field>
       </Section>
 
@@ -117,20 +167,39 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
           />
         </Group>
         <div className="flex flex-wrap gap-2">
-          <Chip type="checkbox" checked={form.mealsIncluded} onChange={() => set({ mealsIncluded: !form.mealsIncluded })}>
+          <Chip
+            type="checkbox"
+            checked={form.mealsIncluded}
+            onChange={() => set({ mealsIncluded: !form.mealsIncluded })}
+          >
             包餐
           </Chip>
-          <Chip type="checkbox" checked={form.accommodationIncluded} onChange={() => set({ accommodationIncluded: !form.accommodationIncluded })}>
+          <Chip
+            type="checkbox"
+            checked={form.accommodationIncluded}
+            onChange={() => set({ accommodationIncluded: !form.accommodationIncluded })}
+          >
             包住
           </Chip>
         </div>
       </Section>
 
       <Section title="要求">
-        <Group name="visaAccepted" legend="可接受的签证" required hint="只写你接受哪些签证。不要写办签证、包签这类内容。" {...state("visaAccepted")}>
+        <Group
+          name="visaAccepted"
+          legend="可接受的签证"
+          required
+          hint="只写你接受哪些签证。不要写办签证、包签这类内容。"
+          {...state("visaAccepted")}
+        >
           <div className="flex flex-wrap gap-2">
             {config.visaTypes.map((visa) => (
-              <Chip key={visa} type="checkbox" checked={form.visaAccepted.includes(visa)} onChange={() => set({ visaAccepted: toggle<VisaAccepted>(form.visaAccepted, visa) })}>
+              <Chip
+                key={visa}
+                type="checkbox"
+                checked={form.visaAccepted.includes(visa)}
+                onChange={() => set({ visaAccepted: toggle<VisaAccepted>(form.visaAccepted, visa) })}
+              >
                 {VISA_LABELS[visa].zh}
               </Chip>
             ))}
@@ -154,10 +223,29 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
 
       <Section title="职位描述">
         <Field name="descriptionZh" label="中文描述" required {...state("descriptionZh")}>
-          <textarea id="in-descriptionZh" rows={5} value={form.descriptionZh} onChange={(e) => set({ descriptionZh: e.target.value })} className={`py-2 ${box("descriptionZh")}`} />
+          <textarea
+            id="in-descriptionZh"
+            rows={5}
+            value={form.descriptionZh}
+            onChange={(e) => set({ descriptionZh: e.target.value })}
+            className={`py-2 ${box("descriptionZh")}`}
+          />
         </Field>
-        <Field name="descriptionEn" label="英文描述" required hint="根据表格自动生成，可以修改。" {...state("descriptionEn")}>
-          <textarea id="in-descriptionEn" lang="en" rows={4} value={form.descriptionEn} onChange={(e) => set({ descriptionEn: e.target.value })} className={`py-2 ${box("descriptionEn")}`} />
+        <Field
+          name="descriptionEn"
+          label="英文描述"
+          required
+          hint="根据表格自动生成，可以修改。"
+          {...state("descriptionEn")}
+        >
+          <textarea
+            id="in-descriptionEn"
+            lang="en"
+            rows={4}
+            value={form.descriptionEn}
+            onChange={(e) => set({ descriptionEn: e.target.value })}
+            className={`py-2 ${box("descriptionEn")}`}
+          />
           <button type="button" onClick={onRegenerateEn} className="text-sm text-brand underline">
             按表格重新生成
           </button>
@@ -176,7 +264,13 @@ export function DraftForm({ form, set, findings, missing, country, onRegenerateE
             ).map(([key, label, type, placeholder]) => (
               <label key={key} className="flex items-center gap-2">
                 <span className="w-12 shrink-0 text-sm">{label}</span>
-                <input type={type} value={form[key]} onChange={(e) => set({ [key]: e.target.value })} placeholder={placeholder} className={`h-11 ${box("contact")}`} />
+                <input
+                  type={type}
+                  value={form[key]}
+                  onChange={(e) => set({ [key]: e.target.value })}
+                  placeholder={placeholder}
+                  className={`h-11 ${box("contact")}`}
+                />
               </label>
             ))}
           </div>
@@ -209,7 +303,14 @@ function Notes({ missing, findings, hint }: FieldState & { hint?: string }) {
   );
 }
 
-function Field({ name, label, required, hint, children, ...state }: FieldState & { name: string; label: string; required?: boolean; hint?: string; children: ReactNode }) {
+function Field({
+  name,
+  label,
+  required,
+  hint,
+  children,
+  ...state
+}: FieldState & { name: string; label: string; required?: boolean; hint?: string; children: ReactNode }) {
   return (
     <div id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
       <label htmlFor={`in-${name}`} className="block text-sm font-medium">
@@ -222,7 +323,14 @@ function Field({ name, label, required, hint, children, ...state }: FieldState &
   );
 }
 
-function Group({ name, legend, required, hint, children, ...state }: FieldState & { name: string; legend: string; required?: boolean; hint?: string; children: ReactNode }) {
+function Group({
+  name,
+  legend,
+  required,
+  hint,
+  children,
+  ...state
+}: FieldState & { name: string; legend: string; required?: boolean; hint?: string; children: ReactNode }) {
   return (
     <fieldset id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
       <legend className="mb-1.5 text-sm font-medium">
@@ -235,7 +343,19 @@ function Group({ name, legend, required, hint, children, ...state }: FieldState 
   );
 }
 
-function Chip({ type, name, checked, onChange, children }: { type: "radio" | "checkbox"; name?: string; checked: boolean; onChange: () => void; children: ReactNode }) {
+function Chip({
+  type,
+  name,
+  checked,
+  onChange,
+  children,
+}: {
+  type: "radio" | "checkbox";
+  name?: string;
+  checked: boolean;
+  onChange: () => void;
+  children: ReactNode;
+}) {
   return (
     <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-background px-3 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand">
       <input type={type} name={name} checked={checked} onChange={onChange} className="accent-brand" />
@@ -263,9 +383,28 @@ function RangeInputs({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <input type="number" inputMode="decimal" min="0" step={step} aria-label="最低" value={min ?? ""} onChange={(e) => onMin(numberOrUndefined(e.target.value))} className={`h-11 ${className}`} />
+      <input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step={step}
+        aria-label="最低"
+        value={min ?? ""}
+        onChange={(e) => onMin(numberOrUndefined(e.target.value))}
+        className={`h-11 ${className}`}
+      />
       <span aria-hidden="true">–</span>
-      <input type="number" inputMode="decimal" min="0" step={step} aria-label="最高（可不填）" value={max ?? ""} onChange={(e) => onMax(numberOrUndefined(e.target.value))} placeholder="可不填" className={`h-11 ${className}`} />
+      <input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step={step}
+        aria-label="最高（可不填）"
+        value={max ?? ""}
+        onChange={(e) => onMax(numberOrUndefined(e.target.value))}
+        placeholder="可不填"
+        className={`h-11 ${className}`}
+      />
       <span className="shrink-0 text-sm text-muted">{unit}</span>
     </div>
   );

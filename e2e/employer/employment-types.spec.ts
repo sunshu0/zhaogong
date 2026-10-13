@@ -5,7 +5,9 @@ test("multiple types survive posting, filtering, sharing and editing", async ({ 
   await signUpEmployer(page, testInfo);
   const title = uniqueTitle("多类型服务员", testInfo);
   await openTheForm(page);
-  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill("Mt Eden 餐馆招服务员，全职或兼职，时薪28，每周20小时，包餐，学签可做，微信 demo_multi");
+  await page
+    .getByLabel(/把微信群里的招聘消息粘贴进来/)
+    .fill("Mt Eden 餐馆招服务员，全职或兼职，时薪28，每周20小时，包餐，学签可做，微信 demo_multi");
   await page.getByRole("button", { name: "整理成职位" }).click();
   await page.getByLabel("职位名称（中文）").fill(title);
   const types = page.getByRole("group", { name: /^工作类型/ });

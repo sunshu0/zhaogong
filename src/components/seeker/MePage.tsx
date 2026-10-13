@@ -18,7 +18,8 @@ export function MePage() {
   const views = useViewedJobs();
   const reports = useSentReports();
 
-  if (!hydrated) return <div className="h-48 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />;
+  if (!hydrated)
+    return <div className="h-48 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />;
 
   if (!session) {
     return (
@@ -64,39 +65,49 @@ export function MePage() {
         </button>
       </section>
 
-      {session.activeRole === "employer" ? <section className="space-y-3" aria-label="招聘记录"><h2 className="text-lg font-semibold">招聘记录</h2><ManageJobs /></section> : <Panel
-        title="最近看过的职位"
-        count={views.length}
-        action={
-          views.length > 0 && (
-            <button type="button" onClick={forgetViews} className="text-xs text-muted underline underline-offset-2">
-              清除浏览记录
-            </button>
-          )
-        }
-      >
-        {views.length === 0 ? (
-          <Empty>
-            还没有看过职位。<Link href="/jobs" className="text-brand underline underline-offset-2">去看看</Link>
-          </Empty>
-        ) : (
-          <ul className="divide-y divide-border">
-            {views.map((v) => (
-              <li key={v.jobId}>
-                <Link href={`/jobs/${v.jobId}`} className="flex items-baseline justify-between gap-3 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{v.title}</span>
-                    <span className="block truncate text-xs text-muted">
-                      {v.pay} · {v.region}
+      {session.activeRole === "employer" ? (
+        <section className="space-y-3" aria-label="招聘记录">
+          <h2 className="text-lg font-semibold">招聘记录</h2>
+          <ManageJobs />
+        </section>
+      ) : (
+        <Panel
+          title="最近看过的职位"
+          count={views.length}
+          action={
+            views.length > 0 && (
+              <button type="button" onClick={forgetViews} className="text-xs text-muted underline underline-offset-2">
+                清除浏览记录
+              </button>
+            )
+          }
+        >
+          {views.length === 0 ? (
+            <Empty>
+              还没有看过职位。
+              <Link href="/jobs" className="text-brand underline underline-offset-2">
+                去看看
+              </Link>
+            </Empty>
+          ) : (
+            <ul className="divide-y divide-border">
+              {views.map((v) => (
+                <li key={v.jobId}>
+                  <Link href={`/jobs/${v.jobId}`} className="flex items-baseline justify-between gap-3 py-2.5">
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">{v.title}</span>
+                      <span className="block truncate text-xs text-muted">
+                        {v.pay} · {v.region}
+                      </span>
                     </span>
-                  </span>
-                  <span className="shrink-0 text-xs text-muted">{formatDateZh(v.at, "NZ")}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>}
+                    <span className="shrink-0 text-xs text-muted">{formatDateZh(v.at, "NZ")}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      )}
 
       <Panel title="我发出的举报" count={reports.length}>
         {reports.length === 0 ? (
@@ -111,9 +122,7 @@ export function MePage() {
                   </Link>
                   <span className="shrink-0 text-xs text-muted">{formatDateZh(r.at, "NZ")}</span>
                 </div>
-                <p className="text-xs text-muted">
-                  {REPORT_REASON_LABELS[r.reason].zh} · 已提交，等待核查
-                </p>
+                <p className="text-xs text-muted">{REPORT_REASON_LABELS[r.reason].zh} · 已提交，等待核查</p>
               </li>
             ))}
           </ul>
@@ -125,7 +134,17 @@ export function MePage() {
   );
 }
 
-function Panel({ title, count, action, children }: { title: string; count: number; action?: ReactNode; children: ReactNode }) {
+function Panel({
+  title,
+  count,
+  action,
+  children,
+}: {
+  title: string;
+  count: number;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className="rounded-xl border border-border bg-surface p-4">

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { completeJob, draftFromForm, editPatch, emptyForm, formFromDraft, sanitizeDraft } from "@/components/employer/post-form";
+import {
+  completeJob,
+  draftFromForm,
+  editPatch,
+  emptyForm,
+  formFromDraft,
+  sanitizeDraft,
+} from "@/components/employer/post-form";
 import type { JobDraft } from "@/lib/compliance";
 
 const full: JobDraft = {
@@ -57,7 +64,13 @@ describe("completeJob", () => {
 
   it("fills defaults and runs 30 days from now", () => {
     const job = completeJob({ ...full, mealsIncluded: undefined, urgent: undefined }, "e1", now, "active");
-    expect(job).toMatchObject({ employerId: "e1", status: "active", mealsIncluded: false, accommodationIncluded: false, urgent: false });
+    expect(job).toMatchObject({
+      employerId: "e1",
+      status: "active",
+      mealsIncluded: false,
+      accommodationIncluded: false,
+      urgent: false,
+    });
     expect(job?.postedAt).toBe("2026-10-12T00:00:00.000Z");
     expect(job?.expiresAt).toBe("2026-11-11T00:00:00.000Z");
   });
@@ -74,13 +87,16 @@ describe("editPatch", () => {
     expect(patch).toMatchObject({ titleZh: "前厅服务员", pay: { min: 25, max: 27 } });
     expect("shiftsZh" in patch && patch.shiftsZh).toBeUndefined();
     expect(Object.keys(patch)).toContain("shiftsZh");
-    for (const key of ["postedAt", "expiresAt", "employerId", "country", "status"]) expect(patch).not.toHaveProperty(key);
+    for (const key of ["postedAt", "expiresAt", "employerId", "country", "status"])
+      expect(patch).not.toHaveProperty(key);
   });
 });
 
 describe("sanitizeDraft", () => {
   it("deduplicates types and removes unknown array values", () => {
-    expect(sanitizeDraft({ employmentType: ["part_time", "part_time", "casual", "invalid", 42] }, "NZ").employmentType).toEqual(["part_time", "casual"]);
+    expect(
+      sanitizeDraft({ employmentType: ["part_time", "part_time", "casual", "invalid", 42] }, "NZ").employmentType,
+    ).toEqual(["part_time", "casual"]);
     expect(sanitizeDraft({ employmentType: ["invalid"] }, "NZ").employmentType).toBeUndefined();
   });
   it("keeps a well-formed draft as it is", () => {

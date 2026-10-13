@@ -10,7 +10,10 @@ export type HiresAnswer = { hired: true; count: number } | { hired: false };
 type HireFields = Pick<Job, "hiresConfirmed" | "hiresConfirmedAt">;
 
 /** Checks an answer from the browser and turns it into the fields to save. */
-export function hiresFromAnswer(answer: unknown, now: number): { ok: true; fields: Partial<HireFields> } | { ok: false; error_zh: string } {
+export function hiresFromAnswer(
+  answer: unknown,
+  now: number,
+): { ok: true; fields: Partial<HireFields> } | { ok: false; error_zh: string } {
   if (answer == null) return { ok: true, fields: {} };
   if (typeof answer !== "object" || typeof (answer as { hired?: unknown }).hired !== "boolean") {
     return { ok: false, error_zh: "请选择招到了，或者没有 / 不确定。" };

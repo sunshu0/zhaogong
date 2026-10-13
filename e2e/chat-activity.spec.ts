@@ -2,9 +2,15 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
-test("seeker sees employer activity and receipts only change when the counterpart reads", async ({ page }, testInfo) => {
+test("seeker sees employer activity and receipts only change when the counterpart reads", async ({
+  page,
+}, testInfo) => {
   await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session")) localStorage.setItem("zhaogong:session", JSON.stringify({ email: "activity-seeker@example.com", activeRole: "seeker", signedInAt: "2026-10-13" }));
+    if (!localStorage.getItem("zhaogong:session"))
+      localStorage.setItem(
+        "zhaogong:session",
+        JSON.stringify({ email: "activity-seeker@example.com", activeRole: "seeker", signedInAt: "2026-10-13" }),
+      );
   });
   await page.goto("/messages?conversation=north-tea");
   const activity = page.getByLabel("沟通状态", { exact: true });
@@ -24,7 +30,12 @@ test("seeker sees employer activity and receipts only change when the counterpar
     const accounts = JSON.parse(localStorage.getItem(key)!);
     const scope = JSON.stringify(["activity-seeker@example.com", "seeker", null]);
     accounts[scope].messages["north-tea"].at(-1).readAt = new Date().toISOString();
-    accounts[scope].messages["north-tea"].push({ from: "them", text: "新的回复已送达", time: "刚刚", sentAt: new Date().toISOString() });
+    accounts[scope].messages["north-tea"].push({
+      from: "them",
+      text: "新的回复已送达",
+      time: "刚刚",
+      sentAt: new Date().toISOString(),
+    });
     accounts[scope].unread["north-tea"] = 1;
     localStorage.setItem(key, JSON.stringify(accounts));
     window.dispatchEvent(new StorageEvent("storage", { key }));
@@ -39,7 +50,9 @@ test("seeker sees employer activity and receipts only change when the counterpar
   await expect(page.getByLabel("雇主沟通情况", { exact: true })).toContainText(/今日已回复 \d+ 位求职者/);
 });
 
-test("employer sees candidate activity and counts distinct daily replies rather than messages or invitations", async ({ page }, testInfo) => {
+test("employer sees candidate activity and counts distinct daily replies rather than messages or invitations", async ({
+  page,
+}, testInfo) => {
   await signUpEmployer(page, testInfo, "/messages?conversation=candidate-lin");
   const activity = page.getByLabel("沟通状态", { exact: true });
   await expect(activity).toContainText(/对方约 \d+ 分钟前在线/);
@@ -59,7 +72,10 @@ test("employer sees candidate activity and counts distinct daily replies rather 
   await send("收到你的应聘资料");
   await expect(activity).toContainText("你今日已回复 2 位求职者");
   await page.screenshot({ path: testInfo.outputPath("employer-chat-activity.png"), fullPage: true });
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/messages?conversation=north-tea");
   await expect(activity).toContainText("雇主今日已回复");

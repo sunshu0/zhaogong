@@ -95,11 +95,14 @@ export function startChat(country: CountryCode): ChatState {
 
 /** One turn: the employer's message in, the assistant's reply (and the updated draft) out. */
 export async function nextTurn(state: ChatState, message: string): Promise<ChatState> {
-  const text = String(message ?? "").trim().slice(0, 2000);
+  const text = String(message ?? "")
+    .trim()
+    .slice(0, 2000);
   if (!text) return state;
   const s = withMessage(state, "employer", text);
 
-  const change = s.asking === "description" || s.asking === "rewrite" || s.asking === "fix" ? undefined : changeIntent(text);
+  const change =
+    s.asking === "description" || s.asking === "rewrite" || s.asking === "fix" ? undefined : changeIntent(text);
   if (change) {
     if (change.value) {
       const done = await answer(s, change.topic, change.value);
@@ -210,7 +213,10 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
       const confirming = s.unsure.includes("employmentType") && d.employmentType;
       const named = readEmploymentType(text);
       const acceptsAll = /^(?:都可以|都行|都接受|全部(?:可以|都可以|接受)?)[\s。！!]*$/.test(text.trim());
-      const type = confirming && YES.test(text) ? d.employmentType : named ?? (acceptsAll ? ["full_time", "part_time", "casual"] as EmploymentType[] : undefined);
+      const type =
+        confirming && YES.test(text)
+          ? d.employmentType
+          : (named ?? (acceptsAll ? (["full_time", "part_time", "casual"] as EmploymentType[]) : undefined));
       if (!type) return { ok: false, retry: "接受全职、兼职还是临时工？可以写多种，也可以选「都可以」。" };
       d.employmentType = type;
       s.unsure = s.unsure.filter((t) => t !== "employmentType");
@@ -236,14 +242,20 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
         return { ok: true, state: s, ack: `已去掉：${drop.map((v) => VISA_LABELS[v].zh).join("、")}。` };
       }
       const add = readVisas(text).filter((v) => visas.includes(v) && !chosen.includes(v));
-      if (!add.length) return { ok: false, retry: chosen.length ? "还有别的吗？没有就点「就这些」。" : "可以接受哪些签证？点下面的选项，可以选几种。" };
+      if (!add.length)
+        return {
+          ok: false,
+          retry: chosen.length ? "还有别的吗？没有就点「就这些」。" : "可以接受哪些签证？点下面的选项，可以选几种。",
+        };
       d.visaAccepted = visas.filter((v) => chosen.includes(v) || add.includes(v));
       return { ok: true, state: s, ack: `已加上：${add.map((v) => VISA_LABELS[v].zh).join("、")}。` };
     }
     case "perks": {
-      const none = /(都不包|不包|没有|都没有)/.test(text) && !/包(吃住|餐|吃|住)/.test(text.replace(/不包(吃住|餐|吃|住)?/g, ""));
+      const none =
+        /(都不包|不包|没有|都没有)/.test(text) && !/包(吃住|餐|吃|住)/.test(text.replace(/不包(吃住|餐|吃|住)?/g, ""));
       const read = readPerks(text);
-      if (!none && read.mealsIncluded == null && read.accommodationIncluded == null) return { ok: false, retry: "包餐还是包住？都不包也可以。" };
+      if (!none && read.mealsIncluded == null && read.accommodationIncluded == null)
+        return { ok: false, retry: "包餐还是包住？都不包也可以。" };
       d.mealsIncluded = none ? false : (read.mealsIncluded ?? false);
       d.accommodationIncluded = none ? false : (read.accommodationIncluded ?? false);
       s.asked.push("perks");
@@ -251,7 +263,8 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
     }
     case "contact": {
       const found = readContact(text);
-      if (!found.phone && !found.wechat && !found.email && /^[A-Za-z][-_A-Za-z0-9]{5,19}$/.test(text)) found.wechat = text;
+      if (!found.phone && !found.wechat && !found.email && /^[A-Za-z][-_A-Za-z0-9]{5,19}$/.test(text))
+        found.wechat = text;
       if (!found.phone && !found.wechat && !found.email) {
         return { ok: false, retry: "没认出电话、微信号或邮箱，再发一次？例如 021 123 4567，或者微信号 abc_123。" };
       }
@@ -259,7 +272,8 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
       return { ok: true, state: s, ack: "好，联系方式记下了，只有登录的求职者才能看到。" };
     }
     case "review": {
-      if (!PREVIEW.test(text)) return { ok: false, retry: "还有要改的吗？可以说「改一下时薪」，或者点「预览并发布」。" };
+      if (!PREVIEW.test(text))
+        return { ok: false, retry: "还有要改的吗？可以说「改一下时薪」，或者点「预览并发布」。" };
       s.ready = true;
       return { ok: true, state: s, ack: "好的，下面是求职者会看到的样子，确认后就能发布。" };
     }
@@ -267,13 +281,15 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
 }
 
 function setPay(s: ChatState, text: string): Answered {
-  if (/(周薪|年薪|月薪)/.test(text)) return { ok: false, retry: "这里只填时薪。按每周工时换算一下，写时薪就行，例如 25。" };
+  if (/(周薪|年薪|月薪)/.test(text))
+    return { ok: false, retry: "这里只填时薪。按每周工时换算一下，写时薪就行，例如 25。" };
   const nums = numbers(text).filter((n) => n >= 10 && n <= 200);
   if (!nums.length) return { ok: false, retry: "没看懂时薪，请直接写数字，例如 25 或 25-28。" };
   const [min, max] = nums[1] != null && nums[1] < nums[0] ? [nums[1], nums[0]] : [nums[0], nums[1]];
   s.draft.pay = max != null && max !== min ? { min, max } : { min };
   // The old figure may still be in the description; pay shows on its own, so drop that sentence.
-  if (s.draft.descriptionZh) s.draft.descriptionZh = removeClauses(s.draft.descriptionZh, [], PAY_CLAUSE) || s.draft.descriptionZh;
+  if (s.draft.descriptionZh)
+    s.draft.descriptionZh = removeClauses(s.draft.descriptionZh, [], PAY_CLAUSE) || s.draft.descriptionZh;
   if (s.fixing?.rule === "min_wage") s.fixing = undefined;
   return { ok: true, state: s, ack: `好，时薪 ${payText(s)}。` };
 }
@@ -313,9 +329,11 @@ function nextQuestion(s: ChatState, findings: Finding[]): Question {
   if (missing.includes("regionId")) return question(s, "region");
   if (missing.includes("employmentType") || s.unsure.includes("employmentType")) return question(s, "employmentType");
   if (!s.asked.includes("visa") && (!d.visaAccepted?.length || s.asking === "visa")) return question(s, "visa");
-  if (d.mealsIncluded == null && d.accommodationIncluded == null && !s.asked.includes("perks")) return question(s, "perks");
+  if (d.mealsIncluded == null && d.accommodationIncluded == null && !s.asked.includes("perks"))
+    return question(s, "perks");
   if (missing.includes("contact")) return question(s, "contact");
-  if (missing.includes("descriptionZh")) return { topic: "rewrite", text: "再用一两句话描述一下这份工作？", fixing: { field: "descriptionZh" } };
+  if (missing.includes("descriptionZh"))
+    return { topic: "rewrite", text: "再用一两句话描述一下这份工作？", fixing: { field: "descriptionZh" } };
   return question(s, "review");
 }
 
@@ -344,10 +362,19 @@ function question(s: ChatState, topic: Topic): Question {
         return {
           topic,
           text: `我按${why}先当作${guess}，对吗？`,
-          quickReplies: [CHIP("对"), ...types.filter(([t]) => !employmentTypes(d.employmentType).includes(t)).map(([, l]) => CHIP(l.zh)), CHIP("全职或兼职"), CHIP("都可以")],
+          quickReplies: [
+            CHIP("对"),
+            ...types.filter(([t]) => !employmentTypes(d.employmentType).includes(t)).map(([, l]) => CHIP(l.zh)),
+            CHIP("全职或兼职"),
+            CHIP("都可以"),
+          ],
         };
       }
-      return { topic, text: "是全职、兼职还是临时工？可以接受多种。", quickReplies: [...types.map(([, l]) => CHIP(l.zh)), CHIP("全职或兼职"), CHIP("都可以")] };
+      return {
+        topic,
+        text: "是全职、兼职还是临时工？可以接受多种。",
+        quickReplies: [...types.map(([, l]) => CHIP(l.zh)), CHIP("全职或兼职"), CHIP("都可以")],
+      };
     }
     case "visa": {
       const chosen = d.visaAccepted ?? [];
@@ -357,11 +384,18 @@ function question(s: ChatState, topic: Topic): Question {
         text: chosen.length
           ? `现在是：${chosen.map((v) => VISA_LABELS[v].zh).join("、")}。还有别的吗？`
           : "可以接受哪些签证？可以选几种。这里只写事实，不要写办签证、包签这类内容。",
-        quickReplies: [...rest.map((v) => CHIP(VISA_LABELS[v].zh)), ...(chosen.length ? [CHIP("就这些")] : [CHIP("都可以")])],
+        quickReplies: [
+          ...rest.map((v) => CHIP(VISA_LABELS[v].zh)),
+          ...(chosen.length ? [CHIP("就这些")] : [CHIP("都可以")]),
+        ],
       };
     }
     case "perks":
-      return { topic, text: "包餐或者包住吗？", quickReplies: ["包餐", "包住", "包吃住", "都不包"].map((v) => CHIP(v)) };
+      return {
+        topic,
+        text: "包餐或者包住吗？",
+        quickReplies: ["包餐", "包住", "包吃住", "都不包"].map((v) => CHIP(v)),
+      };
     case "contact":
       return { topic, text: "求职者怎么联系你？发电话、微信号或邮箱都行，只有登录的求职者才能看到。" };
     default:
@@ -383,12 +417,21 @@ const FIELD_WHERE: Record<TextField, string> = {
 
 function fixQuestion(s: ChatState, f: Finding): Question {
   if (f.rule === "min_wage") {
-    return { topic: "fix", text: `${f.message_zh.replace(/，请调高后再发布。$/, "")}。时薪改成多少？`, fixing: { rule: f.rule, field: "descriptionZh" } };
+    return {
+      topic: "fix",
+      text: `${f.message_zh.replace(/，请调高后再发布。$/, "")}。时薪改成多少？`,
+      fixing: { rule: f.rule, field: "descriptionZh" },
+    };
   }
   const field = (f.field in FIELD_WHERE ? f.field : "descriptionZh") as TextField;
   const replies = [CHIP("删掉这句"), CHIP("我来改写")];
   if (f.rule === "ethnic_preference") replies.unshift(CHIP("改成「需会普通话」"));
-  return { topic: "fix", text: `${FIELD_WHERE[field]}${f.message_zh}`, quickReplies: replies, fixing: { rule: f.rule, field, matches: f.matches } };
+  return {
+    topic: "fix",
+    text: `${FIELD_WHERE[field]}${f.message_zh}`,
+    quickReplies: replies,
+    fixing: { rule: f.rule, field, matches: f.matches },
+  };
 }
 
 function rewritePrompt(s: ChatState): string {
@@ -458,7 +501,11 @@ function askAbout(state: ChatState, topic: Topic, text: string): ChatState {
 
 const CLAUSE = /([，,。；;！!\n])/;
 const PAY_CLAUSE = /时薪|工资|薪水|薪资|\$\s*\d|\d+\s*(刀|纽币)|\/\s*(小时|h\b)/i;
-const compact = (s: string) => s.normalize("NFKC").toLowerCase().replace(/[\s*·•._~|\\/-]+/g, "");
+const compact = (s: string) =>
+  s
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\s*·•._~|\\/-]+/g, "");
 
 /** The text without the sentences that hold any of `words` (or match `pattern`). */
 function removeClauses(text: string, words: string[], pattern?: RegExp): string {
@@ -469,7 +516,10 @@ function removeClauses(text: string, words: string[], pattern?: RegExp): string 
     const hit = words.some((w) => compact(clause).includes(compact(w))) || (pattern?.test(clause) ?? false);
     if (!hit) out += clause + (parts[i + 1] ?? "");
   }
-  return out.replace(/^[，,。；;！!\s]+/, "").replace(/[，,；;\s]+$/, "").replace(/([，,])([。！!])/g, "$2");
+  return out
+    .replace(/^[，,。；;！!\s]+/, "")
+    .replace(/[，,；;\s]+$/, "")
+    .replace(/([，,])([。！!])/g, "$2");
 }
 
 function replaceWords(text: string, words: string[], by: string): string {
@@ -505,7 +555,9 @@ function perksText(d: JobDraft): string {
 /** What the draft says so far, in one line. */
 function summary(d: JobDraft): string {
   const country = d.country ?? "NZ";
-  const contactKinds = [d.contact?.phone && "电话", d.contact?.wechat && "微信", d.contact?.email && "邮箱"].filter(Boolean);
+  const contactKinds = [d.contact?.phone && "电话", d.contact?.wechat && "微信", d.contact?.email && "邮箱"].filter(
+    Boolean,
+  );
   return [
     d.titleZh,
     d.pay && `${COUNTRIES[country].currencySymbol}${range(d.pay, money)}/小时`,
@@ -534,13 +586,22 @@ function clone(s: ChatState): ChatState {
   };
 }
 
-function withMessage(state: ChatState, from: ChatMessage["from"], text: string, quickReplies?: QuickReply[]): ChatState {
+function withMessage(
+  state: ChatState,
+  from: ChatMessage["from"],
+  text: string,
+  quickReplies?: QuickReply[],
+): ChatState {
   const s = clone(state);
-  const msg: ChatMessage = { id: `m${s.messages.length + 1}`, from, text, ...(quickReplies?.length && { quickReplies }) };
+  const msg: ChatMessage = {
+    id: `m${s.messages.length + 1}`,
+    from,
+    text,
+    ...(quickReplies?.length && { quickReplies }),
+  };
   s.messages.push(msg);
   return s;
 }
-
 
 /** Back from the preview to the conversation: ready again for changes. */
 export function resumeChat(state: ChatState): ChatState {
@@ -549,9 +610,25 @@ export function resumeChat(state: ChatState): ChatState {
   return withMessage(s, "assistant", "还要改哪里？直接说，比如「改一下时薪」，或者点「预览并发布」。", q.quickReplies);
 }
 
-const TOPICS: Topic[] = ["description", "rewrite", "fix", "title", "titleEn", "industry", "pay", "hours", "region", "employmentType", "visa", "perks", "contact", "review"];
+const TOPICS: Topic[] = [
+  "description",
+  "rewrite",
+  "fix",
+  "title",
+  "titleEn",
+  "industry",
+  "pay",
+  "hours",
+  "region",
+  "employmentType",
+  "visa",
+  "perks",
+  "contact",
+  "review",
+];
 const TEXT_FIELDS: TextField[] = ["titleZh", "titleEn", "descriptionZh", "shiftsZh", "address"];
-const strings = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, 50) : []);
+const strings = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, 50) : [];
 
 /**
  * A conversation sent back by the browser, rebuilt with known values only. The draft is cleaned by
@@ -569,15 +646,24 @@ export function restoreChat(input: unknown, country: CountryCode, cleanDraft: (d
       text: (m.text as string).slice(0, 4000),
       ...(Array.isArray(m.quickReplies) && {
         quickReplies: m.quickReplies
-          .filter((q): q is QuickReply => typeof q === "object" && q != null && typeof (q as QuickReply).label === "string")
+          .filter(
+            (q): q is QuickReply => typeof q === "object" && q != null && typeof (q as QuickReply).label === "string",
+          )
           .slice(0, 20)
-          .map((q) => ({ label: q.label.slice(0, 40), ...(typeof q.value === "string" && { value: q.value.slice(0, 2000) }) })),
+          .map((q) => ({
+            label: q.label.slice(0, 40),
+            ...(typeof q.value === "string" && { value: q.value.slice(0, 2000) }),
+          })),
       }),
     }));
   const f = r.fixing as Record<string, unknown> | undefined;
   const fixing =
     f && TEXT_FIELDS.includes(f.field as TextField)
-      ? { field: f.field as TextField, ...(typeof f.rule === "string" && { rule: f.rule as RuleId }), ...(Array.isArray(f.matches) && { matches: strings(f.matches) }) }
+      ? {
+          field: f.field as TextField,
+          ...(typeof f.rule === "string" && { rule: f.rule as RuleId }),
+          ...(Array.isArray(f.matches) && { matches: strings(f.matches) }),
+        }
       : undefined;
   return {
     country,

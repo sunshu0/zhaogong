@@ -3,7 +3,14 @@
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
-import { initialNotifications, initialProfile, parseNotifications, parseProfiles, type Notification, type Profile } from "@/components/seeker/hub-state";
+import {
+  initialNotifications,
+  initialProfile,
+  parseNotifications,
+  parseProfiles,
+  type Notification,
+  type Profile,
+} from "@/components/seeker/hub-state";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
 import { localCandidates } from "@/lib/candidate-directory";
 import { employerPublicProfile } from "@/lib/employer-public-profile";
@@ -33,7 +40,10 @@ export function useProfile() {
       if (!session) return;
       return profiles.update((storage) => {
         const current = parseProfiles(storage.getItem(PROFILE_KEY));
-        storage.setItem(PROFILE_KEY, JSON.stringify({ ...current, [scope]: { ...(current[scope] ?? initialProfile(session)), ...patch } }));
+        storage.setItem(
+          PROFILE_KEY,
+          JSON.stringify({ ...current, [scope]: { ...(current[scope] ?? initialProfile(session)), ...patch } }),
+        );
         return true;
       });
     },
@@ -52,7 +62,9 @@ export function useNotifications() {
       if (!session) return;
       notifications.update((storage) => {
         const current = parseNotifications(storage.getItem(NOTIFICATIONS_KEY));
-        const updated: Notification[] = (current[scope] ?? initialNotifications(session)).map((item) => !id || item.id === id ? { ...item, unread: false } : item);
+        const updated: Notification[] = (current[scope] ?? initialNotifications(session)).map((item) =>
+          !id || item.id === id ? { ...item, unread: false } : item,
+        );
         storage.setItem(NOTIFICATIONS_KEY, JSON.stringify({ ...current, [scope]: updated }));
       });
     },

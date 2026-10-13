@@ -5,9 +5,19 @@ import { identityScope } from "@/components/seeker/identity-scope";
 import { EMPTY_RESUME } from "@/lib/candidate-matching";
 import type { DemoSession } from "@/components/seeker/session";
 
-const employer: DemoSession = { email: "owner@example.com", activeRole: "employer", employerId: "e1", employerName: "店铺", signedInAt: "2026-10-13" };
+const employer: DemoSession = {
+  email: "owner@example.com",
+  activeRole: "employer",
+  employerId: "e1",
+  employerName: "店铺",
+  signedInAt: "2026-10-13",
+};
 const other = { ...employer, email: "candidate@example.com", activeRole: "seeker" as const };
-const profile = { ...initialProfile(other), contactName: "private contact", resume: { ...EMPTY_RESUME, candidateId: "abc-123", discoverable: true } };
+const profile = {
+  ...initialProfile(other),
+  contactName: "private contact",
+  resume: { ...EMPTY_RESUME, candidateId: "abc-123", discoverable: true },
+};
 
 describe("candidate directory", () => {
   it("includes only opted-in seekers, excludes own identity and employer profiles", () => {
@@ -15,7 +25,10 @@ describe("candidate directory", () => {
       [identityScope(other)]: profile,
       [identityScope({ ...employer, activeRole: "seeker" })]: profile,
       [identityScope(employer)]: profile,
-      [identityScope({ ...other, email: "hidden@example.com" })]: { ...profile, resume: { ...profile.resume, discoverable: false } },
+      [identityScope({ ...other, email: "hidden@example.com" })]: {
+        ...profile,
+        resume: { ...profile.resume, discoverable: false },
+      },
     };
     const result = localCandidates(accounts, employer);
     expect(result).toHaveLength(1);

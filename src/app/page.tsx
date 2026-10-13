@@ -63,10 +63,19 @@ export default function Home({ searchParams }: PageProps<"/">) {
           找
         </span>
 
-        <div className={`${SITE_CONTAINER} relative grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:py-20`}>
+        <div
+          className={`${SITE_CONTAINER} relative grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:py-20`}
+        >
           <div>
             <p className="flex items-center gap-3">
-              <Image src="/icons/icon-192.png" alt="" width={56} height={56} preload className="size-14 rounded-[22%] ring-2 ring-white/40" />
+              <Image
+                src="/icons/icon-192.png"
+                alt=""
+                width={56}
+                height={56}
+                preload
+                className="size-14 rounded-[22%] ring-2 ring-white/40"
+              />
               <span className="text-3xl font-bold tracking-wider">{PRODUCT_NAME}</span>
             </p>
             <h1 id="hero-heading" className="mt-6 text-3xl leading-tight font-bold lg:text-[3.25rem]">
@@ -91,7 +100,9 @@ export default function Home({ searchParams }: PageProps<"/">) {
             </div>
             <p className="mt-4 text-sm text-white">
               招人？{" "}
-              <PostJobLink className="font-medium underline underline-offset-4 hover:no-underline">我要招人 →</PostJobLink>
+              <PostJobLink className="font-medium underline underline-offset-4 hover:no-underline">
+                我要招人 →
+              </PostJobLink>
             </p>
             <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white" aria-label="我们的承诺">
               {TRUST.map((item) => (
@@ -159,14 +170,20 @@ async function NoScriptLanding() {
             </section>
           )}
           {jobs.length > 0 && (
-            <section aria-labelledby="no-js-jobs-heading" className={stats.length > 0 ? "mt-4 border-t border-border pt-4" : undefined}>
+            <section
+              aria-labelledby="no-js-jobs-heading"
+              className={stats.length > 0 ? "mt-4 border-t border-border pt-4" : undefined}
+            >
               <h2 id="no-js-jobs-heading" className="font-semibold">
                 精选工作
               </h2>
               <ul className="mt-2 grid grid-cols-1 gap-2">
                 {jobs.map((job) => (
                   <li key={job.id}>
-                    <Link href={`/jobs/${job.id}`} className="block rounded-lg border border-border p-3 hover:border-brand">
+                    <Link
+                      href={`/jobs/${job.id}`}
+                      className="block rounded-lg border border-border p-3 hover:border-brand"
+                    >
                       <span className="block font-medium">{job.titleZh}</span>
                       <span className="block text-xs text-muted">
                         {formatPay(job.pay, job.country)} · {regionById(job.country, job.regionId)?.nameZh ?? "奥克兰"}
@@ -258,7 +275,10 @@ async function FeaturesBand() {
           功能展示
         </h2>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <article aria-labelledby="ai-feature-heading" className="rounded-2xl border border-brand/30 bg-brand-soft/50 p-4 lg:p-5">
+          <article
+            aria-labelledby="ai-feature-heading"
+            className="rounded-2xl border border-brand/30 bg-brand-soft/50 p-4 lg:p-5"
+          >
             <div className="flex items-start gap-3">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
                 <FeatureIconSvg name="chat" />
@@ -296,7 +316,9 @@ async function EmployerBand() {
   const { draft } = await parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY);
   return (
     <section aria-labelledby="employer-heading" className={`${FULL_BLEED} bg-foreground text-white`}>
-      <div className={`${SITE_CONTAINER} grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:py-16`}>
+      <div
+        className={`${SITE_CONTAINER} grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:py-16`}
+      >
         <div>
           <p className="text-sm text-white/75">给雇主</p>
           <h2 id="employer-heading" className="mt-1 text-2xl font-bold">

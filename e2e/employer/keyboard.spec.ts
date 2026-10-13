@@ -11,15 +11,26 @@ async function focused(page: Page): Promise<Focused> {
     const el = document.activeElement as HTMLElement | null;
     if (!el || el === document.body) return { label: "(body)", visible: false, obscured: false };
     const s = getComputedStyle(el);
-    const visible = (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow !== "none" && s.boxShadow !== "");
+    const visible =
+      (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow !== "none" && s.boxShadow !== "");
     const labelled = el.id ? document.querySelector(`label[for="${el.id}"]`)?.textContent : undefined;
-    const label = (el.getAttribute("aria-label") || labelled || el.closest("label")?.textContent || el.textContent || el.tagName).trim().replace(/\s+/g, " ").slice(0, 30);
+    const label = (
+      el.getAttribute("aria-label") ||
+      labelled ||
+      el.closest("label")?.textContent ||
+      el.textContent ||
+      el.tagName
+    )
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 30);
     const r = el.getBoundingClientRect();
     const header = document.querySelector("body > header")?.getBoundingClientRect();
     const bar = document.querySelector(".sticky.bottom-0");
     const barRect = bar && !bar.contains(el) ? bar.getBoundingClientRect() : undefined;
     const inHeader = !!document.querySelector("body > header")?.contains(el);
-    const obscured = (!inHeader && header ? r.top < header.bottom - 1 : false) || (barRect ? r.bottom > barRect.top + 1 : false);
+    const obscured =
+      (!inHeader && header ? r.top < header.bottom - 1 : false) || (barRect ? r.bottom > barRect.top + 1 : false);
     return { label, visible, obscured };
   });
 }

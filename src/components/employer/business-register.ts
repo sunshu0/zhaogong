@@ -11,10 +11,30 @@ export interface RegisterEntry {
 
 /** Companies the demo employers do not carry yet: two unverified shops, one off the platform, one struck off. */
 const DEMO_EXTRAS: RegisterEntry[] = [
-  { nzbn: "9429000000004", legalName: "Demo Yuemei Hair Studio Limited", tradingNames: ["悦美发型工作室", "Yuemei Hair"], status: "registered" },
-  { nzbn: "9429000000006", legalName: "Demo Jiejing Home Services Limited", tradingNames: ["洁净家政"], status: "registered" },
-  { nzbn: "9429000000010", legalName: "Demo Kiwi Noodle House Limited", tradingNames: ["新西兰面馆"], status: "registered" },
-  { nzbn: "9429000000099", legalName: "Demo Golden Dragon Restaurant Limited", tradingNames: ["金龙酒家"], status: "removed" },
+  {
+    nzbn: "9429000000004",
+    legalName: "Demo Yuemei Hair Studio Limited",
+    tradingNames: ["悦美发型工作室", "Yuemei Hair"],
+    status: "registered",
+  },
+  {
+    nzbn: "9429000000006",
+    legalName: "Demo Jiejing Home Services Limited",
+    tradingNames: ["洁净家政"],
+    status: "registered",
+  },
+  {
+    nzbn: "9429000000010",
+    legalName: "Demo Kiwi Noodle House Limited",
+    tradingNames: ["新西兰面馆"],
+    status: "registered",
+  },
+  {
+    nzbn: "9429000000099",
+    legalName: "Demo Golden Dragon Restaurant Limited",
+    tradingNames: ["金龙酒家"],
+    status: "removed",
+  },
 ];
 
 export function buildRegister(employers: Employer[]): RegisterEntry[] {
@@ -29,7 +49,10 @@ export const normalizeNzbn = (s: string) => s.replace(/[\s-]/g, "");
 
 const MAX_RESULTS = 5;
 
-export function searchRegister(register: RegisterEntry[], query: string): { results: RegisterEntry[]; error_zh?: string } {
+export function searchRegister(
+  register: RegisterEntry[],
+  query: string,
+): { results: RegisterEntry[]; error_zh?: string } {
   const q = query.trim();
   const digits = normalizeNzbn(q);
   if (/^\d+$/.test(digits)) {

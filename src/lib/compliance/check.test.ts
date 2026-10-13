@@ -55,7 +55,14 @@ describe("checkJob: word rules", () => {
   });
 
   it("does not flag an employer saying they charge nothing", () => {
-    for (const text of ["不收任何押金和介绍费。", "无押金，无中介费。", "免押金", "不需要交押金", "押金：无", "押金全免"]) {
+    for (const text of [
+      "不收任何押金和介绍费。",
+      "无押金，无中介费。",
+      "免押金",
+      "不需要交押金",
+      "押金：无",
+      "押金全免",
+    ]) {
       expect(checkJob(withZh(text), "NZ"), text).toEqual([]);
     }
   });

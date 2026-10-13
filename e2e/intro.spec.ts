@@ -11,16 +11,25 @@ test("landing: hero with logo, headline, buttons and trust row; height by conten
   await expect(hero.getByRole("link", { name: "注册找工作" })).toBeInViewport();
   await expect(hero.getByRole("link", { name: "注册找工作" })).toHaveAttribute("href", "/login?role=seeker");
   // The quieter way in for employers (signed out: employer sign-up, then posting).
-  await expect(hero.getByRole("link", { name: "我要招人 →" })).toHaveAttribute("href", "/login?role=employer&next=%2Femployer%2Fpost");
+  await expect(hero.getByRole("link", { name: "我要招人 →" })).toHaveAttribute(
+    "href",
+    "/login?role=employer&next=%2Femployer%2Fpost",
+  );
   await expect(hero.getByRole("link", { name: "直接浏览工作" })).toBeInViewport();
-  await expect(hero.getByRole("list", { name: "我们的承诺" }).getByRole("listitem")).toHaveText(["雇主验证", "发布前查合规", "对求职者免费"]);
+  await expect(hero.getByRole("list", { name: "我们的承诺" }).getByRole("listitem")).toHaveText([
+    "雇主验证",
+    "发布前查合规",
+    "对求职者免费",
+  ]);
 
   const height = (await hero.boundingBox())!.height;
   if (testInfo.project.name === "desktop") {
     expect(height).toBeGreaterThanOrEqual(520);
     expect(height).toBeLessThanOrEqual(680);
     // The headline is large on desktop (48–56 px).
-    const size = await hero.getByRole("heading", { level: 1 }).evaluate((h) => parseFloat(getComputedStyle(h).fontSize));
+    const size = await hero
+      .getByRole("heading", { level: 1 })
+      .evaluate((h) => parseFloat(getComputedStyle(h).fontSize));
     expect(size).toBeGreaterThanOrEqual(48);
     expect(size).toBeLessThanOrEqual(56);
     // The header's logo and the hero's content start at the same x: one site container.
@@ -59,11 +68,14 @@ test("landing: stats band with real counts and the 演示数据 tag", async ({ p
   }
 
   const tops = await Promise.all((await cells.all()).map(async (c) => Math.round((await c.boundingBox())!.y)));
-  if (testInfo.project.name === "desktop") expect(new Set(tops).size).toBe(1); // one row of four
+  if (testInfo.project.name === "desktop")
+    expect(new Set(tops).size).toBe(1); // one row of four
   else expect(new Set(tops).size).toBe(2); // 2 × 2
 });
 
-test("landing: features with the AI chat post, featured jobs, and the employer before → after", async ({ page }, testInfo) => {
+test("landing: features with the AI chat post, featured jobs, and the employer before → after", async ({
+  page,
+}, testInfo) => {
   await page.goto("/");
   const featured = page.getByRole("region", { name: "精选工作" });
   const cards = featured.getByRole("listitem").getByRole("link");
@@ -95,7 +107,10 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "学签可做", "联系方式：登录后可见"]) {
     await expect(after).toContainText(text);
   }
-  await expect(employer.getByRole("link", { name: "注册雇主 →" })).toHaveAttribute("href", "/login?role=employer&next=%2Femployer%2Fpost");
+  await expect(employer.getByRole("link", { name: "注册雇主 →" })).toHaveAttribute(
+    "href",
+    "/login?role=employer&next=%2Femployer%2Fpost",
+  );
   await expect(employer.getByRole("link", { name: "看看雇主能做什么" })).toHaveAttribute("href", "/employer");
 
   await cards.first().click();

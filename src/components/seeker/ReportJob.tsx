@@ -34,7 +34,10 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
       const result = await reportJob(jobId, parsed.reason, parsed.note).catch(() => null);
       if (!result) return setError("网络有问题，举报没有发出，请稍后再试");
       if (!result.ok) return setError(result.error);
-      rememberReport({ reportId: result.reportId, jobId, jobTitle, reason: parsed.reason, at: new Date().toISOString() }, owner);
+      rememberReport(
+        { reportId: result.reportId, jobId, jobTitle, reason: parsed.reason, at: new Date().toISOString() },
+        owner,
+      );
       setState("sent");
     });
   }
@@ -83,7 +86,10 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
         <p className="mt-1 text-sm text-muted">请选择最符合的原因。举报不会告诉雇主是谁发的。</p>
         <div className="mt-3 space-y-1">
           {REPORT_REASONS.map((reason) => (
-            <label key={reason} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-background">
+            <label
+              key={reason}
+              className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-background"
+            >
               <input type="radio" name="reason" value={reason} className="size-4 accent-brand" />
               <span className="text-sm">{REPORT_REASON_LABELS[reason].zh}</span>
             </label>

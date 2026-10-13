@@ -13,7 +13,11 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 /** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
 export function EditJob({ jobId, country }: { jobId: string; country: CountryCode }) {
-  return <EmployerGate next={`/employer/jobs/${jobId}`}>{(me) => <Edit jobId={jobId} me={me} country={country} />}</EmployerGate>;
+  return (
+    <EmployerGate next={`/employer/jobs/${jobId}`}>
+      {(me) => <Edit jobId={jobId} me={me} country={country} />}
+    </EmployerGate>
+  );
 }
 
 function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
@@ -69,17 +73,30 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
     return (
       <section className="space-y-4">
         <div className={`rounded-xl px-4 py-5 ${saved.status === "pending_review" ? "bg-warn-soft" : "bg-ok-soft"}`}>
-          <h1 ref={heading} tabIndex={-1} className={`text-xl font-semibold outline-none ${saved.status === "pending_review" ? "text-warn" : "text-ok"}`}>已保存</h1>
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            className={`text-xl font-semibold outline-none ${saved.status === "pending_review" ? "text-warn" : "text-ok"}`}
+          >
+            已保存
+          </h1>
           <p className="mt-1 text-sm">
-            {saved.titleZh} · {saved.status === "pending_review" ? "修改的内容需要重新审核，通过后公开。" : "修改已生效。"}
+            {saved.titleZh} ·{" "}
+            {saved.status === "pending_review" ? "修改的内容需要重新审核，通过后公开。" : "修改已生效。"}
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/employer/jobs" className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white">
+          <Link
+            href="/employer/jobs"
+            className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white"
+          >
             回到管理职位
           </Link>
           {saved.status === "active" && (
-            <Link href={`/jobs/${saved.id}`} className="flex h-11 flex-1 items-center justify-center rounded-xl border border-brand font-medium text-brand">
+            <Link
+              href={`/jobs/${saved.id}`}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl border border-brand font-medium text-brand"
+            >
               查看职位
             </Link>
           )}
@@ -95,15 +112,26 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <DraftEditor state={state} country={country} />
       </div>
-      <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${WIDE_ON_DESKTOP}`}>
+      <div
+        className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${WIDE_ON_DESKTOP}`}
+      >
         <div className="flex items-center gap-3">
           <Link href="/employer/jobs" className="text-sm text-muted underline">
             取消
           </Link>
           <p className="flex-1 text-xs text-muted">
-            {state.ready ? (willReview ? "保存后需要重新审核" : "可以保存") : holdReason(state.findings.length, state.missing.length)}
+            {state.ready
+              ? willReview
+                ? "保存后需要重新审核"
+                : "可以保存"
+              : holdReason(state.findings.length, state.missing.length)}
           </p>
-          <button type="button" disabled={!state.ready || pending} onClick={save} className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40">
+          <button
+            type="button"
+            disabled={!state.ready || pending}
+            onClick={save}
+            className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40"
+          >
             {pending ? "保存中…" : "保存"}
           </button>
         </div>

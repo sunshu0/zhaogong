@@ -5,11 +5,17 @@ const now = Date.UTC(2026, 9, 12, 3);
 
 describe("hiresFromAnswer", () => {
   it("records a count of people hired, with the time", () => {
-    expect(hiresFromAnswer({ hired: true, count: 3 }, now)).toEqual({ ok: true, fields: { hiresConfirmed: 3, hiresConfirmedAt: "2026-10-12T03:00:00.000Z" } });
+    expect(hiresFromAnswer({ hired: true, count: 3 }, now)).toEqual({
+      ok: true,
+      fields: { hiresConfirmed: 3, hiresConfirmedAt: "2026-10-12T03:00:00.000Z" },
+    });
   });
 
   it("records 没有 / 不确定 as zero, so an answer is told apart from no answer", () => {
-    expect(hiresFromAnswer({ hired: false }, now)).toEqual({ ok: true, fields: { hiresConfirmed: 0, hiresConfirmedAt: "2026-10-12T03:00:00.000Z" } });
+    expect(hiresFromAnswer({ hired: false }, now)).toEqual({
+      ok: true,
+      fields: { hiresConfirmed: 0, hiresConfirmedAt: "2026-10-12T03:00:00.000Z" },
+    });
   });
 
   it("records nothing when the question is skipped", () => {
@@ -19,7 +25,10 @@ describe("hiresFromAnswer", () => {
 
   it("refuses counts outside 1–20 and anything that is not a whole number", () => {
     for (const count of [0, MAX_HIRES + 1, 2.5, Number.NaN, "3"]) {
-      expect(hiresFromAnswer({ hired: true, count } as never, now), String(count)).toEqual({ ok: false, error_zh: `人数请填 1 到 ${MAX_HIRES}。` });
+      expect(hiresFromAnswer({ hired: true, count } as never, now), String(count)).toEqual({
+        ok: false,
+        error_zh: `人数请填 1 到 ${MAX_HIRES}。`,
+      });
     }
     expect(hiresFromAnswer("yes" as never, now).ok).toBe(false);
   });

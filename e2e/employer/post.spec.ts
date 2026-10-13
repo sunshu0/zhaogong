@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { findingsPanel, jobCard, openTheForm, publishFromPreview, searchJobList, signUpEmployer, uniqueTitle } from "./helpers";
+import {
+  findingsPanel,
+  jobCard,
+  openTheForm,
+  publishFromPreview,
+  searchJobList,
+  signUpEmployer,
+  uniqueTitle,
+} from "./helpers";
 
 test("paste → findings hold publishing → fix → publish → the job is on the list", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo);
@@ -7,7 +15,9 @@ test("paste → findings hold publishing → fix → publish → the job is on t
 
   await page.goto("/employer/post");
   await openTheForm(page);
-  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill("奶茶店招兼职店员，市中心 Queen St，时薪 20，入职交押金200，限华人。学签OK。微信 cbdtea_demo");
+  await page
+    .getByLabel(/把微信群里的招聘消息粘贴进来/)
+    .fill("奶茶店招兼职店员，市中心 Queen St，时薪 20，入职交押金200，限华人。学签OK。微信 cbdtea_demo");
   await page.getByRole("button", { name: "整理成职位" }).click();
 
   // The parser filled the form; the checks hold the preview.

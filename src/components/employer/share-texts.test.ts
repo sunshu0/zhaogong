@@ -49,10 +49,24 @@ describe("shareTexts", () => {
   });
 
   it("leaves out what the job does not say and the badge of an unverified employer", () => {
-    const bare = { ...job, hoursPerWeek: undefined, shiftsZh: undefined, urgent: false, mealsIncluded: false, visaAccepted: [] };
+    const bare = {
+      ...job,
+      hoursPerWeek: undefined,
+      shiftsZh: undefined,
+      urgent: false,
+      mealsIncluded: false,
+      visaAccepted: [],
+    };
     const unverified = MOCK_EMPLOYERS.find((e) => e.verification === "unverified")!;
     const t = shareTexts(bare, unverified, url);
-    expect(t.wechat).toBe([`【招聘】前厅服务员 · ${unverified.name}`, "📍 Mt Eden / Dominion Rd", "💰 $25–27/小时 · 兼职", `👉 详情和联系方式：${url}`].join("\n"));
+    expect(t.wechat).toBe(
+      [
+        `【招聘】前厅服务员 · ${unverified.name}`,
+        "📍 Mt Eden / Dominion Rd",
+        "💰 $25–27/小时 · 兼职",
+        `👉 详情和联系方式：${url}`,
+      ].join("\n"),
+    );
     expect(t.skykiwi).not.toContain("签证");
     expect(t.skykiwi).not.toContain("福利");
     expect(t.skykiwi).not.toMatch(/\n\n\n/);

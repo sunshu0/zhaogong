@@ -72,7 +72,8 @@ export function AccountMenu() {
   }
 
   const label = identityLabel(session);
-  const employer = session.employerId && session.employerName ? { id: session.employerId, name: session.employerName } : null;
+  const employer =
+    session.employerId && session.employerName ? { id: session.employerId, name: session.employerName } : null;
 
   async function switchToEmployer() {
     if (!session || !employer) return;
@@ -115,12 +116,18 @@ export function AccountMenu() {
         <span aria-hidden="true">▾</span>
       </button>
       {notice && (
-        <p role="status" className="absolute top-full right-0 z-30 mt-2 w-56 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">
+        <p
+          role="status"
+          className="absolute top-full right-0 z-30 mt-2 w-56 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn"
+        >
           {notice}
         </p>
       )}
       {open && (
-        <div id="account-menu" className="absolute top-full right-0 z-30 mt-2 w-60 rounded-xl border border-border bg-surface p-2 shadow-lg">
+        <div
+          id="account-menu"
+          className="absolute top-full right-0 z-30 mt-2 w-60 rounded-xl border border-border bg-surface p-2 shadow-lg"
+        >
           <p className="truncate px-2 pt-1 text-xs text-muted">{session.email}</p>
           <p className="px-2 pb-2 text-xs">
             当前身份：<span className="font-medium">{label}</span>

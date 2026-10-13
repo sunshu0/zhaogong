@@ -15,7 +15,11 @@ import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { readSession, type DemoSession } from "@/components/seeker/session";
-import { identityActivityStorage, parseActivityAccounts, scopedActivityKey } from "@/components/seeker/identity-activity";
+import {
+  identityActivityStorage,
+  parseActivityAccounts,
+  scopedActivityKey,
+} from "@/components/seeker/identity-activity";
 
 const reports = createLocalStore(scopedActivityKey(REPORTS_KEY), parseActivityAccounts);
 const views = createLocalStore(scopedActivityKey(VIEWS_KEY), parseActivityAccounts);
@@ -27,7 +31,12 @@ export function useSentReports(): SentReport[] {
 }
 
 export function rememberReport(report: SentReport, owner?: DemoSession | null): void {
-  reports.update((storage) => addSentReport(identityActivityStorage(storage, identityScope(owner === undefined ? readSession(storage) : owner)), report));
+  reports.update((storage) =>
+    addSentReport(
+      identityActivityStorage(storage, identityScope(owner === undefined ? readSession(storage) : owner)),
+      report,
+    ),
+  );
 }
 
 /** Jobs viewed on this device, most recent first. Empty during server rendering and hydration. */

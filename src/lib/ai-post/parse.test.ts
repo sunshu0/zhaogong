@@ -8,13 +8,18 @@ const MSG = {
 时薪 $25-27，每周 15-25 小时，周五至周日晚班
 包工作餐，学签可做，需会普通话和基本英语
 有意者请加微信 demo_chuanwei 或电话 021 555 0101`,
-  dimSum: "北岸 Northcote 早茶酒家诚聘点心师傅，全职，需三年以上经验。时薪30-35刀，包两餐。接受开放工签及AEWV（本店为认证雇主）。联系电话：021-555-0102",
-  grocery: "Botany亚洲超市招理货员，早班7点到1点，每周20-30小时，$24/h，要能搬重物。学生签证、打工度假都可以，不包住。电话 0215550103",
-  carpenter: "招聘装修木工两名，Albany 附近工地，需有 Site Safe 证，自备工具和车。时薪 32-40 看经验，全职，每周 40-50 小时。公民永居或开放工签。微信：anju_reno88",
+  dimSum:
+    "北岸 Northcote 早茶酒家诚聘点心师傅，全职，需三年以上经验。时薪30-35刀，包两餐。接受开放工签及AEWV（本店为认证雇主）。联系电话：021-555-0102",
+  grocery:
+    "Botany亚洲超市招理货员，早班7点到1点，每周20-30小时，$24/h，要能搬重物。学生签证、打工度假都可以，不包住。电话 0215550103",
+  carpenter:
+    "招聘装修木工两名，Albany 附近工地，需有 Site Safe 证，自备工具和车。时薪 32-40 看经验，全职，每周 40-50 小时。公民永居或开放工签。微信：anju_reno88",
   cleaner: "东区 Howick 家政公司招清洁工，时间灵活，$25 一小时起，需要有驾照和车。不需要英语。有意加V：demo_jiejing",
   bubbleTea: "奶茶店招兼职店员，市中心 Queen St，时薪 20，包培训。学签OK，要会英语。微信 cbdtea_demo",
-  english: "Hiring kitchen hand at Sylvia Park, full time 40 hrs/week, $26 per hour. Mandarin or English. Open work visa or resident. Email: hr@example.com",
-  driver: "快达物流急聘送货司机，需 Class 2 驾照，全职，周一到周五，$27-30/小时，Mt Wellington 仓库出发。认证雇主，可接受 AEWV。联系 021 555 0107 / hr@example.com",
+  english:
+    "Hiring kitchen hand at Sylvia Park, full time 40 hrs/week, $26 per hour. Mandarin or English. Open work visa or resident. Email: hr@example.com",
+  driver:
+    "快达物流急聘送货司机，需 Class 2 驾照，全职，周一到周五，$27-30/小时，Mt Wellington 仓库出发。认证雇主，可接受 AEWV。联系 021 555 0107 / hr@example.com",
   livein: "Manukau 餐馆招厨师一名，包吃住，周薪 1000，粤语优先。电话 09 123 4567",
   minimal: "招洗碗工，有意私聊",
 };
@@ -201,7 +206,10 @@ describe("parsePost", () => {
 
 describe("englishSummary", () => {
   it("keeps explicit multiple types instead of inferring only one from hours", async () => {
-    const { draft } = await parsePost("Mt Eden 招服务员，全职或兼职，每周20小时，时薪25，学签可做，微信 demo_multi", "NZ");
+    const { draft } = await parsePost(
+      "Mt Eden 招服务员，全职或兼职，每周20小时，时薪25，学签可做，微信 demo_multi",
+      "NZ",
+    );
     expect(draft.employmentType).toEqual(["full_time", "part_time"]);
     expect(draft.descriptionEn).toContain("Full-time / Part-time");
   });

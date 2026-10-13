@@ -3,7 +3,18 @@ import { employerPublicProfile } from "@/lib/employer-public-profile";
 import { initialProfile } from "@/components/seeker/hub-state";
 
 it("publishes only company fields for the requested employer identity", () => {
-  const profile = { ...initialProfile(null), name: "企业", bio: "企业介绍", resume: { discoverable: true, skills: "private", employmentTypes: [], regionIds: [] }, privateDetails: { phone: "021 555 8888", wechat: "private", email: "private@example.com", address: "private location" } };
+  const profile = {
+    ...initialProfile(null),
+    name: "企业",
+    bio: "企业介绍",
+    resume: { discoverable: true, skills: "private", employmentTypes: [], regionIds: [] },
+    privateDetails: {
+      phone: "021 555 8888",
+      wechat: "private",
+      email: "private@example.com",
+      address: "private location",
+    },
+  };
   const accounts = {
     [JSON.stringify(["owner@example.com", "seeker", null])]: { ...profile, bio: "私人简历" },
     [JSON.stringify(["owner@example.com", "employer", "e2"])]: { ...profile, bio: "另一家企业" },

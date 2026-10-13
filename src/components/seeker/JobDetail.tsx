@@ -65,19 +65,31 @@ export function JobDetail({
           </ul>
         )}
         <p className="mt-3 text-xs text-muted">
-          {formatDateZh(job.postedAt, job.country)}发布（{postedAgoZh(job.postedAt, now)}）· {expiryZh(job.expiresAt, now, job.country)}
+          {formatDateZh(job.postedAt, job.country)}发布（{postedAgoZh(job.postedAt, now)}）·{" "}
+          {expiryZh(job.expiresAt, now, job.country)}
         </p>
       </header>
 
       {employer && (
         <section aria-label="雇主" className="rounded-xl border border-border bg-surface p-4">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            <Link href={`/employers/${employer.id}`} className="inline-flex min-w-0 items-center gap-2 text-brand underline underline-offset-4"><EmployerAvatar employerId={employer.id} fallback={employer.name} /><span className="break-words">{employer.name}</span></Link>
+            <Link
+              href={`/employers/${employer.id}`}
+              className="inline-flex min-w-0 items-center gap-2 text-brand underline underline-offset-4"
+            >
+              <EmployerAvatar employerId={employer.id} fallback={employer.name} />
+              <span className="break-words">{employer.name}</span>
+            </Link>
             <VerificationBadge verification={employer.verification} />
           </p>
           <p className="mt-2 break-words text-xs text-muted">雇主ID：{employer.id}</p>
           <p className="mt-1 text-sm text-muted">{verificationNote(employer.verification, job.country)}</p>
-          <Link href={`/employers/${employer.id}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand">查看雇主主页与其他岗位 →</Link>
+          <Link
+            href={`/employers/${employer.id}`}
+            className="mt-2 inline-flex min-h-11 items-center text-sm font-medium text-brand"
+          >
+            查看雇主主页与其他岗位 →
+          </Link>
           {employer.legalName && (
             <p className="mt-1 text-xs text-muted">
               {employer.legalName}
@@ -142,7 +154,10 @@ export function JobDetail({
   return (
     <article className="space-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0">
       <div className="space-y-3 lg:col-start-1">{details}</div>
-      <aside aria-label="联系与分享" className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}>
+      <aside
+        aria-label="联系与分享"
+        className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}
+      >
         {aside}
       </aside>
       {children && <div className="space-y-3 lg:col-start-1">{children}</div>}

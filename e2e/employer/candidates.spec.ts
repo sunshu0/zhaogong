@@ -2,12 +2,18 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
-test("recommends by selected job, explains matches and opens a persistent role-specific chat", async ({ page }, testInfo) => {
+test("recommends by selected job, explains matches and opens a persistent role-specific chat", async ({
+  page,
+}, testInfo) => {
   const shop = await signUpEmployer(page, testInfo, "/employer/candidates");
   await expect(page.getByRole("heading", { name: "暂无招聘中的职位" })).toBeVisible();
   const title = uniqueTitle("前厅服务员", testInfo);
   const id = await publishJob(page, title);
-  await publishJob(page, uniqueTitle("厨房帮工", testInfo), "Mt Eden 餐馆招厨房帮工，时薪 $25-27，每周 35-40 小时，全职，包工作餐，开放工签可做，需会普通话，负责备菜、洗碗和厨房清洁，微信 demo_candidate");
+  await publishJob(
+    page,
+    uniqueTitle("厨房帮工", testInfo),
+    "Mt Eden 餐馆招厨房帮工，时薪 $25-27，每周 35-40 小时，全职，包工作餐，开放工签可做，需会普通话，负责备菜、洗碗和厨房清洁，微信 demo_candidate",
+  );
   await page.goto("/workspace");
   await expect(page.getByRole("link", { name: /推荐人才.*查看/ })).toBeVisible();
   await page.goto("/employer/candidates");
@@ -26,7 +32,11 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await expect(page.getByText("暂无符合条件的求职者")).toBeVisible();
   await page.getByLabel("搜索求职者").fill("");
   await page.getByLabel("最低匹配分").selectOption("0");
-  const kitchen = await page.getByLabel("招聘职位").locator("option").filter({ hasText: "厨房帮工" }).getAttribute("value");
+  const kitchen = await page
+    .getByLabel("招聘职位")
+    .locator("option")
+    .filter({ hasText: "厨房帮工" })
+    .getAttribute("value");
   await page.getByLabel("招聘职位").selectOption(kitchen!);
   await expect(rows.first().getByRole("heading", { name: "王宁" })).toBeVisible();
   await page.getByLabel("招聘职位").selectOption(id!);
@@ -50,10 +60,15 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.getByLabel("招聘职位").selectOption(id!);
   await rows.first().getByRole("button", { name: "发起聊天" }).click();
   if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "返回会话列表", exact: true }).click();
-  await expect(page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ })).toHaveCount(2);
+  await expect(page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ })).toHaveCount(
+    2,
+  );
   await page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ }).first().click();
   await expect(log).toContainText("方便聊聊吗");
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/messages");
   await expect(page.getByRole("complementary", { name: "聊天列表" })).not.toContainText(title);
@@ -66,7 +81,10 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await expect(page.getByLabel("允许向雇主推荐我的求职主页")).toBeChecked();
   await expect(page.getByLabel("最少小时", { exact: true })).toHaveValue("15");
   await page.screenshot({ path: testInfo.outputPath("resume-editor.png"), fullPage: true });
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/employer/candidates");
   await expect(page.getByText("公开主页", { exact: true })).toHaveCount(0);
@@ -74,8 +92,20 @@ test("recommends by selected job, explains matches and opens a persistent role-s
     const key = "zhaogong:profiles-by-identity";
     const profiles = JSON.parse(localStorage.getItem(key) ?? "{}");
     profiles[JSON.stringify(["public-candidate@example.com", "seeker", null])] = {
-      name: "公开候选人", contactName: "", headline: "前厅服务", location: "Mt Eden", languages: "普通话", availability: "周末", bio: "有点餐收银经验",
-      resume: { candidateId: "public-demo", discoverable: true, skills: "点餐、收银", employmentTypes: ["part_time"], regionIds: ["akl-mt-eden"] },
+      name: "公开候选人",
+      contactName: "",
+      headline: "前厅服务",
+      location: "Mt Eden",
+      languages: "普通话",
+      availability: "周末",
+      bio: "有点餐收银经验",
+      resume: {
+        candidateId: "public-demo",
+        discoverable: true,
+        skills: "点餐、收银",
+        employmentTypes: ["part_time"],
+        regionIds: ["akl-mt-eden"],
+      },
     };
     localStorage.setItem(key, JSON.stringify(profiles));
     window.dispatchEvent(new StorageEvent("storage", { key }));

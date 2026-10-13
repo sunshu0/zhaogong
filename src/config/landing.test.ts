@@ -6,7 +6,8 @@ describe("landing stats", () => {
 
   it("lists the stats in display order with their labels", () => {
     const shown = visibleStats(stats);
-    if (DEMO_DATA) expect(shown.map((s) => s.key)).toEqual(["employersPosting", "jobsPosted", "hiresConfirmed", "contactViews"]);
+    if (DEMO_DATA)
+      expect(shown.map((s) => s.key)).toEqual(["employersPosting", "jobsPosted", "hiresConfirmed", "contactViews"]);
     for (const s of shown) expect(s.value).toBe(stats[s.key]);
   });
 

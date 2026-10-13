@@ -94,8 +94,18 @@ describe("managing published jobs", () => {
     expect(blocked).toMatchObject({ ok: false });
     expect(!blocked.ok && blocked.findings?.map((f) => f.rule)).toEqual(["visa_selling"]);
 
-    const edited = await editMyJob("j3", E.e2, { ...job, titleZh: "点心主厨", shiftsZh: undefined, descriptionZh: "早茶点心，附近有 KTV。" });
-    expect(edited.ok && edited.job).toMatchObject({ id: "j3", titleZh: "点心主厨", status: "pending_review", postedAt: job.postedAt });
+    const edited = await editMyJob("j3", E.e2, {
+      ...job,
+      titleZh: "点心主厨",
+      shiftsZh: undefined,
+      descriptionZh: "早茶点心，附近有 KTV。",
+    });
+    expect(edited.ok && edited.job).toMatchObject({
+      id: "j3",
+      titleZh: "点心主厨",
+      status: "pending_review",
+      postedAt: job.postedAt,
+    });
     expect(edited.ok && edited.job.shiftsZh).toBeUndefined();
   });
 
@@ -123,14 +133,26 @@ describe("business verification", () => {
 
   it("verifies an unverified shop with its register entry", async () => {
     const result = await verifyBusiness(E.e4, "9429 0000 0000 4");
-    expect(result.ok && result.employer).toMatchObject({ verification: "business_verified", legalName: "Demo Yuemei Hair Studio Limited" });
-    expect(await getMyEmployer(E.e4)).toMatchObject({ verification: "business_verified", businessNumber: "9429000000004" });
+    expect(result.ok && result.employer).toMatchObject({
+      verification: "business_verified",
+      legalName: "Demo Yuemei Hair Studio Limited",
+    });
+    expect(await getMyEmployer(E.e4)).toMatchObject({
+      verification: "business_verified",
+      businessNumber: "9429000000004",
+    });
   });
 
   it("refuses a struck-off company, an unknown number and another shop's NZBN", async () => {
-    expect(await verifyBusiness(E.e6, "9429000000099")).toMatchObject({ ok: false, error_zh: expect.stringContaining("已注销") });
+    expect(await verifyBusiness(E.e6, "9429000000099")).toMatchObject({
+      ok: false,
+      error_zh: expect.stringContaining("已注销"),
+    });
     expect(await verifyBusiness(E.e6, "9429000000123")).toMatchObject({ ok: false });
-    expect(await verifyBusiness(E.e6, "9429000000001")).toMatchObject({ ok: false, error_zh: expect.stringContaining("其他店铺") });
+    expect(await verifyBusiness(E.e6, "9429000000001")).toMatchObject({
+      ok: false,
+      error_zh: expect.stringContaining("其他店铺"),
+    });
     expect((await getMyEmployer(E.e6))?.verification).toBe("unverified");
   });
 
@@ -162,11 +184,20 @@ describe("hires confirmed when a job ends", () => {
   });
 
   it("refuses a bad count, another employer's job and a job that has not ended", async () => {
-    expect(await confirmHires("j13", E.e8, { hired: true, count: 21 })).toMatchObject({ ok: false, error_zh: "人数请填 1 到 20。" });
+    expect(await confirmHires("j13", E.e8, { hired: true, count: 21 })).toMatchObject({
+      ok: false,
+      error_zh: "人数请填 1 到 20。",
+    });
     expect(await closeMyJob("j15", E.e3, { hired: true, count: 0 })).toMatchObject({ ok: false });
     expect((await getJob("j15"))?.status).toBe("active"); // a refused answer does not end the job
-    expect(await confirmHires("j13", E.e1, { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
-    expect(await confirmHires("j15", E.e3, { hired: true, count: 1 })).toMatchObject({ ok: false, error_zh: "职位结束后才能记录招到几人。" });
+    expect(await confirmHires("j13", E.e1, { hired: true, count: 1 })).toMatchObject({
+      ok: false,
+      error_zh: "找不到这个职位。",
+    });
+    expect(await confirmHires("j15", E.e3, { hired: true, count: 1 })).toMatchObject({
+      ok: false,
+      error_zh: "职位结束后才能记录招到几人。",
+    });
   });
 });
 
@@ -176,7 +207,12 @@ describe("chatTurn", () => {
     expect(first.draft.titleZh).toBe("洗碗工");
     expect(first.asking).toBe("pay");
 
-    const tampered = { ...first, asking: "launch_rockets", ready: true, draft: { ...first.draft, status: "active", employerId: "e9", pay: { min: "lots" } } };
+    const tampered = {
+      ...first,
+      asking: "launch_rockets",
+      ready: true,
+      draft: { ...first.draft, status: "active", employerId: "e9", pay: { min: "lots" } },
+    };
     const next = await chatTurn(tampered, "25");
     expect(next.draft).not.toHaveProperty("status");
     expect(next.draft).not.toHaveProperty("employerId");

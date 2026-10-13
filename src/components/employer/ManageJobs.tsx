@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
 import { closeMyJob, confirmHires, refreshMyJob, type ChangeResult } from "@/app/employer/actions";
-import { canClose, canEdit, effectiveStatus, expiryLabelZh, refreshState, STATUS_LABELS, type ShownStatus } from "@/components/employer/job-status";
+import {
+  canClose,
+  canEdit,
+  effectiveStatus,
+  expiryLabelZh,
+  refreshState,
+  STATUS_LABELS,
+  type ShownStatus,
+} from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
@@ -35,7 +43,6 @@ function Manage({ me }: { me: EmployerIdentity }) {
   const [notice, setNotice] = useState<{ ok: boolean; text: string }>();
   const noticeRef = useFocusOnChange<HTMLParagraphElement>(notice);
 
-
   const employer = profile ?? undefined;
   const counts = new Map<string, number>();
   for (const job of ready?.jobs ?? []) {
@@ -45,7 +52,9 @@ function Manage({ me }: { me: EmployerIdentity }) {
   const shown = (ready?.jobs ?? []).filter((j) => tab === "all" || effectiveStatus(j, ready!.now) === tab);
 
   function done(result: ChangeResult, okText: string) {
-    setNotice(result.ok ? { ok: true, text: `${result.job.titleZh}：${okText}` } : { ok: false, text: result.error_zh });
+    setNotice(
+      result.ok ? { ok: true, text: `${result.job.titleZh}：${okText}` } : { ok: false, text: result.error_zh },
+    );
     reload();
   }
 
@@ -63,44 +72,58 @@ function Manage({ me }: { me: EmployerIdentity }) {
       <TabList
         label="按状态"
         idBase="manage"
-        tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${t.key === "all" ? (ready?.jobs.length ?? "") : (counts.get(t.key) ?? 0)}` }))}
+        tabs={TABS.map((t) => ({
+          key: t.key,
+          label: `${t.label} ${t.key === "all" ? (ready?.jobs.length ?? "") : (counts.get(t.key) ?? 0)}`,
+        }))}
         value={tab}
         onChange={setTab}
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
-        tabClassName={(selected) => `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`}
+        tabClassName={(selected) =>
+          `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`
+        }
       />
 
-      {employer?.bannedAt && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
+      {employer?.bannedAt && (
+        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          这个雇主账号已被停用，职位已全部下架，不能再发布。
+        </p>
+      )}
 
       {notice && (
-        <p ref={noticeRef} tabIndex={-1} role="status" className={`rounded-lg px-3 py-2 text-sm outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+        <p
+          ref={noticeRef}
+          tabIndex={-1}
+          role="status"
+          className={`rounded-lg px-3 py-2 text-sm outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+        >
           {notice.text}
         </p>
       )}
 
       <TabPanel idBase="manage" value={tab}>
-      {!ready ? (
-        <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
-      ) : shown.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
-          {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {shown.map((job) => (
-            <li key={job.id}>
-              <ManagedJob
-                job={job}
-                employer={employer}
-                email={me.email}
-                views={ready.views[job.id] ?? 0}
-                now={ready.now}
-                onDone={done}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+        {!ready ? (
+          <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
+        ) : shown.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
+            {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {shown.map((job) => (
+              <li key={job.id}>
+                <ManagedJob
+                  job={job}
+                  employer={employer}
+                  email={me.email}
+                  views={ready.views[job.id] ?? 0}
+                  now={ready.now}
+                  onDone={done}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </TabPanel>
     </div>
   );
@@ -165,7 +188,9 @@ function ManagedJob({
             type="button"
             disabled={!refresh.allowed || pending}
             title={refresh.reason_zh}
-            onClick={() => run(() => refreshMyJob(job.id, email), status === "expired" ? "已重新开放 30 天" : "已刷新，排到前面")}
+            onClick={() =>
+              run(() => refreshMyJob(job.id, email), status === "expired" ? "已重新开放 30 天" : "已刷新，排到前面")
+            }
             className={button}
           >
             {status === "expired" ? "重新开放" : refresh.allowed ? "刷新" : (refresh.reason_zh ?? "刷新")}
@@ -198,7 +223,9 @@ function ManagedJob({
           submitLabel="确定结束招聘"
           submitClassName={`${button} border-danger text-danger`}
           pending={pending}
-          onSubmit={(answer) => run(() => closeMyJob(job.id, email, answer), `已结束招聘${answer ? `，${answerText(answer)}` : ""}`)}
+          onSubmit={(answer) =>
+            run(() => closeMyJob(job.id, email, answer), `已结束招聘${answer ? `，${answerText(answer)}` : ""}`)
+          }
           onCancel={() => setAsking(undefined)}
         />
       )}
@@ -209,7 +236,9 @@ function ManagedJob({
           submitLabel="保存"
           submitClassName={`${button} border-brand text-brand`}
           pending={pending}
-          onSubmit={(answer) => answer && run(() => confirmHires(job.id, email, answer), `已记录，${answerText(answer)}`)}
+          onSubmit={(answer) =>
+            answer && run(() => confirmHires(job.id, email, answer), `已记录，${answerText(answer)}`)
+          }
           onCancel={() => setAsking(undefined)}
         />
       )}

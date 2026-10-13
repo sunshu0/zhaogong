@@ -7,7 +7,9 @@ const job = (id: string): Job => MOCK_JOBS.find((j) => j.id === id)!;
 
 describe("shareSummary", () => {
   it("gives title and pay, then region, type and tags", () => {
-    expect(shareSummary(job("j1"))).toBe("【前厅服务员】$25–27/小时\nMt Eden / Dominion Rd · 兼职 · 急招 · 包餐 · 学签可做");
+    expect(shareSummary(job("j1"))).toBe(
+      "【前厅服务员】$25–27/小时\nMt Eden / Dominion Rd · 兼职 · 急招 · 包餐 · 学签可做",
+    );
   });
 
   it("leaves out tags a job does not have", () => {
@@ -31,7 +33,9 @@ describe("withLink", () => {
 
 describe("isWeChat", () => {
   it("recognises the WeChat in-app browser", () => {
-    expect(isWeChat("Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile/15E148 MicroMessenger/8.0.50 NetType/WIFI")).toBe(true);
+    expect(isWeChat("Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile/15E148 MicroMessenger/8.0.50 NetType/WIFI")).toBe(
+      true,
+    );
     expect(isWeChat("Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36")).toBe(false);
   });
 });

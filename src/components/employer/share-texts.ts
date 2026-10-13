@@ -1,7 +1,13 @@
 // Ready-made posts for the places employers already advertise. No contact details: seekers follow
 // the link, where contact shows after sign-in.
 import { COUNTRIES, regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS, VERIFICATION_LABELS, VISA_LABELS } from "@/i18n/labels";
+import {
+  EMPLOYMENT_TYPE_LABELS,
+  INDUSTRY_LABELS,
+  LANGUAGE_LABELS,
+  VERIFICATION_LABELS,
+  VISA_LABELS,
+} from "@/i18n/labels";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
 import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
@@ -27,7 +33,8 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
   const type = formatEmploymentTypes(job.employmentType);
   const hours = formatHours(job.hoursPerWeek);
   const tags = jobTags(job);
-  const badge = employer && employer.verification !== "unverified" ? `（${VERIFICATION_LABELS[employer.verification].zh}）` : "";
+  const badge =
+    employer && employer.verification !== "unverified" ? `（${VERIFICATION_LABELS[employer.verification].zh}）` : "";
   const by = employer ? ` · ${employer.name}${badge}` : "";
   const perks = [job.mealsIncluded && "包餐", job.accommodationIncluded && "包住"].filter(Boolean).join("、");
   const languages = job.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、");

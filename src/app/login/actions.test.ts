@@ -38,7 +38,11 @@ describe("openEmployerForAccount", () => {
 
   it("creates a new, unverified business with the name and region given", async () => {
     const before = (await listEmployers()).length;
-    const result = await openEmployerForAccount("new.shop@example.com", { kind: "new", name: " 老王面馆 ", regionId: "akl-cbd" });
+    const result = await openEmployerForAccount("new.shop@example.com", {
+      kind: "new",
+      name: " 老王面馆 ",
+      regionId: "akl-cbd",
+    });
     expect(result.ok).toBe(true);
     const employer = await getAccountEmployer("new.shop@example.com");
     expect(employer).toMatchObject({ name: "老王面馆", regionId: "akl-cbd", verification: "unverified" });
@@ -48,14 +52,22 @@ describe("openEmployerForAccount", () => {
   it("does not create a second business for an account that already has one", async () => {
     await openEmployerForAccount("has.one@example.com", { kind: "new", name: "一号店", regionId: "akl-cbd" });
     const before = (await listEmployers()).length;
-    const again = await openEmployerForAccount("has.one@example.com", { kind: "new", name: "二号店", regionId: "akl-cbd" });
+    const again = await openEmployerForAccount("has.one@example.com", {
+      kind: "new",
+      name: "二号店",
+      regionId: "akl-cbd",
+    });
     expect(again).toEqual({ ok: true, employer: { id: expect.any(String), name: "一号店" } });
     expect((await listEmployers()).length).toBe(before);
   });
 
   it("refuses non-demo businesses and bad input without creating anything", async () => {
     const before = (await listEmployers()).length;
-    for (const choice of [{ kind: "existing", employerId: "e7" }, { kind: "new", name: "", regionId: "akl-cbd" }, "e2"]) {
+    for (const choice of [
+      { kind: "existing", employerId: "e7" },
+      { kind: "new", name: "", regionId: "akl-cbd" },
+      "e2",
+    ]) {
       expect((await openEmployerForAccount("careful@example.com", choice)).ok).toBe(false);
     }
     expect(await openEmployerForAccount("not-an-email", { kind: "existing", employerId: "e2" })).toEqual({

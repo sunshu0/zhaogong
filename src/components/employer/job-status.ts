@@ -50,7 +50,8 @@ export function refreshState(job: Dated, now: number): { allowed: boolean; reaso
   const status = effectiveStatus(job, now);
   if (status === "removed") return { allowed: false, reason_zh: "已被下架" };
   if (status === "pending_review") return { allowed: false, reason_zh: "审核通过后才能刷新" };
-  if (status === "active" && now - Date.parse(job.postedAt) < REFRESH_EVERY_MS) return { allowed: false, reason_zh: "今天已刷新过" };
+  if (status === "active" && now - Date.parse(job.postedAt) < REFRESH_EVERY_MS)
+    return { allowed: false, reason_zh: "今天已刷新过" };
   return { allowed: true };
 }
 

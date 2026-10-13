@@ -36,7 +36,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 找工作
               </Link>
               <ChatEntry />
-              <Link href="/workspace" className="hidden min-h-11 items-center whitespace-nowrap px-1 font-medium text-brand hover:underline hover:underline-offset-4 sm:inline-flex">
+              <Link
+                href="/workspace"
+                className="hidden min-h-11 items-center whitespace-nowrap px-1 font-medium text-brand hover:underline hover:underline-offset-4 sm:inline-flex"
+              >
                 工作台
               </Link>
               <AccountMenu />

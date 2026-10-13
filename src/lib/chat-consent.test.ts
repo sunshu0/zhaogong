@@ -1,9 +1,23 @@
 import { expect, it } from "vitest";
-import { requestExchange, respondExchange, visibleExchange, parseExchange, profilePayload, type Exchange } from "@/lib/chat-consent";
+import {
+  requestExchange,
+  respondExchange,
+  visibleExchange,
+  parseExchange,
+  profilePayload,
+  type Exchange,
+} from "@/lib/chat-consent";
 import { initialProfile } from "@/components/seeker/hub-state";
 
 const payload = { title: "我的联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
-const incoming: Exchange = { id: "x1", kind: "contact", from: "them", status: "pending", offered: payload, createdAt: "2026-10-13" };
+const incoming: Exchange = {
+  id: "x1",
+  kind: "contact",
+  from: "them",
+  status: "pending",
+  offered: payload,
+  createdAt: "2026-10-13",
+};
 
 it("reveals both sides only after the recipient agrees with their own information", () => {
   expect(visibleExchange(incoming)).toBeUndefined();
@@ -41,8 +55,14 @@ it("does not restore malformed accepted data as consent", () => {
 });
 
 it("keeps contact and address out of resume exchanges and never substitutes public location for a private address", () => {
-  const profile = { ...initialProfile(null), privateDetails: { phone: "021 555 8888", wechat: "private", email: "", address: "private location" } };
-  expect(profilePayload(profile, "contact", false)?.fields.map((field) => field.value)).toEqual(["021 555 8888", "private"]);
+  const profile = {
+    ...initialProfile(null),
+    privateDetails: { phone: "021 555 8888", wechat: "private", email: "", address: "private location" },
+  };
+  expect(profilePayload(profile, "contact", false)?.fields.map((field) => field.value)).toEqual([
+    "021 555 8888",
+    "private",
+  ]);
   expect(profilePayload(profile, "address", false)?.fields).toEqual([{ label: "地址", value: "private location" }]);
   expect(JSON.stringify(profilePayload(profile, "resume", false))).not.toContain("private");
   expect(profilePayload(initialProfile(null), "contact", false)).toBeUndefined();

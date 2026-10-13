@@ -208,7 +208,9 @@ export function LoginForm({
       <p className="text-sm">
         验证码已发送到 <span className="font-medium">{email}</span>
       </p>
-      <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">演示版不会真的发送邮件，输入任意 6 位数字即可注册或登录。</p>
+      <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">
+        演示版不会真的发送邮件，输入任意 6 位数字即可注册或登录。
+      </p>
       <label className="block">
         <span className="mb-1 block text-sm font-medium">验证码</span>
         <input

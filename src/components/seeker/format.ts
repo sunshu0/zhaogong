@@ -12,7 +12,8 @@ export function formatMoney(n: number): string {
 /** "$25–27/小时", or "$24/小时" for a single rate. */
 export function formatPay(pay: PayRange, country: CountryCode): string {
   const symbol = COUNTRIES[country].currencySymbol;
-  const range = pay.max != null && pay.max !== pay.min ? `${formatMoney(pay.min)}–${formatMoney(pay.max)}` : formatMoney(pay.min);
+  const range =
+    pay.max != null && pay.max !== pay.min ? `${formatMoney(pay.min)}–${formatMoney(pay.max)}` : formatMoney(pay.min);
   return `${symbol}${range}/小时`;
 }
 

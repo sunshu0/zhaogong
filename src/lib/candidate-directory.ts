@@ -9,10 +9,32 @@ export function localCandidates(profiles: Record<string, Profile>, session: Demo
   return Object.entries(profiles).flatMap(([scope, profile]) => {
     try {
       const identity: unknown = JSON.parse(scope);
-      if (!Array.isArray(identity) || identity[1] !== "seeker" || scope === ownSeeker || !profile.resume?.discoverable || !profile.resume.candidateId || !profile.name.trim()) return [];
+      if (
+        !Array.isArray(identity) ||
+        identity[1] !== "seeker" ||
+        scope === ownSeeker ||
+        !profile.resume?.discoverable ||
+        !profile.resume.candidateId ||
+        !profile.name.trim()
+      )
+        return [];
       // Only public resume fields leave the profile store; no account identifier or contact data.
-      return [{ id: `local-${profile.resume.candidateId}`, source: "local" as const, name: profile.name, avatar: profile.avatar, headline: profile.headline,
-        location: profile.location, languages: profile.languages, availability: profile.availability, bio: profile.bio, resume: profile.resume }];
-    } catch { return []; }
+      return [
+        {
+          id: `local-${profile.resume.candidateId}`,
+          source: "local" as const,
+          name: profile.name,
+          avatar: profile.avatar,
+          headline: profile.headline,
+          location: profile.location,
+          languages: profile.languages,
+          availability: profile.availability,
+          bio: profile.bio,
+          resume: profile.resume,
+        },
+      ];
+    } catch {
+      return [];
+    }
   });
 }

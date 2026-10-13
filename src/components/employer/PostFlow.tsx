@@ -110,7 +110,6 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
   }
 
   function publish() {
-
     setError(undefined);
     startTransition(async () => {
       const result = await publishJob(draft, me.email);
@@ -148,7 +147,11 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
     <div className="space-y-4 pb-24">
       <ol aria-label="发布步骤" className="flex gap-2 text-xs">
         {STEPS[mode].map((s, i) => (
-          <li key={s.key} aria-current={s.key === step ? "step" : undefined} className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}>
+          <li
+            key={s.key}
+            aria-current={s.key === step ? "step" : undefined}
+            className={`flex-1 rounded-full px-2 py-1 text-center ${s.key === step ? "bg-brand text-white" : "bg-surface text-muted"}`}
+          >
             {i + 1} {s.label}
           </li>
         ))}
@@ -178,7 +181,14 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
       {error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
 
       {step === "chat" && (
-        <ChatPost chat={chat} setChat={setChat} country={country} headingRef={heading} onPreview={previewFromChat} onUseForm={switchToForm} />
+        <ChatPost
+          chat={chat}
+          setChat={setChat}
+          country={country}
+          headingRef={heading}
+          onPreview={previewFromChat}
+          onUseForm={switchToForm}
+        />
       )}
 
       {step === "paste" && (
@@ -237,33 +247,56 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
 
       {step === "preview" && preview && (
         <section onFocus={keepFocusClear} className={`space-y-4 ${CLEAR_OF_STICKY_BARS}`}>
-          <h1 ref={heading} tabIndex={-1} className="rounded-lg bg-brand-soft px-3 py-2 text-sm font-normal text-brand outline-none">
+          <h1
+            ref={heading}
+            tabIndex={-1}
+            className="rounded-lg bg-brand-soft px-3 py-2 text-sm font-normal text-brand outline-none"
+          >
             预览：这是求职者看到的样子。确认无误就可以发布了。
           </h1>
           {decision.status === "pending_review" && (
-            <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">这个职位会先经过人工审核，通过后才公开。</p>
+            <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+              这个职位会先经过人工审核，通过后才公开。
+            </p>
           )}
           <JobDetail job={{ ...preview, id: "preview" }} employer={employer} now={previewAt}>
             <section className="rounded-xl border border-border bg-surface p-4">
               <h2 className="font-medium">联系方式</h2>
-              <p className="mt-1 text-sm text-muted">登录后可以查看雇主的{contactKinds({ ...preview, id: "preview" }).join("、")}。</p>
+              <p className="mt-1 text-sm text-muted">
+                登录后可以查看雇主的{contactKinds({ ...preview, id: "preview" }).join("、")}。
+              </p>
             </section>
           </JobDetail>
-          {banned && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
+          {banned && (
+            <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+              这个雇主账号已被停用，职位已全部下架，不能再发布。
+            </p>
+          )}
         </section>
       )}
 
       {(step === "form" || step === "preview") && (
-        <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${step === "form" ? WIDE_ON_DESKTOP : ""}`}>
+        <div
+          className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${step === "form" ? WIDE_ON_DESKTOP : ""}`}
+        >
           {step === "form" ? (
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setStep("paste")} className="text-sm text-muted underline">
                 上一步
               </button>
               <p className="flex-1 text-xs text-muted">
-                {ready ? (decision.status === "pending_review" ? "可以发布，需人工审核" : "可以发布") : holdReason(findings.length, missing.length)}
+                {ready
+                  ? decision.status === "pending_review"
+                    ? "可以发布，需人工审核"
+                    : "可以发布"
+                  : holdReason(findings.length, missing.length)}
               </p>
-              <button type="button" disabled={!ready} onClick={toPreview} className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40">
+              <button
+                type="button"
+                disabled={!ready}
+                onClick={toPreview}
+                className="h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40"
+              >
                 预览
               </button>
             </div>
@@ -304,7 +337,13 @@ function Published({
   return (
     <section className="space-y-4">
       <div className={`rounded-xl px-4 py-5 ${live ? "bg-ok-soft" : "bg-warn-soft"}`}>
-        <h1 ref={headingRef} tabIndex={-1} className={`text-xl font-semibold outline-none ${live ? "text-ok" : "text-warn"}`}>{live ? "已发布" : "已提交审核"}</h1>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className={`text-xl font-semibold outline-none ${live ? "text-ok" : "text-warn"}`}
+        >
+          {live ? "已发布" : "已提交审核"}
+        </h1>
         <p className="mt-1 text-sm">
           {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「管理职位」里看到进度。"}
         </p>
@@ -320,10 +359,17 @@ function Published({
         <p className="text-sm text-muted">审核通过后，可以在「管理职位」里复制发到微信群、小红书和 Skykiwi 的文案。</p>
       )}
       <div className="flex gap-3">
-        <button type="button" onClick={onAgain} className="h-11 flex-1 rounded-xl border border-brand font-medium text-brand">
+        <button
+          type="button"
+          onClick={onAgain}
+          className="h-11 flex-1 rounded-xl border border-brand font-medium text-brand"
+        >
           再发一条
         </button>
-        <Link href="/employer/jobs" className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white">
+        <Link
+          href="/employer/jobs"
+          className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white"
+        >
           管理职位
         </Link>
       </div>

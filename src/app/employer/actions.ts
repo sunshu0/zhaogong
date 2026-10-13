@@ -4,7 +4,15 @@
 // account on the server (getAccountEmployer), never from the browser. Demo: as elsewhere, the server
 // trusts the email it is sent; real authentication checks the session here instead.
 import { DEFAULT_COUNTRY } from "@/config/countries";
-import { missingFields, nextTurn, parsePost, restoreChat, type ChatState, type ParsedPost, type RequiredField } from "@/lib/ai-post";
+import {
+  missingFields,
+  nextTurn,
+  parsePost,
+  restoreChat,
+  type ChatState,
+  type ParsedPost,
+  type RequiredField,
+} from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import {
   createJob,
@@ -19,7 +27,12 @@ import {
   updateJob,
 } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
-import { buildRegister, normalizeNzbn, searchRegister, type RegisterEntry } from "@/components/employer/business-register";
+import {
+  buildRegister,
+  normalizeNzbn,
+  searchRegister,
+  type RegisterEntry,
+} from "@/components/employer/business-register";
 import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
 import { canClose, canEdit, effectiveStatus, refreshedDates, refreshState } from "@/components/employer/job-status";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
@@ -63,7 +76,10 @@ export async function parseDraft(text: string): Promise<ParsedPost> {
 
 /** One turn of the posting chat. On the server for the same reason; the state from the browser is rebuilt first. */
 export async function chatTurn(state: unknown, message: string): Promise<ChatState> {
-  return nextTurn(restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY)), String(message ?? ""));
+  return nextTurn(
+    restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY)),
+    String(message ?? ""),
+  );
 }
 
 export type PublishResult =
@@ -110,7 +126,10 @@ export async function closeMyJob(jobId: string, email: string, hires?: HiresAnsw
   if (!canClose(job, now)) return { ok: false, error_zh: "这个职位已经结束或已被下架。" };
   const answer = hiresFromAnswer(hires, now);
   if (!answer.ok) return answer;
-  return { ok: true, job: (await updateJob(job.id, { status: "expired", expiresAt: new Date(now).toISOString(), ...answer.fields }))! };
+  return {
+    ok: true,
+    job: (await updateJob(job.id, { status: "expired", expiresAt: new Date(now).toISOString(), ...answer.fields }))!,
+  };
 }
 
 /** Records or corrects how many people an ended job hired. */
@@ -150,7 +169,9 @@ export async function editMyJob(jobId: string, email: string, input: unknown): P
   const draft = sanitizeDraft(input, job.country);
   const findings = checkJob(draft, job.country);
   const decision = publishDecision(findings);
-  const edited = decision.canPublish ? completeJob(draft, job.employerId, Date.parse(job.postedAt), job.status) : undefined;
+  const edited = decision.canPublish
+    ? completeJob(draft, job.employerId, Date.parse(job.postedAt), job.status)
+    : undefined;
   if (!edited) return { ok: false, error_zh: "还有问题没处理或必填项没填。", findings };
 
   const live = job.status === "active" || job.status === "pending_review";
@@ -192,6 +213,9 @@ export async function verifyBusiness(email: string, nzbn: string): Promise<Verif
   }
 
   const verification = employer.verification === "accredited_employer" ? "accredited_employer" : "business_verified";
-  const updated = await setEmployerVerification(employer.id, verification, { legalName: entry.legalName, businessNumber: entry.nzbn });
+  const updated = await setEmployerVerification(employer.id, verification, {
+    legalName: entry.legalName,
+    businessNumber: entry.nzbn,
+  });
   return { ok: true, employer: { ...updated! } };
 }

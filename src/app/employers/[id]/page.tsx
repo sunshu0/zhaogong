@@ -12,14 +12,28 @@ export async function generateMetadata({ params }: PageProps<"/employers/[id]">)
 }
 
 export default function EmployerPage({ params }: PageProps<"/employers/[id]">) {
-  return <div className={WIDE_ON_DESKTOP}><Suspense fallback={<p role="status" className="py-12 text-muted">加载雇主主页…</p>}><PublicEmployer params={params} /></Suspense></div>;
+  return (
+    <div className={WIDE_ON_DESKTOP}>
+      <Suspense
+        fallback={
+          <p role="status" className="py-12 text-muted">
+            加载雇主主页…
+          </p>
+        }
+      >
+        <PublicEmployer params={params} />
+      </Suspense>
+    </div>
+  );
 }
 
 async function PublicEmployer({ params }: Pick<PageProps<"/employers/[id]">, "params">) {
   const employer = await getEmployer((await params).id);
   if (!employer || employer.bannedAt) notFound();
   const [allJobs, now] = await Promise.all([listJobsByEmployer(employer.id), requestTime()]);
-  const jobs = allJobs.filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
-    .sort((a, b) => b.postedAt.localeCompare(a.postedAt)).map((job) => ({ ...job, contact: {} }));
+  const jobs = allJobs
+    .filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
+    .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
+    .map((job) => ({ ...job, contact: {} }));
   return <EmployerPublicPage employer={employer} jobs={jobs} now={now} />;
 }

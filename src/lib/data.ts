@@ -29,7 +29,11 @@ export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
   if (f.regionIds?.length && !f.regionIds.includes(job.regionId)) return false;
   if (f.industries?.length && !f.industries.includes(job.industry)) return false;
-  if (f.employmentTypes?.length && !employmentTypes(job.employmentType).some((type) => f.employmentTypes!.includes(type))) return false;
+  if (
+    f.employmentTypes?.length &&
+    !employmentTypes(job.employmentType).some((type) => f.employmentTypes!.includes(type))
+  )
+    return false;
   if (f.minPay != null && (job.pay.max ?? job.pay.min) < f.minPay) return false;
   if (f.visa && !job.visaAccepted.includes(f.visa)) return false;
   if (f.mealsIncluded && !job.mealsIncluded) return false;
@@ -173,9 +177,7 @@ export async function getPlatformStats(country: CountryCode): Promise<PlatformSt
 
 /** Good jobs to show off: active, from a verified and not banned employer, best pay first, then newest. */
 export async function listFeaturedJobs(country: CountryCode, limit = 6): Promise<Job[]> {
-  const trusted = new Set(
-    employers.filter((e) => e.verification !== "unverified" && !e.bannedAt).map((e) => e.id),
-  );
+  const trusted = new Set(employers.filter((e) => e.verification !== "unverified" && !e.bannedAt).map((e) => e.id));
   return jobs
     .filter((j) => j.country === country && j.status === "active" && trusted.has(j.employerId))
     .sort((a, b) => (b.pay.max ?? b.pay.min) - (a.pay.max ?? a.pay.min) || b.postedAt.localeCompare(a.postedAt))

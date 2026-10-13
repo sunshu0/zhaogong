@@ -45,7 +45,15 @@ describe("safeNext", () => {
   });
 
   it("falls back to the job list for anything that could leave the site", () => {
-    for (const bad of [undefined, "", "jobs/j1", "//evil.example", "/\\evil.example", "https://evil.example", "javascript:alert(1)"]) {
+    for (const bad of [
+      undefined,
+      "",
+      "jobs/j1",
+      "//evil.example",
+      "/\\evil.example",
+      "https://evil.example",
+      "javascript:alert(1)",
+    ]) {
       expect(safeNext(bad)).toBe("/jobs");
     }
     expect(safeNext(["/jobs/j1", "/jobs/j2"])).toBe("/jobs/j1");
@@ -98,7 +106,11 @@ describe("identities in the session", () => {
   it("reads sessions saved before identities existed as job seekers", () => {
     const storage = memoryStorage();
     storage.data.set("zhaogong:session", JSON.stringify({ email: "old@example.com", signedInAt: at.toISOString() }));
-    expect(readSession(storage)).toEqual({ email: "old@example.com", signedInAt: at.toISOString(), activeRole: "seeker" });
+    expect(readSession(storage)).toEqual({
+      email: "old@example.com",
+      signedInAt: at.toISOString(),
+      activeRole: "seeker",
+    });
   });
 
   it("never treats a session as an employer without a business", () => {
@@ -112,7 +124,11 @@ describe("identities in the session", () => {
       "zhaogong:session",
       JSON.stringify({ email: "x@example.com", signedInAt: at.toISOString(), activeRole: "boss", employerId: 7 }),
     );
-    expect(readSession(storage)).toEqual({ email: "x@example.com", signedInAt: at.toISOString(), activeRole: "seeker" });
+    expect(readSession(storage)).toEqual({
+      email: "x@example.com",
+      signedInAt: at.toISOString(),
+      activeRole: "seeker",
+    });
   });
 });
 

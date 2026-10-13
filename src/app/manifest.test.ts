@@ -39,7 +39,8 @@ describe("web app manifest", () => {
 
   it("has the 192 and 512 px icons Android needs, plus a maskable one", () => {
     const icons = m.icons ?? [];
-    const has = (sizes: string, purpose: string) => icons.some((i) => i.sizes === sizes && (i.purpose ?? "any") === purpose);
+    const has = (sizes: string, purpose: string) =>
+      icons.some((i) => i.sizes === sizes && (i.purpose ?? "any") === purpose);
     expect(has("192x192", "any")).toBe(true);
     expect(has("512x512", "any")).toBe(true);
     expect(has("512x512", "maskable")).toBe(true);

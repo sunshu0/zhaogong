@@ -17,7 +17,10 @@ export function VerifyBusiness() {
 
 function Verify({ me }: { me: EmployerIdentity }) {
   const { profile, reload } = useEmployerProfile(me.email);
-  const employer: Pick<Employer, "name" | "verification" | "businessNumber"> = profile ?? { name: me.employerName, verification: "unverified" };
+  const employer: Pick<Employer, "name" | "verification" | "businessNumber"> = profile ?? {
+    name: me.employerName,
+    verification: "unverified",
+  };
   const [query, setQuery] = useState("");
   const [found, setFound] = useState<{ results: RegisterEntry[]; error_zh?: string }>();
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
@@ -35,7 +38,10 @@ function Verify({ me }: { me: EmployerIdentity }) {
       const result = await verifyBusiness(me.email, nzbn);
       setMessage(
         result.ok
-          ? { ok: true, text: `已验证：${result.employer.legalName}（NZBN ${result.employer.businessNumber}）。你的职位会显示「${VERIFICATION_LABELS[result.employer.verification].zh}」。` }
+          ? {
+              ok: true,
+              text: `已验证：${result.employer.legalName}（NZBN ${result.employer.businessNumber}）。你的职位会显示「${VERIFICATION_LABELS[result.employer.verification].zh}」。`,
+            }
           : { ok: false, text: result.error_zh },
       );
       reload();
@@ -70,7 +76,11 @@ function Verify({ me }: { me: EmployerIdentity }) {
             placeholder="例如：Demo Yuemei 或 9429000000004"
             className="h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3"
           />
-          <button type="submit" disabled={pending || !query.trim()} className="h-11 rounded-lg bg-brand px-4 font-medium text-white disabled:opacity-40">
+          <button
+            type="submit"
+            disabled={pending || !query.trim()}
+            className="h-11 rounded-lg bg-brand px-4 font-medium text-white disabled:opacity-40"
+          >
             查询
           </button>
         </div>
@@ -78,7 +88,12 @@ function Verify({ me }: { me: EmployerIdentity }) {
       </form>
 
       {message && (
-        <p ref={messageRef} tabIndex={-1} role="status" className={`rounded-lg px-3 py-2 text-sm outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+        <p
+          ref={messageRef}
+          tabIndex={-1}
+          role="status"
+          className={`rounded-lg px-3 py-2 text-sm outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+        >
           {message.text}
         </p>
       )}
@@ -132,7 +147,10 @@ function BadgeMeaning() {
     <section className="space-y-3 rounded-xl border border-border bg-surface p-4 text-sm leading-relaxed">
       <div>
         <h2 className="font-medium text-ok">「已验证企业」是什么</h2>
-        <p className="mt-1">我们核对了新西兰企业登记：这家公司真实存在、登记状态正常，职位上会显示登记的公司名称和 NZBN。求职者更愿意联系有标识的雇主。</p>
+        <p className="mt-1">
+          我们核对了新西兰企业登记：这家公司真实存在、登记状态正常，职位上会显示登记的公司名称和
+          NZBN。求职者更愿意联系有标识的雇主。
+        </p>
       </div>
       <div>
         <h2 className="font-medium text-warn">它不代表什么</h2>

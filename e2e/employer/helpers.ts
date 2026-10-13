@@ -2,7 +2,8 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 
 /** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
-export const CLEAN_MESSAGE = "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做，需会普通话。微信 demo_e2e_b";
+export const CLEAN_MESSAGE =
+  "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做，需会普通话。微信 demo_e2e_b";
 
 /**
  * A title no other test run uses, so a test can find its own job on the shared server.
@@ -39,7 +40,10 @@ export async function signUpEmployer(page: Page, testInfo: TestInfo, next = "/em
 }
 
 /** From the preview step: publish as the signed-up business and return the new job's id. */
-export async function publishFromPreview(page: Page, button: "发布" | "提交审核" = "发布"): Promise<string | undefined> {
+export async function publishFromPreview(
+  page: Page,
+  button: "发布" | "提交审核" = "发布",
+): Promise<string | undefined> {
   await expect(page.getByText("这是求职者看到的样子").filter({ visible: true })).toBeVisible();
   await expect(page.getByText(/^以「.+」发布$/).filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: button, exact: true }).click();
@@ -89,7 +93,12 @@ const CJK_DIGITS = "零一二三四五六七八九";
  */
 export function uniqueCjkTitle(base: string, testInfo: TestInfo): string {
   const n = String(Date.now() % 100_000).padStart(5, "0");
-  return base + (testInfo.project.name === "mobile" ? "甲" : "乙") + CJK_DIGITS[testInfo.workerIndex % 10] + [...n].map((d) => CJK_DIGITS[Number(d)]).join("");
+  return (
+    base +
+    (testInfo.project.name === "mobile" ? "甲" : "乙") +
+    CJK_DIGITS[testInfo.workerIndex % 10] +
+    [...n].map((d) => CJK_DIGITS[Number(d)]).join("")
+  );
 }
 
 /** Sends a chat message the way a person types it: fill the box, press Enter. */

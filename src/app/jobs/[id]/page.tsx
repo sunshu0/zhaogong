@@ -48,10 +48,40 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
       job={job}
       employer={employer}
       now={now}
-      actions={employer && !employer.bannedAt ? <StartEmployerChat employer={{ id: employer.id, name: employer.name }} job={{ id: job.id, employerId: job.employerId, titleZh: job.titleZh, status: job.status, expiresAt: job.expiresAt }} closed={isExpired(job, now)} /> : undefined}
+      actions={
+        employer && !employer.bannedAt ? (
+          <StartEmployerChat
+            employer={{ id: employer.id, name: employer.name }}
+            job={{
+              id: job.id,
+              employerId: job.employerId,
+              titleZh: job.titleZh,
+              status: job.status,
+              expiresAt: job.expiresAt,
+            }}
+            closed={isExpired(job, now)}
+          />
+        ) : undefined
+      }
       aside={
         <>
-          <section aria-labelledby="contact-heading" className="space-y-3 rounded-lg border border-border bg-surface p-4"><h2 id="contact-heading" className="font-medium">联系方式</h2><p className="text-sm text-muted">请在聊天中申请交换联系方式，双方同意后才会互相展示。</p>{employer && <Link href={`/employers/${employer.id}`} className="inline-flex min-h-11 items-center text-sm text-brand underline">查看雇主主页</Link>}</section>
+          <section
+            aria-labelledby="contact-heading"
+            className="space-y-3 rounded-lg border border-border bg-surface p-4"
+          >
+            <h2 id="contact-heading" className="font-medium">
+              联系方式
+            </h2>
+            <p className="text-sm text-muted">请在聊天中申请交换联系方式，双方同意后才会互相展示。</p>
+            {employer && (
+              <Link
+                href={`/employers/${employer.id}`}
+                className="inline-flex min-h-11 items-center text-sm text-brand underline"
+              >
+                查看雇主主页
+              </Link>
+            )}
+          </section>
           <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
         </>
       }

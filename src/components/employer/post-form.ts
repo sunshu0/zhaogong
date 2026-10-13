@@ -81,7 +81,11 @@ export function formFromDraft(draft: JobDraft): PostForm {
 
 const text = (s: string) => s.trim() || undefined;
 const range = (min?: number, max?: number) =>
-  min == null || Number.isNaN(min) ? undefined : max != null && !Number.isNaN(max) && max > min ? { min, max } : { min };
+  min == null || Number.isNaN(min)
+    ? undefined
+    : max != null && !Number.isNaN(max) && max > min
+      ? { min, max }
+      : { min };
 
 export function draftFromForm(form: PostForm, country: CountryCode): JobDraft {
   const draft: JobDraft = {
@@ -113,7 +117,12 @@ export function draftFromForm(form: PostForm, country: CountryCode): JobDraft {
 }
 
 /** The job to publish, or undefined while a required field is missing. */
-export function completeJob(draft: JobDraft, employerId: string, now: number, status: Job["status"]): Omit<Job, "id"> | undefined {
+export function completeJob(
+  draft: JobDraft,
+  employerId: string,
+  now: number,
+  status: Job["status"],
+): Omit<Job, "id"> | undefined {
   if (missingFields(draft).length) return undefined;
   return {
     country: draft.country!,
@@ -175,7 +184,8 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.slice(0, max) : undefined);
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 && v < 10_000 ? v : undefined);
 const bool = (v: unknown) => (typeof v === "boolean" ? v : undefined);
-const oneOf = <T extends string>(v: unknown, allowed: readonly T[]) => (allowed.includes(v as T) ? (v as T) : undefined);
+const oneOf = <T extends string>(v: unknown, allowed: readonly T[]) =>
+  allowed.includes(v as T) ? (v as T) : undefined;
 const listOf = <T extends string>(v: unknown, allowed: readonly T[]) =>
   Array.isArray(v) ? [...new Set(v.filter((x): x is T => allowed.includes(x as T)))] : undefined;
 const numRange = (v: unknown) => {

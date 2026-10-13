@@ -60,7 +60,10 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           <ul className="mt-2 divide-y divide-border text-sm">
             {current.contact.phone && (
               <ContactRow label="电话">
-                <a href={`tel:${current.contact.phone.replace(/\s+/g, "")}`} className="text-brand underline underline-offset-2">
+                <a
+                  href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
+                  className="text-brand underline underline-offset-2"
+                >
                   {current.contact.phone}
                 </a>
               </ContactRow>

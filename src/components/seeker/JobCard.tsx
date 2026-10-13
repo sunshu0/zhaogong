@@ -37,10 +37,10 @@ export function JobCard({ job, employer, now }: { job: Job; employer?: Employer;
       {employer && (
         <div className="mt-2">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <EmployerAvatar employerId={employer.id} fallback={employer.name} />
-          <span>{employer.name}</span>
-          <VerificationBadge verification={employer.verification} />
-          <span className="text-xs text-muted">雇主ID：{employer.id}</span>
+            <EmployerAvatar employerId={employer.id} fallback={employer.name} />
+            <span>{employer.name}</span>
+            <VerificationBadge verification={employer.verification} />
+            <span className="text-xs text-muted">雇主ID：{employer.id}</span>
           </p>
           <EmployerJobActivity employerId={employer.id} />
         </div>
@@ -58,7 +58,12 @@ export function JobCard({ job, employer, now }: { job: Job; employer?: Employer;
       <p className="mt-3 line-clamp-2 whitespace-pre-line break-words text-sm leading-relaxed">{job.descriptionZh}</p>
 
       <dl className="mt-3 grid gap-x-6 gap-y-2 border-t border-border pt-3 text-sm sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
-        {details.map(([term, value]) => <div key={term} className="min-w-0"><dt className="text-xs text-muted">{term}</dt><dd className="mt-1 break-words">{value}</dd></div>)}
+        {details.map(([term, value]) => (
+          <div key={term} className="min-w-0">
+            <dt className="text-xs text-muted">{term}</dt>
+            <dd className="mt-1 break-words">{value}</dd>
+          </div>
+        ))}
       </dl>
 
       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">

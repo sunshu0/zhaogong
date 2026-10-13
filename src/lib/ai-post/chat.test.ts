@@ -90,7 +90,10 @@ describe("a full conversation, one question at a time", () => {
   });
 
   it("asks to confirm an employment type it only guessed from the hours", async () => {
-    let s = await say(startChat("NZ"), "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做。微信 demo_chuanwei");
+    let s = await say(
+      startChat("NZ"),
+      "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做。微信 demo_chuanwei",
+    );
     expect(s.asking).toBe("employmentType");
     expect(last(s).text).toContain("先当作兼职");
     expect(replies(s)).toEqual(["对", "全职", "临时工", "全职或兼职", "都可以"]);
@@ -135,7 +138,10 @@ describe("multiple employment types", () => {
 
 describe("compliance in the conversation", () => {
   it("asks for each fix in turn and applies the employer's choice", async () => {
-    let s = await say(startChat("NZ"), "奶茶店招兼职店员，市中心，时薪 18，入职交押金200，限华人。学签OK。微信 cbdtea_demo");
+    let s = await say(
+      startChat("NZ"),
+      "奶茶店招兼职店员，市中心，时薪 18，入职交押金200，限华人。学签OK。微信 cbdtea_demo",
+    );
     expect(s.asking).toBe("fix");
     expect(last(s).text).toContain("时薪 $18 低于新西兰最低工资 $23.95");
     expect(last(s).text).toContain("改成多少");
@@ -160,7 +166,10 @@ describe("compliance in the conversation", () => {
   });
 
   it("lets the employer rewrite a sentence instead", async () => {
-    let s = await say(startChat("NZ"), "招厨师，时薪 28，全职，每周 40 小时，Albany，表现好包签。公民永居。不包吃住。微信 demo_chef8");
+    let s = await say(
+      startChat("NZ"),
+      "招厨师，时薪 28，全职，每周 40 小时，Albany，表现好包签。公民永居。不包吃住。微信 demo_chef8",
+    );
     expect(last(s).text).toContain("「包签」");
     s = await say(s, "我来改写");
     expect(s.asking).toBe("rewrite");
@@ -170,7 +179,10 @@ describe("compliance in the conversation", () => {
   });
 
   it("mentions a review once and does not hold the job", async () => {
-    const s = await say(startChat("NZ"), "Newmarket KTV 招前台服务员，兼职，时薪 $26，每周 20 小时，学签可做，不包吃住。微信 demo_ktv_nz");
+    const s = await say(
+      startChat("NZ"),
+      "Newmarket KTV 招前台服务员，兼职，时薪 $26，每周 20 小时，学签可做，不包吃住。微信 demo_ktv_nz",
+    );
     const notes = s.messages.filter((m) => m.text.includes("人工审核"));
     expect(notes).toHaveLength(1);
     expect(s.asking).toBe("review");
@@ -226,7 +238,11 @@ describe("changing an answer, and answers it cannot read", () => {
 
 describe("resumeChat", () => {
   it("comes back from the preview ready for changes", async () => {
-    let s = await say(startChat("NZ"), "Mt Eden 川菜馆招前厅服务员，全职，时薪 $25-27，每周 40 小时，包工作餐，学签可做。微信 demo_chuanwei", "预览并发布");
+    let s = await say(
+      startChat("NZ"),
+      "Mt Eden 川菜馆招前厅服务员，全职，时薪 $25-27，每周 40 小时，包工作餐，学签可做。微信 demo_chuanwei",
+      "预览并发布",
+    );
     expect(s.ready).toBe(true);
     s = resumeChat(s);
     expect(s.ready).toBe(false);

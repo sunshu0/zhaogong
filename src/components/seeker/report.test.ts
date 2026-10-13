@@ -4,7 +4,11 @@ import { NOTE_MAX, parseReport } from "@/components/seeker/report";
 describe("parseReport", () => {
   it("accepts a known reason with an optional, trimmed note", () => {
     expect(parseReport({ reason: "charges_fee" })).toEqual({ ok: true, reason: "charges_fee" });
-    expect(parseReport({ reason: "fake_job", note: "  电话打不通  " })).toEqual({ ok: true, reason: "fake_job", note: "电话打不通" });
+    expect(parseReport({ reason: "fake_job", note: "  电话打不通  " })).toEqual({
+      ok: true,
+      reason: "fake_job",
+      note: "电话打不通",
+    });
     expect(parseReport({ reason: "fake_job", note: "   " })).toEqual({ ok: true, reason: "fake_job" });
   });
 
@@ -29,6 +33,9 @@ describe("parseReport", () => {
 
   it("ignores values that are not strings", () => {
     expect(parseReport({ reason: 42 as unknown as string }).ok).toBe(false);
-    expect(parseReport({ reason: "fake_job", note: {} as unknown as string })).toEqual({ ok: true, reason: "fake_job" });
+    expect(parseReport({ reason: "fake_job", note: {} as unknown as string })).toEqual({
+      ok: true,
+      reason: "fake_job",
+    });
   });
 });

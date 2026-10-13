@@ -23,9 +23,14 @@ export function MyJobs() {
     return (
       <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center">
         <p className="text-sm text-muted">
-          {session ? "开通雇主身份后，在这里查看和管理你发布的职位。" : "注册或登录雇主账号后，在这里查看和管理你发布的职位。"}
+          {session
+            ? "开通雇主身份后，在这里查看和管理你发布的职位。"
+            : "注册或登录雇主账号后，在这里查看和管理你发布的职位。"}
         </p>
-        <Link href={employerSignUpHref("/employer")} className="mt-3 inline-block rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand">
+        <Link
+          href={employerSignUpHref("/employer")}
+          className="mt-3 inline-block rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand"
+        >
           {session ? "开通雇主身份" : "注册 / 登录"}
         </Link>
       </div>
@@ -38,12 +43,18 @@ export function MyJobs() {
         <span className="font-medium">{profile?.name ?? session?.employerName}</span>
         {profile && <VerificationBadge verification={profile.verification} />}
       </p>
-      {profile?.bannedAt && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">这个雇主账号已被停用，职位已全部下架，不能再发布。</p>}
+      {profile?.bannedAt && (
+        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+          这个雇主账号已被停用，职位已全部下架，不能再发布。
+        </p>
+      )}
 
       {!ready ? (
         <div className="h-28 animate-pulse rounded-xl border border-border bg-surface" />
       ) : ready.jobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">还没有发布过职位。</div>
+        <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">
+          还没有发布过职位。
+        </div>
       ) : (
         <>
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">

@@ -4,9 +4,15 @@ import { signUpEmployer } from "./employer/helpers";
 
 test("seeker notifications open related threads and persist both read states", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session")) localStorage.setItem("zhaogong:session", JSON.stringify({
-      email: "notifications@example.com", activeRole: "seeker", signedInAt: "2026-10-13T00:00:00Z",
-    }));
+    if (!localStorage.getItem("zhaogong:session"))
+      localStorage.setItem(
+        "zhaogong:session",
+        JSON.stringify({
+          email: "notifications@example.com",
+          activeRole: "seeker",
+          signedInAt: "2026-10-13T00:00:00Z",
+        }),
+      );
   });
   await page.goto("/notifications");
   const list = page.getByRole("region", { name: "通知列表" });
@@ -25,7 +31,11 @@ test("seeker notifications open related threads and persist both read states", a
     await expect(entry).toHaveAttribute("title", remaining === "0" ? "聊天" : `聊天，${remaining} 条未读消息`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`notification-${id}.png`), fullPage: true });
-    await page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true }).getByRole("link", { name: "通知", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "工作台导航" })
+      .filter({ visible: true })
+      .getByRole("link", { name: "通知", exact: true })
+      .click();
   }
   await expect(list).toContainText("已全部读完");
   await page.reload();
@@ -33,7 +43,9 @@ test("seeker notifications open related threads and persist both read states", a
   await expect(entry).toHaveAttribute("title", "聊天");
 });
 
-test("legacy employer notifications open the right candidate, while bulk read stays on the list", async ({ page }, testInfo) => {
+test("legacy employer notifications open the right candidate, while bulk read stays on the list", async ({
+  page,
+}, testInfo) => {
   await signUpEmployer(page, testInfo, "/notifications");
   const list = page.getByRole("region", { name: "通知列表" });
   await expect(list).toContainText("2 条未读");
@@ -50,7 +62,11 @@ test("legacy employer notifications open the right candidate, while bulk read st
     localStorage.setItem(key, JSON.stringify(accounts));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
-  await page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true }).getByRole("link", { name: "通知", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "工作台导航" })
+    .filter({ visible: true })
+    .getByRole("link", { name: "通知", exact: true })
+    .click();
   await expect(list).toContainText("1 条未读");
   await list.getByRole("link", { name: /陈雨发来了简历/ }).click();
   await expect(page).toHaveURL("/messages?conversation=candidate-chen");
@@ -60,7 +76,10 @@ test("legacy employer notifications open the right candidate, while bulk read st
   await expect(page).toHaveURL("/profile");
   await expect(page.getByRole("heading", { name: "企业主页", level: 1 })).toBeVisible();
 
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/notifications");
   await expect(list).toContainText("2 条未读");

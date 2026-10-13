@@ -13,7 +13,9 @@ export interface AccountStatus {
 async function statusOf(email: string): Promise<AccountStatus> {
   const account = await ensureAccount(email);
   const employer = await getAccountEmployer(account.email);
-  return employer ? { email: account.email, employer: { id: employer.id, name: employer.name } } : { email: account.email };
+  return employer
+    ? { email: account.email, employer: { id: employer.id, name: employer.name } }
+    : { email: account.email };
 }
 
 function validEmail(email: unknown): string | null {

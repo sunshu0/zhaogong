@@ -10,7 +10,11 @@ const noop = () => () => {};
 /** Ready-made posts for WeChat groups, Xiaohongshu and Skykiwi, each with the job link. */
 export function ShareTexts({ job, employer }: { job: Job; employer?: Employer }) {
   const [platform, setPlatform] = useState<SharePlatform>("wechat");
-  const origin = useSyncExternalStore(noop, () => window.location.origin, () => "");
+  const origin = useSyncExternalStore(
+    noop,
+    () => window.location.origin,
+    () => "",
+  );
   const texts = useMemo(() => shareTexts(job, employer, `${origin}/jobs/${job.id}`), [job, employer, origin]);
   const current = SHARE_PLATFORMS.find((p) => p.key === platform)!;
   const id = useId();
@@ -25,7 +29,9 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
         value={platform}
         onChange={setPlatform}
         className="flex gap-2"
-        tabClassName={(selected) => `h-9 flex-1 rounded-full text-sm ${selected ? "bg-brand text-white" : "border border-border text-muted"}`}
+        tabClassName={(selected) =>
+          `h-9 flex-1 rounded-full text-sm ${selected ? "bg-brand text-white" : "border border-border text-muted"}`
+        }
       />
       <TabPanel idBase={id} value={platform} className="space-y-2">
         <p className="text-xs text-muted">{current.hint}文案里没有联系方式，求职者点链接查看。</p>

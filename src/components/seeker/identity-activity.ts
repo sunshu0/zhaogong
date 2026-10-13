@@ -4,7 +4,7 @@ import type { DemoSession, StorageLike } from "@/components/seeker/session";
 
 export const scopedActivityKey = (key: string) => `${key}:identities`;
 export function parseActivityAccounts(raw: string | null): Record<string, unknown[]> {
-  return parseIdentityMap(raw, (value) => Array.isArray(value) ? value : undefined);
+  return parseIdentityMap(raw, (value) => (Array.isArray(value) ? value : undefined));
 }
 
 export function identityActivityStorage(storage: StorageLike, scope: string): StorageLike {
@@ -35,13 +35,26 @@ export function claimGuestActivity(storage: StorageLike, session: DemoSession) {
   const views = parseViewedJobs(guest.getItem(VIEWS_KEY));
   if (views.length) {
     const own = parseViewedJobs(account.getItem(VIEWS_KEY));
-    account.setItem(VIEWS_KEY, JSON.stringify([...views, ...own.filter((item) => !views.some((view) => view.jobId === item.jobId))].slice(0, 30)));
+    account.setItem(
+      VIEWS_KEY,
+      JSON.stringify(
+        [...views, ...own.filter((item) => !views.some((view) => view.jobId === item.jobId))].slice(0, 30),
+      ),
+    );
     guest.removeItem(VIEWS_KEY);
   }
   const reports = parseSentReports(guest.getItem(REPORTS_KEY));
   if (reports.length) {
     const own = parseSentReports(account.getItem(REPORTS_KEY));
-    account.setItem(REPORTS_KEY, JSON.stringify([...reports, ...own.filter((item) => !reports.some((report) => report.reportId === item.reportId))].slice(0, 50)));
+    account.setItem(
+      REPORTS_KEY,
+      JSON.stringify(
+        [...reports, ...own.filter((item) => !reports.some((report) => report.reportId === item.reportId))].slice(
+          0,
+          50,
+        ),
+      ),
+    );
     guest.removeItem(REPORTS_KEY);
   }
 }

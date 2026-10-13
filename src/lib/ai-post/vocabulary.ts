@@ -13,7 +13,12 @@ export interface TitleEntry {
 
 /** Longer entries first: 前厅服务员 wins over 服务员. */
 export const TITLES: TitleEntry[] = [
-  { zh: "前厅服务员", en: "Front-of-house staff", enAliases: ["front of house", "front-of-house"], industry: "hospitality" },
+  {
+    zh: "前厅服务员",
+    en: "Front-of-house staff",
+    enAliases: ["front of house", "front-of-house"],
+    industry: "hospitality",
+  },
   { zh: "楼面服务员", en: "Floor staff", enAliases: ["floor staff"], industry: "hospitality" },
   { zh: "厨房帮工", en: "Kitchen hand", enAliases: ["kitchen hand", "kitchenhand"], industry: "hospitality" },
   { zh: "点心师傅", en: "Dim sum chef", enAliases: ["dim sum chef"], industry: "hospitality" },
@@ -44,7 +49,30 @@ export const TITLES: TitleEntry[] = [
 
 /** Checked in this order when the title does not settle the industry. */
 export const INDUSTRY_WORDS: [Industry, string[]][] = [
-  ["hospitality", ["餐厅", "饭店", "餐馆", "酒家", "酒楼", "火锅", "奶茶", "咖啡", "川菜", "粤菜", "早茶", "点心", "寿司", "烧烤", "面馆", "厨房", "restaurant", "cafe", "kitchen"]],
+  [
+    "hospitality",
+    [
+      "餐厅",
+      "饭店",
+      "餐馆",
+      "酒家",
+      "酒楼",
+      "火锅",
+      "奶茶",
+      "咖啡",
+      "川菜",
+      "粤菜",
+      "早茶",
+      "点心",
+      "寿司",
+      "烧烤",
+      "面馆",
+      "厨房",
+      "restaurant",
+      "cafe",
+      "kitchen",
+    ],
+  ],
   ["retail", ["超市", "商店", "零售", "便利店", "supermarket", "shop", "store"]],
   ["beauty", ["美容", "美发", "发廊", "美甲", "salon"]],
   ["construction", ["装修", "工地", "建筑", "renovation", "construction"]],

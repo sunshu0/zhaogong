@@ -25,7 +25,9 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   const session = useSession();
   const router = useRouter();
   const me: EmployerIdentity | undefined =
-    session?.employerId && session.employerName ? { email: session.email, employerId: session.employerId, employerName: session.employerName } : undefined;
+    session?.employerId && session.employerName
+      ? { email: session.email, employerId: session.employerId, employerName: session.employerName }
+      : undefined;
   const signUp = employerSignUpHref(next);
   const missing = hydrated && !me;
   const seekerNow = !!me && session?.activeRole !== "employer";
@@ -38,7 +40,10 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   if (!hydrated) return skeleton;
   if (!me) {
     return (
-      <p role="status" className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted">
+      <p
+        role="status"
+        className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted"
+      >
         发布和管理招聘需要雇主身份，正在带你去开通……
         <Link href={signUp} className="ml-1 text-brand underline">
           没有跳转？点这里

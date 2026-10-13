@@ -25,13 +25,18 @@ describe("searchRegister", () => {
   });
 
   it("finds companies by legal or trading name, any case, at most five", () => {
-    expect(searchRegister(register, "悦美").results.map((e) => e.legalName)).toEqual(["Demo Yuemei Hair Studio Limited"]);
+    expect(searchRegister(register, "悦美").results.map((e) => e.legalName)).toEqual([
+      "Demo Yuemei Hair Studio Limited",
+    ]);
     expect(searchRegister(register, "sichuan").results.map((e) => e.nzbn)).toEqual(["9429000000001"]);
     expect(searchRegister(register, "demo").results.length).toBe(5);
   });
 
   it("asks for more than one character and says when nothing matches", () => {
     expect(searchRegister(register, " 店 ").error_zh).toBe("请至少输入两个字。");
-    expect(searchRegister(register, "不存在的公司")).toEqual({ results: [], error_zh: "企业登记里没有找到，请换个名称或直接输入 NZBN。" });
+    expect(searchRegister(register, "不存在的公司")).toEqual({
+      results: [],
+      error_zh: "企业登记里没有找到，请换个名称或直接输入 NZBN。",
+    });
   });
 });

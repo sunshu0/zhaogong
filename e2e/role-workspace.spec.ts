@@ -3,12 +3,17 @@ import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 async function switchRole(page: Page, name: string) {
-  await page.getByRole("banner").getByRole("button", { name: /^账号菜单/ }).click();
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: /^账号菜单/ })
+    .click();
   await page.getByRole("button", { name, exact: true }).click();
   await expect(page).toHaveURL("/workspace");
 }
 
-test("one account keeps separate employer and seeker homes, messages, notifications and records", async ({ page }, testInfo) => {
+test("one account keeps separate employer and seeker homes, messages, notifications and records", async ({
+  page,
+}, testInfo) => {
   const shop = await signUpEmployer(page, testInfo);
   const title = uniqueTitle("招聘记录服务员", testInfo);
   await publishJob(page, title);
@@ -65,12 +70,16 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(page.getByRole("region", { name: "与北岸早茶酒家的聊天" })).toBeVisible();
   await page.goto("/jobs/j3");
   await expect(page.getByRole("heading", { name: "点心师傅", level: 1 })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => {
-    const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
-    const scope = JSON.stringify([session.email, "seeker", null]);
-    const records = JSON.parse(localStorage.getItem("zhaogong:viewed-jobs:identities") ?? "{}");
-    return records[scope]?.some((record: { jobId: string }) => record.jobId === "j3") ?? false;
-  })).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
+        const scope = JSON.stringify([session.email, "seeker", null]);
+        const records = JSON.parse(localStorage.getItem("zhaogong:viewed-jobs:identities") ?? "{}");
+        return records[scope]?.some((record: { jobId: string }) => record.jobId === "j3") ?? false;
+      }),
+    )
+    .toBe(true);
   await page.goto("/me");
   await expect(page.getByRole("region", { name: /最近看过的职位/ })).toContainText("点心师傅");
   await expect(page.getByRole("region", { name: "招聘记录", exact: true })).toHaveCount(0);
@@ -104,7 +113,14 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await page.goto("/profile");
   await page.evaluate(() => {
     const key = "zhaogong:session";
-    localStorage.setItem(key, JSON.stringify({ email: "different-workspace@example.com", activeRole: "seeker", signedInAt: "2026-10-13T00:00:00Z" }));
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        email: "different-workspace@example.com",
+        activeRole: "seeker",
+        signedInAt: "2026-10-13T00:00:00Z",
+      }),
+    );
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(page.getByLabel("称呼", { exact: true })).not.toHaveValue("求职者小林");

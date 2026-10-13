@@ -5,7 +5,15 @@ import { FindingsPanel } from "@/components/employer/FindingsPanel";
 import type { DraftFormState } from "@/components/employer/use-draft-form";
 
 /** The editable form with the live checks beside it from 1024 px (above it on phones and tablets). */
-export function DraftEditor({ state, country, notes = [] }: { state: DraftFormState; country: CountryCode; notes?: string[] }) {
+export function DraftEditor({
+  state,
+  country,
+  notes = [],
+}: {
+  state: DraftFormState;
+  country: CountryCode;
+  notes?: string[];
+}) {
   return (
     <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
       <aside className="mb-4 lg:order-2 lg:mb-0">

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { canClose, canEdit, daysLeft, effectiveStatus, expiryLabelZh, refreshedDates, refreshState } from "@/components/employer/job-status";
+import {
+  canClose,
+  canEdit,
+  daysLeft,
+  effectiveStatus,
+  expiryLabelZh,
+  refreshedDates,
+  refreshState,
+} from "@/components/employer/job-status";
 import type { Job } from "@/lib/types";
 
 const now = Date.UTC(2026, 9, 12, 3);
@@ -63,6 +71,9 @@ describe("what an employer can do with a job", () => {
   });
 
   it("gives a refreshed job 30 more days from now", () => {
-    expect(refreshedDates(now)).toEqual({ postedAt: "2026-10-12T03:00:00.000Z", expiresAt: "2026-11-11T03:00:00.000Z" });
+    expect(refreshedDates(now)).toEqual({
+      postedAt: "2026-10-12T03:00:00.000Z",
+      expiresAt: "2026-11-11T03:00:00.000Z",
+    });
   });
 });

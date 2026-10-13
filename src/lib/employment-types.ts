@@ -12,5 +12,7 @@ export function packEmploymentTypes(types: EmploymentType[]): Job["employmentTyp
 }
 
 export function formatEmploymentTypes(value?: Job["employmentType"], language: "zh" | "en" = "zh"): string {
-  return employmentTypes(value).map((type) => EMPLOYMENT_TYPE_LABELS[type][language]).join(" / ");
+  return employmentTypes(value)
+    .map((type) => EMPLOYMENT_TYPE_LABELS[type][language])
+    .join(" / ");
 }

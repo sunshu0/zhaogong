@@ -3,15 +3,25 @@ import AxeBuilder from "@axe-core/playwright";
 
 test("workspace navigation stays visible across its pages", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
-    localStorage.setItem("zhaogong:session", JSON.stringify({
-      email: "workspace@example.com", signedInAt: "2026-10-13T00:00:00.000Z", activeRole: "seeker",
-    }));
+    localStorage.setItem(
+      "zhaogong:session",
+      JSON.stringify({
+        email: "workspace@example.com",
+        signedInAt: "2026-10-13T00:00:00.000Z",
+        activeRole: "seeker",
+      }),
+    );
   });
   await page.goto("/workspace");
   await expect(page.getByRole("banner").getByRole("link", { name: "聊天", exact: true })).toBeVisible();
-  if (testInfo.project.name === "desktop") await expect(page.getByRole("banner").getByRole("link", { name: "工作台", exact: true })).toBeVisible();
+  if (testInfo.project.name === "desktop")
+    await expect(page.getByRole("banner").getByRole("link", { name: "工作台", exact: true })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true });
-  for (const [label, route] of [["聊天", "/messages"], ["通知", "/notifications"], [testInfo.project.name === "mobile" ? "主页" : "我的主页", "/profile"]]) {
+  for (const [label, route] of [
+    ["聊天", "/messages"],
+    ["通知", "/notifications"],
+    [testInfo.project.name === "mobile" ? "主页" : "我的主页", "/profile"],
+  ]) {
     await nav.getByRole("link", { name: label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
     await expect(nav.getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
@@ -26,5 +36,8 @@ test("workspace navigation stays visible across its pages", async ({ page }, tes
 
 test("signed-out workspace sign-in returns to the selected page", async ({ page }) => {
   await page.goto("/profile");
-  await expect(page.getByRole("main").getByRole("link", { name: "登录 / 注册" })).toHaveAttribute("href", "/login?next=%2Fprofile");
+  await expect(page.getByRole("main").getByRole("link", { name: "登录 / 注册" })).toHaveAttribute(
+    "href",
+    "/login?next=%2Fprofile",
+  );
 });

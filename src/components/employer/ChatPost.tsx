@@ -81,32 +81,34 @@ export function ChatPost({
           </h1>
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
           <div role="log" aria-live="polite" aria-label="和发帖助手的对话" className="flex-1">
-          <ol className="space-y-3">
-            {chat.messages.map((m, i) => (
-              <li
-                key={m.id}
-                ref={i === chat.messages.length - 1 && !sending ? lastMessage : undefined}
-                className={m.from === "assistant" ? "mr-8" : "ml-8 flex justify-end"}
-              >
-                <p
-                  className={`rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${
-                    m.from === "assistant" ? "rounded-tl-sm bg-surface border border-border" : "rounded-tr-sm bg-brand text-white"
-                  }`}
+            <ol className="space-y-3">
+              {chat.messages.map((m, i) => (
+                <li
+                  key={m.id}
+                  ref={i === chat.messages.length - 1 && !sending ? lastMessage : undefined}
+                  className={m.from === "assistant" ? "mr-8" : "ml-8 flex justify-end"}
                 >
-                  <span className="sr-only">{m.from === "assistant" ? "助手：" : "你："}</span>
-                  {m.text}
-                </p>
-              </li>
-            ))}
-            {sending && (
-              <li ref={lastMessage} className="ml-8 flex justify-end">
-                <p className="rounded-2xl rounded-tr-sm bg-brand/80 px-3 py-2 text-sm whitespace-pre-line text-white">
-                  <span className="sr-only">你：</span>
-                  {sending}
-                </p>
-              </li>
-            )}
-          </ol>
+                  <p
+                    className={`rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${
+                      m.from === "assistant"
+                        ? "rounded-tl-sm bg-surface border border-border"
+                        : "rounded-tr-sm bg-brand text-white"
+                    }`}
+                  >
+                    <span className="sr-only">{m.from === "assistant" ? "助手：" : "你："}</span>
+                    {m.text}
+                  </p>
+                </li>
+              ))}
+              {sending && (
+                <li ref={lastMessage} className="ml-8 flex justify-end">
+                  <p className="rounded-2xl rounded-tr-sm bg-brand/80 px-3 py-2 text-sm whitespace-pre-line text-white">
+                    <span className="sr-only">你：</span>
+                    {sending}
+                  </p>
+                </li>
+              )}
+            </ol>
           </div>
           {pending && (
             <p aria-hidden="true" className="mt-2 text-xs text-muted">
@@ -148,7 +150,11 @@ export function ChatPost({
                 placeholder="输入回复，回车发送（Shift + 回车换行）"
                 className="min-h-11 flex-1 resize-y rounded-xl border border-border bg-surface px-3 py-2 text-sm"
               />
-              <button type="submit" disabled={pending || !text.trim()} className="h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-40">
+              <button
+                type="submit"
+                disabled={pending || !text.trim()}
+                className="h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-40"
+              >
                 发送
               </button>
             </form>

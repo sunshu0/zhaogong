@@ -45,12 +45,18 @@ function negatedZh(text: string, start: number, end: number, rule: WordRule): bo
 }
 
 function negatedEn(text: string, start: number, end: number): boolean {
-  return NEGATED_BEFORE_EN.test(text.slice(Math.max(0, start - 40), start)) || NEGATED_AFTER_EN.test(text.slice(end, end + 30));
+  return (
+    NEGATED_BEFORE_EN.test(text.slice(Math.max(0, start - 40), start)) ||
+    NEGATED_AFTER_EN.test(text.slice(end, end + 30))
+  );
 }
 
 /** Words of one rule found in a piece of text, in the order they appear, each once. */
 function findWords(text: string, rule: WordRule): string[] {
-  const normal = text.normalize("NFKC").replace(/[\u2018\u2019]/g, "'").toLowerCase();
+  const normal = text
+    .normalize("NFKC")
+    .replace(/[\u2018\u2019]/g, "'")
+    .toLowerCase();
   const compact = normal.replace(FILLER, "");
   const spaced = normal.replace(/\s+/g, " ");
   const hits: { start: number; end: number; word: string; latin: boolean }[] = [];

@@ -23,19 +23,25 @@ export function groupOpenReports(reports: Report[]): ReportGroup[] {
   for (const r of reports) if (r.status === "open") byJob.set(r.jobId, [...(byJob.get(r.jobId) ?? []), r]);
   return [...byJob.entries()]
     .map(([jobId, list]) => ({ jobId, reports: list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)) }))
-    .sort((a, b) => b.reports.length - a.reports.length || b.reports[0].createdAt.localeCompare(a.reports[0].createdAt));
+    .sort(
+      (a, b) => b.reports.length - a.reports.length || b.reports[0].createdAt.localeCompare(a.reports[0].createdAt),
+    );
 }
 
-const unique = <T,>(list: T[] = []) => [...new Set(list)];
+const unique = <T>(list: T[] = []) => [...new Set(list)];
 /** Reasons always in the same order, so a log line does not depend on which report came first. */
 const REASON_ORDER = Object.keys(REPORT_REASON_LABELS) as ReportReason[];
 
 export function describeAction(entry: ModerationLogEntry): string {
   const job = `「${entry.jobTitle}」（${entry.employerName}）`;
   const why = entry.reasons?.length
-    ? ` · 举报：${REASON_ORDER.filter((r) => entry.reasons!.includes(r)).map((r) => REPORT_REASON_LABELS[r].zh).join("、")}`
+    ? ` · 举报：${REASON_ORDER.filter((r) => entry.reasons!.includes(r))
+        .map((r) => REPORT_REASON_LABELS[r].zh)
+        .join("、")}`
     : entry.rules?.length
-      ? ` · 标记：${unique(entry.rules).map((r) => RULE_LABELS[r as RuleId] ?? r).join("、")}`
+      ? ` · 标记：${unique(entry.rules)
+          .map((r) => RULE_LABELS[r as RuleId] ?? r)
+          .join("、")}`
       : "";
   switch (entry.action) {
     case "approve":

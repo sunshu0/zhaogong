@@ -66,7 +66,17 @@ export function TabList<K extends string>({
   );
 }
 
-export function TabPanel({ idBase, value, className, children }: { idBase: string; value: string; className?: string; children: ReactNode }) {
+export function TabPanel({
+  idBase,
+  value,
+  className,
+  children,
+}: {
+  idBase: string;
+  value: string;
+  className?: string;
+  children: ReactNode;
+}) {
   const ids = tabIds(idBase, value);
   return (
     <div role="tabpanel" id={ids.panel} aria-labelledby={ids.tab} className={className}>

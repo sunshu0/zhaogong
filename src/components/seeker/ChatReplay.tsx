@@ -105,7 +105,9 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
             <div className="max-w-[85%]">
               <p
                 className={`rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${
-                  m.from === "employer" ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm border border-border bg-surface"
+                  m.from === "employer"
+                    ? "rounded-br-sm bg-brand text-white"
+                    : "rounded-bl-sm border border-border bg-surface"
                 }`}
               >
                 {m.text}
@@ -113,7 +115,10 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
               {m.quickReplies.length > 0 && (
                 <p className="mt-1.5 flex flex-wrap gap-1.5">
                   {m.quickReplies.map((label) => (
-                    <span key={label} className="rounded-full border border-brand/40 bg-surface px-2 py-0.5 text-xs text-brand">
+                    <span
+                      key={label}
+                      className="rounded-full border border-brand/40 bg-surface px-2 py-0.5 text-xs text-brand"
+                    >
                       {label.length > 14 ? `${label.slice(0, 14)}…` : label}
                     </span>
                   ))}
@@ -126,7 +131,11 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
           <div className="flex justify-start">
             <p className="flex gap-1 rounded-2xl rounded-bl-sm border border-border bg-surface px-3 py-3">
               {[0, 150, 300].map((delay) => (
-                <span key={delay} className="size-1.5 animate-bounce rounded-full bg-muted" style={{ animationDelay: `${delay}ms` }} />
+                <span
+                  key={delay}
+                  className="size-1.5 animate-bounce rounded-full bg-muted"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
               ))}
             </p>
           </div>

@@ -7,7 +7,11 @@ import { formatPay, jobTags } from "@/components/seeker/format";
 
 /** "【前厅服务员】$25–27/小时" then "Mt Eden / Dominion Rd · 兼职 · 急招 · 包餐". */
 export function shareSummary(job: Job): string {
-  const facts = [regionById(job.country, job.regionId)?.nameZh, formatEmploymentTypes(job.employmentType), ...jobTags(job)];
+  const facts = [
+    regionById(job.country, job.regionId)?.nameZh,
+    formatEmploymentTypes(job.employmentType),
+    ...jobTags(job),
+  ];
   return `【${job.titleZh}】${formatPay(job.pay, job.country)}\n${facts.filter(Boolean).join(" · ")}`;
 }
 

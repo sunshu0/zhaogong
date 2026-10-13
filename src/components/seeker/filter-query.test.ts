@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { filterChips, filterToQuery, isFiltered, jobsHref, parseFilter, toParams } from "@/components/seeker/filter-query";
+import {
+  filterChips,
+  filterToQuery,
+  isFiltered,
+  jobsHref,
+  parseFilter,
+  toParams,
+} from "@/components/seeker/filter-query";
 import { listJobs } from "@/lib/data";
 import type { JobFilter } from "@/lib/types";
 
@@ -69,7 +76,9 @@ describe("filterToQuery", () => {
         mealsIncluded: true,
         query: "点心 师傅",
       }),
-    ).toBe("region=akl-cbd,akl-newmarket&industry=hospitality&minPay=25&meals=1&q=%E7%82%B9%E5%BF%83%20%E5%B8%88%E5%82%85");
+    ).toBe(
+      "region=akl-cbd,akl-newmarket&industry=hospitality&minPay=25&meals=1&q=%E7%82%B9%E5%BF%83%20%E5%B8%88%E5%82%85",
+    );
   });
 
   it("round-trips through parseFilter", () => {

@@ -36,7 +36,11 @@ export function ShareJob({ path, title, summary }: { path: string; title: string
 
       <div className="mt-3 flex gap-2">
         {canShare && (
-          <button type="button" onClick={share} className="flex-1 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white">
+          <button
+            type="button"
+            onClick={share}
+            className="flex-1 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white"
+          >
             分享…
           </button>
         )}
