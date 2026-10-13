@@ -8,8 +8,9 @@ import {
   parseRole,
   postJobHref,
   reconcileIdentity,
+  syncSessionIdentity,
 } from "@/components/seeker/identity";
-import type { DemoSession } from "@/components/seeker/session";
+import { clearSession, readSession, updateIdentity, writeSession, type DemoSession } from "@/components/seeker/session";
 
 const seeker: DemoSession = { email: "a@example.com", signedInAt: "2026-10-12T00:00:00Z", activeRole: "seeker" };
 const both: DemoSession = { ...seeker, employerId: "e4", employerName: "悦美发型工作室" };
@@ -102,5 +103,61 @@ describe("reconcileIdentity", () => {
 
   it("falls back to job seeker when the server has no business (never opened, banned, or edited in the browser)", () => {
     expect(reconcileIdentity("employer", { email: "a@example.com" })).toEqual({ activeRole: "seeker" });
+  });
+});
+
+describe("delayed account synchronization", () => {
+  const employer = { id: "e4", name: "悦美发型工作室" };
+  const now = new Date("2026-10-12T00:00:00Z");
+
+  function setup(activeRole: "seeker" | "employer" = "seeker") {
+    const data = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => void data.set(key, value),
+      removeItem: (key: string) => void data.delete(key),
+    };
+    const requested = writeSession(storage, "a@example.com", now, { activeRole, employer });
+    return { storage, requested };
+  }
+
+  it.each(["seeker", "employer"] as const)("keeps a newer switch to %s", (activeRole) => {
+    const { storage, requested } = setup(activeRole === "seeker" ? "employer" : "seeker");
+    updateIdentity(storage, { activeRole, employer });
+    syncSessionIdentity(storage, requested, { employer });
+    expect(readSession(storage)?.activeRole).toBe(activeRole);
+  });
+
+  it("still removes an employer identity the server no longer recognizes", () => {
+    const { storage, requested } = setup("employer");
+    syncSessionIdentity(storage, requested, {});
+    expect(readSession(storage)?.activeRole).toBe("seeker");
+    expect(readSession(storage)?.employerId).toBeUndefined();
+  });
+
+  it("ignores a lookup from before a new employer was registered", () => {
+    const { storage } = setup();
+    const requested = writeSession(storage, "a@example.com", now);
+    updateIdentity(storage, { activeRole: "employer", employer });
+    syncSessionIdentity(storage, requested, {});
+    expect(readSession(storage)?.employerId).toBe(employer.id);
+    expect(readSession(storage)?.activeRole).toBe("employer");
+  });
+
+  it("cannot recreate a signed-out session or modify another account", () => {
+    const { storage, requested } = setup();
+    clearSession(storage);
+    syncSessionIdentity(storage, requested, { employer });
+    expect(readSession(storage)).toBeNull();
+    const other = writeSession(storage, "b@example.com", now);
+    syncSessionIdentity(storage, requested, { employer });
+    expect(readSession(storage)).toEqual(other);
+  });
+
+  it("ignores a previous login of the same account", () => {
+    const { storage, requested } = setup();
+    const current = writeSession(storage, requested.email, new Date(now.getTime() + 1000));
+    syncSessionIdentity(storage, requested, { employer });
+    expect(readSession(storage)).toEqual(current);
   });
 });

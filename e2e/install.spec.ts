@@ -30,8 +30,7 @@ test.describe("iOS 添加到主屏幕", () => {
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
   });
 
-  // On job pages the metadata streams after the shell, so the server HTML has these tags in <body>;
-  // React moves them into <head> as the page loads, which is where Safari looks when adding to the home screen.
+  // Install tags live in the root <head> even when a job page streams its dynamic metadata.
   for (const path of ["/jobs", "/jobs/j3"]) {
     test(`${path} has the home-screen name and icon in <head>`, async ({ page }) => {
       await page.goto(path);

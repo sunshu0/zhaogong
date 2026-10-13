@@ -131,6 +131,38 @@ test("switching between the two identities from the account menu", async ({ page
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 
+test("switching to employer survives immediate navigation while account verification is pending", async ({
+  page,
+}, testInfo) => {
+  const name = shop(testInfo);
+  await signUpEmployer(page, email(testInfo, "pending-switch"), name);
+  await accountButton(page).click();
+  await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
+  await expect(accountButton(page)).toHaveAccessibleName("账号菜单，当前身份：求职者");
+
+  let release = () => {};
+  const verification = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/*", async (route) => {
+    const request = route.request();
+    if (request.method() === "POST" && request.headers()["next-action"]) await verification;
+    await route.continue();
+  });
+  try {
+    await accountButton(page).click();
+    await page.getByRole("button", { name: `切换为雇主（${name}）`, exact: true }).click();
+    await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
+    await page.goto("/profile");
+    await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+  await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
+  await expect(page.getByRole("heading", { name: "企业主页", level: 1 })).toBeVisible();
+});
+
 test("an employer signing in again goes straight to posting; as a job seeker, 发布招聘 switches", async ({
   page,
 }, testInfo) => {

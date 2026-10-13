@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 找工 · 前端演示版
 
-## Getting Started
+面向海外中文用户的招聘网站，当前以奥克兰的演示职位为例。包含职位筛选、求职者与雇主身份切换、AI 对话整理招聘、聊天、双向资料交换、通知和个人主页。
 
-First, run the development server:
+代码仓库：[open-alternative-app/zhaogong](https://github.com/open-alternative-app/zhaogong)（私有仓库，需要组织授权才能访问）。
 
-```bash
+本阶段只做前端：登录与验证码是模拟流程，AI 发帖使用本地规则，职位数据保存在运行实例内存中，聊天和资料保存在当前浏览器。没有真实认证、数据库、邮件或 AI 服务。
+
+## 本地开发
+
+使用 Node.js 24（`.node-version` 固定验证版本）和 npm：
+
+```sh
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:8701 。同一仓库只运行一个开发服务器。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Windows 若遇到 Next 遥测配置的 `EXDEV` 错误，先在当前 PowerShell 设置：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+$env:NEXT_TELEMETRY_DISABLED = '1'
+```
 
-## Learn More
+## 检查
 
-To learn more about Next.js, take a look at the following resources:
+```sh
+npm run check
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+包含格式、TypeScript、ESLint、单元测试和 Next 生产构建。已有开发服务器运行时，PowerShell 浏览器测试命令为：
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+$env:E2E_PORT = '8701'
+npm run test:e2e
+```
 
-## Deploy on Vercel
+浏览器测试会发布演示职位，验收前重启服务器以清空测试数据。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Cloudflare
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+采用 **Cloudflare Workers + OpenNext**，已发布至 [找工演示站](https://zhaogong-demo.zhaogong.workers.dev)。可直接打开 [职位列表](https://zhaogong-demo.zhaogong.workers.dev/jobs) 验收。云端内存数据可能丢失，详细限制与发布验收记录见下方部署说明。
+
+```sh
+npm run cf:preview
+npm run cf:dry-run
+```
+
+Workers 本地预览：http://localhost:8704 。`cf:dry-run` 仅构建和检查，不上传。
+
+完整步骤、版本兼容说明和演示数据限制见 [Cloudflare 部署说明](docs/cloudflare-deployment.md)。代码结构见 [前端代码地图](docs/frontend-code-map.md)。

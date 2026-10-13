@@ -4,24 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { accountStatus } from "@/app/login/actions";
-import { employerSignUpHref, identityLabel, postJobHref, reconcileIdentity } from "@/components/seeker/identity";
-import { setIdentity, signOut, useHydrated, useSession } from "@/components/seeker/session-client";
+import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
+import { setIdentity, signOut, syncAccountIdentity, useHydrated, useSession } from "@/components/seeker/session-client";
 import type { DemoSession } from "@/components/seeker/session";
 
 /** Once per page load, make the browser's copy of the identity match the account on the server. */
 function useAccountSync(session: DemoSession | null) {
   const synced = useRef<string | null>(null);
-  const email = session?.email;
-  const wanted = session?.activeRole;
   useEffect(() => {
-    if (!email || !wanted || synced.current === email) return;
-    synced.current = email;
-    accountStatus(email).then((status) => {
+    if (!session || synced.current === session.email) return;
+    synced.current = session.email;
+    accountStatus(session.email).then((status) => {
       if (!status) return;
-      const identity = reconcileIdentity(wanted, status);
-      setIdentity(identity);
+      syncAccountIdentity(session, status);
     });
-  }, [email, wanted]);
+  }, [session]);
 }
 
 /** Header: 登录 / 注册, or the account menu with the active identity and switching. */
@@ -77,13 +74,21 @@ export function AccountMenu() {
 
   async function switchToEmployer() {
     if (!session || !employer) return;
-    // The business comes from the server, not from this browser's copy.
-    const status = await accountStatus(session.email);
-    const identity = reconcileIdentity("employer", status ?? {});
-    setIdentity(identity);
+    // Show the previously confirmed identity immediately, so navigating cannot cancel the user's choice.
+    // The lookup still corrects revoked business access; all writes also check the account on the server.
+    const requested = setIdentity({ activeRole: "employer", employer });
     setOpen(false);
-    if (identity.activeRole === "employer") router.push("/workspace");
-    else setNotice("这个账号的雇主身份已不可用，请重新开通。");
+    router.push("/workspace");
+    if (!requested) return;
+    try {
+      const status = await accountStatus(session.email);
+      const current = syncAccountIdentity(requested, status ?? {});
+      if (current?.email === requested.email && current.signedInAt === requested.signedInAt && !status?.employer) {
+        setNotice("这个账号的雇主身份已不可用，请重新开通。");
+      }
+    } catch {
+      setNotice("暂时无法核对雇主身份，请稍后重试。");
+    }
   }
 
   function switchToSeeker() {

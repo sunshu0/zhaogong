@@ -35,3 +35,5 @@ To change a file you do not own, write a one-line request in the queue (`D:/dev/
 | Line B | `D:/dev/zhaogong-b` | 8703 (`npx next dev -p 8703`) |
 
 Ports 8059–8586 are reserved by Windows on this machine; do not use them. Only one `next dev` can run per clone: browser tests (`npm run test:e2e`, port from `E2E_PORT`) reuse the clone's running dev server, so set `E2E_PORT` to that server's port. Browser tests publish demo jobs into the server's memory; restart the dev server before showing a demo. `origin` is the local bare repository `D:/dev/zhaogong.git`. Rebase onto `origin/main` before pushing; never force-push.
+
+The lead clone also has a `github` remote for the private repository `https://github.com/open-alternative-app/zhaogong`. GitHub publishing uses `git push github main`; do not publish parked branches or stashes. The local `origin` remains available for coordinating the A/B clones. Cloudflare deployment is separate from Git pushes; no automatic deployment is configured.

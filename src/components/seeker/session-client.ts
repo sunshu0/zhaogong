@@ -2,6 +2,7 @@
 
 import { createLocalStore } from "@/components/seeker/local-store";
 import { claimGuestActivity } from "@/components/seeker/identity-activity";
+import { syncSessionIdentity } from "@/components/seeker/identity";
 import {
   clearSession,
   parseSession,
@@ -33,6 +34,14 @@ export function startSession(email: string, identity: SessionIdentity): DemoSess
 /** Switches or corrects the identity of the signed-in session. */
 export function setIdentity(identity: SessionIdentity): DemoSession | null | undefined {
   return store.update((storage) => updateIdentity(storage, identity));
+}
+
+/** A delayed server lookup must respect identity changes made while the request was in flight. */
+export function syncAccountIdentity(
+  requested: DemoSession,
+  status: Parameters<typeof syncSessionIdentity>[2],
+): DemoSession | null | undefined {
+  return store.update((storage) => syncSessionIdentity(storage, requested, status));
 }
 
 export function signOut(): void {

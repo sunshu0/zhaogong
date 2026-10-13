@@ -1,10 +1,14 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import manifest from "@/app/manifest";
+import type { MetadataRoute } from "next";
 import { PRODUCT_NAME } from "@/i18n/labels";
 
 const root = process.cwd();
+
+function manifest(): MetadataRoute.Manifest {
+  return JSON.parse(readFileSync(path.join(root, "public/manifest.webmanifest"), "utf8"));
+}
 
 function cssToken(name: string): string {
   const css = readFileSync(path.join(root, "src/app/globals.css"), "utf8");

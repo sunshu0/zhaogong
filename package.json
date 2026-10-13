@@ -6,6 +6,11 @@
     "dev": "next dev -p 8701",
     "build": "next build",
     "start": "next start",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "npm run cf:build && opennextjs-cloudflare preview --port 8704",
+    "cf:dry-run": "npm run cf:build && wrangler deploy --dry-run",
+    "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy",
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
@@ -14,24 +19,34 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,mts,mjs}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,mts,mjs}\""
   },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "overrides": {
+    "@node-minify/core": {
+      "glob": "10.5.0"
+    }
+  },
   "dependencies": {
     "lucide-react": "^1.55.0",
-    "next": "16.4.0",
+    "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@opennextjs/cloudflare": "1.20.10",
     "@playwright/test": "1.63.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.3.8",
     "prettier": "3.9.10",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "wrangler": "4.150.0"
   }
 }

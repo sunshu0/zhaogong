@@ -1,0 +1,16 @@
+{
+  "name": "找工 · 奥克兰中文工作",
+  "short_name": "找工",
+  "description": "奥克兰的中文工作信息：时薪、地区、签证要求一目了然，雇主经过验证。",
+  "lang": "zh-CN",
+  "start_url": "/jobs",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#0f766e",
+  "background_color": "#f7f7f5",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

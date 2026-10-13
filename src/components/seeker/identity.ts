@@ -2,7 +2,14 @@
 // business. Pure helpers for sign-up, switching and the header's 发布招聘. Client and server both use them.
 import { COUNTRIES } from "@/config/countries";
 import type { CountryCode } from "@/lib/types";
-import type { ActiveRole, DemoSession, SessionIdentity } from "@/components/seeker/session";
+import {
+  readSession,
+  updateIdentity,
+  type ActiveRole,
+  type DemoSession,
+  type SessionIdentity,
+  type StorageLike,
+} from "@/components/seeker/session";
 
 /** Demo businesses an employer can pick at sign-up. Any other existing business cannot be claimed from here. */
 export const DEMO_BUSINESS_IDS = ["e1", "e2", "e4"] as const;
@@ -68,4 +75,22 @@ export function reconcileIdentity(
   server: { email?: string; employer?: { id: string; name: string } },
 ): SessionIdentity {
   return server.employer ? { activeRole: wanted, employer: server.employer } : { activeRole: "seeker" };
+}
+
+/** Apply an account lookup to the current session without undoing a newer identity choice or sign-in. */
+export function syncSessionIdentity(
+  storage: StorageLike,
+  requested: DemoSession,
+  server: Parameters<typeof reconcileIdentity>[1],
+): DemoSession | null {
+  const current = readSession(storage);
+  if (
+    !current ||
+    current.email !== requested.email ||
+    current.signedInAt !== requested.signedInAt ||
+    current.employerId !== requested.employerId
+  ) {
+    return current;
+  }
+  return updateIdentity(storage, reconcileIdentity(current.activeRole, server));
 }
