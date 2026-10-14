@@ -185,7 +185,10 @@ test("switching to employer survives immediate navigation while account verifica
   });
   try {
     await accountButton(page).click();
-    await page.getByRole("button", { name: `切换为雇主（${name}）`, exact: true }).click();
+    await page
+      .locator("#account-menu")
+      .getByRole("button", { name: `切换为雇主（${name}）` })
+      .click();
     await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
     await page.goto("/profile");
     await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
