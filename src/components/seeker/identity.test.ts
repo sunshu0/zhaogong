@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEMO_BUSINESS_IDS,
+  defaultBusinessChoice,
   employerSignUpHref,
   identityLabel,
   openErrorMessage,
@@ -62,6 +63,20 @@ describe("parseBusinessChoice", () => {
       error: "请选择地区",
     });
     expect(parseBusinessChoice(null, "NZ")).toEqual({ ok: false, error: "请选择一家店" });
+  });
+});
+
+describe("defaultBusinessChoice", () => {
+  const shop = (id: string, claimed: boolean) => ({ id, claimed });
+
+  it("picks the first demo shop nobody has bound yet", () => {
+    expect(defaultBusinessChoice([shop("e1", false), shop("e2", false)])).toBe("e1");
+    expect(defaultBusinessChoice([shop("e1", true), shop("e2", true), shop("e4", false)])).toBe("e4");
+  });
+
+  it("falls back to a new business when every demo shop is bound, or there are none", () => {
+    expect(defaultBusinessChoice([shop("e1", true), shop("e2", true), shop("e4", true)])).toBe("new");
+    expect(defaultBusinessChoice([])).toBe("new");
   });
 });
 

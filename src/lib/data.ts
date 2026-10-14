@@ -243,6 +243,11 @@ export async function openEmployerIdentity(email: string, employerId: string): P
   return { ok: true, account, employer };
 }
 
+/** The businesses some account has bound (banned ones included: they stay linked to their account). */
+export async function listClaimedEmployerIds(): Promise<string[]> {
+  return [...accounts.values()].flatMap((a) => (a.employerId ? [a.employerId] : []));
+}
+
 /** The business an account posts for, if its employer identity is open and the business is not banned. */
 export async function getAccountEmployer(email: string): Promise<Employer | undefined> {
   const account = accounts.get(normalizeEmail(email));

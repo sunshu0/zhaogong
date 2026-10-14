@@ -6,7 +6,7 @@ import { accountStatus, openEmployerForAccount, signInAccount, type AccountStatu
 import { COUNTRIES } from "@/config/countries";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import type { EmployerVerification } from "@/lib/types";
-import { reconcileIdentity } from "@/components/seeker/identity";
+import { defaultBusinessChoice, openErrorMessage, reconcileIdentity } from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 
@@ -15,6 +15,8 @@ export interface DemoBusiness {
   name: string;
   regionName: string;
   verification: EmployerVerification;
+  /** Another account has bound it already (the demo data is shared by everyone online). */
+  claimed: boolean;
 }
 
 const inputClass =
@@ -253,7 +255,10 @@ function BusinessStep({
   businesses: DemoBusiness[];
   onDone: (employer: { id: string; name: string }) => void;
 }) {
-  const [choice, setChoice] = useState<string>(businesses[0]?.id ?? "new");
+  // Shops the server refused as taken since this page loaded (someone bound one in the meantime).
+  const [takenHere, setTakenHere] = useState<readonly string[]>([]);
+  const shops = businesses.map((b) => (takenHere.includes(b.id) ? { ...b, claimed: true } : b));
+  const [choice, setChoice] = useState<string>(() => defaultBusinessChoice(businesses));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const regions = COUNTRIES.NZ.regions;
@@ -269,7 +274,14 @@ function BusinessStep({
     startTransition(async () => {
       const result = await openEmployerForAccount(email, payload).catch(() => null);
       if (!result) return setError("网络有问题，请稍后再试");
-      if (!result.ok) return setError(result.error);
+      if (!result.ok) {
+        if (choice !== "new" && result.error === openErrorMessage("taken")) {
+          const taken = [...takenHere, choice];
+          setTakenHere(taken);
+          setChoice(defaultBusinessChoice(shops.map((b) => ({ ...b, claimed: b.claimed || taken.includes(b.id) }))));
+        }
+        return setError(result.error);
+      }
       onDone(result.employer);
     });
   }
@@ -285,11 +297,12 @@ function BusinessStep({
       <fieldset>
         <legend className="mb-2 text-sm font-medium">你的企业</legend>
         <div className="grid gap-2">
-          {businesses.map((b) => (
-            <Choice key={b.id} value={b.id} current={choice} onPick={setChoice}>
+          {shops.map((b) => (
+            <Choice key={b.id} value={b.id} current={choice} onPick={setChoice} disabled={b.claimed}>
               <span className="block text-sm font-medium">{b.name}</span>
               <span className="block text-xs text-muted">
                 {b.regionName} · {VERIFICATION_LABELS[b.verification].zh}
+                {b.claimed && " · 已被绑定"}
               </span>
             </Choice>
           ))}
@@ -334,20 +347,23 @@ function Choice({
   value,
   current,
   onPick,
+  disabled = false,
   children,
 }: {
   value: string;
   current: string;
   onPick: (value: string) => void;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft">
+    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft has-disabled:cursor-not-allowed has-disabled:bg-background">
       <input
         type="radio"
         name="business"
         value={value}
         checked={current === value}
+        disabled={disabled}
         onChange={() => onPick(value)}
         className="mt-1 size-4 accent-brand"
       />

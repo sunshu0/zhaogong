@@ -155,6 +155,16 @@ describe("accounts and the employer identity", () => {
     expect(await openEmployerIdentity("owner3@example.com", "nope")).toEqual({ ok: false, reason: "no_employer" });
   });
 
+  it("lists the businesses some account has bound, and only those", async () => {
+    const { createEmployer, openEmployerIdentity, listClaimedEmployerIds } = await import("@/lib/data");
+    const bound = await createEmployer({ name: "已绑定的店", regionId: "akl-cbd" });
+    const free = await createEmployer({ name: "没人绑定的店", regionId: "akl-cbd" });
+    await openEmployerIdentity("claimer@example.com", bound.id);
+    const ids = await listClaimedEmployerIds();
+    expect(ids).toContain(bound.id);
+    expect(ids).not.toContain(free.id);
+  });
+
   it("stops posting for a business once it is banned", async () => {
     const { createEmployer, openEmployerIdentity, banEmployer, getAccountEmployer } = await import("@/lib/data");
     const shop = await createEmployer({ name: "将被封的店", regionId: "akl-cbd" });

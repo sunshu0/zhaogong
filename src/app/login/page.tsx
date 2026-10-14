@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { regionById } from "@/config/countries";
-import { listEmployers } from "@/lib/data";
+import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, type DemoBusiness } from "@/components/seeker/LoginForm";
 
@@ -31,9 +31,10 @@ async function Login({ searchParams }: Pick<PageProps<"/login">, "searchParams">
   );
 }
 
-/** The businesses an employer can pick at sign-up in the demo (banned ones left out). */
+/** The businesses an employer can pick at sign-up in the demo (banned ones left out; bound ones marked). */
 async function demoBusinesses(): Promise<DemoBusiness[]> {
   const ids: readonly string[] = DEMO_BUSINESS_IDS;
+  const claimed = new Set(await listClaimedEmployerIds());
   return (await listEmployers())
     .filter((e) => ids.includes(e.id) && !e.bannedAt)
     .map((e) => ({
@@ -41,5 +42,6 @@ async function demoBusinesses(): Promise<DemoBusiness[]> {
       name: e.name,
       regionName: regionById("NZ", e.regionId)?.nameZh ?? "",
       verification: e.verification,
+      claimed: claimed.has(e.id),
     }));
 }

@@ -43,6 +43,14 @@ export function parseBusinessChoice(
   return { ok: true, choice: { kind: "existing", employerId: id } };
 }
 
+/**
+ * The business step's first choice: the first demo shop no account has bound yet, else a new business. The demo
+ * data is shared by everyone online, so the default must be one that can go through.
+ */
+export function defaultBusinessChoice(businesses: readonly { id: string; claimed: boolean }[]): string {
+  return businesses.find((b) => !b.claimed)?.id ?? "new";
+}
+
 export function employerSignUpHref(next: string = POST_JOB_PATH): string {
   return `/login?role=employer&next=${encodeURIComponent(next)}`;
 }

@@ -70,29 +70,63 @@ test("demo businesses: the list, and each can belong to only one account", async
   for (const name of ["川味小馆", "北岸早茶酒家", "悦美发型工作室"]) {
     await expect(page.getByRole("radio", { name: new RegExp(name) })).toBeVisible();
   }
-  await page.getByRole("radio", { name: /川味小馆/ }).check();
-  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
-  // Free on a fresh server; already claimed if these tests ran before on the same server.
-  const refused = page.getByRole("main").getByRole("alert");
-  const claimedHere = accountButton(page).and(
-    page.getByRole("button", { name: "账号菜单，当前身份：雇主 · 川味小馆" }),
-  );
-  await expect(refused.or(claimedHere)).toBeVisible();
-  if (await refused.isVisible()) {
-    await expect(refused).toContainText("已被其他账号绑定");
-  } else {
-    await expect(page).toHaveURL("/employer/post");
+  // A28: the default is always a choice that can go through — a free demo shop, else 新建企业.
+  const picked = page.getByRole("radio", { checked: true });
+  await expect(picked).toBeEnabled();
+  const chuanwei = page.getByRole("radio", { name: /川味小馆/ });
+  // Free on a fresh server; already bound if these tests ran before on the same server.
+  if (await chuanwei.isEnabled()) {
+    await chuanwei.check();
+    await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+    const refused = page.getByRole("main").getByRole("alert");
+    const claimedHere = accountButton(page).and(
+      page.getByRole("button", { name: "账号菜单，当前身份：雇主 · 川味小馆" }),
+    );
+    await expect(refused.or(claimedHere)).toBeVisible();
+    if (await refused.isVisible()) await expect(refused).toContainText("已被其他账号绑定");
+    else await expect(page).toHaveURL("/employer/post");
   }
 
-  // By now 川味小馆 is claimed, so another account cannot take it.
+  // By now 川味小馆 is bound, so another account sees it as taken and cannot pick it.
   const other = await browser.newPage();
   await other.goto("/login?role=employer");
   await emailAndCode(other, email(testInfo, "demo2"));
-  await other.getByRole("radio", { name: /川味小馆/ }).check();
-  await other.getByRole("button", { name: "开通并开始发布招聘" }).click();
-  await expect(other.getByRole("main").getByRole("alert")).toContainText("已被其他账号绑定");
-  await expect(other).toHaveURL(/\/login/);
+  const taken = other.getByRole("radio", { name: /川味小馆.*已被绑定/ });
+  await expect(taken).toBeDisabled();
+  await expect(taken).not.toBeChecked();
+  await expect(other.getByRole("radio", { checked: true })).toBeEnabled();
   await other.close();
+});
+
+test("a demo shop bound while the page is open: the refusal marks it and moves the choice on", async ({
+  browser,
+}, testInfo) => {
+  const first = await browser.newPage();
+  const second = await browser.newPage();
+  for (const [page, tag] of [
+    [first, "race1"],
+    [second, "race2"],
+  ] as const) {
+    await page.goto("/login?role=employer");
+    await emailAndCode(page, email(testInfo, tag));
+    await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
+  }
+  const freeShop = second.getByRole("radio", { checked: true });
+  const name = (await freeShop.getAttribute("value")) ?? "";
+  test.skip(name === "new", "every demo shop is bound on this server already");
+
+  await first.locator(`input[name="business"][value="${name}"]`).check();
+  await first.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(first).toHaveURL("/employer/post");
+
+  await second.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(second.getByRole("main").getByRole("alert")).toContainText("已被其他账号绑定");
+  const refusedShop = second.locator(`input[name="business"][value="${name}"]`);
+  await expect(refusedShop).toBeDisabled();
+  await expect(refusedShop).not.toBeChecked();
+  await expect(second.getByRole("radio", { checked: true })).toBeEnabled();
+  await first.close();
+  await second.close();
 });
 
 test("a signed-in job seeker opens the employer identity from the account menu", async ({ page }, testInfo) => {
