@@ -4,7 +4,7 @@
 // Same state and message in, same state out: the landing page replays real conversations with it.
 import { COUNTRIES, regionById } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, PRODUCT_NAME, VISA_LABELS } from "@/i18n/labels";
-import { checkJob, type Finding, type JobDraft, type RuleId } from "@/lib/compliance";
+import { checkJob, type Finding, type JobDraft, type PostingEmployer, type RuleId } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry } from "@/lib/types";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import {
@@ -50,6 +50,8 @@ export interface ChatMessage {
 
 export interface ChatState {
   country: CountryCode;
+  /** Who is posting, set by the server each turn (never taken from the browser); unknown on the landing page. */
+  employer?: PostingEmployer;
   draft: JobDraft;
   messages: ChatMessage[];
   /** What the assistant is waiting for. */
@@ -153,6 +155,13 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
       const fixing = s.fixing;
       if (!fixing?.rule) return { ok: false, retry: "这一项已经改好了。" };
       if (fixing.rule === "min_wage") return setPay(s, text);
+      if (fixing.rule === "aewv_unaccredited") {
+        if (!/去掉|删/.test(text)) return { ok: false, retry: "请点「去掉「持 AEWV 工签者」」。" };
+        d.visaAccepted = (d.visaAccepted ?? []).filter((v) => v !== "aewv");
+        if (d.visaAccepted.length === 0) s.asked = s.asked.filter((t) => t !== "visa");
+        s.fixing = undefined;
+        return { ok: true, state: s, ack: `好，去掉了「${VISA_LABELS.aewv.zh}」。` };
+      }
       const field = fixing.field;
       if (/我来改写|我改|改写/.test(text)) {
         s.asking = "rewrite";
@@ -313,7 +322,7 @@ function proceed(state: ChatState, ack: string): ChatState {
   s.draft.descriptionEn = englishSummary(s.draft, s.country);
   if (s.asking === "rewrite" && s.fixing) return withMessage({ ...s }, "assistant", rewritePrompt(s), undefined);
 
-  const findings = checkJob(s.draft, s.country);
+  const findings = checkJob(s.draft, s.country, s.employer);
   const notes = findings
     .filter((f) => f.level === "review" && !s.noted.includes(key(f)))
     .map((f) => {
@@ -388,7 +397,9 @@ function question(s: ChatState, topic: Topic): Question {
     }
     case "visa": {
       const chosen = d.visaAccepted ?? [];
-      const rest = COUNTRIES[s.country].visaTypes.filter((v) => !chosen.includes(v));
+      const rest = COUNTRIES[s.country].visaTypes.filter(
+        (v) => !chosen.includes(v) && (v !== "aewv" || s.employer?.verification === "accredited_employer"),
+      );
       return {
         topic,
         text: chosen.length
@@ -431,6 +442,14 @@ const FIELD_WHERE: Record<TextField, string> = {
 };
 
 function fixQuestion(s: ChatState, f: Finding): Question {
+  if (f.rule === "aewv_unaccredited") {
+    return {
+      topic: "fix",
+      text: `签证里${f.message_zh}`,
+      quickReplies: [CHIP(`去掉「${VISA_LABELS.aewv.zh}」`)],
+      fixing: { rule: f.rule, field: "descriptionZh" },
+    };
+  }
   if (f.rule === "min_wage") {
     return {
       topic: "fix",

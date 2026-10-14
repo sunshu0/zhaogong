@@ -2,7 +2,7 @@
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS } from "@/i18n/labels";
 import type { RequiredField } from "@/lib/ai-post";
 import type { Finding } from "@/lib/compliance";
-import type { CountryCode, EmploymentType, Industry } from "@/lib/types";
+import type { CountryCode, EmploymentType, Industry, VisaAccepted } from "@/lib/types";
 import type { PostForm } from "@/components/employer/post-form";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import {
@@ -23,12 +23,14 @@ type Props = {
   findings: Finding[];
   missing: RequiredField[];
   country: CountryCode;
+  /** The visas this employer may offer (AEWV holders only for accredited employers). */
+  visaChoices: VisaAccepted[];
   onRegenerateEn: () => void;
 };
 
 /** The job form, one section per topic; each field shows what the parser missed and what the checks found. */
-export function DraftForm({ form, set, findings, missing, country, onRegenerateEn }: Props) {
-  const kit = fieldKit({ form, set, findings, missing, country });
+export function DraftForm({ form, set, findings, missing, country, visaChoices, onRegenerateEn }: Props) {
+  const kit = fieldKit({ form, set, findings, missing, country, visaChoices });
   return (
     <div className="space-y-6">
       <JobSection kit={kit} />

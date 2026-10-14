@@ -31,7 +31,8 @@ export interface ModerationQueue {
 }
 
 async function item(job: Job): Promise<QueueItem> {
-  return { job, employer: await getEmployer(job.employerId), findings: checkJob(job, job.country) };
+  const employer = await getEmployer(job.employerId);
+  return { job, employer, findings: checkJob(job, job.country, employer) };
 }
 
 export async function getModerationQueue(): Promise<ModerationQueue> {
@@ -81,7 +82,7 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   const s = await subject(jobId);
   if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: "这个职位不在待审核列表里。" };
   if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
-  const findings = checkJob(s.job, s.job.country);
+  const findings = checkJob(s.job, s.job.country, s.employer);
   if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
   await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
   const entry = await addModerationLog({ action: "approve", ...s.names, rules: findings.map((f) => f.rule) });
@@ -95,7 +96,8 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
   const reports = await openReportsFor(s.job.id);
   if (s.job.status !== "removed") await updateJob(s.job.id, { status: "removed" });
   await close(reports, "actioned");
-  const rules = s.job.status === "pending_review" ? checkJob(s.job, s.job.country).map((f) => f.rule) : undefined;
+  const rules =
+    s.job.status === "pending_review" ? checkJob(s.job, s.job.country, s.employer).map((f) => f.rule) : undefined;
   const entry = await addModerationLog({
     action: "take_down",
     ...s.names,

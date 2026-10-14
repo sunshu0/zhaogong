@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkChatMessage, checkJob, publishDecision, type Finding, type JobDraft } from "@/lib/compliance";
 import { WORD_RULES } from "@/lib/compliance/rules";
-import { MOCK_JOBS } from "@/mock/data";
+import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
 const clean: JobDraft = {
   titleZh: "前厅服务员",
@@ -188,6 +188,36 @@ describe("checkJob: words added after review", () => {
 
   it("matches 包PR in any letter case", () => {
     expect(rules(checkJob(withZh("表现好包pr"), "NZ"))).toEqual(["visa_selling"]);
+  });
+});
+
+describe("checkJob: AEWV only for accredited employers", () => {
+  const aewv: JobDraft = { ...clean, visaAccepted: ["open_work", "aewv"] };
+
+  it("blocks AEWV holders on a job from an employer that is not accredited", () => {
+    for (const verification of ["unverified", "business_verified"] as const) {
+      const [f, ...rest] = checkJob(aewv, "NZ", { verification });
+      expect(rest).toEqual([]);
+      expect(f).toMatchObject({ level: "block", field: "visaAccepted", rule: "aewv_unaccredited" });
+      expect(f.message_zh).toContain("持 AEWV 工签者");
+      expect(f.message_zh).toContain("认证雇主");
+    }
+  });
+
+  it("lets an accredited employer list AEWV holders", () => {
+    expect(checkJob(aewv, "NZ", { verification: "accredited_employer" })).toEqual([]);
+  });
+
+  it("says nothing when it does not know the employer, or AEWV is not listed", () => {
+    expect(checkJob(aewv, "NZ")).toEqual([]);
+    expect(checkJob({ ...clean, visaAccepted: ["student"] }, "NZ", { verification: "unverified" })).toEqual([]);
+  });
+
+  it("passes every demo job with its own employer", () => {
+    for (const job of MOCK_JOBS) {
+      const employer = MOCK_EMPLOYERS.find((e) => e.id === job.employerId)!;
+      expect(checkJob(job, "NZ", employer), job.id).toEqual([]);
+    }
   });
 });
 

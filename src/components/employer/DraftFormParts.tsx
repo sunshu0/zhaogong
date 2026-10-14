@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { COUNTRIES, type CountryConfig } from "@/config/countries";
 import type { RequiredField } from "@/lib/ai-post";
 import type { Finding, JobDraft } from "@/lib/compliance";
-import type { CountryCode } from "@/lib/types";
+import type { CountryCode, VisaAccepted } from "@/lib/types";
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
 
@@ -18,6 +18,7 @@ export type FieldKit = {
   config: CountryConfig;
   state: (field: keyof JobDraft) => FieldState;
   box: (field: keyof JobDraft) => string;
+  visaChoices: VisaAccepted[];
 };
 
 export function fieldKit({
@@ -26,19 +27,21 @@ export function fieldKit({
   findings,
   missing,
   country,
+  visaChoices,
 }: {
   form: PostForm;
   set: (patch: Partial<PostForm>) => void;
   findings: Finding[];
   missing: RequiredField[];
   country: CountryCode;
+  visaChoices: VisaAccepted[];
 }): FieldKit {
   const state = (field: keyof JobDraft): FieldState => ({
     missing: (missing as (keyof JobDraft)[]).includes(field),
     findings: findings.filter((f) => f.field === field),
   });
   const box = (field: keyof JobDraft) => `w-full rounded-lg border bg-background px-3 ${fieldTone(state(field))}`;
-  return { form, set, config: COUNTRIES[country], state, box };
+  return { form, set, config: COUNTRIES[country], state, box, visaChoices };
 }
 
 /** Red for a problem that holds publishing, amber for a field the parser could not fill, else plain. */

@@ -2,19 +2,28 @@
 import { useMemo, useState, type FocusEvent } from "react";
 import { englishSummary, missingFields } from "@/lib/ai-post";
 import { checkJob, publishDecision } from "@/lib/compliance";
-import type { CountryCode } from "@/lib/types";
+import { COUNTRIES } from "@/config/countries";
+import type { CountryCode, Employer } from "@/lib/types";
 import { draftFromForm, emptyForm, type PostForm } from "@/components/employer/post-form";
 
 /**
  * Form state for posting and editing, with the live checks. The English description follows the
  * form until the employer edits it by hand (`englishByHand`).
  */
-export function useDraftForm(country: CountryCode, initial: { form?: PostForm; englishByHand?: boolean } = {}) {
+export function useDraftForm(
+  country: CountryCode,
+  initial: { form?: PostForm; englishByHand?: boolean } = {},
+  employer?: Pick<Employer, "verification">,
+) {
   const [form, setForm] = useState<PostForm>(initial.form ?? emptyForm);
   const [englishByHand, setEnglishByHand] = useState(initial.englishByHand ?? false);
 
   const draft = useMemo(() => draftFromForm(form, country), [form, country]);
-  const findings = useMemo(() => checkJob(draft, country), [draft, country]);
+  const findings = useMemo(() => checkJob(draft, country, employer), [draft, country, employer]);
+  // AEWV holders only for accredited employers; a job that already lists it keeps the chip so it can be taken off.
+  const visaChoices = COUNTRIES[country].visaTypes.filter(
+    (v) => v !== "aewv" || employer?.verification === "accredited_employer" || form.visaAccepted.includes(v),
+  );
   const missing = useMemo(() => missingFields(draft), [draft]);
   const decision = publishDecision(findings);
 
@@ -47,6 +56,7 @@ export function useDraftForm(country: CountryCode, initial: { form?: PostForm; e
     findings,
     missing,
     decision,
+    visaChoices,
     ready: decision.canPublish && missing.length === 0,
   };
 }

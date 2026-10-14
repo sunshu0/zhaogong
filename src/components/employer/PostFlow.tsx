@@ -31,6 +31,7 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
     banned: !!profile?.bannedAt,
     needsReview: posting.form.decision.status === "pending_review",
     employerId: me.employerId,
+    email: me.email,
   };
 
   if (posting.step === "done" && posting.published) {
@@ -57,6 +58,7 @@ type PostingView = {
   country: CountryCode;
   heading: RefObject<HTMLHeadingElement | null>;
   employer?: Employer;
+  email: string;
   shopName: string;
   banned: boolean;
   needsReview: boolean;
@@ -72,6 +74,7 @@ function CurrentStep({ view }: { view: PostingView }) {
         <ChatPost
           chat={posting.chat}
           setChat={posting.setChat}
+          email={view.email}
           country={country}
           headingRef={heading}
           onPreview={posting.previewFromChat}

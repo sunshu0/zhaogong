@@ -142,6 +142,37 @@ describe("contact details: private unless the employer makes them public", () =>
   });
 });
 
+describe("AEWV in the conversation", () => {
+  const POST = "Mt Eden 川菜馆招前厅服务员，全职，时薪 $25-27，每周 40 小时，包工作餐，雇主担保工签可。";
+
+  it("offers AEWV holders only to an accredited employer", async () => {
+    const plain = await say({ ...startChat("NZ"), employer: { verification: "business_verified" } }, "招洗碗工");
+    const asked = await say(plain, "25", "不固定", "Northcote", "兼职");
+    expect(asked.asking).toBe("visa");
+    expect(replies(asked)).not.toContain("持 AEWV 工签者");
+
+    const accredited = await say(
+      { ...startChat("NZ"), employer: { verification: "accredited_employer" } },
+      "招洗碗工",
+      "25",
+      "不固定",
+      "Northcote",
+      "兼职",
+    );
+    expect(replies(accredited)).toContain("持 AEWV 工签者");
+  });
+
+  it("asks a business that is not accredited to take AEWV off the list", async () => {
+    let s = await say({ ...startChat("NZ"), employer: { verification: "business_verified" } }, POST);
+    expect(s.asking).toBe("fix");
+    expect(last(s).text).toContain("持 AEWV 工签者");
+    expect(replies(s)).toEqual(["去掉「持 AEWV 工签者」"]);
+    s = await say(s, "去掉「持 AEWV 工签者」");
+    expect(s.draft.visaAccepted).not.toContain("aewv");
+    expect(s.asking).not.toBe("fix");
+  });
+});
+
 describe("multiple employment types", () => {
   it("does not turn an excluded type into accepting everything", async () => {
     let s = await say(startChat("NZ"), "招洗碗工", "25", "不固定", "Northcote");

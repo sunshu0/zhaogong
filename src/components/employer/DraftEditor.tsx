@@ -34,6 +34,7 @@ export function DraftEditor({
           findings={state.findings}
           missing={state.missing}
           country={country}
+          visaChoices={state.visaChoices}
           onRegenerateEn={state.regenerateEnglish}
         />
       </div>

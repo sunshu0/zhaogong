@@ -29,7 +29,7 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, { zh: string; en: st
 export const VISA_LABELS: Record<VisaAccepted, { zh: string; en: string }> = {
   citizen_resident: { zh: "公民 / 永居", en: "Citizen / Resident" },
   open_work: { zh: "开放工签", en: "Open work visa" },
-  aewv: { zh: "雇主担保工签", en: "AEWV" },
+  aewv: { zh: "持 AEWV 工签者", en: "AEWV" },
   student: { zh: "学签", en: "Student visa" },
   working_holiday: { zh: "打工度假", en: "Working holiday" },
 };

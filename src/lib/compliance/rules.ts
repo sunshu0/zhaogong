@@ -5,7 +5,7 @@ import type { CountryCode } from "@/lib/types";
 import type { FindingLevel, RuleId } from "./types";
 
 export interface WordRule {
-  rule: Exclude<RuleId, "min_wage">;
+  rule: Exclude<RuleId, "min_wage" | "aewv_unaccredited">;
   level: FindingLevel;
   words: string[];
   /** `{words}` becomes the matched words, each in 「」. */

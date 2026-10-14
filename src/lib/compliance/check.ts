@@ -2,7 +2,7 @@
 import { COUNTRIES } from "@/config/countries";
 import type { CountryCode } from "@/lib/types";
 import { WORD_RULES, type WordRule } from "./rules";
-import type { ChatFinding, Finding, FindingLevel, JobDraft } from "./types";
+import type { ChatFinding, Finding, FindingLevel, JobDraft, PostingEmployer } from "./types";
 
 const TEXT_FIELDS = ["titleZh", "titleEn", "shiftsZh", "address", "descriptionZh", "descriptionEn"] as const;
 
@@ -100,8 +100,11 @@ function findWords(text: string, rule: WordRule): string[] {
   return [...new Set(hits.sort((a, b) => a.start - b.start).map((h) => h.word))];
 }
 
-/** Everything that stops or holds this draft, most serious first. An empty list means it can go live. */
-export function checkJob(draft: JobDraft, country: CountryCode): Finding[] {
+/**
+ * Everything that stops or holds this draft, most serious first. An empty list means it can go live.
+ * With the employer, it also checks what only some employers may offer (AEWV holders).
+ */
+export function checkJob(draft: JobDraft, country: CountryCode, employer?: PostingEmployer): Finding[] {
   const config = COUNTRIES[country];
   const findings: Finding[] = [];
 
@@ -113,6 +116,15 @@ export function checkJob(draft: JobDraft, country: CountryCode): Finding[] {
       field: "pay",
       rule: "min_wage",
       message_zh: `时薪 ${sym}${money(draft.pay.min)} 低于${config.nameZh}最低工资 ${sym}${money(wage.hourly)}（${wage.effectiveFrom} 起），请调高后再发布。`,
+    });
+  }
+
+  if (employer && employer.verification !== "accredited_employer" && draft.visaAccepted?.includes("aewv")) {
+    findings.push({
+      level: "block",
+      field: "visaAccepted",
+      rule: "aewv_unaccredited",
+      message_zh: "只有认证雇主（Accredited Employer）才能招「持 AEWV 工签者」。请在签证里去掉这一项。",
     });
   }
 

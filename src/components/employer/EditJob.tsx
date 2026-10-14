@@ -8,6 +8,7 @@ import { canEdit } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
@@ -51,7 +52,8 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
 }
 
 function EditForm({ job, email, country }: { job: Job; email: string; country: CountryCode }) {
-  const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true });
+  const { profile } = useEmployerProfile(email);
+  const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true }, profile);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Job>();
   const heading = useFocusOnChange<HTMLHeadingElement>(saved?.id);

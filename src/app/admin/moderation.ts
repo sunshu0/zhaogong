@@ -9,6 +9,7 @@ export const RULE_LABELS: Record<RuleId, string> = {
   visa_selling: "卖签证用词",
   ethnic_preference: "按种族或国籍招人",
   high_risk: "高风险行业",
+  aewv_unaccredited: "非认证雇主招 AEWV",
 };
 
 export interface ReportGroup {

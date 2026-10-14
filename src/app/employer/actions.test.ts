@@ -14,6 +14,7 @@ import {
   refreshMyJob,
   verifyBusiness,
 } from "@/app/employer/actions";
+import { startChat } from "@/lib/ai-post";
 import { banEmployer, getJob, getPlatformStats, listJobs, openEmployerIdentity, recordContactView } from "@/lib/data";
 
 /** The signed-in email of each demo business's owner: the Server Functions take the email, the server finds the business. */
@@ -51,6 +52,22 @@ describe("publishJob", () => {
     const result = await publishJob({ ...draft, descriptionZh: "入职交押金。" }, E.e1);
     expect(result).toMatchObject({ ok: false, reason: "not_ready" });
     expect(!result.ok && result.findings.map((f) => f.rule)).toEqual(["min_wage", "fee"]);
+  });
+
+  it("lets only an accredited employer list AEWV holders", async () => {
+    const { draft } = await parseDraft(MESSAGE);
+    const withAewv = { ...draft, visaAccepted: ["student", "aewv"] };
+    const refused = await publishJob(withAewv, E.e1); // e1 is a verified business, not accredited
+    expect(refused).toMatchObject({ ok: false, reason: "not_ready" });
+    expect(!refused.ok && refused.findings.map((f) => f.rule)).toEqual(["aewv_unaccredited"]);
+    expect(await publishJob(withAewv, E.e2)).toMatchObject({ ok: true }); // e2 is accredited
+  });
+
+  it("checks AEWV in the chat for the signed-in business only", async () => {
+    const said = (await chatTurn(startChat("NZ"), `${MESSAGE}，雇主担保工签可`, E.e1)).messages.at(-1)!.text;
+    expect(said).toContain("持 AEWV 工签者");
+    const anonymous = await chatTurn(startChat("NZ"), `${MESSAGE}，雇主担保工签可`);
+    expect(anonymous.asking).not.toBe("fix");
   });
 
   it("refuses an incomplete draft and an unknown employer", async () => {

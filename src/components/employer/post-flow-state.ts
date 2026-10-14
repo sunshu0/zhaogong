@@ -7,6 +7,7 @@ import type { CountryCode, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
 import { emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useDraftForm, type DraftFormState } from "@/components/employer/use-draft-form";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 
 export type Step = "chat" | "paste" | "form" | "preview" | "done";
 export type Mode = "chat" | "form";
@@ -42,12 +43,14 @@ export interface PostingState {
   startTransition: TransitionStartFunction;
 }
 
-function usePostingState(country: CountryCode): PostingState {
+function usePostingState(country: CountryCode, email: string): PostingState {
   const [mode, setMode] = useState<Mode>("chat");
   const [step, setStep] = useState<Step>("chat");
   const [chat, setChat] = useState<ChatState>(() => startChat(country));
   const [text, setText] = useState("");
-  const form = useDraftForm(country);
+  // The badge decides which visas the form offers; it comes from the server, not the session.
+  const { profile } = useEmployerProfile(email);
+  const form = useDraftForm(country, {}, profile);
   const [notes, setNotes] = useState<string[]>([]);
   const [previewAt, setPreviewAt] = useState(0);
   const [published, setPublished] = useState<Job>();
@@ -79,7 +82,7 @@ function usePostingState(country: CountryCode): PostingState {
 
 /** The posting page's state and what its buttons do. */
 export function usePosting(email: string, country: CountryCode) {
-  const state = usePostingState(country);
+  const state = usePostingState(country, email);
   return {
     ...state,
     parse: () => parsePasted(state),

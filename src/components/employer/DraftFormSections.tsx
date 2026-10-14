@@ -13,7 +13,7 @@ const CONTACT_FIELDS = [
 ] as const;
 
 export function RequirementsSection({ kit }: { kit: FieldKit }) {
-  const { form, set, state, config } = kit;
+  const { form, set, state, visaChoices } = kit;
   return (
     <Section title="要求">
       <Group
@@ -24,7 +24,7 @@ export function RequirementsSection({ kit }: { kit: FieldKit }) {
         {...state("visaAccepted")}
       >
         <div className="flex flex-wrap gap-2">
-          {config.visaTypes.map((visa) => (
+          {visaChoices.map((visa) => (
             <Chip
               key={visa}
               type="checkbox"

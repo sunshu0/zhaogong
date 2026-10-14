@@ -19,7 +19,7 @@ export type EmploymentType = "full_time" | "part_time" | "casual";
 export type VisaAccepted =
   | "citizen_resident" // 公民 / 永居
   | "open_work" // 开放工签
-  | "aewv" // 雇主担保工签（需认证雇主）
+  | "aewv" // 持 AEWV 工签者（只有认证雇主能选）
   | "student" // 学签（有打工限制）
   | "working_holiday"; // 打工度假
 

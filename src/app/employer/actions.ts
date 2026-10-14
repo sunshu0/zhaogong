@@ -75,9 +75,11 @@ export async function parseDraft(text: string): Promise<ParsedPost> {
 }
 
 /** One turn of the posting chat. On the server for the same reason; the state from the browser is rebuilt first. */
-export async function chatTurn(state: unknown, message: string): Promise<ChatState> {
+export async function chatTurn(state: unknown, message: string, email?: string): Promise<ChatState> {
+  const employer = await postingEmployer(email);
+  const restored = restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY));
   return nextTurn(
-    restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY)),
+    { ...restored, ...(typeof employer !== "string" && { employer: { verification: employer.verification } }) },
     String(message ?? ""),
   );
 }
@@ -89,9 +91,9 @@ export type PublishResult =
 /** Checks the draft again on the server, then publishes it as active or pending review. */
 export async function publishJob(input: unknown, email: string): Promise<PublishResult> {
   const draft = sanitizeDraft(input, DEFAULT_COUNTRY);
-  const findings = checkJob(draft, DEFAULT_COUNTRY);
-  const missing = missingFields(draft);
   const employer = await postingEmployer(email);
+  const findings = checkJob(draft, DEFAULT_COUNTRY, typeof employer === "string" ? undefined : employer);
+  const missing = missingFields(draft);
   if (typeof employer === "string") return { ok: false, reason: employer, findings, missing };
 
   const decision = publishDecision(findings);
@@ -150,7 +152,7 @@ export async function refreshMyJob(jobId: string, email: string): Promise<Change
   const state = refreshState(job, now);
   if (!state.allowed) return { ok: false, error_zh: `不能刷新：${state.reason_zh}` };
 
-  const findings = checkJob(job, job.country);
+  const findings = checkJob(job, job.country, await getEmployer(job.employerId));
   const decision = publishDecision(findings);
   if (!decision.canPublish) return { ok: false, error_zh: "这个职位不符合现在的发布规则，请先编辑。", findings };
   const status = effectiveStatus(job, now) === "active" ? "active" : decision.status;
@@ -167,7 +169,7 @@ export async function editMyJob(jobId: string, email: string, input: unknown): P
   if (!canEdit(job)) return { ok: false, error_zh: "这个职位已被下架，不能修改。" };
 
   const draft = sanitizeDraft(input, job.country);
-  const findings = checkJob(draft, job.country);
+  const findings = checkJob(draft, job.country, await getEmployer(job.employerId));
   const decision = publishDecision(findings);
   const edited = decision.canPublish
     ? completeJob(draft, job.employerId, Date.parse(job.postedAt), job.status)

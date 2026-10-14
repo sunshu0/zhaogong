@@ -1,4 +1,4 @@
-import type { Job } from "@/lib/types";
+import type { EmployerVerification, Job } from "@/lib/types";
 
 /** A job being written by an employer: any field may still be missing. */
 export type JobDraft = Partial<Omit<Job, "id" | "status" | "postedAt" | "expiresAt">>;
@@ -10,7 +10,12 @@ export type JobDraft = Partial<Omit<Job, "id" | "status" | "postedAt" | "expires
  */
 export type FindingLevel = "block" | "rewrite" | "review";
 
-export type RuleId = "min_wage" | "fee" | "visa_selling" | "ethnic_preference" | "high_risk";
+export type RuleId = "min_wage" | "fee" | "visa_selling" | "ethnic_preference" | "high_risk" | "aewv_unaccredited";
+
+/** What the check needs to know about who posts the job. Leave it out where the employer is not known. */
+export interface PostingEmployer {
+  verification: EmployerVerification;
+}
 
 /** A word rule that matched in a chat message. Chats only look for fees, visa selling and ethnic preference. */
 export interface ChatFinding {
