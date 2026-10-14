@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { siteNav } from "./helpers";
 
 test("list → filter → detail → back to the filtered list", async ({ page }) => {
   await page.goto("/jobs");
@@ -62,5 +63,5 @@ test("a job near the minimum wage says so, and an unknown job is not found", asy
 test("links shared before the move to /jobs still open the same filtered list", async ({ page }) => {
   await page.goto("/?industry=retail&meals=1&q=%E6%94%B6%E9%93%B6");
   await expect(page).toHaveURL("/jobs?industry=retail&meals=1&q=%E6%94%B6%E9%93%B6");
-  await expect(page.getByRole("banner").getByRole("link", { name: "找工作" })).toHaveAttribute("href", "/jobs");
+  await expect(siteNav(page).getByRole("link", { name: /^(找工作|职位)$/ })).toHaveAttribute("href", "/jobs");
 });

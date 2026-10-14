@@ -59,7 +59,24 @@
   --spacing-group: 1rem;
 }
 
+/*
+ * Room for the phone's bottom bar (BottomNav, below 768 px; hidden in focused flows). Pages get it as padding;
+ * a bar that sticks to the bottom of a page uses `bottom-above-nav` instead of `bottom-0`.
+ */
+:root {
+  --bottom-nav-space: 0px;
+}
+@media (width < 48rem) {
+  :root:has(#bottom-nav) {
+    --bottom-nav-space: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+}
+@utility bottom-above-nav {
+  bottom: var(--bottom-nav-space);
+}
+
 body {
+  padding-bottom: var(--bottom-nav-space);
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chatEntry, siteNav } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 test("workspace navigation stays visible across its pages", async ({ page }, testInfo) => {
@@ -13,18 +14,28 @@ test("workspace navigation stays visible across its pages", async ({ page }, tes
     );
   });
   await page.goto("/workspace");
-  await expect(page.getByRole("banner").getByRole("link", { name: "聊天", exact: true })).toBeVisible();
-  if (testInfo.project.name === "desktop")
-    await expect(page.getByRole("banner").getByRole("link", { name: "工作台", exact: true })).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true });
+  await expect(chatEntry(page)).toBeVisible();
+  const mobile = testInfo.project.name === "mobile";
+  if (!mobile) await expect(siteNav(page).getByRole("link", { name: "工作台", exact: true })).toBeVisible();
+  // Phones reach the workspace pages from 我的 in the bottom bar; desktop has the sidebar.
+  const nav = mobile
+    ? page.getByRole("main")
+    : page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true });
   for (const [label, route] of [
-    ["聊天", "/messages"],
     ["通知", "/notifications"],
-    [testInfo.project.name === "mobile" ? "主页" : "我的主页", "/profile"],
+    ["我的主页", "/profile"],
+    ["浏览与举报", "/me"],
   ]) {
-    await nav.getByRole("link", { name: label, exact: true }).click();
+    if (mobile) {
+      await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+      await expect(page).toHaveURL("/account");
+    }
+    await nav.getByRole("link", { name: new RegExp(`^${label}`) }).click();
     await expect(page).toHaveURL(new RegExp(`${route}$`));
-    await expect(nav.getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
+    const current = mobile
+      ? siteNav(page).getByRole("link", { name: "我的", exact: true })
+      : nav.getByRole("link", { name: label, exact: true });
+    await expect(current).toHaveAttribute("aria-current", "page");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();

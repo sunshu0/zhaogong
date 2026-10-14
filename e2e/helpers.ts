@@ -14,3 +14,28 @@ export async function signIn(page: Page, next: string, email = "e2e.seeker@examp
 export function contactBlock(page: Page) {
   return page.getByRole("region", { name: "联系方式" });
 }
+
+/** The site navigation in view: the header links from 768 px, the bottom bar on phones (Round 11, C2). */
+export function siteNav(page: Page) {
+  return page.getByRole("navigation", { name: /^(主导航|底部导航)$/ }).filter({ visible: true });
+}
+
+/** 聊天 in the site navigation. Its title carries the unread count, e.g. 「聊天，3 条未读消息」. */
+export function chatEntry(page: Page) {
+  return siteNav(page).getByRole("link", { name: "聊天", exact: true });
+}
+
+/** Opens a workspace page (通知, 我的主页 …) the way a user would, without reloading: the sidebar on desktop, 我的 on phones. */
+export async function openWorkspacePage(page: Page, label: string) {
+  const sidebar = page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true });
+  if (await sidebar.count()) {
+    await sidebar.getByRole("link", { name: label, exact: true }).click();
+    return;
+  }
+  await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+  await expect(page).toHaveURL("/account");
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: new RegExp(`^${label}`) })
+    .click();
+}

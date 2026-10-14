@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chatEntry, openWorkspacePage } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
@@ -19,7 +20,7 @@ test("seeker notifications open related threads and persist both read states", a
   await expect(list).toContainText("2 条未读");
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("notifications.png"), fullPage: true });
-  const entry = page.getByRole("banner").getByRole("link", { name: "聊天", exact: true });
+  const entry = chatEntry(page);
   for (const [title, id, person, remaining] of [
     ["北岸早茶酒家回复了你", "north-tea", "北岸早茶酒家", "1"],
     ["有一个职位适合你的资料", "mt-eden", "Mt Eden 餐馆", "0"],
@@ -31,11 +32,7 @@ test("seeker notifications open related threads and persist both read states", a
     await expect(entry).toHaveAttribute("title", remaining === "0" ? "聊天" : `聊天，${remaining} 条未读消息`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`notification-${id}.png`), fullPage: true });
-    await page
-      .getByRole("navigation", { name: "工作台导航" })
-      .filter({ visible: true })
-      .getByRole("link", { name: "通知", exact: true })
-      .click();
+    await openWorkspacePage(page, "通知");
   }
   await expect(list).toContainText("已全部读完");
   await page.reload();
@@ -65,11 +62,7 @@ test("legacy employer notifications open the right candidate, while bulk read st
     localStorage.setItem(key, JSON.stringify(legacy));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
-  await page
-    .getByRole("navigation", { name: "工作台导航" })
-    .filter({ visible: true })
-    .getByRole("link", { name: "通知", exact: true })
-    .click();
+  await openWorkspacePage(page, "通知");
   await expect(list).toContainText("1 条未读");
   await list.getByRole("link", { name: /陈雨发来了简历/ }).click();
   await expect(page).toHaveURL("/messages?conversation=candidate-chen");

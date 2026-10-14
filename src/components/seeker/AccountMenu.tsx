@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { accountStatus } from "@/app/login/actions";
+import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncAccountIdentity, useHydrated, useSession } from "@/components/seeker/session-client";
 import type { DemoSession } from "@/components/seeker/session";
+import { navRole, showsPostJob } from "@/components/ui/nav";
 
 /** Once per page load, make the browser's copy of the identity match the account on the server. */
 function useAccountSync(session: DemoSession | null) {
@@ -21,15 +23,18 @@ function useAccountSync(session: DemoSession | null) {
   }, [session]);
 }
 
-/** Header: 登录 / 注册, or the account menu with the active identity and switching. */
+/**
+ * Header: 登录 / 注册, or the account menu named after the active identity. On phones it is only the identity
+ * switch (the rest is on 我的); from 768 px it also lists the workspace pages and 退出登录.
+ */
 export function AccountMenu() {
-  const router = useRouter();
   const hydrated = useHydrated();
   const session = useSession();
   const [open, setOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
+  const { employer, toEmployer, toSeeker, notice, clearNotice } = useIdentitySwitch();
   useAccountSync(session);
 
   useEffect(() => {
@@ -51,54 +56,21 @@ export function AccountMenu() {
     };
   }, [open]);
 
-  // Keep a real link in the server shell so a no-JavaScript browser can still sign in.
-  // Once hydrated, this is replaced by the session-aware menu when a session exists.
-  if (!hydrated) {
+  // Keep a real link in the server shell so a no-JavaScript browser can still sign in. On phones, signing in is
+  // 我的 in the bottom bar.
+  if (!hydrated || !session) {
     return (
-      <Link href="/login" className="inline-flex min-h-11 items-center px-1 hover:text-brand">
-        登录 / 注册
-      </Link>
-    );
-  }
-  if (!session) {
-    return (
-      <Link href="/login" className="inline-flex min-h-11 items-center px-1 hover:text-brand">
+      <Link href="/login" className="hidden min-h-11 items-center px-1 hover:text-brand md:inline-flex">
         登录 / 注册
       </Link>
     );
   }
 
   const label = identityLabel(session);
-  const employer =
-    session.employerId && session.employerName ? { id: session.employerId, name: session.employerName } : null;
-
-  async function switchToEmployer() {
-    if (!session || !employer) return;
-    // Show the previously confirmed identity immediately, so navigating cannot cancel the user's choice.
-    // The lookup still corrects revoked business access; all writes also check the account on the server.
-    const requested = setIdentity({ activeRole: "employer", employer });
-    setOpen(false);
-    router.push("/workspace");
-    if (!requested) return;
-    try {
-      const status = await accountStatus(session.email);
-      const current = syncAccountIdentity(requested, status ?? {});
-      if (current?.email === requested.email && current.signedInAt === requested.signedInAt && !status?.employer) {
-        setNotice("这个账号的雇主身份已不可用，请重新开通。");
-      }
-    } catch {
-      setNotice("暂时无法核对雇主身份，请稍后重试。");
-    }
-  }
-
-  function switchToSeeker() {
-    if (!employer) return;
-    setIdentity({ activeRole: "seeker", employer });
-    setOpen(false);
-    router.push("/workspace");
-  }
-
-  const item = "block w-full rounded-md px-2 py-2 text-left text-sm hover:bg-background";
+  const isEmployer = session.activeRole === "employer";
+  const item = "block w-full rounded-md px-2 py-2 text-left text-body hover:bg-background";
+  const pageItem = `${item} hidden md:block`;
+  const close = () => setOpen(false);
 
   return (
     <div ref={root} className="relative">
@@ -106,24 +78,24 @@ export function AccountMenu() {
         ref={button}
         type="button"
         onClick={() => {
-          setNotice(null);
+          clearNotice();
           setOpen((o) => !o);
         }}
         aria-expanded={open}
         aria-controls="account-menu"
         aria-label={`账号菜单，当前身份：${label}`}
-        className="flex min-h-11 max-w-[9rem] items-center gap-1 px-1 hover:text-brand sm:max-w-[14rem]"
+        className="flex min-h-11 max-w-[9rem] items-center gap-1 px-1 hover:text-brand md:max-w-[14rem]"
       >
         <span className="truncate">
-          <span className="sm:hidden">{session.activeRole === "employer" ? "雇主" : "求职者"}</span>
-          <span className="hidden sm:inline">{label}</span>
+          <span className="md:hidden">{isEmployer ? "雇主" : "求职者"}</span>
+          <span className="hidden md:inline">{label}</span>
         </span>
         <span aria-hidden="true">▾</span>
       </button>
       {notice && (
         <p
           role="status"
-          className="absolute top-full right-0 z-30 mt-2 w-56 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn"
+          className="absolute top-full right-0 z-30 mt-2 w-56 rounded-lg bg-warn-soft px-3 py-2 text-meta text-warn"
         >
           {notice}
         </p>
@@ -133,38 +105,48 @@ export function AccountMenu() {
           id="account-menu"
           className="absolute top-full right-0 z-30 mt-2 w-60 rounded-xl border border-border bg-surface p-2 shadow-lg"
         >
-          <p className="truncate px-2 pt-1 text-xs text-muted">{session.email}</p>
-          <p className="px-2 pb-2 text-xs">
+          <p className="truncate px-2 pt-1 text-meta text-muted">{session.email}</p>
+          <p className="px-2 pb-2 text-meta">
             当前身份：<span className="font-medium">{label}</span>
           </p>
           <div className="border-t border-border pt-1">
-            <Link href="/workspace" className={`${item} font-medium text-brand`} onClick={() => setOpen(false)}>
-              进入工作台
+            <Link href="/workspace" className={`${pageItem} font-medium text-brand`} onClick={close}>
+              工作台
             </Link>
-            <Link href="/me" className={item} onClick={() => setOpen(false)}>
-              我的
+            <Link href="/notifications" className={pageItem} onClick={close}>
+              通知
             </Link>
+            <Link href="/profile" className={pageItem} onClick={close}>
+              {isEmployer ? "企业主页" : "我的主页"}
+            </Link>
+            {!isEmployer && (
+              <Link href="/me" className={pageItem} onClick={close}>
+                浏览与举报
+              </Link>
+            )}
             {employer ? (
-              session.activeRole === "employer" ? (
-                <button type="button" className={item} onClick={switchToSeeker}>
-                  切换为求职者
-                </button>
-              ) : (
-                <button type="button" className={item} onClick={switchToEmployer}>
-                  切换为雇主（{employer.name}）
-                </button>
-              )
+              <button
+                type="button"
+                className={item}
+                onClick={() => {
+                  close();
+                  if (isEmployer) toSeeker();
+                  else void toEmployer();
+                }}
+              >
+                {isEmployer ? "切换为求职者" : `切换为雇主（${employer.name}）`}
+              </button>
             ) : (
-              <Link href={employerSignUpHref()} className={item} onClick={() => setOpen(false)}>
+              <Link href={employerSignUpHref()} className={item} onClick={close}>
                 开通雇主身份
               </Link>
             )}
             <button
               type="button"
-              className={item}
+              className={pageItem}
               onClick={() => {
                 signOut();
-                setOpen(false);
+                close();
                 router.push("/jobs");
               }}
             >
@@ -197,5 +179,19 @@ export function PostJobLink({ className = "", children = "发布招聘" }: { cla
     >
       {children}
     </Link>
+  );
+}
+
+/** The header's 发布招聘 button: for visitors (through employer sign-up) and employers; job seekers do not get it. */
+export function HeaderPostJob() {
+  const hydrated = useHydrated();
+  const session = useSession();
+  const role = navRole(hydrated ? session : null);
+  if (!showsPostJob(role)) return null;
+  // Employers post from the bottom bar on phones, so there it is only the visitors' way in.
+  return (
+    <PostJobLink
+      className={`${role === "employer" ? "hidden md:inline-flex" : "inline-flex"} min-h-11 items-center rounded-full bg-brand px-3 py-1.5 font-medium text-white hover:opacity-90`}
+    />
   );
 }

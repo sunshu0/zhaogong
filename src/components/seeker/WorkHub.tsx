@@ -32,16 +32,13 @@ export function WorkHubFrame({ children }: { children: ReactNode }) {
             <p className="text-xs font-medium text-brand">找工</p>
             <h2 className="mt-1 text-lg font-semibold">工作台</h2>
           </div>
-          <WorkspaceNav layout="sidebar" pathname={pathname} isEmployer={isEmployer} />
+          <WorkspaceNav pathname={pathname} isEmployer={isEmployer} />
           {session && (
             <p className="mt-3 border-t border-border px-2 pt-3 text-xs text-muted">{workspaceTitle(isEmployer)}</p>
           )}
         </div>
       </aside>
       <div className="min-w-0 space-y-4 lg:space-y-0">
-        <div className="-mx-4 overflow-x-auto border-b border-border bg-surface px-4 lg:hidden">
-          <WorkspaceNav layout="tabs" pathname={pathname} isEmployer={isEmployer} />
-        </div>
         <div key={identityScope(session)}>{children}</div>
       </div>
     </div>

@@ -37,7 +37,11 @@ test.describe("without JavaScript", () => {
 
   test("the landing page still exposes stats and jobs", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "登录 / 注册" })).toBeVisible();
+    // Signing in: 登录 / 注册 in the header from 768 px, 我的 in the bottom bar on phones.
+    await expect(page.getByRole("link", { name: /^(登录 \/ 注册|我的)$/ }).filter({ visible: true })).toHaveAttribute(
+      "href",
+      /^\/login/,
+    );
     await expect(page.getByRole("heading", { name: "平台数据" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "精选工作" })).toBeVisible();
     await expect(page.getByRole("link", { name: "浏览全部职位 →" })).toBeVisible();

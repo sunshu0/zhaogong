@@ -1,8 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import { chatEntry } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 async function switchRole(page: Page, name: string) {
+  // Every page load checks the account with a Server Function; a navigation started while that is in flight can
+  // be dropped by Next (the page stays put under load), so let it finish first.
+  await page.waitForLoadState("networkidle");
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })
@@ -17,7 +21,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   const shop = await signUpEmployer(page, testInfo);
   const title = uniqueTitle("招聘记录服务员", testInfo);
   await publishJob(page, title);
-  const entry = page.getByRole("banner").getByRole("link", { name: "聊天", exact: true });
+  const entry = chatEntry(page);
   await page.goto("/profile");
   await expect(page.getByRole("heading", { level: 1, name: "企业主页" })).toBeVisible();
   await expect(page.getByLabel("企业名称", { exact: true })).toHaveValue(shop);
@@ -41,8 +45,10 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name: "招聘通知", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "全部标为已读" }).click();
+  // An employer's records are 职位管理: /me goes there.
   await page.goto("/me");
-  await expect(page.getByRole("region", { name: "招聘记录", exact: true })).toContainText(title);
+  await expect(page).toHaveURL("/employer/jobs");
+  await expect(page.getByRole("main")).toContainText(title);
   await expect(page.getByRole("region", { name: /最近看过的职位/ })).toHaveCount(0);
 
   await switchRole(page, "切换为求职者");

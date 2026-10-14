@@ -32,6 +32,13 @@ async function signUpSeeker(page: Page, address: string) {
   await expect(page).toHaveURL("/jobs");
 }
 
+/** 退出登录 lives on 我的 (/account) at every width. */
+async function signOutFromAccount(page: Page) {
+  await page.goto("/account");
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page).toHaveURL("/jobs");
+}
+
 async function signUpEmployer(page: Page, address: string, name: string) {
   await page.goto("/login?role=employer&next=%2Femployer%2Fpost");
   await emailAndCode(page, address);
@@ -46,7 +53,7 @@ test("a job seeker signs up and lands on the list as 求职者", async ({ page }
   await expect(page.getByRole("link", { name: "开通雇主身份" })).toBeVisible();
   await expect(page.getByRole("button", { name: /切换为/ })).toHaveCount(0);
 
-  await page.goto("/me");
+  await page.goto("/account");
   await expect(page.getByText("当前身份：求职者").filter({ visible: true })).toBeVisible();
 });
 
@@ -141,9 +148,14 @@ test("a signed-in job seeker opens the employer identity from the account menu",
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 
-test("a signed-in job seeker without a business: 发布招聘 goes to the business step", async ({ page }, testInfo) => {
+test("a signed-in job seeker without a business: 开通雇主身份 goes to the business step", async ({
+  page,
+}, testInfo) => {
   await signUpSeeker(page, email(testInfo, "nobiz"));
-  await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
+  // Job seekers have no 发布招聘 in the header; the account menu opens an employer identity.
+  await expect(page.getByRole("banner").getByRole("link", { name: "发布招聘" })).toHaveCount(0);
+  await accountButton(page).click();
+  await page.getByRole("link", { name: "开通雇主身份" }).click();
   await expect(page).toHaveURL("/login?role=employer&next=%2Femployer%2Fpost");
   await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
 });
@@ -200,33 +212,33 @@ test("switching to employer survives immediate navigation while account verifica
   await expect(page.getByRole("heading", { name: "企业主页", level: 1 })).toBeVisible();
 });
 
-test("an employer signing in again goes straight to posting; as a job seeker, 发布招聘 switches", async ({
+test("an employer signing in again goes straight to posting; as a job seeker, the business is still there", async ({
   page,
 }, testInfo) => {
   const name = shop(testInfo);
   const address = email(testInfo, "again");
   await signUpEmployer(page, address, name);
-  await accountButton(page).click();
-  await page.getByRole("button", { name: "退出登录" }).click();
-  await expect(page.getByRole("banner").getByRole("link", { name: "登录 / 注册" })).toBeVisible();
+  await signOutFromAccount(page);
+  await expect(accountButton(page)).toHaveCount(0);
 
   // As an employer: no business step this time.
   await page.goto("/login?role=employer");
   await emailAndCode(page, address);
   await expect(page).toHaveURL("/employer/post");
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
-  await accountButton(page).click();
-  await page.getByRole("button", { name: "退出登录" }).click();
+  await signOutFromAccount(page);
 
-  // As a job seeker: the business is still there; 发布招聘 switches to it.
+  // As a job seeker: the business is still there; the account menu switches to it.
   await page.goto("/login");
   await emailAndCode(page, address);
   await expect(page).toHaveURL("/jobs");
   await expect(accountButton(page)).toHaveAccessibleName("账号菜单，当前身份：求职者");
-  const post = page.getByRole("banner").getByRole("link", { name: "发布招聘" });
-  await expect(post).toHaveAttribute("href", "/employer/post");
-  await post.click();
-  await expect(page).toHaveURL("/employer/post");
+  await accountButton(page).click();
+  await page
+    .locator("#account-menu")
+    .getByRole("button", { name: `切换为雇主（${name}）` })
+    .click();
+  await expect(page).toHaveURL("/workspace");
   await expect(accountButton(page)).toHaveAccessibleName(`账号菜单，当前身份：雇主 · ${name}`);
 });
 

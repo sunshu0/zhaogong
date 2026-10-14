@@ -47,10 +47,13 @@ test("single-column job rows expose useful details without private contact data 
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 });
 
-test("mobile header actions have touch-sized targets", async ({ page }, testInfo) => {
+test("mobile header and bottom bar actions have touch-sized targets", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Touch target check only applies to the phone layout");
   await page.goto("/");
-  const controls = page.getByRole("banner").locator("nav a, nav button").filter({ visible: true });
+  // Signed out: 发布招聘 in the header, then 职位 · 聊天 · 我的 at the bottom.
+  const controls = page
+    .locator('header a:not([href="/"]), header button, nav[aria-label="底部导航"] a')
+    .filter({ visible: true });
   await expect(controls).toHaveCount(4);
   for (let i = 0; i < (await controls.count()); i += 1) {
     expect((await controls.nth(i).boundingBox())?.height, await controls.nth(i).innerText()).toBeGreaterThanOrEqual(44);

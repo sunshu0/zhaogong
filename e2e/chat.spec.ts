@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chatEntry } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 test("chat is prominent, unread counts sync and the composer stays visible", async ({ page }, testInfo) => {
@@ -14,7 +15,7 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
       );
   });
   await page.goto("/jobs");
-  const entry = page.getByRole("banner").getByRole("link", { name: "聊天", exact: true });
+  const entry = chatEntry(page);
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await entry.click();
   const board = page.locator("[data-chat-workspace]");

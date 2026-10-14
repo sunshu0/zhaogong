@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useId, type ReactNode } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
 import { formatDateZh } from "@/components/seeker/job-facts";
-import { employerSignUpHref, identityLabel } from "@/components/seeker/identity";
-import { signOut, useHydrated, useSession } from "@/components/seeker/session-client";
+import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { ManageJobs } from "@/components/employer/ManageJobs";
 
-/** /me: who is signed in, jobs viewed and reports sent from this device, sign out. */
+/** /me (浏览与举报): jobs viewed and reports sent from this device. Account and sign-out are on 我的 (/account). */
 export function MePage() {
-  const router = useRouter();
   const hydrated = useHydrated();
   const session = useSession();
   const views = useViewedJobs();
@@ -37,34 +34,6 @@ export function MePage() {
 
   return (
     <div className="space-y-3">
-      <section className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
-        <div className="min-w-0">
-          <p className="text-xs text-muted">已登录</p>
-          <p className="truncate font-medium">{session.email}</p>
-          <p className="mt-1 text-xs text-muted">
-            当前身份：{identityLabel(session)}
-            {!session.employerId && (
-              <>
-                {" · "}
-                <Link href={employerSignUpHref()} className="text-brand underline underline-offset-2">
-                  开通雇主身份
-                </Link>
-              </>
-            )}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            signOut();
-            router.push("/jobs");
-          }}
-          className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm"
-        >
-          退出登录
-        </button>
-      </section>
-
       {session.activeRole === "employer" ? (
         <section className="space-y-3" aria-label="招聘记录">
           <h2 className="text-lg font-semibold">招聘记录</h2>
