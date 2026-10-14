@@ -1,6 +1,6 @@
 import { COUNTRIES, regionById } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
-import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { EmploymentType, Job } from "@/lib/types";
 
 export type Resume = {
@@ -202,7 +202,7 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
     job.languages.map((item) => LANGUAGE_LABELS[item].zh).join("、") || "未限制语言",
     candidate.languages || "语言资料待补充",
   );
-  const accepted = employmentTypes(job.employmentType);
+  const accepted = job.employmentType;
   add(
     "type",
     "用工形式",

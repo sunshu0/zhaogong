@@ -14,7 +14,7 @@ const full: JobDraft = {
   titleZh: "前厅服务员",
   titleEn: "Front-of-house staff",
   industry: "hospitality",
-  employmentType: "part_time",
+  employmentType: ["part_time"],
   regionId: "akl-mt-eden",
   pay: { min: 25, max: 27 },
   hoursPerWeek: { min: 15, max: 25 },
@@ -60,6 +60,10 @@ describe("form ⇄ draft", () => {
 });
 
 describe("completeJob", () => {
+  it("keeps contact details private unless the employer chose otherwise", () => {
+    expect(completeJob(full, "e1", 0, "active")?.contactPublic).toBe(false);
+    expect(completeJob({ ...full, contactPublic: true }, "e1", 0, "active")?.contactPublic).toBe(true);
+  });
   const now = Date.UTC(2026, 9, 12);
 
   it("fills defaults and runs 30 days from now", () => {
@@ -98,6 +102,13 @@ describe("sanitizeDraft", () => {
       sanitizeDraft({ employmentType: ["part_time", "part_time", "casual", "invalid", 42] }, "NZ").employmentType,
     ).toEqual(["part_time", "casual"]);
     expect(sanitizeDraft({ employmentType: ["invalid"] }, "NZ").employmentType).toBeUndefined();
+  });
+  it("turns a single type from an older draft into a list", () => {
+    expect(sanitizeDraft({ employmentType: "casual" }, "NZ").employmentType).toEqual(["casual"]);
+  });
+  it("keeps the contact choice only when it is a boolean", () => {
+    expect(sanitizeDraft({ contactPublic: true }, "NZ").contactPublic).toBe(true);
+    expect(sanitizeDraft({ contactPublic: "yes" }, "NZ").contactPublic).toBeUndefined();
   });
   it("keeps a well-formed draft as it is", () => {
     expect(sanitizeDraft(full, "NZ")).toEqual(full);

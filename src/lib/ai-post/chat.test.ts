@@ -46,7 +46,7 @@ describe("a full conversation, one question at a time", () => {
     expect(replies(s)).toEqual(["全职", "兼职", "临时工", "全职或兼职", "都可以"]);
 
     s = await say(s, "兼职");
-    expect(s.draft.employmentType).toBe("part_time");
+    expect(s.draft.employmentType).toEqual(["part_time"]);
     expect(s.asking).toBe("visa");
     expect(replies(s)).toContain("学签");
     expect(replies(s)).not.toContain("就这些"); // nothing chosen yet
@@ -98,7 +98,7 @@ describe("a full conversation, one question at a time", () => {
     expect(last(s).text).toContain("先当作兼职");
     expect(replies(s)).toEqual(["对", "全职", "临时工", "全职或兼职", "都可以"]);
     s = await say(s, "对");
-    expect(s.draft.employmentType).toBe("part_time");
+    expect(s.draft.employmentType).toEqual(["part_time"]);
     expect(s.asking).toBe("review");
   });
 });

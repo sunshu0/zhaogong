@@ -46,7 +46,7 @@ describe("EMPLOYER_EXAMPLE", () => {
       titleZh: "前厅服务员",
       titleEn: "Front-of-house staff",
       regionId: "akl-mt-eden",
-      employmentType: "part_time",
+      employmentType: ["part_time"],
       pay: { min: 25, max: 27 },
       hoursPerWeek: { min: 15, max: 25 },
       mealsIncluded: true,

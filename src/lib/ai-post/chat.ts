@@ -6,7 +6,7 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, PRODUCT_NAME, VISA_LABELS } from "@/i18n/labels";
 import { checkJob, type Finding, type JobDraft, type RuleId } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry } from "@/lib/types";
-import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 import {
   englishSummary,
   missingFields,
@@ -364,7 +364,7 @@ function question(s: ChatState, topic: Topic): Question {
           text: `我按${why}先当作${guess}，对吗？`,
           quickReplies: [
             CHIP("对"),
-            ...types.filter(([t]) => !employmentTypes(d.employmentType).includes(t)).map(([, l]) => CHIP(l.zh)),
+            ...types.filter(([t]) => !(d.employmentType ?? []).includes(t)).map(([, l]) => CHIP(l.zh)),
             CHIP("全职或兼职"),
             CHIP("都可以"),
           ],

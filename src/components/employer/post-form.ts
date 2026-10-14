@@ -3,10 +3,10 @@
 import { COUNTRIES } from "@/config/countries";
 import type { JobDraft } from "@/lib/compliance";
 import { missingFields } from "@/lib/ai-post";
-import type { CountryCode, EmploymentType, Industry, Job, LanguageRequirement, VisaAccepted } from "@/lib/types";
-import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
+import type { CountryCode, Industry, Job, LanguageRequirement, VisaAccepted } from "@/lib/types";
+import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { JOB_LIFETIME_DAYS } from "@/components/employer/job-status";
-import { packEmploymentTypes } from "@/lib/employment-types";
+import { normalizeEmploymentTypes } from "@/lib/employment-types";
 
 /** What the form edits. Text is kept as typed; numbers are undefined while empty. */
 export interface PostForm {
@@ -142,6 +142,7 @@ export function completeJob(
     languages: draft.languages ?? [],
     descriptionZh: draft.descriptionZh!,
     descriptionEn: draft.descriptionEn!,
+    contactPublic: draft.contactPublic ?? false,
     contact: draft.contact!,
     status,
     postedAt: new Date(now).toISOString(),
@@ -188,6 +189,7 @@ const oneOf = <T extends string>(v: unknown, allowed: readonly T[]) =>
   allowed.includes(v as T) ? (v as T) : undefined;
 const listOf = <T extends string>(v: unknown, allowed: readonly T[]) =>
   Array.isArray(v) ? [...new Set(v.filter((x): x is T => allowed.includes(x as T)))] : undefined;
+const nonEmpty = <T>(list: T[]) => (list.length ? list : undefined);
 const numRange = (v: unknown) => {
   if (!isObject(v) || num(v.min) == null) return undefined;
   const min = num(v.min)!;
@@ -196,7 +198,6 @@ const numRange = (v: unknown) => {
 };
 
 const INDUSTRIES = Object.keys(INDUSTRY_LABELS) as Industry[];
-const EMPLOYMENT_TYPES = Object.keys(EMPLOYMENT_TYPE_LABELS) as EmploymentType[];
 const VISAS = Object.keys(VISA_LABELS) as VisaAccepted[];
 const LANGUAGES = Object.keys(LANGUAGE_LABELS) as LanguageRequirement[];
 
@@ -209,9 +210,7 @@ export function sanitizeDraft(input: unknown, country: CountryCode): JobDraft {
     titleZh: str(input.titleZh, LIMITS.short),
     titleEn: str(input.titleEn, LIMITS.short),
     industry: oneOf(input.industry, INDUSTRIES),
-    employmentType: Array.isArray(input.employmentType)
-      ? packEmploymentTypes(listOf(input.employmentType, EMPLOYMENT_TYPES) ?? [])
-      : oneOf(input.employmentType, EMPLOYMENT_TYPES),
+    employmentType: nonEmpty(normalizeEmploymentTypes(input.employmentType)),
     regionId: oneOf(input.regionId, regions),
     address: str(input.address, LIMITS.address),
     pay: numRange(input.pay),
@@ -220,6 +219,7 @@ export function sanitizeDraft(input: unknown, country: CountryCode): JobDraft {
     mealsIncluded: bool(input.mealsIncluded),
     accommodationIncluded: bool(input.accommodationIncluded),
     urgent: bool(input.urgent),
+    contactPublic: bool(input.contactPublic),
     visaAccepted: listOf(input.visaAccepted, VISAS),
     languages: listOf(input.languages, LANGUAGES),
     descriptionZh: str(input.descriptionZh, LIMITS.long),

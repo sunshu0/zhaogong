@@ -32,7 +32,7 @@ describe("parsePost", () => {
       titleZh: "前厅服务员",
       titleEn: "Front-of-house staff",
       industry: "hospitality",
-      employmentType: "part_time", // inferred from 15–25 hours a week
+      employmentType: ["part_time"], // inferred from 15–25 hours a week
       regionId: "akl-mt-eden",
       pay: { min: 25, max: 27 },
       hoursPerWeek: { min: 15, max: 25 },
@@ -62,7 +62,7 @@ describe("parsePost", () => {
       titleZh: "点心师傅",
       titleEn: "Dim sum chef",
       industry: "hospitality",
-      employmentType: "full_time",
+      employmentType: ["full_time"],
       regionId: "akl-northcote",
       pay: { min: 30, max: 35 },
       mealsIncluded: true,
@@ -82,7 +82,7 @@ describe("parsePost", () => {
       regionId: "akl-botany",
       pay: { min: 24 },
       hoursPerWeek: { min: 20, max: 30 },
-      employmentType: "part_time",
+      employmentType: ["part_time"],
       accommodationIncluded: false,
       contact: { phone: "0215550103" },
     });
@@ -99,7 +99,7 @@ describe("parsePost", () => {
       regionId: "akl-albany",
       pay: { min: 32, max: 40 },
       hoursPerWeek: { min: 40, max: 50 },
-      employmentType: "full_time",
+      employmentType: ["full_time"],
       contact: { wechat: "anju_reno88" },
     });
     expect(draft.visaAccepted).toEqual(["citizen_resident", "open_work"]);
@@ -124,7 +124,7 @@ describe("parsePost", () => {
     expect(draft).toMatchObject({
       titleZh: "店员",
       industry: "hospitality",
-      employmentType: "part_time",
+      employmentType: ["part_time"],
       regionId: "akl-cbd",
       pay: { min: 20 },
       contact: { wechat: "cbdtea_demo" },
@@ -140,7 +140,7 @@ describe("parsePost", () => {
       titleZh: "厨房帮工",
       titleEn: "Kitchen hand",
       industry: "hospitality",
-      employmentType: "full_time",
+      employmentType: ["full_time"],
       regionId: "akl-mt-wellington",
       pay: { min: 26 },
       hoursPerWeek: { min: 40 },
@@ -158,7 +158,7 @@ describe("parsePost", () => {
       titleEn: "Delivery driver",
       industry: "driver",
       urgent: true,
-      employmentType: "full_time",
+      employmentType: ["full_time"],
       shiftsZh: "周一到周五",
       pay: { min: 27, max: 30 },
       regionId: "akl-mt-wellington",

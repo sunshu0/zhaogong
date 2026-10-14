@@ -10,7 +10,7 @@ import {
 } from "@/i18n/labels";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
-import { employmentTypes, formatEmploymentTypes } from "@/lib/employment-types";
+import { formatEmploymentTypes } from "@/lib/employment-types";
 
 export type SharePlatform = "wechat" | "xiaohongshu" | "skykiwi";
 
@@ -51,7 +51,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
 
   const hashtags = [
     `#${area}找工作`,
-    ...employmentTypes(job.employmentType).map((value) => `#${area}${EMPLOYMENT_TYPE_LABELS[value].zh}`),
+    ...job.employmentType.map((value) => `#${area}${EMPLOYMENT_TYPE_LABELS[value].zh}`),
     job.industry !== "other" && `#${area}${INDUSTRY_LABELS[job.industry].zh}`,
     job.visaAccepted.includes("student") && "#留学生兼职",
     job.visaAccepted.includes("working_holiday") && `#${country.nameZh}打工度假`,

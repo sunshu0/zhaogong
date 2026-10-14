@@ -56,8 +56,8 @@ export interface Job {
   titleZh: string;
   titleEn: string;
   industry: Industry;
-  /** A single type for existing jobs, or several accepted forms of employment. */
-  employmentType: EmploymentType | EmploymentType[];
+  /** Every form of employment the job accepts, in the usual order (全职, 兼职, 临时工). */
+  employmentType: EmploymentType[];
   regionId: string;
   /** Street-level address is optional; suburb comes from regionId. */
   address?: string;
@@ -71,7 +71,12 @@ export interface Job {
   languages: LanguageRequirement[];
   descriptionZh: string;
   descriptionEn: string;
-  /** Shown only to signed-in users. */
+  /**
+   * The employer's choice: true shows `contact` to signed-in job seekers on the job page; false
+   * (the default) means details are only swapped in chat once both sides agree.
+   */
+  contactPublic: boolean;
+  /** Shown only to signed-in users, and only when `contactPublic` is true. */
   contact: { phone?: string; wechat?: string; email?: string };
   status: "active" | "expired" | "removed" | "pending_review";
   postedAt: string; // ISO datetime

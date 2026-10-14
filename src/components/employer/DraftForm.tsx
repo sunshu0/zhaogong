@@ -4,7 +4,7 @@ import type { RequiredField } from "@/lib/ai-post";
 import type { Finding } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry } from "@/lib/types";
 import type { PostForm } from "@/components/employer/post-form";
-import { employmentTypes, packEmploymentTypes } from "@/lib/employment-types";
+import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import {
   Chip,
   Field,
@@ -90,7 +90,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
 /** 全职 / 兼职 / 临时工: a job can be more than one. */
 function EmploymentTypeGroup({ kit }: { kit: FieldKit }) {
   const { form, set, state } = kit;
-  const chosenTypes = employmentTypes(form.employmentType);
+  const chosenTypes = form.employmentType ?? [];
   return (
     <Group name="employmentType" legend="工作类型" required {...state("employmentType")}>
       <div className="flex flex-wrap gap-2">
@@ -100,7 +100,9 @@ function EmploymentTypeGroup({ kit }: { kit: FieldKit }) {
             type="checkbox"
             name="employmentType"
             checked={chosenTypes.includes(value as EmploymentType)}
-            onChange={() => set({ employmentType: packEmploymentTypes(toggle(chosenTypes, value as EmploymentType)) })}
+            onChange={() =>
+              set({ employmentType: normalizeEmploymentTypes(toggle(chosenTypes, value as EmploymentType)) })
+            }
           >
             {l.zh}
           </Chip>

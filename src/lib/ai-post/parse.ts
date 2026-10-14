@@ -3,7 +3,7 @@
 import { COUNTRIES, regionById } from "@/config/countries";
 import type { JobDraft } from "@/lib/compliance";
 import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
-import { formatEmploymentTypes, packEmploymentTypes } from "@/lib/employment-types";
+import { formatEmploymentTypes, normalizeEmploymentTypes } from "@/lib/employment-types";
 import type { CountryCode, EmploymentType, Industry, Job, VisaAccepted } from "@/lib/types";
 import { INDUSTRY_WORDS, LANGUAGE_WORDS, REGION_ALIASES, TITLES, VISA_WORDS, type TitleEntry } from "./vocabulary";
 
@@ -185,12 +185,12 @@ function findEmploymentType(lower: string, hours: Job["hoursPerWeek"]): Job["emp
       );
     }),
   ).map(([type]) => type);
-  if (found.length) return packEmploymentTypes(found);
+  if (found.length) return normalizeEmploymentTypes(found);
   // An explicit exclusion must not become an inferred choice from hours.
   if (EMPLOYMENT_WORDS.some(([, re]) => re.test(lower))) return undefined;
   // No word for it: guess from the hours, the employer can change it in the form.
-  if (hours && (hours.max ?? hours.min) <= 30) return "part_time";
-  if (hours && hours.min >= 35) return "full_time";
+  if (hours && (hours.max ?? hours.min) <= 30) return ["part_time"];
+  if (hours && hours.min >= 35) return ["full_time"];
   return undefined;
 }
 

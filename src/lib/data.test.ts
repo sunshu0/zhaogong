@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { listJobs, matchesFilter } from "@/lib/data";
+import { createJob, getJob, listJobs, matchesFilter, updateJob } from "@/lib/data";
+import type { Job } from "@/lib/types";
 import { MOCK_JOBS } from "@/mock/data";
 
 describe("job filter", () => {
@@ -160,5 +161,27 @@ describe("accounts and the employer identity", () => {
     await openEmployerIdentity("owner4@example.com", shop.id);
     await banEmployer(shop.id);
     expect(await getAccountEmployer("owner4@example.com")).toBeUndefined();
+  });
+});
+
+describe("job shape", () => {
+  it("stores employment types as a list and contact details as private by default", async () => {
+    const { id: _id, contactPublic: _public, ...rest } = MOCK_JOBS[1];
+    const legacy = { ...rest, employmentType: "casual" } as unknown as Omit<Job, "id">;
+    const created = await createJob(legacy);
+    expect(created.employmentType).toEqual(["casual"]);
+    expect(created.contactPublic).toBe(false);
+
+    await updateJob(created.id, { employmentType: ["casual", "full_time"] });
+    expect((await getJob(created.id))?.employmentType).toEqual(["full_time", "casual"]);
+    expect((await getJob(created.id))?.contactPublic).toBe(false);
+  });
+
+  it("has a few demo jobs with public contact details and none hidden on the others", () => {
+    const shown = MOCK_JOBS.filter((j) => j.contactPublic);
+    expect(shown.length).toBeGreaterThanOrEqual(2);
+    expect(shown.length).toBeLessThanOrEqual(3);
+    for (const job of shown) expect(Object.values(job.contact).some(Boolean)).toBe(true);
+    for (const job of MOCK_JOBS.filter((j) => !j.contactPublic)) expect(job.contact).toEqual({});
   });
 });
