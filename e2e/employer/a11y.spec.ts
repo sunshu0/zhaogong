@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { CLEAN_MESSAGE, openTheForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+import { CLEAN_MESSAGE, openTheForm, publishJob, signUpEmployer, uniqueTitle, openReportForm } from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
@@ -94,7 +94,7 @@ test("moderation queue, each tab", async ({ page }, testInfo) => {
     CLEAN_MESSAGE.replace("Mt Eden 川菜馆", "Mt Eden KTV 楼下川菜馆"),
   );
   await page.goto(`/jobs/${id}`);
-  await page.getByRole("button", { name: "举报这个职位" }).click();
+  await openReportForm(page);
   await page.getByRole("group", { name: "举报这个职位" }).getByLabel("虚假职位").check();
   await page.getByRole("button", { name: "提交举报" }).click();
   await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");

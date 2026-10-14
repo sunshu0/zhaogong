@@ -114,3 +114,15 @@ export async function sayInChat(page: Page, text: string) {
 export function lastAssistant(page: Page) {
   return page.getByRole("log").getByRole("listitem").filter({ hasText: "助手：" }).last();
 }
+
+/**
+ * Opens the report form on a job page. A click that lands before the page hydrates does nothing,
+ * so click again until the form shows.
+ */
+export async function openReportForm(page: Page) {
+  const form = page.getByRole("group", { name: "举报这个职位" });
+  await expect(async () => {
+    if (!(await form.isVisible())) await page.getByRole("button", { name: "举报这个职位" }).click();
+    await expect(form).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+}

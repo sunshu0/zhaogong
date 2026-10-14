@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { CLEAN_MESSAGE, jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle } from "./helpers";
+import {
+  CLEAN_MESSAGE,
+  jobCard,
+  publishJob,
+  searchJobList,
+  signUpEmployer,
+  uniqueTitle,
+  openReportForm,
+} from "./helpers";
 
 test("report a job → /admin takes it down → gone from the list and in the log", async ({ page }, testInfo) => {
   const shop = await signUpEmployer(page, testInfo);
@@ -8,7 +16,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
 
   // A job seeker reports it.
   await page.goto(`/jobs/${id}`);
-  await page.getByRole("button", { name: "举报这个职位" }).click();
+  await openReportForm(page);
   await page.getByRole("group", { name: "举报这个职位" }).getByLabel("收押金 / 介绍费").check();
   await page.getByLabel("补充说明（选填）").fill(`打电话说要先交押金（${title}）`);
   await page.getByRole("button", { name: "提交举报" }).click();
