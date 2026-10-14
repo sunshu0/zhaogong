@@ -96,7 +96,7 @@ function JobSummary({ job, status, views, now }: { job: Job; status: ShownStatus
       <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
         <span className="font-medium text-brand">{formatPay(job.pay, job.country)}</span>
         <span className="text-muted">{expiryLabelZh(job, now)}</span>
-        <span className="text-muted">{views} 人查看了联系方式</span>
+        <span className="text-muted">{job.contactPublic ? `${views} 人查看了联系方式` : "不公开 · 聊天交换"}</span>
         {hires && <span className="font-medium text-ok">{hires}</span>}
       </p>
     </>

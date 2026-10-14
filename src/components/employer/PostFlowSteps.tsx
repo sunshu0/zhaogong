@@ -85,7 +85,7 @@ export function PasteStep({
         一分钟发布招聘
       </h1>
       <label htmlFor="post-text" className="block text-sm text-muted">
-        把微信群里的招聘消息粘贴进来，或者直接写：招什么人、在哪个区、时薪多少、怎么联系你。
+        把微信群里的招聘消息粘贴进来，或者直接写：招什么人、在哪个区、时薪多少。
       </label>
       <textarea
         id="post-text"
@@ -168,7 +168,11 @@ export function PreviewStep({
       <JobDetail job={preview} employer={employer} now={previewAt}>
         <section className="rounded-xl border border-border bg-surface p-4">
           <h2 className="font-medium">联系方式</h2>
-          <p className="mt-1 text-sm text-muted">登录后可以查看雇主的{contactKinds(preview).join("、")}。</p>
+          <p className="mt-1 text-sm text-muted">
+            {preview.contactPublic
+              ? `登录后可以查看雇主的${contactKinds(preview).join("、")}。`
+              : "雇主没有公开联系方式。求职者可以在聊天中申请交换，双方同意后才交换。"}
+          </p>
         </section>
       </JobDetail>
       {banned && (

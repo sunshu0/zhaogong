@@ -1,5 +1,6 @@
 "use client";
 // The last three sections of the job form (DraftForm): requirements, description, contact.
+import Link from "next/link";
 import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { LanguageRequirement, VisaAccepted } from "@/lib/types";
 import { Chip, Field, Group, Section, toggle, type FieldKit } from "@/components/employer/DraftFormParts";
@@ -89,26 +90,63 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
   );
 }
 
+/** The employer's choice first: private (the default, swapped in chat) or shown to signed-in job seekers. */
+const CONTACT_CHOICES = [
+  [false, "不公开，求职者在聊天中申请交换", "你同意后，双方才交换联系方式。"],
+  [true, "公开给登录的求职者", "登录的求职者在职位页直接看到。"],
+] as const;
+
 export function ContactSection({ kit }: { kit: FieldKit }) {
   const { form, set, state, box } = kit;
   return (
     <Section title="联系方式">
-      <Group name="contact" legend="至少填一种" required hint="只有登录的求职者才能看到。" {...state("contact")}>
-        <div className="space-y-2">
-          {CONTACT_FIELDS.map(([key, label, type, placeholder]) => (
-            <label key={key} className="flex items-center gap-2">
-              <span className="w-12 shrink-0 text-sm">{label}</span>
-              <input
-                type={type}
-                value={form[key]}
-                onChange={(e) => set({ [key]: e.target.value })}
-                placeholder={placeholder}
-                className={`h-11 ${box("contact")}`}
-              />
-            </label>
-          ))}
-        </div>
-      </Group>
+      <fieldset id="field-contactPublic" className="scroll-mt-20 space-y-2">
+        <legend className="mb-1.5 text-sm font-medium">求职者怎么联系你</legend>
+        {CONTACT_CHOICES.map(([value, label, note]) => (
+          <label
+            key={label}
+            className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
+          >
+            <input
+              type="radio"
+              name="contactPublic"
+              checked={form.contactPublic === value}
+              onChange={() => set({ contactPublic: value })}
+              className="mt-1 accent-brand"
+            />
+            <span>
+              <span className="block text-sm">{label}</span>
+              <span className="block text-xs text-muted">{note}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      {form.contactPublic ? (
+        <Group name="contact" legend="至少填一种" required hint="只有登录的求职者才能看到。" {...state("contact")}>
+          <div className="space-y-2">
+            {CONTACT_FIELDS.map(([key, label, type, placeholder]) => (
+              <label key={key} className="flex items-center gap-2">
+                <span className="w-12 shrink-0 text-sm">{label}</span>
+                <input
+                  type={type}
+                  value={form[key]}
+                  onChange={(e) => set({ [key]: e.target.value })}
+                  placeholder={placeholder}
+                  className={`h-11 ${box("contact")}`}
+                />
+              </label>
+            ))}
+          </div>
+        </Group>
+      ) : (
+        <p className="text-sm text-muted">
+          不用在这里填写。交换时给求职者的资料，请在
+          <Link href="/profile" className="text-brand underline underline-offset-2">
+            企业主页
+          </Link>
+          的「私密交换资料」里填好。
+        </p>
+      )}
     </Section>
   );
 }

@@ -41,7 +41,8 @@ describe("form ⇄ draft", () => {
     expect(completeJob({ ...draft, employmentType: [] }, "e1", 0, "active")).toBeUndefined();
   });
   it("round-trips a full draft", () => {
-    expect(draftFromForm(formFromDraft(full), "NZ")).toEqual({ ...full, accommodationIncluded: false });
+    const shown = { ...full, contactPublic: true };
+    expect(draftFromForm(formFromDraft(shown), "NZ")).toEqual({ ...shown, accommodationIncluded: false });
   });
 
   it("drops empty text, empty contact and a pay without its lower end", () => {
@@ -93,6 +94,34 @@ describe("editPatch", () => {
     expect(Object.keys(patch)).toContain("shiftsZh");
     for (const key of ["postedAt", "expiresAt", "employerId", "country", "status"])
       expect(patch).not.toHaveProperty(key);
+  });
+});
+
+describe("contact choice", () => {
+  it("defaults to private and keeps typed details out of a private draft", () => {
+    const form = formFromDraft(full);
+    expect(form.contactPublic).toBe(false);
+    expect(form.wechat).toBe(full.contact!.wechat);
+    expect(draftFromForm(form, "NZ").contact).toEqual({});
+    expect(draftFromForm(form, "NZ").contactPublic).toBe(false);
+  });
+
+  it("keeps the details of a public draft", () => {
+    const draft = draftFromForm({ ...formFromDraft(full), contactPublic: true }, "NZ");
+    expect(draft.contactPublic).toBe(true);
+    expect(draft.contact).toEqual(full.contact);
+  });
+
+  it("publishes a private job without contact details, and a public one only with them", () => {
+    expect(completeJob({ ...full, contactPublic: false, contact: undefined }, "e1", 0, "active")?.contact).toEqual({});
+    expect(completeJob({ ...full, contactPublic: false }, "e1", 0, "active")?.contact).toEqual({});
+    expect(completeJob({ ...full, contactPublic: true, contact: {} }, "e1", 0, "active")).toBeUndefined();
+    expect(completeJob({ ...full, contactPublic: true }, "e1", 0, "active")?.contact).toEqual(full.contact);
+  });
+
+  it("lets an edit change the choice", () => {
+    const job = completeJob({ ...full, contactPublic: true }, "e1", 0, "active")!;
+    expect(editPatch(job).contactPublic).toBe(true);
   });
 });
 

@@ -186,7 +186,7 @@ describe("parsePost", () => {
   it("lists what a minimal post leaves out", async () => {
     const { draft, missing } = await parsePost(MSG.minimal, "NZ");
     expect(draft).toMatchObject({ titleZh: "洗碗工", titleEn: "Dishwasher", industry: "hospitality" });
-    expect(missing).toEqual(["employmentType", "pay", "regionId", "visaAccepted", "contact"]);
+    expect(missing).toEqual(["employmentType", "pay", "regionId", "visaAccepted"]);
   });
 
   it("reads full-width digits and letters but keeps the text as written", async () => {
@@ -231,8 +231,15 @@ describe("missingFields", () => {
   it("requires at least one employment type", () => {
     expect(missingFields({ employmentType: [] })).toContain("employmentType");
   });
+
+  it("asks for contact details only when the employer makes them public", () => {
+    expect(missingFields({})).not.toContain("contact");
+    expect(missingFields({ contactPublic: false })).not.toContain("contact");
+    expect(missingFields({ contactPublic: true })).toContain("contact");
+    expect(missingFields({ contactPublic: true, contact: { wechat: "abc_123" } })).not.toContain("contact");
+  });
   it("treats empty lists and empty contact as missing", () => {
     expect(missingFields({ titleZh: "x", visaAccepted: [], contact: {} })).toContain("visaAccepted");
-    expect(missingFields({ titleZh: "x", visaAccepted: [], contact: {} })).toContain("contact");
+    expect(missingFields({ titleZh: "x", visaAccepted: [], contactPublic: true, contact: {} })).toContain("contact");
   });
 });

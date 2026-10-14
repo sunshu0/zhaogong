@@ -72,4 +72,15 @@ describe("shareTexts", () => {
     expect(t.skykiwi).not.toMatch(/\n\n\n/);
     expect(t.xiaohongshu).not.toContain("#留学生兼职");
   });
+
+  it("does not promise contact details behind the link when the job keeps them private", () => {
+    const t = shareTexts({ ...job, contactPublic: false, contact: {} }, employer, url);
+    for (const [platform, text] of Object.entries(t)) {
+      expect(text, platform).toContain(url);
+      expect(text, platform).not.toContain("联系方式");
+    }
+    expect(t.wechat.split("\n").at(-1)).toBe(`👉 详情和在线沟通：${url}`);
+    expect(t.xiaohongshu).toContain("职位详情看链接，可以在线和雇主沟通👇");
+    expect(t.skykiwi).toContain(`\n\n详情和在线沟通：${url}`);
+  });
 });

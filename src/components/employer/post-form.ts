@@ -28,6 +28,9 @@ export interface PostForm {
   languages: LanguageRequirement[];
   descriptionZh: string;
   descriptionEn: string;
+  /** Show the details below to signed-in job seekers; otherwise they are swapped in chat. */
+  contactPublic: boolean;
+  /** Kept while the employer switches the choice back and forth; only a public job stores them. */
   phone: string;
   wechat: string;
   email: string;
@@ -46,6 +49,7 @@ export function emptyForm(): PostForm {
     languages: [],
     descriptionZh: "",
     descriptionEn: "",
+    contactPublic: false,
     phone: "",
     wechat: "",
     email: "",
@@ -73,6 +77,7 @@ export function formFromDraft(draft: JobDraft): PostForm {
     languages: draft.languages ?? [],
     descriptionZh: draft.descriptionZh ?? "",
     descriptionEn: draft.descriptionEn ?? "",
+    contactPublic: draft.contactPublic ?? false,
     phone: draft.contact?.phone ?? "",
     wechat: draft.contact?.wechat ?? "",
     email: draft.contact?.email ?? "",
@@ -106,11 +111,14 @@ export function draftFromForm(form: PostForm, country: CountryCode): JobDraft {
     languages: form.languages,
     descriptionZh: text(form.descriptionZh),
     descriptionEn: text(form.descriptionEn),
-    contact: {
-      ...(text(form.phone) && { phone: text(form.phone) }),
-      ...(text(form.wechat) && { wechat: text(form.wechat) }),
-      ...(text(form.email) && { email: text(form.email) }),
-    },
+    contactPublic: form.contactPublic,
+    contact: form.contactPublic
+      ? {
+          ...(text(form.phone) && { phone: text(form.phone) }),
+          ...(text(form.wechat) && { wechat: text(form.wechat) }),
+          ...(text(form.email) && { email: text(form.email) }),
+        }
+      : {},
   };
   for (const key of Object.keys(draft) as (keyof JobDraft)[]) if (draft[key] === undefined) delete draft[key];
   return draft;
@@ -143,7 +151,8 @@ export function completeJob(
     descriptionZh: draft.descriptionZh!,
     descriptionEn: draft.descriptionEn!,
     contactPublic: draft.contactPublic ?? false,
-    contact: draft.contact!,
+    // A private job keeps no contact details: they are swapped in chat once both sides agree.
+    contact: draft.contactPublic ? draft.contact! : {},
     status,
     postedAt: new Date(now).toISOString(),
     expiresAt: new Date(now + JOB_LIFETIME_DAYS * 86_400_000).toISOString(),
@@ -168,6 +177,7 @@ const EDITABLE_FIELDS = [
   "languages",
   "descriptionZh",
   "descriptionEn",
+  "contactPublic",
   "contact",
   "urgent",
 ] as const satisfies readonly (keyof Job)[];

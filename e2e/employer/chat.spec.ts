@@ -49,10 +49,16 @@ test("a full conversation, from a short message to a published job", async ({ pa
   await expect(lastAssistant(page)).toContainText("已加上：学签");
   await page.getByRole("button", { name: "就这些" }).click();
   await page.getByRole("button", { name: "包餐", exact: true }).click();
+  // Contact details stay private unless the employer makes them public.
+  await expect(lastAssistant(page)).toContainText("都齐了");
+  await expect(lastAssistant(page)).toContainText("联系方式不公开");
+  await expect(card).toContainText("不公开 · 聊天交换");
+  await page.getByRole("button", { name: "公开联系方式", exact: true }).click();
   await expect(lastAssistant(page)).toContainText("求职者怎么联系你");
   await sayInChat(page, "demo_e2e_chat");
 
   await expect(lastAssistant(page)).toContainText("都齐了");
+  await expect(lastAssistant(page)).toContainText("联系方式公开");
   await expect(card).toContainText("可以预览");
   await page.getByRole("button", { name: "预览并发布" }).click();
 

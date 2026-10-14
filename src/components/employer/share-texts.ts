@@ -1,5 +1,5 @@
 // Ready-made posts for the places employers already advertise. No contact details: seekers follow
-// the link, where contact shows after sign-in.
+// the link, where contact shows after sign-in when the job makes it public, or they start a chat.
 import { COUNTRIES, regionById } from "@/config/countries";
 import {
   EMPLOYMENT_TYPE_LABELS,
@@ -39,6 +39,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
   const perks = [job.mealsIncluded && "包餐", job.accommodationIncluded && "包住"].filter(Boolean).join("、");
   const languages = job.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、");
   const visas = job.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、");
+  const follow = job.contactPublic ? "详情和联系方式" : "详情和在线沟通";
 
   const wechat = lines(
     `【招聘】${job.titleZh}${by}`,
@@ -46,7 +47,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
     `💰 ${[pay, type, hours].filter(Boolean).join(" · ")}`,
     !!job.shiftsZh && `🕒 ${job.shiftsZh}`,
     tags.length > 0 && `✅ ${tags.join(" · ")}`,
-    `👉 详情和联系方式：${url}`,
+    `👉 ${follow}：${url}`,
   );
 
   const hashtags = [
@@ -63,7 +64,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
     `💰 时薪 ${pay.replace("/小时", "")}`,
     !!region && `📍 ${region.nameZh}`,
     tags.length > 0 && `✅ ${tags.join(" · ")}`,
-    "职位详情和联系方式看链接👇",
+    job.contactPublic ? "职位详情和联系方式看链接👇" : "职位详情看链接，可以在线和雇主沟通👇",
     url,
     "",
     hashtags.join(" "),
@@ -87,7 +88,7 @@ export function shareTexts(job: Job, employer: Employer | undefined, url: string
     "Job description:",
     job.descriptionEn,
     "",
-    `详情和联系方式：${url}`,
+    `${follow}：${url}`,
   );
 
   return { wechat, xiaohongshu, skykiwi };

@@ -64,11 +64,20 @@ describe("a full conversation, one question at a time", () => {
 
     s = await say(s, "包餐");
     expect(s.draft).toMatchObject({ mealsIncluded: true, accommodationIncluded: false });
+    expect(s.asking).toBe("review");
+    expect(last(s).text).toContain("联系方式不公开：求职者在聊天里申请交换，你同意后才给。");
+    expect(replies(s)).toContain("公开联系方式");
+    expect(missingFields(s.draft)).toEqual([]);
+
+    s = await say(s, "公开联系方式");
+    expect(s.draft.contactPublic).toBe(true);
     expect(s.asking).toBe("contact");
 
     s = await say(s, "demo_wash");
     expect(s.draft.contact).toEqual({ wechat: "demo_wash" });
     expect(s.asking).toBe("review");
+    expect(last(s).text).toContain("联系方式公开：登录的求职者能在职位页看到你的微信。");
+    expect(replies(s)).toContain("不公开联系方式");
     expect(last(s).text).toContain("洗碗工");
     expect(last(s).text).toContain("$25/小时");
     expect(replies(s)).toContain("预览并发布");
@@ -100,6 +109,36 @@ describe("a full conversation, one question at a time", () => {
     s = await say(s, "对");
     expect(s.draft.employmentType).toEqual(["part_time"]);
     expect(s.asking).toBe("review");
+  });
+});
+
+describe("contact details: private unless the employer makes them public", () => {
+  const POST = "Mt Eden 川菜馆招前厅服务员，全职，时薪 $25-27，每周 40 小时，包工作餐，学签可做。微信 demo_chuanwei";
+
+  it("does not ask for contact details, and says the ones in the post stay hidden", async () => {
+    const s = await say(startChat("NZ"), POST);
+    expect(s.asking).toBe("review");
+    expect(s.draft.contactPublic).toBeUndefined();
+    expect(last(s).text).toContain("联系方式不公开：你写的微信不会显示，求职者在聊天里申请交换，你同意后才给。");
+    expect(last(s).text).toContain("企业主页");
+  });
+
+  it("makes the details in the post public without asking for them again", async () => {
+    const s = await say(startChat("NZ"), POST, "公开联系方式");
+    expect(s.draft).toMatchObject({ contactPublic: true, contact: { wechat: "demo_chuanwei" } });
+    expect(s.asking).toBe("review");
+    expect(last(s).text).toContain("联系方式公开");
+  });
+
+  it("can switch back to private", async () => {
+    const s = await say(startChat("NZ"), POST, "公开联系方式", "不公开联系方式");
+    expect(s.draft.contactPublic).toBe(false);
+    expect(s.asking).toBe("review");
+    expect(last(s).text).toContain("联系方式不公开");
+  });
+
+  it("no longer asks how to be contacted in its greeting", () => {
+    expect(last(startChat("NZ")).text).not.toContain("怎么联系你");
   });
 });
 

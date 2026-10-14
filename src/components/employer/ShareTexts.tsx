@@ -34,7 +34,12 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
         }
       />
       <TabPanel idBase={id} value={platform} className="space-y-2">
-        <p className="text-xs text-muted">{current.hint}文案里没有联系方式，求职者点链接查看。</p>
+        <p className="text-xs text-muted">
+          {current.hint}
+          {job.contactPublic
+            ? "文案里没有联系方式，求职者点链接查看。"
+            : "文案里没有联系方式，求职者点链接后在聊天里联系你。"}
+        </p>
         <textarea
           readOnly
           value={texts[platform]}

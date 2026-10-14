@@ -38,6 +38,7 @@ export async function parsePost(text: string, country: CountryCode): Promise<Par
 
 export function missingFields(draft: JobDraft): RequiredField[] {
   return REQUIRED_FIELDS.filter((field) => {
+    if (field === "contact" && draft.contactPublic !== true) return false;
     const value = draft[field];
     if (value == null) return true;
     if (typeof value === "string") return value.trim() === "";

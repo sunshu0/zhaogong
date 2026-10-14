@@ -85,12 +85,12 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
     "中文描述 *",
     "英文描述 *",
     "按表格重新生成",
-    "电话",
-    "微信号",
-    "邮箱",
+    "企业主页",
   ]) {
     expect.soft(stops, `Tab never reaches ${field}`).toContain(field);
   }
+  // The contact choice is one radio group (private by default), reached by Tab like the rest.
+  expect.soft(stops.some((label) => label.startsWith("不公开，求职者在聊天中申请交换"))).toBe(true);
 
   // A field changed from the keyboard still runs the checks.
   await page.getByLabel("职位名称（中文）").focus();

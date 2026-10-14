@@ -81,7 +81,7 @@ export function startChat(country: CountryCode): ChatState {
       {
         id: "m1",
         from: "assistant",
-        text: `你好！我是${PRODUCT_NAME}的发帖助手，一步步帮你把招聘写清楚。\n先用你自己的话说说这份工作：招什么人、在哪个区、时薪多少、怎么联系你。直接粘贴微信群里的招聘消息也行。`,
+        text: `你好！我是${PRODUCT_NAME}的发帖助手，一步步帮你把招聘写清楚。\n先用你自己的话说说这份工作：招什么人、在哪个区、时薪多少。直接粘贴微信群里的招聘消息也行。`,
         quickReplies: [{ label: "用示例试试", value: SAMPLE_POST }],
       },
     ],
@@ -127,6 +127,8 @@ const SKIP = /(不固定|跳过|看情况|不一定|灵活|不确定)/;
 const ALL = /(都可以|都行|都接受|全部)/;
 const REMOVE = /(去掉|不要|删掉|删除|取消)/;
 const PREVIEW = /(预览|发布|没问题|可以了|就这样|好了)/;
+const MAKE_PRIVATE = /不公开/;
+const MAKE_PUBLIC = /公开/;
 
 async function answer(state: ChatState, topic: Topic, text: string): Promise<Answered> {
   const s = clone(state);
@@ -269,9 +271,17 @@ async function answer(state: ChatState, topic: Topic, text: string): Promise<Ans
         return { ok: false, retry: "没认出电话、微信号或邮箱，再发一次？例如 021 123 4567，或者微信号 abc_123。" };
       }
       d.contact = found;
-      return { ok: true, state: s, ack: "好，联系方式记下了，只有登录的求职者才能看到。" };
+      return {
+        ok: true,
+        state: s,
+        ack: d.contactPublic ? "好，联系方式记下了，只有登录的求职者才能看到。" : "好，联系方式记下了。",
+      };
     }
     case "review": {
+      if (MAKE_PRIVATE.test(text) || MAKE_PUBLIC.test(text)) {
+        d.contactPublic = !MAKE_PRIVATE.test(text);
+        return { ok: true, state: s, ack: d.contactPublic ? "好，联系方式改为公开。" : "好，联系方式不公开。" };
+      }
       if (!PREVIEW.test(text))
         return { ok: false, retry: "还有要改的吗？可以说「改一下时薪」，或者点「预览并发布」。" };
       s.ready = true;
@@ -401,8 +411,13 @@ function question(s: ChatState, topic: Topic): Question {
     default:
       return {
         topic: "review",
-        text: `都齐了：${summary(d)}。\n确认没问题就预览发布；想改哪里直接说，比如「改一下时薪」。`,
-        quickReplies: [CHIP("预览并发布"), CHIP("改一下时薪"), CHIP("改一下地区"), CHIP("改一下联系方式")],
+        text: `都齐了：${summary(d)}。\n${contactChoice(d)}\n确认没问题就预览发布；想改哪里直接说，比如「改一下时薪」。`,
+        quickReplies: [
+          CHIP("预览并发布"),
+          CHIP(d.contactPublic ? "不公开联系方式" : "公开联系方式"),
+          CHIP("改一下时薪"),
+          CHIP("改一下地区"),
+        ],
       };
   }
 }
@@ -552,12 +567,20 @@ function perksText(d: JobDraft): string {
   return "不包吃住";
 }
 
+const contactKinds = (d: JobDraft) =>
+  [d.contact?.phone && "电话", d.contact?.wechat && "微信", d.contact?.email && "邮箱"].filter(Boolean).join("、");
+
+/** The employer's contact choice in one line, with how to change it (private unless they made it public). */
+function contactChoice(d: JobDraft): string {
+  const kinds = contactKinds(d);
+  if (d.contactPublic) return `联系方式公开：登录的求职者能在职位页看到你的${kinds}。`;
+  const given = kinds ? `你写的${kinds}不会显示，` : "";
+  return `联系方式不公开：${given}求职者在聊天里申请交换，你同意后才给。交换用的资料在企业主页填写。想公开就点「公开联系方式」。`;
+}
+
 /** What the draft says so far, in one line. */
 function summary(d: JobDraft): string {
   const country = d.country ?? "NZ";
-  const contactKinds = [d.contact?.phone && "电话", d.contact?.wechat && "微信", d.contact?.email && "邮箱"].filter(
-    Boolean,
-  );
   return [
     d.titleZh,
     d.pay && `${COUNTRIES[country].currencySymbol}${range(d.pay, money)}/小时`,
@@ -566,7 +589,6 @@ function summary(d: JobDraft): string {
     d.hoursPerWeek && `每周 ${range(d.hoursPerWeek)} 小时`,
     (d.mealsIncluded != null || d.accommodationIncluded != null) && perksText(d),
     d.visaAccepted?.length && `签证：${d.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、")}`,
-    contactKinds.length && `联系方式：${contactKinds.join("、")}`,
   ]
     .filter(Boolean)
     .join(" · ");

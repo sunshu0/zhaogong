@@ -61,7 +61,10 @@ export function DraftCard({ draft, country }: { draft: JobDraft; country: Countr
           label="语言"
           value={draft.languages?.length ? draft.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、") : "可不填"}
         />
-        <Row label="联系" value={contact ? `${contact}（登录后可见）` : undefined} />
+        <Row
+          label="联系"
+          value={draft.contactPublic ? contact && `公开：${contact}（登录后可见）` : "不公开 · 聊天交换"}
+        />
       </dl>
       {decision.status === "pending_review" && <p className="mt-2 text-xs text-warn">这个职位发布后要人工审核。</p>}
     </section>
