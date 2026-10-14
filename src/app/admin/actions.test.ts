@@ -1,6 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { approveJob, banJobEmployer, dismissReports, getModerationQueue, takeDownJob } from "@/app/admin/actions";
 import { getEmployer, getJob, listJobs, listReports, submitReport, updateJob } from "@/lib/data";
+
+// /admin is open only with ADMIN_ENABLED=1 (local development sets it in .env.development).
+beforeAll(() => {
+  vi.stubEnv("ADMIN_ENABLED", "1");
+});
+afterAll(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("admin switch", () => {
+  it("refuses every Server Function while ADMIN_ENABLED is not 1", async () => {
+    for (const value of ["", "0", "true"]) {
+      vi.stubEnv("ADMIN_ENABLED", value);
+      await expect(getModerationQueue()).rejects.toThrow("审核后台未开放");
+      await expect(approveJob("j10")).rejects.toThrow("审核后台未开放");
+      await expect(takeDownJob("j10")).rejects.toThrow("审核后台未开放");
+      await expect(dismissReports("j10")).rejects.toThrow("审核后台未开放");
+      await expect(banJobEmployer("j10")).rejects.toThrow("审核后台未开放");
+    }
+    expect((await getJob("j10"))?.status).toBe("active");
+    vi.stubEnv("ADMIN_ENABLED", "1");
+    await expect(getModerationQueue()).resolves.toBeTruthy();
+  });
+});
 
 describe("moderation queue", () => {
   it("shows jobs flagged at posting with their findings", async () => {

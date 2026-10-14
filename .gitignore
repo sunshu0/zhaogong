@@ -39,6 +39,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# local development turns the demo /admin on (B24); no secrets in it
+!.env.development
 
 # vercel
 .vercel
