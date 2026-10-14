@@ -12,6 +12,13 @@ export type FindingLevel = "block" | "rewrite" | "review";
 
 export type RuleId = "min_wage" | "fee" | "visa_selling" | "ethnic_preference" | "high_risk";
 
+/** A word rule that matched in a chat message. Chats only look for fees, visa selling and ethnic preference. */
+export interface ChatFinding {
+  rule: Extract<RuleId, "fee" | "visa_selling" | "ethnic_preference">;
+  /** Words that triggered the rule, in the order they appear. */
+  matches: string[];
+}
+
 export interface Finding {
   level: FindingLevel;
   field: keyof JobDraft;

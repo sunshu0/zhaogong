@@ -10,6 +10,11 @@ export interface WordRule {
   words: string[];
   /** `{words}` becomes the matched words, each in 「」. */
   message_zh: string;
+  /**
+   * Whether a negation written right after the word clears it (押金：无, 押金全免). Only fees: 包签无忧
+   * and 只招华人 无经验可 must never read as negated.
+   */
+  negatableAfter?: boolean;
 }
 
 const BASE_WORD_RULES: WordRule[] = [
@@ -23,7 +28,12 @@ const BASE_WORD_RULES: WordRule[] = [
       "中介费",
       "买工作",
       "卖工作",
+      "培训费",
+      "服装费",
+      "手续费",
+      "报名费",
       "deposit",
+      "bond",
       "placement fee",
       "agency fee",
       "agent fee",
@@ -32,12 +42,19 @@ const BASE_WORD_RULES: WordRule[] = [
       "buy the job",
     ],
     message_zh: "含有{words}：招聘不能向求职者收取押金、介绍费或任何费用，请删除。",
+    negatableAfter: true,
   },
   {
     rule: "visa_selling",
     level: "block",
     words: [
       "包签",
+      "包工签",
+      "包身份",
+      "办身份",
+      "包PR",
+      "保移民",
+      "帮办签证",
       "卖工签",
       "买工签",
       "办工签",
@@ -62,7 +79,13 @@ const BASE_WORD_RULES: WordRule[] = [
       "仅限华人",
       "只要华人",
       "只招华人",
+      "仅招华人",
       "华人优先",
+      "优先华人",
+      "优先考虑华人",
+      "华裔优先",
+      "亚洲人优先",
+      "国人优先",
       "限中国人",
       "只要中国人",
       "只招中国人",

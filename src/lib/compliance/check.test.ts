@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkJob, publishDecision, type Finding, type JobDraft } from "@/lib/compliance";
+import { checkChatMessage, checkJob, publishDecision, type Finding, type JobDraft } from "@/lib/compliance";
 import { WORD_RULES } from "@/lib/compliance/rules";
 import { MOCK_JOBS } from "@/mock/data";
 
@@ -141,6 +141,73 @@ describe("checkJob: word rules", () => {
         expect(rules(checkJob(withZh(`这里有${word}。`), "NZ")), word).toEqual([rule]);
       }
     }
+  });
+});
+
+describe("checkJob: negation only where it is unambiguous", () => {
+  it("does not read a negation that belongs to the next phrase", () => {
+    for (const [text, rule] of [
+      ["包签 无需经验", "visa_selling"],
+      ["包签无忧", "visa_selling"],
+      ["只招华人 无经验可", "ethnic_preference"],
+      ["押金 无需经验", "fee"],
+      ["押金无忧", "fee"],
+    ] as const)
+      expect(rules(checkJob(withZh(text), "NZ")), text).toEqual([rule]);
+  });
+
+  it("accepts a fee negation written right after the word", () => {
+    for (const text of ["押金：无", "押金：无 包吃住", "押金无。", "介绍费：免", "押金全免包吃住", "押金不收"])
+      expect(checkJob(withZh(text), "NZ"), text).toEqual([]);
+  });
+
+  it("never lets a negation after a visa or ethnic word through", () => {
+    expect(rules(checkJob(withZh("包签：无"), "NZ"))).toEqual(["visa_selling"]);
+    expect(rules(checkJob(withZh("华人优先：无"), "NZ"))).toEqual(["ethnic_preference"]);
+    expect(checkJob(withZh("不包工签，不限华人。"), "NZ")).toEqual([]);
+  });
+});
+
+describe("checkJob: words added after review", () => {
+  const added: Record<string, string[]> = {
+    visa_selling: ["包工签", "包身份", "办身份", "包PR", "保移民", "帮办签证"],
+    fee: ["培训费", "服装费", "手续费", "报名费"],
+    ethnic_preference: ["仅招华人", "优先华人", "优先考虑华人", "华裔优先", "亚洲人优先", "国人优先"],
+  };
+  for (const [rule, words] of Object.entries(added))
+    for (const word of words)
+      it(`${rule}: ${word}`, () => {
+        expect(rules(checkJob(withZh(`这里写着${word}，欢迎来聊。`), "NZ"))).toEqual([rule]);
+      });
+
+  it("fee: bond, as a whole English word", () => {
+    expect(rules(checkJob(withEn("A $300 bond is taken from your first pay."), "NZ"))).toEqual(["fee"]);
+    expect(checkJob(withEn("No bond required."), "NZ")).toEqual([]);
+    expect(checkJob(withEn("Great team bonding events."), "NZ")).toEqual([]);
+  });
+
+  it("matches 包PR in any letter case", () => {
+    expect(rules(checkJob(withZh("表现好包pr"), "NZ"))).toEqual(["visa_selling"]);
+  });
+});
+
+describe("checkChatMessage", () => {
+  it("returns the fee, visa and ethnic words in a chat message", () => {
+    expect(checkChatMessage("来之前先交500押金，包工签，只招华人")).toEqual([
+      { rule: "fee", matches: ["押金"] },
+      { rule: "visa_selling", matches: ["包工签"] },
+      { rule: "ethnic_preference", matches: ["只招华人"] },
+    ]);
+  });
+
+  it("leaves wage and high-risk rules to the job check", () => {
+    expect(checkChatMessage("时薪 15，晚上在 KTV")).toEqual([]);
+  });
+
+  it("says nothing about ordinary messages or negations", () => {
+    expect(checkChatMessage("你好，周末可以来面试吗？")).toEqual([]);
+    expect(checkChatMessage("我们不收押金，也不包签。")).toEqual([]);
+    expect(checkChatMessage("")).toEqual([]);
   });
 });
 

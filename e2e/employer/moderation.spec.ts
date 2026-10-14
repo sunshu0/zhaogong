@@ -17,6 +17,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await page.goto("/admin");
   await expect(page.getByRole("note")).toContainText("演示后台");
   await page.getByRole("tab", { name: /被举报/ }).click();
+  await expect(page.getByText("这里只收录对职位的举报，聊天里的举报不在这里。")).toBeVisible();
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
   await expect(card).toContainText("1 条举报");
   await expect(card).toContainText(`收押金 / 介绍费：打电话说要先交押金（${title}）`);

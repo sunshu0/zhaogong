@@ -107,11 +107,16 @@ export function ModerationQueue() {
             </ol>
           )
         ) : (
-          <QueueList
-            items={tab === "flagged" ? queue.flagged : queue.reported}
-            empty={tab === "flagged" ? "没有待审核的职位。" : "没有待处理的举报。"}
-            onDone={done}
-          />
+          <>
+            {tab === "reported" && (
+              <p className="mb-3 text-xs text-muted">这里只收录对职位的举报，聊天里的举报不在这里。</p>
+            )}
+            <QueueList
+              items={tab === "flagged" ? queue.flagged : queue.reported}
+              empty={tab === "flagged" ? "没有待审核的职位。" : "没有待处理的举报。"}
+              onDone={done}
+            />
+          </>
         )}
       </TabPanel>
     </div>
@@ -235,7 +240,9 @@ function QueueCard({
         >
           下架
         </button>
-        {!employer?.bannedAt &&
+        {/* Without the employer's record there is nobody to name or ban. */}
+        {employer &&
+          !employer.bannedAt &&
           (confirmBan ? (
             <>
               <button
@@ -245,7 +252,7 @@ function QueueCard({
                 autoFocus
                 className={`${button} border-danger bg-danger text-white`}
               >
-                确定封禁「{employer?.name}」并下架全部职位
+                确定封禁「{employer.name}」并下架全部职位
               </button>
               <button
                 type="button"

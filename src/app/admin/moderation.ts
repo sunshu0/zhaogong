@@ -7,7 +7,7 @@ export const RULE_LABELS: Record<RuleId, string> = {
   min_wage: "低于最低工资",
   fee: "收费用词",
   visa_selling: "卖签证用词",
-  ethnic_preference: "按种族招人",
+  ethnic_preference: "按种族或国籍招人",
   high_risk: "高风险行业",
 };
 

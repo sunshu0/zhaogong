@@ -176,9 +176,11 @@ describe("accounts and the employer identity", () => {
 
 describe("job shape", () => {
   it("stores employment types as a list and contact details as private by default", async () => {
-    const { id: _id, contactPublic: _public, ...rest } = MOCK_JOBS[1];
-    const legacy = { ...rest, employmentType: "casual" } as unknown as Omit<Job, "id">;
-    const created = await createJob(legacy);
+    // An older draft: one employment type and no contact choice.
+    const legacy: Record<string, unknown> = { ...MOCK_JOBS[1], employmentType: "casual" };
+    delete legacy.id;
+    delete legacy.contactPublic;
+    const created = await createJob(legacy as unknown as Omit<Job, "id">);
     expect(created.employmentType).toEqual(["casual"]);
     expect(created.contactPublic).toBe(false);
 
