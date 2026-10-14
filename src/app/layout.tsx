@@ -52,7 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
-        <footer className="border-t border-border py-6 text-center text-xs text-muted">
+        <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
           所有职位须符合当地法律：不低于最低工资，不收取任何费用，不以种族或国籍招人。
         </footer>
       </body>

@@ -31,6 +31,7 @@ test("workspace navigation stays visible across its pages", async ({ page }, tes
   expect(results.violations).toEqual([]);
   await page.goto("/workspace");
   await expect(page.getByRole("heading", { name: "求职者工作台", level: 1 })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: `D:/dev/zhaogong-shots/workspace-${testInfo.project.name}.png`, fullPage: true });
 });
 

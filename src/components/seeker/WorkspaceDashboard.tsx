@@ -20,7 +20,7 @@ export function WorkspaceDashboard() {
       </header>
       {isEmployer && <CandidatesLink />}
       <SummaryCards isEmployer={isEmployer} />
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <RecentChat />
         <RecordLinks isEmployer={isEmployer} />
       </section>
