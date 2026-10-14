@@ -6,14 +6,33 @@ import { reportJob } from "@/app/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { rememberReport, useSentReports } from "@/components/seeker/activity-client";
 import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/report";
-import { useSession } from "@/components/seeker/session-client";
+import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import type { DemoSession } from "@/components/seeker/session";
 
 /** "举报这个职位" → reasons + optional note → thank-you. */
 export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
   const owner = useSession();
+  // The session is read after hydration; until then the button waits, so an early tap is not lost when the
+  // form starts over for the signed-in identity.
+  if (!useHydrated()) return <ClosedReport disabled />;
   return <ReportForm key={identityScope(owner)} jobId={jobId} jobTitle={jobTitle} owner={owner} />;
+}
+
+function ClosedReport({ disabled = false, onOpen }: { disabled?: boolean; onOpen?: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-1 text-sm text-muted">
+      <span>职位信息有问题？</span>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onOpen}
+        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-danger hover:border-danger"
+      >
+        举报这个职位
+      </button>
+    </div>
+  );
 }
 
 function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: string; owner: DemoSession | null }) {
@@ -59,23 +78,10 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   }
 
   if (state === "closed") {
-    return (
-      <div className="flex items-center justify-between gap-3 px-1 text-sm text-muted">
-        {reportedBefore ? (
-          <span>你已经举报过这个职位，我们会尽快核查。</span>
-        ) : (
-          <>
-            <span>职位信息有问题？</span>
-            <button
-              type="button"
-              onClick={() => setState("open")}
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-danger hover:border-danger"
-            >
-              举报这个职位
-            </button>
-          </>
-        )}
-      </div>
+    return reportedBefore ? (
+      <p className="px-1 text-sm text-muted">你已经举报过这个职位，我们会尽快核查。</p>
+    ) : (
+      <ClosedReport onOpen={() => setState("open")} />
     );
   }
 
