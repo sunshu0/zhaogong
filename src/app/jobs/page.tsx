@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { listJobs } from "@/lib/data";
 import { ActiveFilters } from "@/components/seeker/ActiveFilters";
@@ -9,7 +10,6 @@ import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
 import { RememberListQuery } from "@/components/seeker/last-list";
-import { requestTime } from "@/components/seeker/request-time";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
@@ -27,7 +27,7 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
 
 async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams">) {
   const filter = parseFilter(await searchParams, DEFAULT_COUNTRY);
-  const now = await requestTime();
+  await connection(); // the list changes as jobs are published
   const jobs = await listJobs(filter);
   const employers = await employersOf(jobs);
   const filtered = isFiltered(filter);
@@ -45,7 +45,6 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
         <JobList
           jobs={jobs}
           employers={employers}
-          now={now}
           empty={
             filtered && (
               <Link

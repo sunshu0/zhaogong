@@ -1,16 +1,14 @@
 import type { ReactNode } from "react";
 import type { Employer, Job } from "@/lib/types";
-import { JobCard } from "@/components/seeker/JobCard";
+import { JobCard, JobCardSkeleton } from "@/components/seeker/JobCard";
 
 export function JobList({
   jobs,
   employers,
-  now,
   empty,
 }: {
   jobs: Job[];
   employers: Map<string, Employer>;
-  now: number;
   /** Extra content for the empty state, e.g. a link that clears the filters. */
   empty?: ReactNode;
 }) {
@@ -28,7 +26,7 @@ export function JobList({
     <ul className="grid grid-cols-1 gap-3">
       {jobs.map((job) => (
         <li key={job.id}>
-          <JobCard job={job} employer={employers.get(job.employerId)} now={now} />
+          <JobCard job={job} employer={employers.get(job.employerId)} />
         </li>
       ))}
     </ul>
@@ -39,7 +37,9 @@ export function JobListSkeleton() {
   return (
     <ul className="grid grid-cols-1 gap-3" aria-hidden="true">
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="h-80 animate-pulse rounded-lg border border-border bg-surface sm:h-60" />
+        <li key={i}>
+          <JobCardSkeleton />
+        </li>
       ))}
     </ul>
   );

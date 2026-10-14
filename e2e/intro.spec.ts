@@ -92,7 +92,7 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   await expect(others).toHaveText(["AI 对话发帖", "发布前合规检查", "雇主验证与防骗", "中文为主"]);
 
   if (testInfo.project.name === "desktop") {
-    const titles = featured.locator("li h2");
+    const titles = featured.locator("li h3");
     const ys = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await titles.nth(i).boundingBox())!.y)));
     for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThan(ys[i - 1]);
     // The AI chat post on the left, the three other features beside it.

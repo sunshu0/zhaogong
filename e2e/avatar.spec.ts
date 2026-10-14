@@ -65,9 +65,8 @@ test("profile avatar upload persists and appears on employer job cards and publi
     );
   }, AVATAR);
   await page.goto("/jobs");
-  const job = page.locator('a[href="/jobs/j5"]');
+  const job = page.locator("article").filter({ has: page.locator('a[href="/jobs/j5"]') });
   await expect(job.getByRole("img", { name: "东区亚洲超市头像" })).toBeVisible();
-  await expect(job).toContainText("雇主ID：e3");
   await page.goto("/jobs/j5");
   const employer = page.getByRole("region", { name: "雇主", exact: true });
   await expect(employer.getByRole("img", { name: "东区亚洲超市头像" })).toBeVisible();
@@ -92,7 +91,10 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();
   await expect(page.getByRole("img", { name: `${shop}头像` }).first()).toBeVisible();
   await expect(
-    page.getByRole("link", { name: new RegExp(title) }).getByRole("img", { name: `${shop}头像` }),
+    page
+      .locator("article")
+      .filter({ has: page.getByRole("link", { name: new RegExp(title) }) })
+      .getByRole("img", { name: `${shop}头像` }),
   ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page

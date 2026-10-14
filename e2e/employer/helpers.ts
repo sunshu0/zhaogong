@@ -80,9 +80,12 @@ export async function searchJobList(page: Page, title: string) {
   await expect(page).toHaveURL(`/jobs?${query}`);
 }
 
-/** A job card on the seekers' list (not the "去掉条件" chip, whose name also holds the search). */
+/**
+ * A job card on the seekers' list (not the "去掉条件" chip, whose name also holds the search). Since A21 only
+ * the card's title is a link (stretched over the card), so the card is the article that holds that link.
+ */
 export function jobCard(page: Page, title: string) {
-  return page.getByRole("link", { name: new RegExp(`^${title}`) });
+  return page.locator("article").filter({ has: page.getByRole("link", { name: new RegExp(`^${title}`) }) });
 }
 
 const CJK_DIGITS = "零一二三四五六七八九";

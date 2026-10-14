@@ -5,46 +5,73 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
-test("single-column job rows expose useful details without private contact data at all widths", async ({
+test("compact job cards: title, pay, employer, region · type · hours and up to 3 tags, at least 3 per phone screen", async ({
   page,
 }, testInfo) => {
   const widths = testInfo.project.name === "desktop" ? [1280, 1440, 1920] : [375];
   for (const width of widths) {
-    await page.setViewportSize({ width, height: testInfo.project.name === "mobile" ? 812 : 900 });
+    const height = testInfo.project.name === "mobile" ? 812 : 900;
+    await page.setViewportSize({ width, height });
     await page.goto("/jobs");
     const list = page.getByRole("region", { name: "职位列表" });
-    const rows = list.locator('a[href^="/jobs/"]');
-    await expect(rows.first()).toBeVisible();
-    const first = await box(rows.nth(0));
-    const second = await box(rows.nth(1));
+    const cards = list.locator("article");
+    await expect(cards.first()).toBeVisible();
+    const first = await box(cards.nth(0));
+    const second = await box(cards.nth(1));
     expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
     expect(second.x).toBe(first.x);
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
-    const retail = list.locator('a[href="/jobs/j5"]');
+    // A21: at least three whole cards on a 375 × 812 phone, below the header, search and count.
+    if (width === 375)
+      expect((await box(cards.nth(2))).y + (await box(cards.nth(2))).height).toBeLessThanOrEqual(height);
+
+    const retail = cards.filter({ has: page.locator('a[href="/jobs/j5"]') });
+    // Only the title is a link (stretched over the card), so its name is the title alone.
+    await expect(retail.getByRole("link")).toHaveCount(1);
+    await expect(retail.getByRole("link")).toHaveAccessibleName("超市理货员");
     for (const text of [
-      "上货、整理货架",
-      "早班 7:00",
-      "工作语言",
-      "普通话",
-      "雇主接受的签证",
-      "打工度假",
+      "超市理货员",
+      "Supermarket shelf stacker",
+      "$24/小时",
+      "东区亚洲超市",
+      "已验证企业",
       "每周 20–30 小时",
     ])
       await expect(retail).toContainText(text);
-    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText(
-      /最近在线：约 \d+ (分钟|小时)前在线/,
-    );
-    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("今日已回复 3 位求职者");
-    await expect(retail.getByLabel("雇主招聘沟通情况", { exact: true })).toContainText("演示状态");
+    // The rest is on the job page: summary, shifts, languages, visas, "未注明", employer id, activity.
+    for (const text of ["上货、整理货架", "早班 7:00", "工作语言", "雇主接受的签证", "未注明", "雇主ID", "今日已回复"])
+      await expect(retail).not.toContainText(text);
     await expect(retail).not.toContainText("021 555");
-    const noShift = list.locator('a[href="/jobs/j6"]');
-    await expect(noShift.locator("dl > div").filter({ has: page.getByText("班次", { exact: true }) })).toContainText(
-      "未注明",
+    for (let i = 0; i < (await cards.count()); i += 1)
+      expect(await cards.nth(i).locator("li").count()).toBeLessThanOrEqual(3);
+    // Pay is the biggest text on the card.
+    const sizes = await retail.evaluate((card) =>
+      [...card.querySelectorAll("*")].map(
+        (el) => [el.textContent?.trim(), parseFloat(getComputedStyle(el).fontSize)] as const,
+      ),
     );
+    const pay = sizes.find(([text]) => text === "$24/小时")![1];
+    expect(Math.max(...sizes.filter(([text]) => text !== "$24/小时").map(([, size]) => size))).toBeLessThan(pay);
+
     expect(await noSideScroll(page)).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath(`job-rows-${width}.png`) });
+    await page.screenshot({ path: testInfo.outputPath(`job-cards-${width}.png`) });
   }
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+});
+
+test("the whole card opens the job, and featured cards on the home page are h3 under 精选工作", async ({ page }) => {
+  await page.goto("/jobs");
+  const card = page.getByRole("region", { name: "职位列表" }).locator("article").first();
+  await expect(card.getByRole("heading", { level: 2 })).toBeVisible();
+  const { x, y, width, height } = await box(card);
+  await page.mouse.click(x + width - 12, y + height - 12); // a corner far from the title
+  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+
+  await page.goto("/");
+  const featured = page.locator("#featured");
+  await expect(featured.getByRole("heading", { level: 2, name: "精选工作" })).toBeVisible();
+  await expect(featured.locator("article").first().getByRole("heading", { level: 3 })).toBeVisible();
+  await expect(featured.locator("article h2")).toHaveCount(0);
 });
 
 test("mobile header and bottom bar actions have touch-sized targets", async ({ page }, testInfo) => {

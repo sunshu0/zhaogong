@@ -35,5 +35,5 @@ async function PublicEmployer({ params }: Pick<PageProps<"/employers/[id]">, "pa
     .filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
     .map((job) => ({ ...job, contact: {} }));
-  return <EmployerPublicPage employer={employer} jobs={jobs} now={now} />;
+  return <EmployerPublicPage employer={employer} jobs={jobs} />;
 }

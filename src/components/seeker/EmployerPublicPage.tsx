@@ -6,7 +6,7 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { INDUSTRY_LABELS } from "@/i18n/labels";
 import { usePublicEmployerProfile } from "@/components/seeker/hub-client";
 import { useSession } from "@/components/seeker/session-client";
-import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { verificationNote } from "@/components/seeker/job-facts";
 import { JobCard } from "@/components/seeker/JobCard";
 import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
@@ -14,7 +14,7 @@ import { EmployerActivitySummary } from "@/components/seeker/ChatActivity";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import type { Employer, Job } from "@/lib/types";
 
-export function EmployerPublicPage({ employer, jobs, now }: { employer: Employer; jobs: Job[]; now: number }) {
+export function EmployerPublicPage({ employer, jobs }: { employer: Employer; jobs: Job[] }) {
   const profile = usePublicEmployerProfile(employer.id);
   const session = useSession();
   const name = profile?.name.trim() || employer.name;
@@ -122,7 +122,7 @@ export function EmployerPublicPage({ employer, jobs, now }: { employer: Employer
             {jobs.map((job) => (
               <li key={job.id} className="flex min-w-0 flex-col gap-2">
                 <div className="flex-1">
-                  <JobCard job={job} employer={{ ...employer, name }} now={now} />
+                  <JobCard job={job} employer={{ ...employer, name }} headingLevel={3} />
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <Link

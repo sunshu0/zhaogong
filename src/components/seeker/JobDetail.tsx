@@ -6,7 +6,7 @@ import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags, postedAgoZh } from "@/components/seeker/format";
 import { expiryZh, formatDateZh, isExpired, minimumWageNote, verificationNote } from "@/components/seeker/job-facts";
-import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 

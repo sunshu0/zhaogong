@@ -18,7 +18,6 @@ import { buildReplay } from "@/components/seeker/chat-replay";
 import { ChatReplay } from "@/components/seeker/ChatReplay";
 import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES } from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, FeatureIconSvg, JobStack } from "@/components/seeker/landing-parts";
-import { requestTime } from "@/components/seeker/request-time";
 import { formatPay } from "@/components/seeker/format";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
@@ -236,7 +235,7 @@ async function StatsBand() {
 }
 
 async function FeaturedBand() {
-  const now = await requestTime();
+  await connection(); // featured jobs change as jobs are published
   const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT);
   const employers = await employersOf(jobs);
   return (
@@ -256,7 +255,7 @@ async function FeaturedBand() {
         <ul className="mt-6 grid grid-cols-1 gap-4">
           {jobs.map((job) => (
             <li key={job.id}>
-              <JobCard job={job} employer={employers.get(job.employerId)} now={now} />
+              <JobCard job={job} employer={employers.get(job.employerId)} headingLevel={3} />
             </li>
           ))}
         </ul>

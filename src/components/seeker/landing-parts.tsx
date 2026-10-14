@@ -6,7 +6,7 @@ import type { JobDraft } from "@/lib/compliance";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
 import type { FeatureIcon } from "@/components/seeker/landing";
-import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { VerificationBadge } from "@/components/ui/VerificationBadge";
 
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
   return (
