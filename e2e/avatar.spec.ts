@@ -40,7 +40,8 @@ test("profile avatar upload persists and appears on employer job cards and publi
 
   await page.evaluate((avatar) => {
     const key = "zhaogong:profiles-by-identity";
-    const profiles = JSON.parse(localStorage.getItem(key)!);
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    const profiles = stored.identities ?? stored; // versioned since A23
     profiles[JSON.stringify(["avatar@example.com", "employer", "e3"])] = {
       name: "东区亚洲超市",
       contactName: "",
@@ -51,7 +52,7 @@ test("profile avatar upload persists and appears on employer job cards and publi
       bio: "欢迎加入",
       avatar,
     };
-    localStorage.setItem(key, JSON.stringify(profiles));
+    localStorage.setItem(key, JSON.stringify(stored));
     localStorage.setItem(
       "zhaogong:session",
       JSON.stringify({

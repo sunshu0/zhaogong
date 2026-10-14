@@ -64,9 +64,11 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
   await page.goto("/jobs");
   await page.evaluate(() => {
     const key = "zhaogong:chat-demo";
-    const accounts = JSON.parse(localStorage.getItem(key)!);
-    accounts[JSON.stringify(["chat@example.com", "seeker", null])].unread["north-tea"] = 1;
-    localStorage.setItem(key, JSON.stringify(accounts));
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    const record = stored.identities[JSON.stringify(["chat@example.com", "seeker", null])];
+    const reply = { from: "them", text: "新的回复", time: "刚刚", sentAt: new Date(Date.now() + 1000).toISOString() };
+    record.added["north-tea"] = [...(record.added["north-tea"] ?? []), reply];
+    localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");

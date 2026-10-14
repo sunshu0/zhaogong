@@ -101,7 +101,7 @@ test("employers can report seekers and accepted private data stays out of public
   const report = await page.evaluate(() => {
     const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
     const scope = JSON.stringify([session.email, "employer", session.employerId]);
-    return JSON.parse(localStorage.getItem("zhaogong:chat-demo")!)[scope].reports[0];
+    return JSON.parse(localStorage.getItem("zhaogong:chat-demo")!).identities[scope].reports[0];
   });
   expect(report.targetRole).toBe("seeker");
   expect(report.evidence).toHaveLength(1);

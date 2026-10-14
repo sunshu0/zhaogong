@@ -52,14 +52,17 @@ test("legacy employer notifications open the right candidate, while bulk read st
   await list.getByRole("link", { name: /林晓回复了你的面试邀请/ }).click();
   await expect(page).toHaveURL("/messages?conversation=candidate-lin");
   await expect(page.getByRole("region", { name: "与林晓的聊天" })).toBeVisible();
-  // Simulate notifications saved before navigation targets were introduced.
+  // Simulate notifications saved before versioning (A23): whole lists, without navigation targets.
   await page.evaluate(() => {
     const key = "zhaogong:notifications-by-identity";
-    const accounts = JSON.parse(localStorage.getItem(key)!);
-    for (const items of Object.values(accounts) as { target?: unknown }[][]) {
-      for (const item of items) delete item.target;
-    }
-    localStorage.setItem(key, JSON.stringify(accounts));
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    const legacy = Object.fromEntries(
+      Object.entries(stored.identities as Record<string, string[]>).map(([scope, read]) => [
+        scope,
+        read.map((id) => ({ id, type: "通知", title: "旧通知", detail: "", time: "昨天", unread: false })),
+      ]),
+    );
+    localStorage.setItem(key, JSON.stringify(legacy));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await page

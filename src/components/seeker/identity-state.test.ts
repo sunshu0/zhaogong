@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { addSentReport, addViewedJob, readSentReports, readViewedJobs } from "@/components/seeker/activity";
-import { identityScope, parseIdentityMap } from "@/components/seeker/identity-scope";
+import {
+  LOCAL_DATA_VERSION,
+  identityScope,
+  parseIdentityMap,
+  stringifyStoredIdentities,
+} from "@/components/seeker/identity-scope";
 import { claimGuestActivity, identityActivityStorage } from "@/components/seeker/identity-activity";
 import {
   initialNotifications,
   initialProfile,
   notificationHref,
-  parseNotifications,
+  notificationsFor,
+  parseNotificationReads,
   parseProfiles,
+  parseStoredProfiles,
 } from "@/components/seeker/hub-state";
 import type { DemoSession, StorageLike } from "@/components/seeker/session";
 
@@ -85,14 +92,15 @@ describe("identity-specific workspace state", () => {
     expect(Object.keys(parsed)).toHaveLength(2);
     expect(parsed[identityScope(seeker)]).toEqual(personal);
     expect(parsed[identityScope(employer)]).toEqual(company);
-    const read = initialNotifications(seeker).map((item) => ({ ...item, unread: false }));
-    const hiring = initialNotifications(employer);
-    const notifications = parseNotifications(
-      JSON.stringify({ [identityScope(seeker)]: read, [identityScope(employer)]: hiring }),
+    const reads = parseNotificationReads(
+      stringifyStoredIdentities({
+        [identityScope(seeker)]: ["n1", "n2", "n3"],
+        [identityScope(employer)]: [],
+      }),
     );
-    expect(notifications[identityScope(seeker)].every((item) => !item.unread)).toBe(true);
-    expect(notifications[identityScope(employer)].filter((item) => item.unread)).toHaveLength(2);
-    expect(hiring[0].title).toContain("林晓");
+    expect(notificationsFor(seeker, reads[identityScope(seeker)]).every((item) => !item.unread)).toBe(true);
+    expect(notificationsFor(employer, reads[identityScope(employer)]).filter((item) => item.unread)).toHaveLength(2);
+    expect(initialNotifications(employer)[0].title).toContain("林晓");
   });
 
   it("rejects corrupted stored maps without borrowing another identity's data", () => {
@@ -108,40 +116,65 @@ describe("identity-specific workspace state", () => {
       expect(parsed[identityScope(seeker)]?.avatar).toBeUndefined();
       expect(parsed[identityScope(seeker)]?.name).toBe(base.name);
     }
-    expect(parseNotifications('{"bad":[{"unread":"true"}]}')).toEqual({});
+    expect(parseNotificationReads('{"bad":[{"unread":"true"}]}')).toEqual({ bad: [] });
   });
 
-  it("resolves saved legacy notifications using only the current identity's demo targets", () => {
-    const legacy = initialNotifications(seeker).map((item) => ({ ...item, target: undefined }));
-    const parsed = parseNotifications(JSON.stringify({ [identityScope(seeker)]: legacy }))[identityScope(seeker)];
-    expect(parsed.map((item) => notificationHref(item, seeker))).toEqual([
+  it("migrates notifications from before versioning to the ids the user has read", () => {
+    const legacy = initialNotifications(seeker).map((item) => ({
+      ...item,
+      target: undefined,
+      unread: item.id === "n1",
+    }));
+    const reads = parseNotificationReads(JSON.stringify({ [identityScope(seeker)]: legacy }));
+    expect(reads).toEqual({ [identityScope(seeker)]: ["n2", "n3"] });
+    // The demo items, with their links, come from the current demo data.
+    expect(
+      notificationsFor(seeker, reads[identityScope(seeker)]).map((item) => notificationHref(item, seeker)),
+    ).toEqual([
       "/messages?conversation=north-tea",
       "/messages?conversation=mt-eden",
       "/messages?conversation=clean-home",
     ]);
-    expect(notificationHref(parsed[0], employer)).toBeUndefined();
-    expect(notificationHref(parsed[0], null)).toBeUndefined();
+    expect(notificationHref(initialNotifications(seeker)[0], null)).toBeUndefined();
     expect(notificationHref(initialNotifications(employer)[2], employer)).toBe("/profile");
   });
 
-  it("preserves explicit targets and safely encodes dynamic conversation IDs", () => {
-    const item = { ...initialNotifications(seeker)[0], target: { type: "conversation", id: "employer:e1:j1&other=1" } };
-    const parsed = parseNotifications(JSON.stringify({ [identityScope(seeker)]: [item] }))[identityScope(seeker)][0];
-    expect(notificationHref(parsed, seeker)).toBe("/messages?conversation=employer%3Ae1%3Aj1%26other%3D1");
-    expect(parsed.target).toEqual(item.target);
-    for (const target of [
-      "https://example.com",
-      { type: "conversation", id: 1 },
-      { type: "conversation", id: " " },
-      { type: "url", href: "https://example.com" },
-    ]) {
-      const invalid = { ...item, id: "unknown", target };
-      const cleaned = parseNotifications(JSON.stringify({ [identityScope(seeker)]: [invalid] }))[
-        identityScope(seeker)
-      ][0];
-      expect(cleaned.target).toBeUndefined();
-      expect(notificationHref(cleaned, seeker)).toBeUndefined();
-      expect(cleaned.unread).toBe(true);
-    }
+  it("keeps read ids for notifications the demo no longer has, and encodes conversation ids in links", () => {
+    const raw = stringifyStoredIdentities({ [identityScope(seeker)]: ["n1", "gone", 3] });
+    const read = parseNotificationReads(raw)[identityScope(seeker)];
+    expect(read).toEqual(["n1", "gone"]);
+    expect(notificationsFor(seeker, read).map((item) => item.unread)).toEqual([false, true, false]);
+    const item = {
+      ...initialNotifications(seeker)[0],
+      target: { type: "conversation" as const, id: "employer:e1:j1&other=1" },
+    };
+    expect(notificationHref(item, seeker)).toBe("/messages?conversation=employer%3Ae1%3Aj1%26other%3D1");
+  });
+
+  it("keeps another identity's read notifications when one identity writes", () => {
+    const first = stringifyStoredIdentities({ [identityScope(employer)]: ["e1", "e2", "e3"] });
+    const current = parseNotificationReads(first);
+    const second = stringifyStoredIdentities({ ...current, [identityScope(seeker)]: ["n1"] });
+    expect(parseNotificationReads(second)).toEqual({
+      [identityScope(employer)]: ["e1", "e2", "e3"],
+      [identityScope(seeker)]: ["n1"],
+    });
+  });
+
+  it("stores only the profile fields the user changed and fills a missing or bad field with its default", () => {
+    const raw = stringifyStoredIdentities({
+      [identityScope(seeker)]: { name: "小周", headline: 3, privateDetails: { phone: "021 1", wechat: 2 } },
+    });
+    expect(JSON.parse(raw).version).toBe(LOCAL_DATA_VERSION);
+    expect(parseStoredProfiles(raw)[identityScope(seeker)]).toEqual({
+      name: "小周",
+      privateDetails: { phone: "021 1", wechat: "", email: "", address: "" },
+    });
+    const profile = parseProfiles(raw)[identityScope(seeker)];
+    expect(profile.name).toBe("小周");
+    expect(profile.headline).toBe(initialProfile(seeker).headline);
+    // A full profile from before versioning reads the same way.
+    const legacy = { ...initialProfile(seeker), name: "老用户" };
+    expect(parseProfiles(JSON.stringify({ [identityScope(seeker)]: legacy }))[identityScope(seeker)]).toEqual(legacy);
   });
 });

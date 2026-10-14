@@ -90,7 +90,8 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await expect(page.getByText("公开主页", { exact: true })).toHaveCount(0);
   await page.evaluate(() => {
     const key = "zhaogong:profiles-by-identity";
-    const profiles = JSON.parse(localStorage.getItem(key) ?? "{}");
+    const stored = JSON.parse(localStorage.getItem(key) ?? "{}");
+    const profiles = stored.identities ?? stored; // versioned since A23
     profiles[JSON.stringify(["public-candidate@example.com", "seeker", null])] = {
       name: "公开候选人",
       contactName: "",
@@ -107,15 +108,17 @@ test("recommends by selected job, explains matches and opens a persistent role-s
         regionIds: ["akl-mt-eden"],
       },
     };
-    localStorage.setItem(key, JSON.stringify(profiles));
+    localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(page.getByRole("heading", { name: "公开候选人", exact: true })).toBeVisible();
   await page.evaluate(() => {
     const key = "zhaogong:profiles-by-identity";
-    const profiles = JSON.parse(localStorage.getItem(key)!);
-    profiles[JSON.stringify(["public-candidate@example.com", "seeker", null])].resume.discoverable = false;
-    localStorage.setItem(key, JSON.stringify(profiles));
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    (stored.identities ?? stored)[
+      JSON.stringify(["public-candidate@example.com", "seeker", null])
+    ].resume.discoverable = false;
+    localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(page.getByRole("heading", { name: "公开候选人", exact: true })).toHaveCount(0);

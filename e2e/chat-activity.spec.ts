@@ -27,17 +27,13 @@ test("seeker sees employer activity and receipts only change when the counterpar
   await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(1);
   await page.evaluate(() => {
     const key = "zhaogong:chat-demo";
-    const accounts = JSON.parse(localStorage.getItem(key)!);
+    const stored = JSON.parse(localStorage.getItem(key)!);
     const scope = JSON.stringify(["activity-seeker@example.com", "seeker", null]);
-    accounts[scope].messages["north-tea"].at(-1).readAt = new Date().toISOString();
-    accounts[scope].messages["north-tea"].push({
-      from: "them",
-      text: "新的回复已送达",
-      time: "刚刚",
-      sentAt: new Date().toISOString(),
-    });
-    accounts[scope].unread["north-tea"] = 1;
-    localStorage.setItem(key, JSON.stringify(accounts));
+    // Only messages added after the demo thread are stored (A23); a reply from another tab is added there.
+    const added = stored.identities[scope].added["north-tea"];
+    added.at(-1).readAt = new Date().toISOString();
+    added.push({ from: "them", text: "新的回复已送达", time: "刚刚", sentAt: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(2);

@@ -45,12 +45,12 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
     const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
     const scope = JSON.stringify([session.email, "employer", session.employerId]);
     const key = "zhaogong:chat-demo";
-    const accounts = JSON.parse(localStorage.getItem(key)!);
+    const stored = JSON.parse(localStorage.getItem(key)!);
     const id = "recommend:local-public-demo:j1";
-    accounts[scope].extra = [{ id, person: "公开求职者", title: "服务员", avatar: "公", time: "刚刚", job: "j1" }];
-    accounts[scope].messages[id] = [];
-    accounts[scope].unread[id] = 0;
-    localStorage.setItem(key, JSON.stringify(accounts));
+    stored.identities[scope].extra = [
+      { id, person: "公开求职者", title: "服务员", avatar: "公", time: "刚刚", job: "j1" },
+    ];
+    localStorage.setItem(key, JSON.stringify(stored));
     const profileScope = JSON.stringify(["public-profile@example.com", "seeker", null]);
     localStorage.setItem(
       "zhaogong:profiles-by-identity",
@@ -87,10 +87,10 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
   await expect(page.getByRole("main")).not.toContainText("PRIVATE-");
   await page.evaluate(() => {
     const key = "zhaogong:profiles-by-identity";
-    const profiles = JSON.parse(localStorage.getItem(key)!);
-    for (const item of Object.values(profiles) as { resume: { discoverable: boolean } }[])
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    for (const item of Object.values(stored.identities ?? stored) as { resume: { discoverable: boolean } }[])
       item.resume.discoverable = false;
-    localStorage.setItem(key, JSON.stringify(profiles));
+    localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
   await expect(page.getByRole("heading", { name: "求职主页暂不可查看", exact: true })).toBeVisible();
