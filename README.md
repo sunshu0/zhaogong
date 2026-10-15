@@ -57,6 +57,16 @@ npm run test:e2e
 
 `.github/workflows/ci.yml` 在每个 PR 和推到 `main` 时跑同一套门槛：`npm run check`，以及 Playwright 浏览器测试（手机和桌面两个项目，失败时上传 `test-results/`）。目前组织的 GitHub Actions 账单问题还没解决，工作流可能无法启动；在那之前，每个 PR 的门槛仍在本机跑，结果写在 PR 正文里。
 
+**开发阶段已停用，交付时启用：** 工作流现在是停用状态（`gh workflow disable CI`），开发期间不要启用或手动触发；交付时用 `gh workflow enable CI` 重新启用。
+
+### 评分
+
+```sh
+node scripts/score.mjs
+```
+
+按用户的项目评分表统计已知证据得分：先 `git fetch origin --tags`，再从 `origin/main`（`--ref` 可改）和 `gh` 读取提交、PR、Issue、Release、CI 运行和仓库里的工程资料，输出每一项的原始数据和得分。拿不到的数据显示「无法取得」、计 0 分，并写进限制说明。计分规则在 `scripts/score-rules.mjs`，有单测。
+
 ## Docker
 
 `Dockerfile` 把应用作为 Node 服务（`next start`）打包，`docker-compose.yml` 再加一个 libSQL 数据库服务：
