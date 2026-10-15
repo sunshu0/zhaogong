@@ -104,7 +104,7 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   const employer = page.getByRole("region", { name: "招人？一分钟发布招聘" });
   await expect(employer.getByText("【急招】Mt Eden 川菜馆招前厅服务员 2 名", { exact: false })).toBeVisible();
   const after = employer.getByRole("figure");
-  for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "学签可做", "联系方式：登录后可见"]) {
+  for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "接受学签", "联系方式：登录后可见"]) {
     await expect(after).toContainText(text);
   }
   await expect(employer.getByRole("link", { name: "注册雇主 →" })).toHaveAttribute(

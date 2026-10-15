@@ -5,7 +5,7 @@ import type { ChatState } from "./chat-state";
 
 export const SAMPLE_POST = `【急招】Mt Eden 川菜馆招前厅服务员 2 名
 时薪 $25-27，每周 15-25 小时，周五至周日晚班
-包工作餐，学签可做，需会普通话和基本英语
+包工作餐，接受学签，需会普通话和基本英语
 有意者请加微信 demo_chuanwei 或电话 021 555 0101`;
 
 export function startChat(country: CountryCode): ChatState {

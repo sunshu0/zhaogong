@@ -33,9 +33,9 @@ describe("formatHours", () => {
 });
 
 describe("jobTags", () => {
-  it("lists 急招, 包餐, 包住 and 学签可做 in that order when they apply", () => {
-    expect(jobTags(job("j1"))).toEqual(["急招", "包餐", "学签可做"]);
-    expect(jobTags({ ...job("j1"), accommodationIncluded: true })).toEqual(["急招", "包餐", "包住", "学签可做"]);
+  it("lists 急招, 包餐, 包住 and 接受学签 in that order when they apply", () => {
+    expect(jobTags(job("j1"))).toEqual(["急招", "包餐", "接受学签"]);
+    expect(jobTags({ ...job("j1"), accommodationIncluded: true })).toEqual(["急招", "包餐", "包住", "接受学签"]);
   });
 
   it("leaves out tags that do not apply", () => {

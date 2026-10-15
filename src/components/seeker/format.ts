@@ -30,7 +30,7 @@ export function jobTags(job: Job): string[] {
   if (job.urgent) tags.push("急招");
   if (job.mealsIncluded) tags.push("包餐");
   if (job.accommodationIncluded) tags.push("包住");
-  if (job.visaAccepted.includes("student")) tags.push("学签可做");
+  if (job.visaAccepted.includes("student")) tags.push("接受学签");
   return tags;
 }
 

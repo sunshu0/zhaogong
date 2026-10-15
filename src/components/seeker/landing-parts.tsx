@@ -129,7 +129,7 @@ export function BeforeAfter({ message, draft, summaryEn }: { message: string; dr
     draft.urgent && "急招",
     draft.mealsIncluded && "包餐",
     draft.accommodationIncluded && "包住",
-    draft.visaAccepted?.includes("student") && "学签可做",
+    draft.visaAccepted?.includes("student") && "接受学签",
   ].filter((t): t is string => Boolean(t));
 
   return (
