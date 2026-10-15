@@ -15,7 +15,7 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await page.getByRole("button", { name: "提交举报" }).click();
   await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");
 
-  await signIn(page, "/me");
+  const email = await signIn(page, "/me");
   await expect(page.getByRole("heading", { level: 1, name: "浏览与举报" })).toBeVisible();
 
   const viewed = page.getByRole("region", { name: /最近看过的职位/ });
@@ -31,7 +31,7 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await expect(viewed).toContainText("还没有看过职位。");
 
   await page.goto("/account");
-  await expect(page.getByText("e2e.seeker@example.com").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText(email, { exact: true }).filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: "退出登录" }).click();
   await expect(page).toHaveURL("/jobs");
   await expect(page.getByRole("banner").getByRole("button", { name: /^账号菜单/ })).toHaveCount(0);
