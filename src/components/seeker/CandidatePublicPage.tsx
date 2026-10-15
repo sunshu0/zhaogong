@@ -6,7 +6,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { getMyJob } from "@/app/employer/actions";
 import { candidateContext } from "@/components/account/candidate-context";
-import { candidateFacts } from "@/components/account/candidate-facts";
 import { useCandidateDirectory } from "@/components/seeker/hub-client";
 import { useChat } from "@/components/seeker/chat-client";
 import { formatPay } from "@/components/seeker/format";
@@ -17,7 +16,7 @@ import { Group, Section } from "@/components/ui/Section";
 import { PAY_TEXT } from "@/components/ui/text";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
-import type { Candidate } from "@/lib/candidate-matching";
+import { candidateFacts, type Candidate } from "@/lib/candidate-matching";
 import type { Job } from "@/lib/types";
 
 /**
@@ -79,7 +78,7 @@ export function CandidatePublicPage() {
         <Group>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body" aria-label="主要条件">
             {candidateFacts(candidate).map((fact) => (
-              <Fact key={fact.term} term={fact.term} value={fact.value} />
+              <Fact key={fact.label} term={fact.label} value={fact.value === "待补充" ? undefined : fact.value} />
             ))}
           </dl>
         </Group>

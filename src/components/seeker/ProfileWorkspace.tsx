@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Check, ExternalLink } from "lucide-react";
-import { candidateFacts } from "@/components/account/candidate-facts";
 import { profileChecklist, profileProgress } from "@/components/account/profile-checklist";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useProfile } from "@/components/seeker/hub-client";
@@ -21,6 +20,7 @@ import { DiscoverableToggle, ResumeKeyFields, ResumeMoreFields } from "@/compone
 import { useSession } from "@/components/seeker/session-client";
 import { Group, Section } from "@/components/ui/Section";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
+import { candidateFacts, EMPTY_RESUME, type Candidate } from "@/lib/candidate-matching";
 import type { EmployerVerification } from "@/lib/types";
 
 type SaveState = "idle" | "saved" | "failed";
@@ -208,6 +208,11 @@ function SaveStatus({ state }: { state: SaveState }) {
   );
 }
 
+/** The profile as 推荐人才 and the candidate page would show it. */
+function asCandidate(profile: Profile): Candidate {
+  return { ...profile, id: "preview", source: "local", resume: profile.resume ?? EMPTY_RESUME };
+}
+
 function SeekerPreview({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-3">
@@ -219,10 +224,10 @@ function SeekerPreview({ profile }: { profile: Profile }) {
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
-        {candidateFacts(profile).map((fact) => (
-          <div key={fact.term} className="min-w-0">
-            <dt className="text-meta text-muted">{fact.term}</dt>
-            <dd className={`break-words ${fact.value ? "" : "text-muted"}`}>{fact.value ?? "待填写"}</dd>
+        {candidateFacts(asCandidate(profile)).map((fact) => (
+          <div key={fact.label} className="min-w-0">
+            <dt className="text-meta text-muted">{fact.label}</dt>
+            <dd className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>{fact.value}</dd>
           </div>
         ))}
       </dl>

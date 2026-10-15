@@ -17,7 +17,7 @@ test("我的主页: preview first, completeness counts the key items, optional f
   await page.goto("/profile");
   const preview = page.getByRole("region", { name: "别人看到的样子" });
   await expect(preview).toContainText("林晓");
-  await expect(preview.getByRole("definition").nth(2)).toHaveText("待填写"); // 期望时薪
+  await expect(preview.getByRole("definition").nth(2)).toHaveText("待补充"); // 期望时薪
   await expect(page.getByRole("heading", { name: "资料完成度 6/10" })).toBeVisible();
   await expect(page.getByRole("progressbar", { name: "资料完成度" })).toHaveAttribute("aria-valuenow", "6");
   await expect(page.getByText("资料只保存在这台设备上，改动会自动保存。")).toBeVisible();
@@ -25,7 +25,7 @@ test("我的主页: preview first, completeness counts the key items, optional f
 
   await page.getByLabel("期望时薪（NZ$ / 小时起）").fill("26");
   await expect(page.getByText("已自动保存到本机")).toBeVisible();
-  await expect(preview).toContainText("$26 起 / 小时");
+  await expect(preview).toContainText("$26 起");
   await expect(page.getByRole("heading", { name: "资料完成度 7/10" })).toBeVisible();
 
   // Optional fields are folded until asked for.
