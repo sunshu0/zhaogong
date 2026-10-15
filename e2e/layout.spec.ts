@@ -83,8 +83,12 @@ test("mobile header and bottom bar actions have touch-sized targets", async ({ p
     .locator('header a:not([href="/"]), header button, nav[aria-label="底部导航"] a')
     .filter({ visible: true });
   await expect(controls).toHaveCount(4);
+  // Polled: the header is drawn again once the page has asked the server about the session, and a control
+  // measured just then has no box.
   for (let i = 0; i < (await controls.count()); i += 1) {
-    expect((await controls.nth(i).boundingBox())?.height, await controls.nth(i).innerText()).toBeGreaterThanOrEqual(44);
+    await expect
+      .poll(async () => (await controls.nth(i).boundingBox())?.height ?? 0, { message: `control ${i + 1} of 4` })
+      .toBeGreaterThanOrEqual(44);
   }
 });
 
