@@ -5,6 +5,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { oneAtATime } from "@/db/one-at-a-time";
 import * as schema from "@/db/schema";
 
 export type Db = LibSQLDatabase<typeof schema>;
@@ -42,7 +43,7 @@ export function getDb(): Db {
     // libSQL creates the file but not its folder (data/ is not in git).
     const file = localDatabaseFile(url);
     if (file) mkdirSync(path.dirname(file), { recursive: true });
-    client = createClient({ url: file ? `file:${file}` : url, authToken: process.env.DATABASE_AUTH_TOKEN });
+    client = oneAtATime(createClient({ url: file ? `file:${file}` : url, authToken: process.env.DATABASE_AUTH_TOKEN }));
     db = drizzle(client, { schema });
   }
   return db;
