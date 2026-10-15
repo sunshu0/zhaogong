@@ -1,6 +1,9 @@
-// Database tables. Owned by the lead; shapes follow src/lib/types.ts, lists and small objects stored as JSON.
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+// Database tables. Shapes follow src/lib/types.ts; lists and small objects are stored as JSON, pay in cents.
+// The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
+// sign-in and sessions come with A12-1, chats and exchanges with A12-2.
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type {
+  AccountRole,
   EmployerVerification,
   EmploymentType,
   Industry,
@@ -9,6 +12,7 @@ import type {
   ReportReason,
   VisaAccepted,
 } from "@/lib/types";
+import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -30,7 +34,8 @@ export const jobs = sqliteTable("jobs", {
   titleZh: text("title_zh").notNull(),
   titleEn: text("title_en").notNull(),
   industry: text("industry").$type<Industry>().notNull(),
-  employmentType: text("employment_type").$type<EmploymentType>().notNull(),
+  /** Every form of employment the job accepts (B20). */
+  employmentType: text("employment_type", { mode: "json" }).$type<EmploymentType[]>().notNull(),
   regionId: text("region_id").notNull(),
   address: text("address"),
   payMin: integer("pay_min_cents").notNull(), // cents, so 24.5 → 2450
@@ -44,6 +49,8 @@ export const jobs = sqliteTable("jobs", {
   languages: text("languages", { mode: "json" }).$type<LanguageRequirement[]>().notNull(),
   descriptionZh: text("description_zh").notNull(),
   descriptionEn: text("description_en").notNull(),
+  /** The employer's choice (B23): show `contact` to signed-in seekers, or swap details in chat. */
+  contactPublic: integer("contact_public", { mode: "boolean" }).notNull().default(false),
   contact: text("contact", { mode: "json" }).$type<{ phone?: string; wechat?: string; email?: string }>().notNull(),
   status: text("status").$type<"active" | "expired" | "removed" | "pending_review">().notNull(),
   postedAt: text("posted_at").notNull(),
@@ -86,13 +93,19 @@ export const moderationLog = sqliteTable("moderation_log", {
   takenDown: integer("taken_down"),
 });
 
+/** One person, one email; every account can look for work, and can open one employer identity. */
 export const accounts = sqliteTable("accounts", {
   email: text("email").primaryKey(), // lower-cased, trimmed
   createdAt: text("created_at").notNull(),
+  /** The business of the employer identity, once opened. One business belongs to one account. */
   employerId: text("employer_id")
     .unique()
     .references(() => employers.id),
+  /** The identity last used, so a new session starts where the person left off. */
+  lastRole: text("last_role").$type<AccountRole>().notNull().default("seeker"),
 });
+
+// ---- reserved: sign-in and sessions (A12-1) ----
 
 /** One-time sign-in codes. Stored hashed; one live code per email. */
 export const signInCodes = sqliteTable("sign_in_codes", {
@@ -103,17 +116,56 @@ export const signInCodes = sqliteTable("sign_in_codes", {
   createdAt: text("created_at").notNull(),
 });
 
-/** Server sessions behind an httpOnly cookie. The cookie holds the random id only. */
-export const sessions = sqliteTable(
-  "sessions",
-  {
-    id: text("id").notNull(),
-    email: text("email")
-      .notNull()
-      .references(() => accounts.email),
-    activeRole: text("active_role").$type<"seeker" | "employer">().notNull(),
-    createdAt: text("created_at").notNull(),
-    expiresAt: text("expires_at").notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.id] })],
-);
+/** Server sessions behind an httpOnly cookie. The cookie holds the random token; the id is its hash. */
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  email: text("email")
+    .notNull()
+    .references(() => accounts.email),
+  activeRole: text("active_role").$type<AccountRole>().notNull(),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+});
+
+// ---- reserved: chats and exchanges on the server (A12-2) ----
+
+/** A chat between a job seeker and a business, usually about one job. */
+export const conversations = sqliteTable("conversations", {
+  id: text("id").primaryKey(),
+  seekerEmail: text("seeker_email")
+    .notNull()
+    .references(() => accounts.email),
+  employerId: text("employer_id")
+    .notNull()
+    .references(() => employers.id),
+  jobId: text("job_id").references(() => jobs.id),
+  /** Who opened it: a seeker from a job, or an employer from a recommended candidate. */
+  startedBy: text("started_by").$type<AccountRole>().notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const messages = sqliteTable("messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  conversationId: text("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  from: text("from_role").$type<AccountRole>().notNull(),
+  text: text("text").notNull(),
+  sentAt: text("sent_at").notNull(),
+  readAt: text("read_at"),
+});
+
+/** A request to swap contact details or profiles: the side that asks offers its own first (A24). */
+export const exchanges = sqliteTable("exchanges", {
+  id: text("id").primaryKey(),
+  conversationId: text("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  kind: text("kind").$type<ExchangeKind>().notNull(),
+  requestedBy: text("requested_by").$type<AccountRole>().notNull(),
+  status: text("status").$type<"pending" | "accepted" | "rejected" | "cancelled">().notNull(),
+  offered: text("offered", { mode: "json" }).$type<ExchangePayload>().notNull(),
+  response: text("response", { mode: "json" }).$type<ExchangePayload>(),
+  createdAt: text("created_at").notNull(),
+  respondedAt: text("responded_at"),
+});

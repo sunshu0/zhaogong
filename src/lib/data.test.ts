@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createJob, getJob, listJobs, matchesFilter, updateJob } from "@/lib/data";
 import type { Job } from "@/lib/types";
-import { MOCK_JOBS } from "@/mock/data";
+import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
 describe("job filter", () => {
   it("matches any type accepted by a multi-type job", () => {
@@ -130,7 +130,7 @@ describe("accounts and the employer identity", () => {
     const { ensureAccount, getAccount } = await import("@/lib/data");
     const a = await ensureAccount("  Mei@Example.com ");
     const b = await ensureAccount("mei@example.com");
-    expect(a).toBe(b);
+    expect(a).toEqual(b); // the same stored account (a fresh copy per read since B12-1)
     expect((await getAccount("MEI@example.com"))?.employerId).toBeUndefined();
   });
 
@@ -195,5 +195,50 @@ describe("job shape", () => {
     expect(shown.length).toBeLessThanOrEqual(3);
     for (const job of shown) expect(Object.values(job.contact).some(Boolean)).toBe(true);
     for (const job of MOCK_JOBS.filter((j) => !j.contactPublic)) expect(job.contact).toEqual({});
+  });
+});
+
+describe("on the database", () => {
+  it("gives new records the next id of their kind, as the demo data has", async () => {
+    const { createEmployer, submitReport, addModerationLog } = await import("@/lib/data");
+    const employer = await createEmployer({ name: "新店", regionId: "akl-cbd" });
+    expect(employer.id).toMatch(/^e\d+$/);
+    expect(Number(employer.id.slice(1))).toBeGreaterThan(MOCK_EMPLOYERS.length);
+    const job: Partial<Job> = { ...MOCK_JOBS[0] };
+    delete job.id;
+    const a = await createJob(job as Omit<Job, "id">);
+    const b = await createJob(job as Omit<Job, "id">);
+    expect(Number(b.id.slice(1))).toBe(Number(a.id.slice(1)) + 1);
+    const report = await submitReport(a.id, "other");
+    expect(report.id).toMatch(/^r\d+$/);
+    expect((await addModerationLog({ action: "dismiss", jobId: a.id })).id).toMatch(/^a\d+$/);
+  });
+
+  it("loads the demo data once, however often the database is asked for", async () => {
+    const { database } = await import("@/db/ready");
+    const { listEmployers } = await import("@/lib/data");
+    await Promise.all([database(), database(), database()]);
+    const ids = (await listEmployers()).map((e) => e.id);
+    for (const demo of MOCK_EMPLOYERS) expect(ids.filter((id) => id === demo.id)).toHaveLength(1);
+  });
+
+  it("wants demo data in development and tests, and only when asked in production", async () => {
+    const { demoDataWanted } = await import("@/db/ready");
+    const env = process.env as Record<string, string | undefined>;
+    const saved = { NODE_ENV: env.NODE_ENV, DEMO_DATA: env.DEMO_DATA };
+    try {
+      delete env.DEMO_DATA;
+      env.NODE_ENV = "production";
+      expect(demoDataWanted()).toBe(false);
+      env.DEMO_DATA = "true";
+      expect(demoDataWanted()).toBe(true);
+      env.NODE_ENV = "development";
+      env.DEMO_DATA = "false";
+      expect(demoDataWanted()).toBe(false);
+      delete env.DEMO_DATA;
+      expect(demoDataWanted()).toBe(true);
+    } finally {
+      Object.assign(env, saved);
+    }
   });
 });
