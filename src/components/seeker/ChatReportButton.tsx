@@ -7,7 +7,21 @@ import { useSession } from "@/components/seeker/session-client";
 import { CHAT_REPORT_REASONS, type ChatReportReason } from "@/lib/chat-report";
 import { ChatDialog, CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
 
-export function ChatReportButton({ conversation }: { conversation: Conversation }) {
+/**
+ * 举报聊天. With `messageIndex` and `label` it is a text button under one received message (a compliance
+ * reminder) that opens the same dialog with that message and `reason` already chosen.
+ */
+export function ChatReportButton({
+  conversation,
+  messageIndex,
+  reason: presetReason,
+  label,
+}: {
+  conversation: Conversation;
+  messageIndex?: number;
+  reason?: ChatReportReason;
+  label?: string;
+}) {
   const { messages, reports, reportConversation } = useChat();
   const isEmployer = useSession()?.activeRole === "employer";
   const [open, setOpen] = useState(false);
@@ -30,19 +44,23 @@ export function ChatReportButton({ conversation }: { conversation: Conversation 
     <>
       <button
         type="button"
-        aria-label="举报聊天"
-        title="举报聊天对方"
+        aria-label={label ? undefined : "举报聊天"}
+        title={label ? undefined : "举报聊天对方"}
         onClick={() => {
           setOpen(true);
           setSent(false);
           setError("");
-          setReason("");
+          setReason(presetReason ?? "");
           setNote("");
-          setRange("");
+          setRange(messageIndex === undefined ? "" : String(messageIndex));
         }}
-        className="flex size-11 shrink-0 items-center justify-center rounded-lg text-danger hover:bg-danger-soft"
+        className={
+          label
+            ? "inline-flex min-h-11 items-center text-sm font-medium text-danger underline underline-offset-2"
+            : "flex size-11 shrink-0 items-center justify-center rounded-lg text-danger hover:bg-danger-soft"
+        }
       >
-        <Flag aria-hidden="true" className="size-5" />
+        {label ?? <Flag aria-hidden="true" className="size-5" />}
       </button>
       {open && (
         <ChatDialog title="举报聊天对方" onClose={() => setOpen(false)}>

@@ -8,6 +8,7 @@ import { ChatActivity } from "@/components/seeker/ChatActivity";
 import { ChatExchangeTools, ChatReportButton } from "@/components/seeker/ChatInteractions";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
+import { outgoingWarning } from "@/components/seeker/chat-warnings";
 
 export function ChatThread({
   conversation,
@@ -141,8 +142,10 @@ function MessageComposer({
   onDraftChange: (draft: string) => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  // A reminder while writing; the message can still be sent.
+  const warning = outgoingWarning(draft);
   return (
-    <form onSubmit={onSubmit} className="flex items-end gap-2">
+    <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
       <label className="sr-only" htmlFor="message-draft">
         输入消息
       </label>
@@ -152,6 +155,7 @@ function MessageComposer({
         onChange={(event) => onDraftChange(event.target.value)}
         placeholder="输入消息…"
         rows={3}
+        aria-describedby={warning ? "message-draft-warning" : undefined}
         className="min-h-11 min-w-0 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
       <button
@@ -162,6 +166,11 @@ function MessageComposer({
         <Send aria-hidden="true" className="size-4" />
         发送
       </button>
+      {warning && (
+        <p id="message-draft-warning" role="status" className="basis-full text-xs leading-relaxed text-warn">
+          {warning}
+        </p>
+      )}
     </form>
   );
 }

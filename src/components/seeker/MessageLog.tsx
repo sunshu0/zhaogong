@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useChat, type Message } from "@/components/seeker/chat-client";
-import { ChatExchangeList } from "@/components/seeker/ChatInteractions";
+import { TriangleAlert } from "lucide-react";
+import { useChat, type Conversation, type Message } from "@/components/seeker/chat-client";
+import { ChatExchangeList, ChatReportButton } from "@/components/seeker/ChatInteractions";
+import { incomingWarnings } from "@/components/seeker/chat-warnings";
 import { messageReadLabel } from "@/lib/chat-activity";
 
 /** The messages of one conversation, then its exchange requests; keeps the newest in view. */
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
-  const { exchanges } = useChat();
+  const { exchanges, conversations } = useChat();
+  const conversation = conversations.find((item) => item.id === conversationId);
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = log.current;
@@ -25,18 +28,27 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
     >
       {!thread?.length && <p className="text-center text-sm text-muted">尚未发送消息</p>}
       {thread?.map((message, index) => (
-        <MessageBubble key={`${message.time}-${index}`} message={message} />
+        <MessageBubble key={`${message.time}-${index}`} message={message} index={index} conversation={conversation} />
       ))}
       <ChatExchangeList key={conversationId} conversationId={conversationId} />
     </div>
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({
+  message,
+  index,
+  conversation,
+}: {
+  message: Message;
+  index: number;
+  conversation?: Conversation;
+}) {
   const mine = message.from === "me";
   const readLabel = messageReadLabel(message);
+  const warnings = mine ? [] : incomingWarnings(message.text);
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
         className={`max-w-[85%] break-words rounded-lg px-4 py-3 text-sm leading-relaxed lg:max-w-[75%] lg:text-base ${mine ? "bg-brand text-white" : "border border-border bg-surface"}`}
       >
@@ -48,6 +60,28 @@ function MessageBubble({ message }: { message: Message }) {
           </span>
         </p>
       </div>
+      {warnings.length > 0 && (
+        <div
+          role="note"
+          aria-label="合规提醒"
+          className="mt-1.5 max-w-[85%] space-y-1 rounded-lg bg-warn-soft px-3 py-2 text-xs leading-relaxed text-warn lg:max-w-[75%]"
+        >
+          {warnings.map((warning) => (
+            <p key={warning.rule} className="flex gap-1.5">
+              <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+              {warning.text}
+            </p>
+          ))}
+          {conversation && (
+            <ChatReportButton
+              conversation={conversation}
+              messageIndex={index}
+              reason={warnings[0].reportReason}
+              label="举报这条消息"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
