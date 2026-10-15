@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useMemo, useState, type RefObject } from "react";
 import type { Employer, Job } from "@/lib/types";
 import type { ChangeResult } from "@/app/employer/actions";
@@ -12,7 +11,9 @@ import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { chatPeopleByJob } from "@/components/employer/job-card";
 import { useChat } from "@/components/seeker/chat-client";
-import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { ButtonLink } from "@/components/ui/Button";
+import { Section } from "@/components/ui/Section";
+import { VerificationBadge } from "@/components/ui/VerificationBadge";
 
 type TabKey = "all" | ShownStatus;
 
@@ -51,7 +52,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
       <ManageHeader name={employer?.name ?? me.employerName} employer={employer} />
       <StatusTabs ready={ready} value={tab} onChange={setTab} />
       {employer?.bannedAt && (
-        <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">
           这个雇主账号已被停用，职位已全部下架，不能再发布。
         </p>
       )}
@@ -70,12 +71,12 @@ function noticeFor(result: ChangeResult, okText: string): Notice {
 function ManageHeader({ name, employer }: { name: string; employer?: Employer }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-      <h1 className="text-lg font-semibold">职位管理</h1>
-      <span className="text-sm">{name}</span>
+      <h1 className="text-title font-semibold">职位管理</h1>
+      <span className="text-body">{name}</span>
       {employer && <VerificationBadge verification={employer.verification} />}
-      <Link href="/employer/post" className="ml-auto rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white">
+      <ButtonLink href="/employer/post" className="ml-auto">
         发布新职位
-      </Link>
+      </ButtonLink>
     </div>
   );
 }
@@ -89,13 +90,16 @@ function StatusTabs({ ready, value, onChange }: { ready?: Loaded; value: TabKey;
       tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${tabCount(t.key, ready, counts)}` }))}
       value={value}
       onChange={onChange}
-      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
-      tabClassName={(selected) =>
-        `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`
-      }
+      className={STATUS_TABS}
+      tabClassName={statusTab}
     />
   );
 }
+
+/** Round 13 tabs: plain text over a thin line, the chosen one in brand colour and underlined (like the bottom nav). */
+export const STATUS_TABS = "-mx-4 flex gap-4 overflow-x-auto border-b border-border px-4";
+export const statusTab = (selected: boolean) =>
+  `-mb-px h-11 shrink-0 border-b-2 text-body ${selected ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`;
 
 /** How many jobs show under each status, as the employer sees them now. */
 function countByStatus(ready?: Loaded): Map<string, number> {
@@ -119,7 +123,7 @@ function NoticeLine({ notice, noticeRef }: { notice: Notice; noticeRef: RefObjec
       ref={noticeRef}
       tabIndex={-1}
       role="status"
-      className={`rounded-lg px-3 py-2 text-sm outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+      className={`rounded-md px-3 py-2 text-body outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
     >
       {notice.text}
     </p>
@@ -140,31 +144,38 @@ function JobsInTab({
   // Chats live in this browser (demo); a conversation started from a job keeps the job's id.
   const { conversations } = useChat();
   const chats = useMemo(() => chatPeopleByJob(conversations), [conversations]);
-  if (!ready) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
+  if (!ready)
+    return (
+      <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
+    );
 
   const shown = ready.jobs.filter((job: Job) => tab === "all" || effectiveStatus(job, ready.now) === tab);
   if (shown.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
-        {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
-      </div>
+      <Section>
+        <p className="py-8 text-center text-body text-muted">
+          {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
+        </p>
+      </Section>
     );
   }
 
   return (
-    <ul className="space-y-3">
-      {shown.map((job) => (
-        <li key={job.id}>
-          <ManagedJob
-            job={job}
-            employer={employer}
-            views={ready.views[job.id] ?? 0}
-            chats={chats[job.id] ?? 0}
-            now={ready.now}
-            onDone={onDone}
-          />
-        </li>
-      ))}
-    </ul>
+    <Section>
+      <ul className="divide-y divide-border">
+        {shown.map((job) => (
+          <li key={job.id}>
+            <ManagedJob
+              job={job}
+              employer={employer}
+              views={ready.views[job.id] ?? 0}
+              chats={chats[job.id] ?? 0}
+              now={ready.now}
+              onDone={onDone}
+            />
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }

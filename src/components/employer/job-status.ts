@@ -8,10 +8,10 @@ export const JOB_LIFETIME_DAYS = 30;
 export type ShownStatus = Job["status"];
 
 export const STATUS_LABELS: Record<ShownStatus, { zh: string; className: string }> = {
-  active: { zh: "招聘中", className: "bg-ok-soft text-ok" },
-  pending_review: { zh: "审核中", className: "bg-warn-soft text-warn" },
-  expired: { zh: "已结束", className: "border border-border text-muted" },
-  removed: { zh: "已下架", className: "bg-danger-soft text-danger" },
+  active: { zh: "招聘中", className: "border-ok/40 text-ok" },
+  pending_review: { zh: "审核中", className: "border-warn/40 text-warn" },
+  expired: { zh: "已结束", className: "border-muted/40 text-muted" },
+  removed: { zh: "已下架", className: "border-danger text-danger" },
 };
 
 /** An active job whose 30 days are up shows as expired, whatever is stored. */

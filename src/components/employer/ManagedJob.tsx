@@ -3,24 +3,22 @@ import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
 import { closeMyJob, confirmHires, type ChangeResult } from "@/app/employer/actions";
-import {
-  canEdit,
-  effectiveStatus,
-  expiryLabelZh,
-  STATUS_LABELS,
-  type ShownStatus,
-} from "@/components/employer/job-status";
+import { canEdit, effectiveStatus, expiryLabelZh, type ShownStatus } from "@/components/employer/job-status";
 import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
 import { HiresQuestion } from "@/components/employer/HiresQuestion";
 import { ACTION_BUTTON, JobActions, type Asking, type Run } from "@/components/employer/ManagedJobActions";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { cardNumbers } from "@/components/employer/job-card";
-import { formatPay } from "@/components/seeker/format";
+import { Figures, StatusTag } from "@/components/employer/StatusTag";
+import { Pay } from "@/components/ui/Pay";
 
 /** Tells the list what happened, with the text to show when it worked. */
 export type JobChangeDone = (result: ChangeResult, okText: string) => void;
 
-/** One of the employer's jobs: what it is, where it stands, and what can be done with it. */
+/**
+ * One of the employer's jobs, as a row between thin lines (Round 13): what it is, where it stands, and what can be
+ * done with it.
+ */
 export function ManagedJob({
   job,
   employer,
@@ -49,7 +47,7 @@ export function ManagedJob({
     });
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-4">
+    <article className="py-4">
       <JobSummary job={job} status={status} views={views} chats={chats} now={now} />
       <StatusNote status={status} />
       {canEdit(job) && (
@@ -92,25 +90,33 @@ function JobSummary({
   chats: number;
   now: number;
 }) {
-  const label = STATUS_LABELS[status];
   const hires = hiresLabelZh(job);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-semibold leading-snug">{job.titleZh}</h2>
-          <p className="truncate text-xs text-muted">
-            {job.titleEn} · {regionById(job.country, job.regionId)?.nameZh}
+          <h2 className="break-words text-subtitle font-semibold">{job.titleZh}</h2>
+          <p className="truncate text-meta text-muted">
+            <span lang="en" className="font-latin">
+              {job.titleEn}
+            </span>{" "}
+            · {regionById(job.country, job.regionId)?.nameZh}
           </p>
         </div>
-        <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${label.className}`}>{label.zh}</span>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <StatusTag status={status} />
+          <p className="leading-none">
+            <Pay pay={job.pay} country={job.country} />
+          </p>
+        </div>
       </div>
-      <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-        <span className="font-medium text-brand">{formatPay(job.pay, job.country)}</span>
-        <span className="text-muted">{expiryLabelZh(job, now)}</span>
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-body text-muted">
+        <span>
+          <Figures>{expiryLabelZh(job, now)}</Figures>
+        </span>
         {cardNumbers(job, chats, views).map((n) => (
-          <span key={n} className="text-muted">
-            {n}
+          <span key={n}>
+            <Figures>{n}</Figures>
           </span>
         ))}
         {hires && <span className="font-medium text-ok">{hires}</span>}
