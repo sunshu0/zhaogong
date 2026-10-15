@@ -46,8 +46,10 @@ test.describe("at 1280 × 800", () => {
     test.setTimeout(90_000);
     await page.goto("/");
     await features(page).locator("[data-replay-log]").scrollIntoViewIfNeeded();
-    await expect.poll(() => bubbles(page).count()).toBeGreaterThan(0);
-    expect(await bubbles(page).count()).toBeLessThan(13); // still playing
+    // Visible ones: before hydration the HTML holds all 13 (for no JavaScript), all but the first round hidden.
+    const shown = bubbles(page).filter({ visible: true });
+    await expect.poll(() => shown.count()).toBeGreaterThan(0);
+    expect(await shown.count()).toBeLessThan(13); // still playing
     await expect(bubbles(page)).toHaveCount(13, { timeout: 40_000 });
     await expect(bubbles(page).last()).toContainText("都齐了");
 

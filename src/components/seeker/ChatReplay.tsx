@@ -58,9 +58,18 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
     return () => observer.disconnect();
   }, [canAnimate, started]);
 
+  // The page can render again with an equal but new array (a Server Function call refreshes it); the replay
+  // restarts only when the conversation itself changes.
+  const script = messages.map((m) => m.id).join("|");
+  const latest = useRef(messages);
+  useEffect(() => {
+    latest.current = messages;
+  });
+
   // Play: each message after a pause, the assistant's after a short "typing".
   useEffect(() => {
     if (!canAnimate || !started) return;
+    const messages = latest.current;
     const timers: number[] = [];
     let at = 300;
     messages.forEach((m, i) => {
@@ -78,7 +87,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
       at += READ_MS + Math.min(m.text.length * 8, 600);
     });
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [canAnimate, started, run, messages, firstRound]);
+  }, [canAnimate, started, run, script, firstRound]);
 
   // Keep the newest message in view inside the window (not the page).
   useEffect(() => {
