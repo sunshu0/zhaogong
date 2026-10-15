@@ -184,7 +184,12 @@ test("switching to employer survives immediate navigation while account verifica
   const name = shop(testInfo);
   await signUpEmployer(page, email(testInfo, "pending-switch"), name);
   await accountButton(page).click();
+  // The switch to 求职者 must reach the server first, or holding requests below could hold it too.
+  const switched = page.waitForResponse(
+    (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"],
+  );
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
+  await switched;
   await expect(accountButton(page)).toHaveAccessibleName("账号菜单，当前身份：求职者");
 
   let release = () => {};

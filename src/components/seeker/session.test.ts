@@ -5,7 +5,9 @@ import {
   isValidEmail,
   normalizeEmail,
   readSession,
+  requestIdentity,
   safeNext,
+  updateIdentity,
   writeSession,
   type DemoSession,
   type StorageLike,
@@ -129,6 +131,39 @@ describe("identities in the session", () => {
       signedInAt: at.toISOString(),
       activeRole: "seeker",
     });
+  });
+});
+
+describe("a switch the server has not confirmed", () => {
+  const at = new Date("2026-10-12T01:00:00Z");
+  const employer = { id: "e4", name: "悦美发型工作室" };
+
+  it("is marked until the server's answer is written, and survives a page load", () => {
+    const storage = memoryStorage();
+    writeSession(storage, "boss@example.com", at, { activeRole: "seeker", employer });
+    const requested = requestIdentity(storage, { activeRole: "employer", employer });
+    expect(requested).toMatchObject({ activeRole: "employer", switching: "employer" });
+    expect(readSession(storage)).toEqual(requested);
+    expect(updateIdentity(storage, { activeRole: "employer", employer })).not.toHaveProperty("switching");
+    expect(readSession(storage)).not.toHaveProperty("switching");
+  });
+
+  it("is dropped when it does not name the identity shown", () => {
+    const storage = memoryStorage();
+    storage.data.set(
+      "zhaogong:session",
+      JSON.stringify({
+        email: "x@example.com",
+        signedInAt: at.toISOString(),
+        activeRole: "seeker",
+        switching: "employer",
+      }),
+    );
+    expect(readSession(storage)).not.toHaveProperty("switching");
+  });
+
+  it("needs a session", () => {
+    expect(requestIdentity(memoryStorage(), { activeRole: "seeker" })).toBeNull();
   });
 });
 

@@ -11,6 +11,7 @@ import {
   postJobHref,
   reconcileIdentity,
   syncSessionIdentity,
+  unconfirmedSwitch,
 } from "@/components/seeker/identity";
 import { clearSession, readSession, updateIdentity, writeSession, type DemoSession } from "@/components/seeker/session";
 
@@ -175,6 +176,23 @@ describe("delayed account synchronization", () => {
     const current = writeSession(storage, requested.email, new Date(now.getTime() + 1000));
     syncSessionIdentity(storage, requested, { employer });
     expect(readSession(storage)).toEqual(current);
+  });
+});
+
+describe("unconfirmedSwitch (a switch lost when the page was left before it reached the server)", () => {
+  const switching: DemoSession = { ...both, activeRole: "employer", switching: "employer" };
+  const employer = { id: "e4", name: "悦美发型工作室" };
+
+  it("sends the switch again when the server still has the other identity", () => {
+    expect(unconfirmedSwitch(switching, { email: "a@example.com", activeRole: "seeker", employer })).toBe("employer");
+  });
+
+  it("sends nothing once the server has it, without a pending switch, or for another or no server session", () => {
+    expect(unconfirmedSwitch(switching, { email: "a@example.com", activeRole: "employer", employer })).toBeNull();
+    expect(unconfirmedSwitch(both, { email: "a@example.com", activeRole: "employer", employer })).toBeNull();
+    expect(unconfirmedSwitch(switching, { email: "b@example.com", activeRole: "seeker" })).toBeNull();
+    expect(unconfirmedSwitch(switching, null)).toBeNull();
+    expect(unconfirmedSwitch(null, { email: "a@example.com", activeRole: "seeker" })).toBeNull();
   });
 });
 

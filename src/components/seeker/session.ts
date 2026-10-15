@@ -20,6 +20,8 @@ export interface DemoSession {
   /** The account's business, as the server last confirmed it. */
   employerId?: string;
   employerName?: string;
+  /** Set while a switch to this identity has not been confirmed by the server; the next page load sends it again. */
+  switching?: ActiveRole;
 }
 
 /** What the server says about an account, and which identity to use. */
@@ -55,7 +57,7 @@ export function parseSession(raw: string | null): DemoSession | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (typeof value !== "object" || value === null) return null;
-    const { email, signedInAt, activeRole, employerId, employerName } = value as Record<string, unknown>;
+    const { email, signedInAt, activeRole, employerId, employerName, switching } = value as Record<string, unknown>;
     if (typeof email !== "string" || !isValidEmail(email) || typeof signedInAt !== "string") return null;
     const session: DemoSession = { email, signedInAt, activeRole: "seeker" };
     if (typeof employerId === "string" && employerId && typeof employerName === "string") {
@@ -64,6 +66,7 @@ export function parseSession(raw: string | null): DemoSession | null {
       // An employer session needs a business; anything else (old sessions included) is a job seeker.
       if (activeRole === "employer") session.activeRole = "employer";
     }
+    if (switching === session.activeRole) session.switching = session.activeRole;
     return session;
   } catch {
     return null;
@@ -95,6 +98,15 @@ export function updateIdentity(storage: StorageLike, identity: SessionIdentity):
   const current = readSession(storage);
   if (!current) return null;
   return writeSession(storage, current.email, new Date(current.signedInAt), identity);
+}
+
+/** Changes the identity at once and marks it unconfirmed until the server's answer is written (setIdentity). */
+export function requestIdentity(storage: StorageLike, identity: SessionIdentity): DemoSession | null {
+  const session = updateIdentity(storage, identity);
+  if (!session) return null;
+  const marked: DemoSession = { ...session, switching: session.activeRole };
+  storage.setItem(SESSION_KEY, JSON.stringify(marked));
+  return marked;
 }
 
 export function clearSession(storage: StorageLike): void {

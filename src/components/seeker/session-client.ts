@@ -6,13 +6,13 @@
 import { accountStatus, signOutAccount, switchIdentity, type AccountStatus } from "@/app/login/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { claimGuestActivity } from "@/components/seeker/identity-activity";
-import { applyServerSession, syncSessionIdentity } from "@/components/seeker/identity";
+import { applyServerSession, syncSessionIdentity, unconfirmedSwitch } from "@/components/seeker/identity";
 import {
   clearSession,
   parseSession,
   readSession,
+  requestIdentity,
   SESSION_KEY,
-  updateIdentity,
   writeSession,
   type DemoSession,
   type SessionIdentity,
@@ -50,13 +50,20 @@ export function applySession(
 
 let syncedThisLoad = false;
 
-/** Once per page load: ask the server for this browser's session and correct the copy (restore, fix or clear it). */
+/**
+ * Once per page load: ask the server for this browser's session and correct the copy (restore, fix or clear it).
+ * A switch the server never got (the page was left first) is sent again rather than undone.
+ */
 export function syncWithServer(): void {
   if (syncedThisLoad) return;
   syncedThisLoad = true;
   const requested = store.update(readSession) ?? null;
   accountStatus()
-    .then((status) => applySession(requested, status))
+    .then((status) => {
+      const role = unconfirmedSwitch(requested, status);
+      if (!role) return applySession(requested, status);
+      return switchIdentity(role).then((answer) => applySession(requested, answer));
+    })
     .catch(() => {
       syncedThisLoad = false; // try again on the next page
     });
@@ -67,7 +74,7 @@ export function syncWithServer(): void {
  * an employer identity the account does not have; signed out on the server clears it).
  */
 export function setIdentity(identity: SessionIdentity): DemoSession | null | undefined {
-  const requested = store.update((storage) => updateIdentity(storage, identity));
+  const requested = store.update((storage) => requestIdentity(storage, identity));
   if (requested) {
     void switchIdentity(identity.activeRole)
       .then((status) =>

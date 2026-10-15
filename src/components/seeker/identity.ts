@@ -109,6 +109,15 @@ export function syncSessionIdentity(
 export type ServerSession = { email: string; activeRole: ActiveRole; employer?: { id: string; name: string } };
 
 /**
+ * After a page load: the identity to ask the server for again, when the copy holds a switch the server has not made
+ * (the page was left before the request arrived). Null when there is nothing to send.
+ */
+export function unconfirmedSwitch(requested: DemoSession | null, server: ServerSession | null): ActiveRole | null {
+  if (!requested?.switching || !server || server.email !== requested.email) return null;
+  return server.activeRole === requested.switching ? null : requested.switching;
+}
+
+/**
  * Make the browser's copy match the server's session (A12-1): the cookie session is the truth, the copy is for
  * display. `requested` is the copy when the question was asked; if it changed since (a sign-in, sign-out or
  * switch in between), the answer is out of date and the copy is left alone.
