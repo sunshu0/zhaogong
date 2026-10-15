@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { TAG_STYLES, tagKindFor, type TagKind } from "@/components/ui/tag";
+import { TAG_STYLES, tagKindFor, type TagKind } from "@/components/ui/tag-kind";
 
 /**
  * A small label. Pass `kind`, or leave it out to pick the colour from the label text (see tagKindFor).

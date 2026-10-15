@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TAG_STYLES, tagKindFor } from "./tag";
+import { TAG_STYLES, tagKindFor } from "./tag-kind";
 
 describe("tagKindFor", () => {
   it("gives each job tag its fixed colour", () => {
