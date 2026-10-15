@@ -102,7 +102,8 @@ function ThreadHeader({
 /** Avatar, name and job of the other person; a link to their public page when they have one. */
 function Counterpart({ conversation, isEmployer }: { conversation: Conversation; isEmployer: boolean }) {
   const profileHref = conversationProfileHref(conversation, isEmployer);
-  const job = (
+  // Only when there is no job strip under the header (it names the job already).
+  const job = conversation.job ? null : (
     <p className="truncate text-xs text-muted">
       {isEmployer ? "应聘" : "招聘"}：{conversation.title}
     </p>

@@ -18,6 +18,8 @@ test("seeker sees employer activity and receipts only change when the counterpar
   await expect(activity).toContainText(/对方约 \d+ 分钟前在线/);
   await expect(activity).toContainText(/雇主今日已回复 \d+ 位求职者/);
   await expect(activity).toContainText("演示状态");
+  // One small line where it fits; it wraps rather than cutting words off at 375 px.
+  expect(await activity.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   const log = page.getByRole("log");
   await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(1);
   await expect(log.getByLabel("我已读", { exact: true })).toHaveCount(2);

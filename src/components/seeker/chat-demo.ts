@@ -8,7 +8,7 @@ export const CONVERSATIONS: Conversation[] = [
   {
     id: "north-tea",
     person: "北岸早茶酒家",
-    title: "前厅服务员",
+    title: "点心师傅", // j3
     time: "10:42",
     avatar: "北",
     job: "j3",
