@@ -112,7 +112,7 @@ function useOwnJob(jobId: string | null, email: string | undefined): Job | null 
   useEffect(() => {
     if (!jobId || !email) return;
     let live = true;
-    getMyJob(jobId, email).then((job) => {
+    getMyJob(jobId).then((job) => {
       if (live) setLoaded({ key, job });
     });
     return () => {

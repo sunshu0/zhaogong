@@ -20,7 +20,6 @@ export type Run = (action: () => Promise<ChangeResult>, okText: string) => void;
 export function JobActions({
   job,
   now,
-  email,
   pending,
   asking,
   sharing,
@@ -30,7 +29,6 @@ export function JobActions({
 }: {
   job: Job;
   now: number;
-  email: string;
   pending: boolean;
   asking: Asking;
   sharing: boolean;
@@ -42,7 +40,7 @@ export function JobActions({
   const reopening = effectiveStatus(job, now) === "expired";
   const handlers: Record<CardActionKey, (() => void) | string> = {
     edit: `/employer/jobs/${job.id}`,
-    refresh: () => run(() => refreshMyJob(job.id, email), reopening ? "已重新开放 30 天" : "已刷新，排到前面"),
+    refresh: () => run(() => refreshMyJob(job.id), reopening ? "已重新开放 30 天" : "已刷新，排到前面"),
     share: onToggleShare,
     close: () => onAsk("close"),
     hires: () => onAsk("hires"),

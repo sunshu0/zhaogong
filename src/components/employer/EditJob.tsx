@@ -27,7 +27,7 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
 
   useEffect(() => {
     let live = true;
-    getMyJob(jobId, email).then((job) => {
+    getMyJob(jobId).then((job) => {
       if (live) setLoaded({ email, job });
     });
     return () => {
@@ -64,7 +64,7 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
   function save() {
     setError(undefined);
     startTransition(async () => {
-      const result = await editMyJob(job.id, email, state.draft);
+      const result = await editMyJob(job.id, state.draft);
       if (result.ok) setSaved(result.job);
       else setError(result.error_zh);
       window.scrollTo({ top: 0 });

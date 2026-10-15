@@ -57,7 +57,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
       )}
       {notice && <NoticeLine notice={notice} noticeRef={noticeRef} />}
       <TabPanel idBase={TAB_ID_BASE} value={tab}>
-        <JobsInTab ready={ready} tab={tab} employer={employer} email={me.email} onDone={done} />
+        <JobsInTab ready={ready} tab={tab} employer={employer} onDone={done} />
       </TabPanel>
     </div>
   );
@@ -130,13 +130,11 @@ function JobsInTab({
   ready,
   tab,
   employer,
-  email,
   onDone,
 }: {
   ready?: Loaded;
   tab: TabKey;
   employer?: Employer;
-  email: string;
   onDone: JobChangeDone;
 }) {
   // Chats live in this browser (demo); a conversation started from a job keeps the job's id.
@@ -160,7 +158,6 @@ function JobsInTab({
           <ManagedJob
             job={job}
             employer={employer}
-            email={email}
             views={ready.views[job.id] ?? 0}
             chats={chats[job.id] ?? 0}
             now={ready.now}

@@ -31,7 +31,8 @@ const time = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function ModerationQueue() {
-  const [queue, setQueue] = useState<Queue>();
+  // null: the server found no signed-in session (it expired, or the browser's copy was stale).
+  const [queue, setQueue] = useState<Queue | null>();
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
@@ -86,7 +87,9 @@ export function ModerationQueue() {
       )}
 
       <TabPanel idBase="admin" value={tab}>
-        {!queue ? (
+        {queue === null ? (
+          <Empty>登录已失效，请重新登录。</Empty>
+        ) : !queue ? (
           <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
         ) : tab === "log" ? (
           queue.log.length === 0 ? (

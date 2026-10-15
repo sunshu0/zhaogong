@@ -1,8 +1,9 @@
 "use server";
-// Server Functions for the demo moderation queue. There is no admin sign-in in this stage (the page
-// says 演示后台), so each function first checks the ADMIN_ENABLED switch; the backend must check a
-// moderator session there instead.
+// Server Functions for the demo moderation queue. Each one first checks the ADMIN_ENABLED switch,
+// then that the request has a signed-in session. There is no moderator role yet (the page says
+// 演示后台), so any signed-in account may moderate; a real moderator check belongs in moderator().
 import { DEFAULT_COUNTRY } from "@/config/countries";
+import { getCurrentSession } from "@/lib/auth";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import {
   addModerationLog,
@@ -32,13 +33,20 @@ export interface ModerationQueue {
   log: (ModerationLogEntry & { text: string })[];
 }
 
+/** Refuses while /admin is switched off; otherwise whether the request is signed in. */
+async function moderator(): Promise<boolean> {
+  requireAdmin();
+  return (await getCurrentSession()) != null;
+}
+
 async function item(job: Job): Promise<QueueItem> {
   const employer = await getEmployer(job.employerId);
   return { job, employer, findings: checkJob(job, job.country, employer) };
 }
 
-export async function getModerationQueue(): Promise<ModerationQueue> {
-  requireAdmin();
+/** The queue, or null when signed out. */
+export async function getModerationQueue(): Promise<ModerationQueue | null> {
+  if (!(await moderator())) return null;
   const jobs = await listAllJobs(DEFAULT_COUNTRY);
   const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map(item));
   const groups = groupOpenReports(await listReports());
@@ -55,6 +63,8 @@ export async function getModerationQueue(): Promise<ModerationQueue> {
 }
 
 export type AdminResult = { ok: true; text: string } | { ok: false; error_zh: string };
+
+const SIGNED_OUT: AdminResult = { ok: false, error_zh: "请先登录。" };
 
 async function openReportsFor(jobId: string): Promise<Report[]> {
   return (await listReports()).filter((r) => r.jobId === jobId && r.status === "open");
@@ -82,7 +92,7 @@ async function subject(jobId: unknown) {
 
 /** A job flagged at posting is fine: it goes live for 30 days from now. */
 export async function approveJob(jobId: string): Promise<AdminResult> {
-  requireAdmin();
+  if (!(await moderator())) return SIGNED_OUT;
   const s = await subject(jobId);
   if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: "这个职位不在待审核列表里。" };
   if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
@@ -95,7 +105,7 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
 
 /** Takes a job down and closes its open reports as acted on. */
 export async function takeDownJob(jobId: string): Promise<AdminResult> {
-  requireAdmin();
+  if (!(await moderator())) return SIGNED_OUT;
   const s = await subject(jobId);
   if (!s) return { ok: false, error_zh: "找不到这个职位。" };
   const reports = await openReportsFor(s.job.id);
@@ -114,7 +124,7 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
 
 /** The reports on this job do not hold up; the job stays as it is. */
 export async function dismissReports(jobId: string): Promise<AdminResult> {
-  requireAdmin();
+  if (!(await moderator())) return SIGNED_OUT;
   const s = await subject(jobId);
   if (!s) return { ok: false, error_zh: "找不到这个职位。" };
   const reports = await openReportsFor(s.job.id);
@@ -126,7 +136,7 @@ export async function dismissReports(jobId: string): Promise<AdminResult> {
 
 /** Bans the employer behind a job: all their jobs come down and reports on them are closed. */
 export async function banJobEmployer(jobId: string): Promise<AdminResult> {
-  requireAdmin();
+  if (!(await moderator())) return SIGNED_OUT;
   const s = await subject(jobId);
   if (!s?.employer) return { ok: false, error_zh: "找不到这个雇主。" };
   if (s.employer.bannedAt) return { ok: false, error_zh: "这个雇主已经被封禁。" };

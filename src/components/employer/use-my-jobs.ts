@@ -13,7 +13,7 @@ export function useMyJobs(email: string | undefined) {
   useEffect(() => {
     if (!email) return;
     let live = true;
-    Promise.all([getMyJobs(email), getContactViewCounts(email)]).then(([jobs, views]) => {
+    Promise.all([getMyJobs(), getContactViewCounts()]).then(([jobs, views]) => {
       if (live) setLoaded({ email, jobs, views, now: Date.now() });
     });
     return () => {

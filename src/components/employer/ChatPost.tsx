@@ -13,15 +13,12 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 export function ChatPost({
   chat,
   setChat,
-  email,
   country,
   headingRef,
   onPreview,
   onUseForm,
 }: {
   chat: ChatState;
-  /** The signed-in account: the server reads the business (and its badge) from it each turn. */
-  email: string;
   setChat: (s: ChatState) => void;
   country: CountryCode;
   headingRef: RefObject<HTMLHeadingElement | null>;
@@ -49,7 +46,7 @@ export function ChatPost({
     setText("");
     startTransition(async () => {
       try {
-        const next = await chatTurn(chat, m, email);
+        const next = await chatTurn(chat, m);
         setChat(next);
         if (next.ready) onPreview(next);
       } catch {

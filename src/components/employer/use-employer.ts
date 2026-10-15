@@ -14,7 +14,7 @@ export function useEmployerProfile(email: string | undefined) {
   useEffect(() => {
     if (!email) return;
     let live = true;
-    getMyEmployer(email).then((employer) => {
+    getMyEmployer().then((employer) => {
       if (live) setLoaded({ email, employer });
     });
     return () => {

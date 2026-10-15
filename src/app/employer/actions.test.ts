@@ -1,5 +1,27 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createSession, SESSION_COOKIE, type CookieJar } from "@/lib/auth";
+import { setAuthStoreForTests } from "@/lib/auth/store";
+import { startChat } from "@/lib/ai-post";
 import {
+  banEmployer,
+  ensureAccount,
+  getJob,
+  getPlatformStats,
+  listJobs,
+  openEmployerIdentity,
+  recordContactView,
+} from "@/lib/data";
+
+// Server Functions read the request's cookies; here one jar stands in for one browser.
+const cookies = new Map<string, string>();
+const jar: CookieJar = {
+  get: (name) => (cookies.has(name) ? { name, value: cookies.get(name)! } : undefined),
+  set: (name, value) => void cookies.set(name, value),
+  delete: (name) => void cookies.delete(name),
+};
+vi.mock("next/headers", () => ({ cookies: async () => jar }));
+
+const {
   chatTurn,
   closeMyJob,
   confirmHires,
@@ -13,11 +35,9 @@ import {
   publishJob,
   refreshMyJob,
   verifyBusiness,
-} from "@/app/employer/actions";
-import { startChat } from "@/lib/ai-post";
-import { banEmployer, getJob, getPlatformStats, listJobs, openEmployerIdentity, recordContactView } from "@/lib/data";
+} = await import("@/app/employer/actions");
 
-/** The signed-in email of each demo business's owner: the Server Functions take the email, the server finds the business. */
+/** The email of each demo business's owner. The Server Functions take no email: the session says who acts. */
 const E: Record<string, string> = {};
 beforeAll(async () => {
   for (const id of ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"]) {
@@ -28,28 +48,41 @@ beforeAll(async () => {
   }
 });
 
+beforeEach(() => {
+  setAuthStoreForTests();
+  cookies.clear();
+});
+
+/** Runs `call` from a browser signed in as `email` (a fresh session cookie). */
+async function as<T>(email: string, call: () => Promise<T>): Promise<T> {
+  cookies.clear();
+  await ensureAccount(email);
+  await createSession(email, "employer", jar);
+  return call();
+}
+
 const MESSAGE = `Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做。微信 demo_chuanwei`;
 
 describe("publishJob", () => {
   it("publishes a clean draft as active, visible to job seekers", async () => {
     const { draft } = await parseDraft(MESSAGE);
-    const result = await publishJob(draft, E.e1);
+    const result = await as(E.e1, () => publishJob(draft));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.job).toMatchObject({ employerId: "e1", status: "active", titleZh: "前厅服务员" });
     expect((await listJobs({ country: "NZ" })).map((j) => j.id)).toContain(result.job.id);
-    expect((await getMyJobs(E.e1))[0].id).toBe(result.job.id);
+    expect((await as(E.e1, () => getMyJobs()))[0].id).toBe(result.job.id);
   });
 
   it("sends a high-risk draft to review instead of the list", async () => {
     const { draft } = await parseDraft(`${MESSAGE}，KTV 包间`);
-    const result = await publishJob(draft, E.e1);
+    const result = await as(E.e1, () => publishJob(draft));
     expect(result.ok && result.job.status).toBe("pending_review");
   });
 
   it("re-checks on the server and refuses what the browser should have held back", async () => {
     const { draft } = await parseDraft(MESSAGE.replace("$25-27", "$20"));
-    const result = await publishJob({ ...draft, descriptionZh: "入职交押金。" }, E.e1);
+    const result = await as(E.e1, () => publishJob({ ...draft, descriptionZh: "入职交押金。" }));
     expect(result).toMatchObject({ ok: false, reason: "not_ready" });
     expect(!result.ok && result.findings.map((f) => f.rule)).toEqual(["min_wage", "fee"]);
   });
@@ -57,28 +90,29 @@ describe("publishJob", () => {
   it("lets only an accredited employer list AEWV holders", async () => {
     const { draft } = await parseDraft(MESSAGE);
     const withAewv = { ...draft, visaAccepted: ["student", "aewv"] };
-    const refused = await publishJob(withAewv, E.e1); // e1 is a verified business, not accredited
+    const refused = await as(E.e1, () => publishJob(withAewv)); // e1 is a verified business, not accredited
     expect(refused).toMatchObject({ ok: false, reason: "not_ready" });
     expect(!refused.ok && refused.findings.map((f) => f.rule)).toEqual(["aewv_unaccredited"]);
-    expect(await publishJob(withAewv, E.e2)).toMatchObject({ ok: true }); // e2 is accredited
+    expect(await as(E.e2, () => publishJob(withAewv))).toMatchObject({ ok: true }); // e2 is accredited
   });
 
   it("checks AEWV in the chat for the signed-in business only", async () => {
-    const said = (await chatTurn(startChat("NZ"), `${MESSAGE}，雇主担保工签可`, E.e1)).messages.at(-1)!.text;
+    const said = (await as(E.e1, () => chatTurn(startChat("NZ"), `${MESSAGE}，雇主担保工签可`))).messages.at(-1)!.text;
     expect(said).toContain("持 AEWV 工签者");
+    cookies.clear(); // signed out again
     const anonymous = await chatTurn(startChat("NZ"), `${MESSAGE}，雇主担保工签可`);
     expect(anonymous.asking).not.toBe("fix");
   });
 
   it("refuses an incomplete draft and an unknown employer", async () => {
-    expect(await publishJob({ titleZh: "洗碗工" }, E.e1)).toMatchObject({ ok: false, reason: "not_ready" });
+    expect(await as(E.e1, () => publishJob({ titleZh: "洗碗工" }))).toMatchObject({ ok: false, reason: "not_ready" });
     const { draft } = await parseDraft(MESSAGE);
-    expect(await publishJob(draft, "nobody@example.com")).toMatchObject({ ok: false, reason: "no_identity" });
+    expect(await as("nobody@example.com", () => publishJob(draft))).toMatchObject({ ok: false, reason: "no_identity" });
   });
 
   it("ignores fields the browser should not set", async () => {
     const { draft } = await parseDraft(MESSAGE);
-    const result = await publishJob({ ...draft, status: "active", employerId: E.e2, id: "j1" }, E.e1);
+    const result = await as(E.e1, () => publishJob({ ...draft, status: "active", employerId: E.e2, id: "j1" }));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.job.employerId).toBe("e1");
@@ -89,34 +123,36 @@ describe("publishJob", () => {
 
 describe("managing published jobs", () => {
   it("only lets the owner see or change a job", async () => {
-    expect(await getMyJob("j1", E.e2)).toBeNull();
-    expect((await getMyJob("j1", E.e1))?.id).toBe("j1");
-    expect(await closeMyJob("j1", E.e2)).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
+    expect(await as(E.e2, () => getMyJob("j1"))).toBeNull();
+    expect((await as(E.e1, () => getMyJob("j1")))?.id).toBe("j1");
+    expect(await as(E.e2, () => closeMyJob("j1"))).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
   });
 
   it("closes a job, takes it off the list, and refreshing reopens it for 30 days", async () => {
-    const closed = await closeMyJob("j2", E.e1);
+    const closed = await as(E.e1, () => closeMyJob("j2"));
     expect(closed.ok && closed.job.status).toBe("expired");
     expect((await listJobs({ country: "NZ" })).map((j) => j.id)).not.toContain("j2");
 
-    const reopened = await refreshMyJob("j2", E.e1);
+    const reopened = await as(E.e1, () => refreshMyJob("j2"));
     expect(reopened.ok && reopened.job.status).toBe("active");
     expect(reopened.ok && Date.parse(reopened.job.expiresAt) - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    expect(await refreshMyJob("j2", E.e1)).toMatchObject({ ok: false, error_zh: "不能刷新：今天已刷新过" });
+    expect(await as(E.e1, () => refreshMyJob("j2"))).toMatchObject({ ok: false, error_zh: "不能刷新：今天已刷新过" });
   });
 
   it("saves an edit after the same checks, and sends risky new text back to review", async () => {
-    const job = (await getMyJob("j3", E.e2))!;
-    const blocked = await editMyJob("j3", E.e2, { ...job, descriptionZh: "包签，月入过万。" });
+    const job = (await as(E.e2, () => getMyJob("j3")))!;
+    const blocked = await as(E.e2, () => editMyJob("j3", { ...job, descriptionZh: "包签，月入过万。" }));
     expect(blocked).toMatchObject({ ok: false });
     expect(!blocked.ok && blocked.findings?.map((f) => f.rule)).toEqual(["visa_selling"]);
 
-    const edited = await editMyJob("j3", E.e2, {
-      ...job,
-      titleZh: "点心主厨",
-      shiftsZh: undefined,
-      descriptionZh: "早茶点心，附近有 KTV。",
-    });
+    const edited = await as(E.e2, () =>
+      editMyJob("j3", {
+        ...job,
+        titleZh: "点心主厨",
+        shiftsZh: undefined,
+        descriptionZh: "早茶点心，附近有 KTV。",
+      }),
+    );
     expect(edited.ok && edited.job).toMatchObject({
       id: "j3",
       titleZh: "点心主厨",
@@ -129,7 +165,7 @@ describe("managing published jobs", () => {
   it("counts contact reveals per job without saying who", async () => {
     await recordContactView("j4", "a@example.com");
     await recordContactView("j4", "b@example.com");
-    const counts = await getContactViewCounts(E.e2);
+    const counts = await as(E.e2, () => getContactViewCounts());
     expect(counts.j4).toBe(2);
     expect(JSON.stringify(counts)).not.toContain("@");
   });
@@ -137,8 +173,11 @@ describe("managing published jobs", () => {
   it("stops a banned employer from posting or editing", async () => {
     await banEmployer("e5");
     const { draft } = await parseDraft(MESSAGE);
-    expect(await publishJob(draft, E.e5)).toMatchObject({ ok: false, reason: "banned" });
-    expect(await refreshMyJob("j8", E.e5)).toMatchObject({ ok: false, error_zh: "账号已被停用，不能再修改职位。" });
+    expect(await as(E.e5, () => publishJob(draft))).toMatchObject({ ok: false, reason: "banned" });
+    expect(await as(E.e5, () => refreshMyJob("j8"))).toMatchObject({
+      ok: false,
+      error_zh: "账号已被停用，不能再修改职位。",
+    });
   });
 });
 
@@ -149,32 +188,32 @@ describe("business verification", () => {
   });
 
   it("verifies an unverified shop with its register entry", async () => {
-    const result = await verifyBusiness(E.e4, "9429 0000 0000 4");
+    const result = await as(E.e4, () => verifyBusiness("9429 0000 0000 4"));
     expect(result.ok && result.employer).toMatchObject({
       verification: "business_verified",
       legalName: "Demo Yuemei Hair Studio Limited",
     });
-    expect(await getMyEmployer(E.e4)).toMatchObject({
+    expect(await as(E.e4, () => getMyEmployer())).toMatchObject({
       verification: "business_verified",
       businessNumber: "9429000000004",
     });
   });
 
   it("refuses a struck-off company, an unknown number and another shop's NZBN", async () => {
-    expect(await verifyBusiness(E.e6, "9429000000099")).toMatchObject({
+    expect(await as(E.e6, () => verifyBusiness("9429000000099"))).toMatchObject({
       ok: false,
       error_zh: expect.stringContaining("已注销"),
     });
-    expect(await verifyBusiness(E.e6, "9429000000123")).toMatchObject({ ok: false });
-    expect(await verifyBusiness(E.e6, "9429000000001")).toMatchObject({
+    expect(await as(E.e6, () => verifyBusiness("9429000000123"))).toMatchObject({ ok: false });
+    expect(await as(E.e6, () => verifyBusiness("9429000000001"))).toMatchObject({
       ok: false,
       error_zh: expect.stringContaining("其他店铺"),
     });
-    expect((await getMyEmployer(E.e6))?.verification).toBe("unverified");
+    expect((await as(E.e6, () => getMyEmployer()))?.verification).toBe("unverified");
   });
 
   it("keeps an accredited employer's badge", async () => {
-    const result = await verifyBusiness(E.e2, "9429000000002");
+    const result = await as(E.e2, () => verifyBusiness("9429000000002"));
     expect(result.ok && result.employer.verification).toBe("accredited_employer");
   });
 });
@@ -182,36 +221,36 @@ describe("business verification", () => {
 describe("hires confirmed when a job ends", () => {
   it("saves the count with the close, and the platform total adds it up", async () => {
     const before = (await getPlatformStats("NZ")).hiresConfirmed;
-    const closed = await closeMyJob("j13", E.e8, { hired: true, count: 2 });
+    const closed = await as(E.e8, () => closeMyJob("j13", { hired: true, count: 2 }));
     expect(closed.ok && closed.job).toMatchObject({ status: "expired", hiresConfirmed: 2 });
     expect(closed.ok && closed.job.hiresConfirmedAt).toBeTruthy();
     expect((await getPlatformStats("NZ")).hiresConfirmed).toBe(before + 2);
   });
 
   it("ends a job without an answer, and records 没有 / 不确定 as zero", async () => {
-    const skipped = await closeMyJob("j14", E.e8);
+    const skipped = await as(E.e8, () => closeMyJob("j14"));
     expect(skipped.ok && skipped.job.hiresConfirmed).toBeUndefined();
-    const none = await confirmHires("j14", E.e8, { hired: false });
+    const none = await as(E.e8, () => confirmHires("j14", { hired: false }));
     expect(none.ok && none.job.hiresConfirmed).toBe(0);
   });
 
   it("corrects the count later on the ended job", async () => {
-    const corrected = await confirmHires("j13", E.e8, { hired: true, count: 3 });
+    const corrected = await as(E.e8, () => confirmHires("j13", { hired: true, count: 3 }));
     expect(corrected.ok && corrected.job.hiresConfirmed).toBe(3);
   });
 
   it("refuses a bad count, another employer's job and a job that has not ended", async () => {
-    expect(await confirmHires("j13", E.e8, { hired: true, count: 21 })).toMatchObject({
+    expect(await as(E.e8, () => confirmHires("j13", { hired: true, count: 21 }))).toMatchObject({
       ok: false,
       error_zh: "人数请填 1 到 20。",
     });
-    expect(await closeMyJob("j15", E.e3, { hired: true, count: 0 })).toMatchObject({ ok: false });
+    expect(await as(E.e3, () => closeMyJob("j15", { hired: true, count: 0 }))).toMatchObject({ ok: false });
     expect((await getJob("j15"))?.status).toBe("active"); // a refused answer does not end the job
-    expect(await confirmHires("j13", E.e1, { hired: true, count: 1 })).toMatchObject({
+    expect(await as(E.e1, () => confirmHires("j13", { hired: true, count: 1 }))).toMatchObject({
       ok: false,
       error_zh: "找不到这个职位。",
     });
-    expect(await confirmHires("j15", E.e3, { hired: true, count: 1 })).toMatchObject({
+    expect(await as(E.e3, () => confirmHires("j15", { hired: true, count: 1 }))).toMatchObject({
       ok: false,
       error_zh: "职位结束后才能记录招到几人。",
     });
@@ -241,24 +280,87 @@ describe("chatTurn", () => {
 describe("employer identity, checked on the server", () => {
   it("gives an account without a business nothing to read and nothing to change", async () => {
     const seeker = "just.looking@example.com";
-    expect(await getMyJobs(seeker)).toEqual([]);
-    expect(await getContactViewCounts(seeker)).toEqual({});
-    expect(await getMyEmployer(seeker)).toBeNull();
-    expect(await closeMyJob("j5", seeker)).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
+    expect(await as(seeker, () => getMyJobs())).toEqual([]);
+    expect(await as(seeker, () => getContactViewCounts())).toEqual({});
+    expect(await as(seeker, () => getMyEmployer())).toBeNull();
+    expect(await as(seeker, () => closeMyJob("j5"))).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
     const { draft } = await parseDraft(MESSAGE);
-    expect(await publishJob(draft, seeker)).toMatchObject({ ok: false, reason: "no_identity" });
-    expect(await publishJob(draft, "")).toMatchObject({ ok: false, reason: "no_identity" });
+    expect(await as(seeker, () => publishJob(draft))).toMatchObject({ ok: false, reason: "no_identity" });
   });
 
   it("acts only for the account's own business, whatever the browser says", async () => {
     // A job of e3, asked for by e2's owner: the session's employerId never reaches the server.
-    expect(await getMyJob("j5", E.e2)).toBeNull();
-    expect(await editMyJob("j5", E.e2, { titleZh: "x" })).toEqual({ ok: false, error_zh: "找不到这个职位。" });
-    expect((await getMyJobs(E.e3)).every((j) => j.employerId === "e3")).toBe(true);
+    expect(await as(E.e2, () => getMyJob("j5"))).toBeNull();
+    expect(await as(E.e2, () => editMyJob("j5", { titleZh: "x" }))).toEqual({
+      ok: false,
+      error_zh: "找不到这个职位。",
+    });
+    expect((await as(E.e3, () => getMyJobs())).every((j) => j.employerId === "e3")).toBe(true);
   });
 
   it("still shows a banned business to its owner, for the notice", async () => {
-    const profile = await getMyEmployer(E.e5); // banned in the test above
+    const profile = await as(E.e5, () => getMyEmployer()); // banned in the test above
     expect(profile?.bannedAt).toBeTruthy();
+  });
+});
+
+describe("refused without the right session (#19)", () => {
+  const job = "j5"; // e3's
+  const hires = { hired: true, count: 1 } as const;
+
+  /** Every employer Server Function that reads or changes a business, called as the browser is now. */
+  async function everything() {
+    const { draft } = await parseDraft(MESSAGE);
+    return {
+      jobs: await getMyJobs(),
+      views: await getContactViewCounts(),
+      profile: await getMyEmployer(),
+      job: await getMyJob(job),
+      publish: await publishJob(draft),
+      close: await closeMyJob(job),
+      hires: await confirmHires(job, hires),
+      refresh: await refreshMyJob(job),
+      edit: await editMyJob(job, { titleZh: "改名" }),
+      verify: await verifyBusiness("9429000000004"),
+    };
+  }
+
+  async function untouched() {
+    expect(await getJob(job)).toMatchObject({ status: "active", employerId: "e3" });
+    expect((await getJob(job))?.titleZh).not.toBe("改名");
+  }
+
+  it("refuses a browser that is not signed in, or sends a cookie the server never issued", async () => {
+    for (const cookie of [undefined, "made-up-token"]) {
+      cookies.clear();
+      if (cookie) cookies.set(SESSION_COOKIE, cookie);
+      const r = await everything();
+      expect(r).toMatchObject({ jobs: [], views: {}, profile: null, job: null });
+      expect(r.publish).toMatchObject({ ok: false, reason: "signed_out" });
+      for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
+        expect(change).toEqual({ ok: false, error_zh: "请先登录。" });
+      }
+    }
+    await untouched();
+  });
+
+  it("refuses a signed-in account that has no business", async () => {
+    const r = await as("seeker.only@example.com", everything);
+    expect(r).toMatchObject({ jobs: [], views: {}, profile: null, job: null });
+    expect(r.publish).toMatchObject({ ok: false, reason: "no_identity" });
+    for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
+      expect(change).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
+    }
+    await untouched();
+  });
+
+  it("refuses another business's job, even when the browser names it", async () => {
+    const r = await as(E.e1, everything);
+    expect(r.job).toBeNull();
+    for (const change of [r.close, r.hires, r.refresh, r.edit]) {
+      expect(change).toEqual({ ok: false, error_zh: "找不到这个职位。" });
+    }
+    expect(r.jobs.every((j) => j.employerId === "e1")).toBe(true);
+    await untouched();
   });
 });

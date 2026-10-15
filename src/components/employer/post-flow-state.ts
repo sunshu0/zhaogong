@@ -13,6 +13,7 @@ export type Step = "chat" | "paste" | "form" | "preview" | "done";
 export type Mode = "chat" | "form";
 
 export const PUBLISH_ERRORS = {
+  signed_out: "登录已失效，请重新登录后再发布。",
   no_identity: "需要先开通雇主身份，请从页头的「发布招聘」重新进入。",
   banned: "这个雇主账号已被停用，不能发布职位。",
   not_ready: "服务器检查没有通过，请回到上一步修改。",
@@ -91,7 +92,7 @@ export function usePosting(email: string, country: CountryCode) {
     switchMode: (next: Mode) => switchMode(state, next),
     backFromPreview: () => backFromPreview(state),
     toPreview: () => toPreview(state),
-    publish: () => publish(state, email),
+    publish: () => publish(state),
     startEmptyForm: () => startEmptyForm(state),
     startOver: () => startOver(state),
   };
@@ -146,10 +147,10 @@ function toPreview(state: PostingState) {
   window.scrollTo({ top: 0 });
 }
 
-function publish(state: PostingState, email: string) {
+function publish(state: PostingState) {
   state.setError(undefined);
   state.startTransition(async () => {
-    const result = await publishJob(state.form.draft, email);
+    const result = await publishJob(state.form.draft);
     if (result.ok) {
       state.setPublished(result.job);
       state.setStep("done");

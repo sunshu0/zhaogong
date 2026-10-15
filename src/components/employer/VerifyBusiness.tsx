@@ -35,7 +35,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
   function verify(nzbn: string) {
     startTransition(async () => {
-      const result = await verifyBusiness(me.email, nzbn);
+      const result = await verifyBusiness(nzbn);
       setMessage(
         result.ok
           ? {

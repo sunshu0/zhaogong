@@ -74,7 +74,6 @@ function CurrentStep({ view }: { view: PostingView }) {
         <ChatPost
           chat={posting.chat}
           setChat={posting.setChat}
-          email={view.email}
           country={country}
           headingRef={heading}
           onPreview={posting.previewFromChat}

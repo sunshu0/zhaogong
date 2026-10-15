@@ -24,7 +24,6 @@ export type JobChangeDone = (result: ChangeResult, okText: string) => void;
 export function ManagedJob({
   job,
   employer,
-  email,
   views,
   chats,
   now,
@@ -32,7 +31,6 @@ export function ManagedJob({
 }: {
   job: Job;
   employer?: Employer;
-  email: string;
   views: number;
   /** People who chatted about this job. */
   chats: number;
@@ -58,7 +56,6 @@ export function ManagedJob({
         <JobActions
           job={job}
           now={now}
-          email={email}
           pending={pending}
           asking={asking}
           sharing={sharing}
@@ -68,10 +65,10 @@ export function ManagedJob({
         />
       )}
       {asking === "close" && (
-        <CloseQuestion job={job} email={email} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
+        <CloseQuestion job={job} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
       )}
       {asking === "hires" && (
-        <HiresCorrection job={job} email={email} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
+        <HiresCorrection job={job} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
       )}
       {sharing && status === "active" && (
         <div className="mt-3">
@@ -130,24 +127,24 @@ function StatusNote({ status }: { status: ShownStatus }) {
   return null;
 }
 
-type QuestionProps = { job: Job; email: string; pending: boolean; run: Run; onCancel: () => void };
+type QuestionProps = { job: Job; pending: boolean; run: Run; onCancel: () => void };
 
 /** Ending a job: the optional 招到人了吗？ question, then 确定结束招聘. */
-function CloseQuestion({ job, email, pending, run, onCancel }: QuestionProps) {
+function CloseQuestion({ job, pending, run, onCancel }: QuestionProps) {
   return (
     <HiresQuestion
       optional
       submitLabel="确定结束招聘"
       submitClassName={`${ACTION_BUTTON} border-danger text-danger`}
       pending={pending}
-      onSubmit={(answer) => run(() => closeMyJob(job.id, email, answer), closeDoneText(answer))}
+      onSubmit={(answer) => run(() => closeMyJob(job.id, answer), closeDoneText(answer))}
       onCancel={onCancel}
     />
   );
 }
 
 /** Recording or correcting how many an ended job hired. */
-function HiresCorrection({ job, email, pending, run, onCancel }: QuestionProps) {
+function HiresCorrection({ job, pending, run, onCancel }: QuestionProps) {
   return (
     <HiresQuestion
       initial={job.hiresConfirmed}
@@ -155,7 +152,7 @@ function HiresCorrection({ job, email, pending, run, onCancel }: QuestionProps) 
       submitLabel="保存"
       submitClassName={`${ACTION_BUTTON} border-brand text-brand`}
       pending={pending}
-      onSubmit={(answer) => answer && run(() => confirmHires(job.id, email, answer), `已记录，${answerText(answer)}`)}
+      onSubmit={(answer) => answer && run(() => confirmHires(job.id, answer), `已记录，${answerText(answer)}`)}
       onCancel={onCancel}
     />
   );
