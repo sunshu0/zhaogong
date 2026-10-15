@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest";
+import { cardActions, cardNumbers, chatPeopleByJob } from "@/components/employer/job-card";
+import { MOCK_JOBS } from "@/mock/data";
+
+const NOW = Date.UTC(2026, 9, 15);
+const day = 86_400_000;
+const job = {
+  ...MOCK_JOBS[0],
+  status: "active" as const,
+  postedAt: new Date(NOW - 3 * day).toISOString(),
+  expiresAt: new Date(NOW + 27 * day).toISOString(),
+};
+
+describe("chatPeopleByJob", () => {
+  it("counts the conversations started from each job", () => {
+    expect(chatPeopleByJob([{ job: "j1" }, { job: "j1" }, { job: "j2" }, { job: null }, { job: "j1" }])).toEqual({
+      j1: 3,
+      j2: 1,
+    });
+  });
+});
+
+describe("cardNumbers", () => {
+  it("shows chats, and contact views when the details are public", () => {
+    expect(cardNumbers({ ...job, contactPublic: true }, 2, 5)).toEqual(["2 人聊过", "5 人查看了联系方式"]);
+  });
+
+  it("says details are swapped in chat when they are private", () => {
+    expect(cardNumbers({ ...job, contactPublic: false }, 0, 5)).toEqual(["还没有人聊过", "不公开 · 聊天交换"]);
+  });
+});
+
+describe("cardActions", () => {
+  const keys = (a: ReturnType<typeof cardActions>) => a.more.map((m) => m.key);
+
+  it("gives a live job one main button, 查看, and the rest under 更多", () => {
+    const a = cardActions(job, NOW, { asking: undefined, sharing: false });
+    expect(a.main).toEqual({ label: "查看", href: `/jobs/${job.id}` });
+    expect(keys(a)).toEqual(["edit", "refresh", "share", "close"]);
+    expect(a.more.find((m) => m.key === "refresh")).toMatchObject({ label: "刷新", disabled: false });
+    expect(a.more.find((m) => m.key === "close")).toMatchObject({ label: "结束招聘", danger: true });
+  });
+
+  it("names why a job cannot be refreshed, and the share toggle follows the panel", () => {
+    const fresh = { ...job, postedAt: new Date(NOW - 1000).toISOString() };
+    const a = cardActions(fresh, NOW, { asking: undefined, sharing: true });
+    expect(a.more.find((m) => m.key === "refresh")).toMatchObject({ label: "今天已刷新过", disabled: true });
+    expect(a.more.find((m) => m.key === "share")?.label).toBe("收起文案");
+  });
+
+  it("lets an ended job reopen, record hires, and still be viewed", () => {
+    const ended = { ...job, status: "expired" as const };
+    const a = cardActions(ended, NOW, { asking: undefined, sharing: false });
+    expect(a.main.label).toBe("查看");
+    expect(a.more.map((m) => m.label)).toEqual(["编辑", "重新开放", "记录招到几人"]);
+    const corrected = cardActions({ ...ended, hiresConfirmed: 2 }, NOW, { asking: undefined, sharing: false });
+    expect(corrected.more.at(-1)?.label).toBe("更正招到人数");
+  });
+
+  it("makes 编辑 the main button while a job waits for review (job seekers cannot open it yet)", () => {
+    const waiting = { ...job, status: "pending_review" as const };
+    const a = cardActions(waiting, NOW, { asking: undefined, sharing: false });
+    expect(a.main).toEqual({ label: "编辑", href: `/employer/jobs/${job.id}` });
+    expect(keys(a)).toEqual(["refresh", "close"]);
+    expect(a.more[0]).toMatchObject({ label: "审核通过后才能刷新", disabled: true });
+  });
+
+  it("hides 结束招聘 and the hires item while a question is already open", () => {
+    expect(keys(cardActions(job, NOW, { asking: "close", sharing: false }))).not.toContain("close");
+  });
+});

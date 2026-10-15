@@ -126,7 +126,12 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   await expect(all).toBeFocused();
 
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
-  await card.getByRole("button", { name: "结束招聘" }).focus();
+  // 结束招聘 is under 更多: Enter opens the menu on its first item, End goes to the last.
+  await card.getByRole("button", { name: /^更多操作/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(card.getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(card.getByRole("menuitem", { name: "结束招聘" })).toBeFocused();
   await page.keyboard.press("Enter");
   // The optional hires question opens with focus on its first choice; Space answers, Tab moves on.
   await expect(card.getByLabel("招到了")).toBeFocused();

@@ -1,6 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { CLEAN_MESSAGE, openTheForm, publishJob, signUpEmployer, uniqueTitle, openReportForm } from "./helpers";
+import {
+  CLEAN_MESSAGE,
+  openTheForm,
+  publishJob,
+  signUpEmployer,
+  uniqueTitle,
+  openReportForm,
+  cardMenuItem,
+} from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
@@ -72,8 +80,9 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
 
   await page.goto("/employer/jobs");
   const card = page.getByRole("article").first();
-  await card.getByRole("button", { name: "结束招聘" }).click();
-  await card.getByRole("button", { name: "复制文案" }).click();
+  await (await cardMenuItem(card, "结束招聘")).click();
+  await (await cardMenuItem(card, "复制文案")).click();
+  await card.getByRole("button", { name: /^更多操作/ }).click(); // the menu open too
   await expectNoViolations(page, "/employer/jobs with confirm and share open");
 
   await page.goto("/employer/verify");

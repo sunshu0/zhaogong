@@ -14,6 +14,7 @@ import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
 import { HiresQuestion } from "@/components/employer/HiresQuestion";
 import { ACTION_BUTTON, JobActions, type Asking, type Run } from "@/components/employer/ManagedJobActions";
 import { ShareTexts } from "@/components/employer/ShareTexts";
+import { cardNumbers } from "@/components/employer/job-card";
 import { formatPay } from "@/components/seeker/format";
 
 /** Tells the list what happened, with the text to show when it worked. */
@@ -25,6 +26,7 @@ export function ManagedJob({
   employer,
   email,
   views,
+  chats,
   now,
   onDone,
 }: {
@@ -32,6 +34,8 @@ export function ManagedJob({
   employer?: Employer;
   email: string;
   views: number;
+  /** People who chatted about this job. */
+  chats: number;
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -48,12 +52,11 @@ export function ManagedJob({
 
   return (
     <article className="rounded-xl border border-border bg-surface p-4">
-      <JobSummary job={job} status={status} views={views} now={now} />
+      <JobSummary job={job} status={status} views={views} chats={chats} now={now} />
       <StatusNote status={status} />
       {canEdit(job) && (
         <JobActions
           job={job}
-          status={status}
           now={now}
           email={email}
           pending={pending}
@@ -79,7 +82,19 @@ export function ManagedJob({
   );
 }
 
-function JobSummary({ job, status, views, now }: { job: Job; status: ShownStatus; views: number; now: number }) {
+function JobSummary({
+  job,
+  status,
+  views,
+  chats,
+  now,
+}: {
+  job: Job;
+  status: ShownStatus;
+  views: number;
+  chats: number;
+  now: number;
+}) {
   const label = STATUS_LABELS[status];
   const hires = hiresLabelZh(job);
   return (
@@ -96,7 +111,11 @@ function JobSummary({ job, status, views, now }: { job: Job; status: ShownStatus
       <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
         <span className="font-medium text-brand">{formatPay(job.pay, job.country)}</span>
         <span className="text-muted">{expiryLabelZh(job, now)}</span>
-        <span className="text-muted">{job.contactPublic ? `${views} 人查看了联系方式` : "不公开 · 聊天交换"}</span>
+        {cardNumbers(job, chats, views).map((n) => (
+          <span key={n} className="text-muted">
+            {n}
+          </span>
+        ))}
         {hires && <span className="font-medium text-ok">{hires}</span>}
       </p>
     </>

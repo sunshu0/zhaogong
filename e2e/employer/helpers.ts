@@ -1,5 +1,5 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 /** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
 export const CLEAN_MESSAGE =
@@ -128,4 +128,10 @@ export async function openReportForm(page: Page) {
     if (!(await form.isVisible())) await page.getByRole("button", { name: "举报这个职位" }).click();
     await expect(form).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 20_000 });
+}
+
+/** A job card on 管理职位 keeps one main button; the other actions are under 更多 (a menu). */
+export async function cardMenuItem(card: Locator, name: string): Promise<Locator> {
+  await card.getByRole("button", { name: /^更多操作/ }).click();
+  return card.getByRole("menuitem", { name, exact: true });
 }

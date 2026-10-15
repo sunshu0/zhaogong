@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, type RefObject } from "react";
+import { useMemo, useState, type RefObject } from "react";
 import type { Employer, Job } from "@/lib/types";
 import type { ChangeResult } from "@/app/employer/actions";
 import { effectiveStatus, type ShownStatus } from "@/components/employer/job-status";
@@ -10,6 +10,8 @@ import { TabList, TabPanel } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
+import { chatPeopleByJob } from "@/components/employer/job-card";
+import { useChat } from "@/components/seeker/chat-client";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 type TabKey = "all" | ShownStatus;
@@ -137,6 +139,9 @@ function JobsInTab({
   email: string;
   onDone: JobChangeDone;
 }) {
+  // Chats live in this browser (demo); a conversation started from a job keeps the job's id.
+  const { conversations } = useChat();
+  const chats = useMemo(() => chatPeopleByJob(conversations), [conversations]);
   if (!ready) return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />;
 
   const shown = ready.jobs.filter((job: Job) => tab === "all" || effectiveStatus(job, ready.now) === tab);
@@ -157,6 +162,7 @@ function JobsInTab({
             employer={employer}
             email={email}
             views={ready.views[job.id] ?? 0}
+            chats={chats[job.id] ?? 0}
             now={ready.now}
             onDone={onDone}
           />

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { CLEAN_MESSAGE, openTheForm, publishFromPreview, signUpEmployer, uniqueTitle } from "./helpers";
+import { cardMenuItem, CLEAN_MESSAGE, openTheForm, publishFromPreview, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("contact details are private by default; an edit can make them public", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo);
@@ -24,7 +24,7 @@ test("contact details are private by default; an edit can make them public", asy
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
   await expect(card).toContainText("不公开 · 聊天交换");
 
-  await card.getByRole("link", { name: "编辑" }).click();
+  await (await cardMenuItem(card, "编辑")).click();
   await expect(page.getByRole("heading", { name: "编辑职位" })).toBeVisible();
   await page.getByRole("radio", { name: /^公开给登录的求职者/ }).check();
   await expect(page.getByText("没有识别到，请填写").filter({ visible: true })).toBeVisible();
