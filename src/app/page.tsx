@@ -22,7 +22,8 @@ import { formatPay } from "@/components/seeker/format";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
-const DESCRIPTION = "时薪、地区、签证一目了然；雇主经过验证，职位发布前检查最低工资和违规收费；登录后才显示联系方式。";
+const DESCRIPTION =
+  "时薪、地区、签证一目了然；雇主经过验证，职位发布前检查最低工资和违规收费；联系方式只给登录的求职者，或在聊天中双方同意后交换。";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },

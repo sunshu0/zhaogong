@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MessagesSquare, Phone } from "lucide-react";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
@@ -12,9 +13,10 @@ import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 const CARD_TAGS = 3;
 
 /**
- * A compact job card: title (zh, en), pay, the employer and its verification level, region · type · hours, and
- * up to three tags. Everything else (description, shifts, languages, visas) is on the job page. Only the title
- * is a link; it stretches over the whole card, so screen readers hear the title alone.
+ * A compact job card: title (zh, en), pay, the employer and its verification level, region · type · hours, up
+ * to three tags, and whether the contact details are public or exchanged in the chat. Everything else
+ * (description, shifts, languages, visas) is on the job page. Only the title is a link; it stretches over the
+ * whole card, so screen readers hear the title alone.
  */
 export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employer?: Employer; headingLevel?: 2 | 3 }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
@@ -52,15 +54,26 @@ export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employe
         </p>
       )}
 
-      {tags.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="标签">
-          {tags.map((tag) => (
-            <li key={tag}>
-              <Tag>{tag}</Tag>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        {tags.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5" aria-label="标签">
+            {tags.map((tag) => (
+              <li key={tag}>
+                <Tag>{tag}</Tag>
+              </li>
+            ))}
+          </ul>
+        )}
+        {/* How to reach the employer, before opening the job (A25). */}
+        <span className="ml-auto inline-flex items-center gap-1 text-meta text-muted">
+          {job.contactPublic ? (
+            <Phone aria-hidden="true" className="size-3.5" />
+          ) : (
+            <MessagesSquare aria-hidden="true" className="size-3.5" />
+          )}
+          {job.contactPublic ? "联系方式公开" : "聊天交换联系方式"}
+        </span>
+      </div>
     </article>
   );
 }

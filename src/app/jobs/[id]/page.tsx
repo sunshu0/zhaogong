@@ -10,7 +10,8 @@ import { ReportJob } from "@/components/seeker/ReportJob";
 import { ShareJob } from "@/components/seeker/ShareJob";
 import { formatPay } from "@/components/seeker/format";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
-import { isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
+import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
+import { ContactReveal } from "@/components/seeker/ContactReveal";
 import { requestTime } from "@/components/seeker/request-time";
 import { shareSummary } from "@/components/seeker/share";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
@@ -65,23 +66,29 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
       }
       aside={
         <>
-          <section
-            aria-labelledby="contact-heading"
-            className="space-y-3 rounded-lg border border-border bg-surface p-4"
-          >
-            <h2 id="contact-heading" className="font-medium">
-              联系方式
-            </h2>
-            <p className="text-sm text-muted">请在聊天中申请交换联系方式，双方同意后才会互相展示。</p>
-            {employer && (
-              <Link
-                href={`/employers/${employer.id}`}
-                className="inline-flex min-h-11 items-center text-sm text-brand underline"
-              >
-                查看雇主主页
-              </Link>
-            )}
-          </section>
+          {job.contactPublic ? (
+            <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+          ) : (
+            <section
+              aria-labelledby="contact-heading"
+              className="space-y-3 rounded-lg border border-border bg-surface p-4"
+            >
+              <h2 id="contact-heading" className="font-medium">
+                联系方式
+              </h2>
+              <p className="text-sm text-muted">
+                雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
+              </p>
+              {employer && (
+                <Link
+                  href={`/employers/${employer.id}`}
+                  className="inline-flex min-h-11 items-center text-sm text-brand underline"
+                >
+                  查看雇主主页
+                </Link>
+              )}
+            </section>
+          )}
           <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
         </>
       }

@@ -25,7 +25,7 @@ const primaryClass = "w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-medium
 const linkButtonClass = "w-full py-1 text-sm text-muted underline underline-offset-2";
 
 const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
-  { role: "seeker", title: "我要找工作", text: "浏览职位，登录后查看雇主联系方式" },
+  { role: "seeker", title: "我要找工作", text: "浏览职位，和雇主在线沟通、交换联系方式" },
   { role: "employer", title: "我要招人", text: "开通雇主身份，选择或新建你的企业，然后发布招聘" },
 ];
 

@@ -35,6 +35,7 @@ test("compact job cards: title, pay, employer, region · type · hours and up to
       "$24/小时",
       "东区亚洲超市",
       "已验证企业",
+      "聊天交换联系方式", // A25: j5 keeps contact details private
       "每周 20–30 小时",
     ])
       await expect(retail).toContainText(text);

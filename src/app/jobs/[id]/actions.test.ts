@@ -36,6 +36,14 @@ describe("revealContact", () => {
   });
 });
 
+describe("revealContact on a job whose employer keeps contact details private", () => {
+  it("returns nothing and records nothing: details are exchanged in the chat instead", async () => {
+    const before = (await listContactViews("j2")).length;
+    expect(await revealContact("j2", "viewer.private@example.com")).toBeNull();
+    expect((await listContactViews("j2")).length).toBe(before);
+  });
+});
+
 describe("reportJob", () => {
   it("stores the report on the server, where the moderation queue reads it", async () => {
     const result = await reportJob("j7", "charges_fee", "  要求先交押金  ");

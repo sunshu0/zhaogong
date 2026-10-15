@@ -11,7 +11,8 @@ const RECORD_AGAIN_AFTER_MS = 30 * 60 * 1000;
 
 /**
  * A job's contact details, fetched after sign-in so they are not in the page HTML for everyone, and
- * recorded with recordContactView so the employer side can see who looked.
+ * recorded with recordContactView so the employer side can see who looked. Only for jobs whose employer made
+ * them public (contactPublic); otherwise they are exchanged in the chat, and this returns nothing.
  * Demo only: the session lives in the browser, so the server trusts the email it is given.
  * When real authentication arrives, check the session here instead.
  */
@@ -20,7 +21,7 @@ export async function revealContact(jobId: string, email: string): Promise<Job["
   const viewer = normalizeEmail(email);
   if (!isValidEmail(viewer)) return null;
   const job = await getJob(jobId);
-  if (!job || !isPublic(job)) return null;
+  if (!job || !isPublic(job) || !job.contactPublic) return null;
 
   const last = (await listContactViews(job.id)).find((v) => v.viewerEmail === viewer);
   if (!last || Date.now() - Date.parse(last.viewedAt) >= RECORD_AGAIN_AFTER_MS) await recordContactView(job.id, viewer);

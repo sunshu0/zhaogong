@@ -21,7 +21,7 @@ export const FEATURES: { title: string; text: string; icon: FeatureIcon }[] = [
   },
   {
     title: "雇主验证与防骗",
-    text: "核对过企业登记的雇主带认证标志；联系方式登录后才显示；每个职位都能举报，有人审核。",
+    text: "核对过企业登记的雇主带认证标志；联系方式只给登录的人，或在聊天中双方同意后交换；每个职位都能举报，有人审核。",
     icon: "shield",
   },
   { title: "中文为主", text: "全中文页面，职位中英文对照；求职者浏览、注册、联系雇主都不收费。", icon: "language" },
