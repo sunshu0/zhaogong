@@ -11,6 +11,7 @@ import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
 import { RememberListQuery } from "@/components/seeker/last-list";
+import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
@@ -20,6 +21,7 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
     <div className={WIDE_ON_DESKTOP}>
       <h1 className="mb-3 text-lg font-semibold">奥克兰中文工作</h1>
       <NoScriptStreams />
+      <FinishSaveAfterSignIn />
       <Suspense fallback={<JobListSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>

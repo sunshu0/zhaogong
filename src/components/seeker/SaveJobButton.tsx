@@ -1,0 +1,59 @@
+"use client";
+
+import { Bookmark } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { SAVE_PARAM, saveAfterSignInHref } from "@/components/seeker/saved-jobs";
+import { toggleSaved, useBusySavedJobs, useSavedJobIds } from "@/components/seeker/saved-client";
+import { useHydrated, useSession } from "@/components/seeker/session-client";
+
+/**
+ * 收藏 on a job (#52): a toggle for job seekers. Signed out, it goes to sign-in and comes back to this page, which
+ * then finishes saving (FinishSaveAfterSignIn). Not shown in the employer identity. Sits above the row's stretched
+ * title link.
+ */
+export function SaveJobButton({ jobId, title }: { jobId: string; title: string }) {
+  const hydrated = useHydrated();
+  const session = useSession();
+  const saved = useSavedJobIds();
+  const busy = useBusySavedJobs().has(jobId);
+  const router = useRouter();
+  if (hydrated && session?.activeRole === "employer") return null;
+  const on = Boolean(session && saved?.has(jobId));
+
+  return (
+    <button
+      type="button"
+      disabled={!hydrated || busy}
+      aria-busy={busy || undefined}
+      aria-pressed={session ? on : undefined}
+      aria-label={`收藏：${title}`}
+      onClick={() => {
+        if (!session) router.push(saveAfterSignInHref(`${location.pathname}${location.search}`, jobId));
+        else void toggleSaved(jobId, !on);
+      }}
+      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-meta hover:text-brand disabled:opacity-60 ${
+        on ? "text-brand" : "text-muted"
+      }`}
+    >
+      <Bookmark aria-hidden="true" className="size-4" fill={on ? "currentColor" : "none"} />
+      {on ? "已收藏" : "收藏"}
+    </button>
+  );
+}
+
+/** After sign-in from 收藏 (saveAfterSignInHref): saves the job named in the URL, then drops it from the URL. */
+export function FinishSaveAfterSignIn() {
+  const session = useSession();
+  const router = useRouter();
+  useEffect(() => {
+    if (!session || session.activeRole === "employer") return;
+    const url = new URL(location.href);
+    const jobId = url.searchParams.get(SAVE_PARAM);
+    if (!jobId) return;
+    url.searchParams.delete(SAVE_PARAM);
+    void toggleSaved(jobId, true);
+    router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }, [session, router]);
+  return null;
+}

@@ -14,6 +14,7 @@ test("workspace navigation stays visible across its pages", async ({ page }, tes
   for (const [label, route] of [
     ["通知", "/notifications"],
     ["我的主页", "/profile"],
+    ["收藏和进度", "/me/saved"],
     ["浏览与举报", "/me"],
   ]) {
     if (mobile) {

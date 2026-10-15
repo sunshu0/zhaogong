@@ -81,7 +81,8 @@ export function activeNavKey(pathname: string): NavKey | null {
   if (under(pathname, "/employer/candidates")) return "candidates";
   if (under(pathname, "/messages")) return "chat";
   if (pathname === "/workspace") return "workspace";
-  if ([ACCOUNT_PATH, "/notifications", "/profile", "/me", "/employer/verify"].includes(pathname)) return "mine";
+  if ([ACCOUNT_PATH, "/notifications", "/profile", "/me", "/me/saved", "/employer/verify"].includes(pathname))
+    return "mine";
   return null;
 }
 

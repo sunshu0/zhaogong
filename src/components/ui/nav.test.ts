@@ -54,6 +54,7 @@ describe("activeNavKey", () => {
     expect(activeNavKey("/workspace")).toBe("workspace");
     expect(activeNavKey("/account")).toBe("mine");
     expect(activeNavKey("/profile")).toBe("mine");
+    expect(activeNavKey("/me/saved")).toBe("mine");
     expect(activeNavKey("/")).toBeNull();
     expect(activeNavKey("/jobsearch")).toBeNull();
   });

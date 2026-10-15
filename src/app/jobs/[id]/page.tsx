@@ -9,6 +9,7 @@ import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { RecordView } from "@/components/seeker/RecordView";
 import { ReportJob } from "@/components/seeker/ReportJob";
+import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
 import { buttonClass } from "@/components/ui/Button";
 import { formatPay } from "@/components/seeker/format";
@@ -118,6 +119,7 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
           region={regionById(job.country, job.regionId)?.nameZh ?? ""}
         />
         <ReportJob jobId={job.id} jobTitle={job.titleZh} />
+        <FinishSaveAfterSignIn />
       </JobDetail>
     </>
   );

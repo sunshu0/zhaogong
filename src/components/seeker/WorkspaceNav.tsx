@@ -15,7 +15,12 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
     { href: "/workspace", label: "总览" },
     { href: "/notifications", label: "通知" },
     { href: "/profile", label: isEmployer ? "企业主页" : "我的主页" },
-    isEmployer ? { href: "/employer/candidates", label: "推荐人才" } : { href: "/me", label: "浏览与举报" },
+    ...(isEmployer
+      ? [{ href: "/employer/candidates", label: "推荐人才" }]
+      : [
+          { href: "/me/saved", label: "收藏和进度" },
+          { href: "/me", label: "浏览与举报" },
+        ]),
   ];
 }
 

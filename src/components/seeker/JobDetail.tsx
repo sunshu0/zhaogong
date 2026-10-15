@@ -12,6 +12,7 @@ import { Pay } from "@/components/ui/Pay";
 import { DescriptionTabs } from "@/components/seeker/DescriptionTabs";
 import { STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
+import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 
 const NOTE_STYLES = {
   below: "bg-danger-soft text-danger",
@@ -59,7 +60,10 @@ export function JobDetail({
               {job.titleEn}
             </p>
           </div>
-          {share}
+          <div className="flex shrink-0 items-center gap-1">
+            <SaveJobButton jobId={job.id} title={job.titleZh} />
+            {share}
+          </div>
         </div>
         {tags.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="标签">

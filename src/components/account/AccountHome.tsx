@@ -28,9 +28,12 @@ export function AccountHome() {
     isEmployer
       ? { href: "/profile", label: "企业主页", detail: "企业介绍和招聘联系人" }
       : { href: "/profile", label: "我的主页", detail: "雇主看到的资料和简历" },
-    isEmployer
-      ? { href: "/employer/candidates", label: "推荐人才" }
-      : { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
+    ...(isEmployer
+      ? [{ href: "/employer/candidates", label: "推荐人才" }]
+      : [
+          { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
+          { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
+        ]),
   ];
 
   return (

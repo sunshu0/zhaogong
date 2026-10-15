@@ -71,8 +71,7 @@ function syncScope(scope: string) {
   if (syncedScopes.has(scope)) return;
   syncedScopes.add(scope);
   (async () => {
-    // A change that cannot be sent now stays for the next page load; the records are fetched either way.
-    for (const item of outboxFor(localStorage, scope)) if (!(await deliver(item).catch(() => false))) break;
+    await sendWaitingChanges(scope);
     const server = await myChat();
     if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
     const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
@@ -88,6 +87,14 @@ function sendChange(scope: string, change: ChatChange) {
   const item: OutboxItem = { id: crypto.randomUUID(), scope, change };
   addToOutbox(localStorage, item);
   deliver(item).catch(() => {});
+}
+
+/**
+ * Sends what the outbox still holds for one identity, oldest first. A change that cannot be sent now stays for the
+ * next page load. Pages that read chat-derived facts from the server (收藏和进度) call it first.
+ */
+export async function sendWaitingChanges(scope: string): Promise<void> {
+  for (const item of outboxFor(localStorage, scope)) if (!(await deliver(item).catch(() => false))) break;
 }
 
 /** True once the server has the change for the identity it was made in; it then leaves the outbox. */

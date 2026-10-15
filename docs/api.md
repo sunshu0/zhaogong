@@ -1,6 +1,6 @@
 # 接口说明
 
-> 描述 2026-10-16 `main` 上的接口：数据库（#8、#11）、登录和服务器会话（#9）、聊天存服务器（#10、#42）、雇主和审核接口读会话（#19）都已合并。
+> 描述 2026-10-16 `main` 上的接口：数据库（#8、#11）、登录和服务器会话（#9）、聊天存服务器（#10、#42）、雇主和审核接口读会话（#19）、收藏和进度（#52）都已合并。
 
 找工没有单独的 REST 服务。浏览器通过 **Server Functions**（`"use server"` 的 `actions.ts`）读写服务器数据：页面里的客户端组件直接调用这些异步函数，Next.js 把调用变成对当前页面地址的 POST 请求（带 `Next-Action` 头）。这个请求格式是 Next.js 的内部约定，不是给外部调用的公开 API；对外稳定的是下面列出的**函数签名、返回值和错误文字**。
 
@@ -84,6 +84,22 @@
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
 | `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条 |
 
+## 收藏和进度 — `src/app/me/saved/actions.ts`
+
+#52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。
+
+`SavedJobView`：`{ jobId, titleZh, titleEn, pay, country, region?, employerName?, gone, savedAt, stage, picked }`。`gone` 表示职位已下架、过了截止时间或雇主被停用（照样列出，页面标「已下架」）。`stage` 是 `saved`（已收藏）、`contacted`（已联系）、`interviewed`（已面试）、`hired`（已录用）、`rejected`（没成）之一。`picked` 为 `false` 时进度由聊天决定：这个职位的聊天里双方同意交换过联系方式就是 `contacted`，否则 `saved`；用户选过之后以用户选的为准。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `mySavedJobIds()` | | 收藏的职位编号，新的在前（收藏按钮用） | 未登录时 `null` |
+| `mySavedJobs()` | | `SavedJobView[]`，新的在前 | 未登录时 `null` |
+| `saveMyJob(jobId)` | 职位编号 | 收藏后的编号列表；已收藏过的保留原来的时间和进度 | 未登录时 `null`；职位不存在时不改动 |
+| `unsaveMyJob(jobId)` | 职位编号 | 取消后的编号列表，进度一起删除 | 未登录时 `null` |
+| `setMyJobStage(jobId, stage)` | 职位编号；上面五个进度之一 | 改后的 `SavedJobView[]` | 未登录时 `null`；不是这五个之一、或职位没收藏时不改动 |
+
+未登录点「收藏」会去 `/login?next=<原页面>?save=<职位编号>`，登录后回到原页面，由页面完成收藏并去掉 `save` 参数。
+
 ## 只在开发环境存在的接口
 
 `POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
@@ -120,7 +136,7 @@
 | `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里）、职位详情 | — |
 | `/employers/[id]` | 企业公开主页 | — |
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
-| `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me` | 我的、待办、聊天、通知、主页编辑、浏览与举报 | 登录 |
+| `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |
 | `/candidates/[id]` | 求职者主页（`?job=` 带上职位） | 雇主身份才显示职位和聊天入口 |
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理、编辑职位、推荐人才、企业验证 | 雇主身份 |
