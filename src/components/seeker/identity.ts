@@ -5,6 +5,7 @@ import type { CountryCode } from "@/lib/types";
 import {
   clearSession,
   readSession,
+  requestIdentity,
   updateIdentity,
   writeSession,
   type ActiveRole,
@@ -102,7 +103,13 @@ export function syncSessionIdentity(
   ) {
     return current;
   }
-  return updateIdentity(storage, reconcileIdentity(current.activeRole, server));
+  const identity = reconcileIdentity(current.activeRole, server);
+  // A newer switch still waiting for its own answer stays marked, so it is sent again if that answer is lost.
+  const newer =
+    current.switching !== undefined &&
+    current.activeRole !== requested.activeRole &&
+    identity.activeRole === current.switching;
+  return newer ? requestIdentity(storage, identity) : updateIdentity(storage, identity);
 }
 
 /** The browser's view of the server's session (login actions' AccountStatus). */

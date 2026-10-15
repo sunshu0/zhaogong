@@ -152,6 +152,17 @@ describe("delayed account synchronization", () => {
     expect(readSession(storage)?.activeRole).toBe(activeRole);
   });
 
+  it("keeps a newer switch marked as waiting for the server, so it is sent again if lost", () => {
+    const { storage } = setup("employer");
+    const older = requestIdentity(storage, { activeRole: "seeker", employer })!;
+    const newer = requestIdentity(storage, { activeRole: "employer", employer })!;
+    syncSessionIdentity(storage, older, { employer });
+    expect(readSession(storage)).toEqual(newer);
+    // Its own answer clears the mark.
+    syncSessionIdentity(storage, newer, { employer });
+    expect(readSession(storage)).not.toHaveProperty("switching");
+  });
+
   it("still removes an employer identity the server no longer recognizes", () => {
     const { storage, requested } = setup("employer");
     syncSessionIdentity(storage, requested, {});
