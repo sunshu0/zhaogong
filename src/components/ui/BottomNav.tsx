@@ -42,7 +42,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
     <nav
       id="bottom-nav"
       aria-label="底部导航"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <ul className="flex h-14">
         {bottomNavItems(role).map((item) => {
@@ -55,7 +55,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                   aria-current={current ? "page" : undefined}
                   className="-mt-4 flex flex-col items-center gap-0.5 text-meta font-medium text-brand"
                 >
-                  <span className="flex size-11 items-center justify-center rounded-full bg-brand text-white shadow-md ring-4 ring-surface">
+                  <span className="flex size-11 items-center justify-center rounded-full bg-brand text-white ring-4 ring-surface">
                     <Plus aria-hidden="true" className="size-6" />
                   </span>
                   {item.label}
@@ -72,7 +72,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                 aria-current={current ? "page" : undefined}
                 title={item.key === "chat" && role !== "out" ? chatTitle(unread) : undefined}
                 className={`flex h-full flex-col items-center justify-center gap-0.5 text-meta ${
-                  current ? "font-medium text-brand" : "text-muted"
+                  current ? "font-semibold text-brand" : "text-muted"
                 }`}
               >
                 <span className="relative">
@@ -84,6 +84,8 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                   )}
                 </span>
                 {item.label}
+                {/* The current item: a short 3px line under its name (always there, so the labels stay level). */}
+                <span aria-hidden="true" className={`h-[3px] w-4 rounded-full ${current ? "bg-brand" : ""}`} />
               </Link>
             </li>
           );

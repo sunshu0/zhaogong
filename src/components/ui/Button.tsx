@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes, ComponentProps } from "react";
 
 /**
  * Three levels of action (Round 11): `primary` is solid brand, at most one per screen; `secondary` is outlined;
+ * 6px corners and no shadow (Round 13);
  * `link` is a text link. Anything else goes into a MoreMenu.
  */
 export type ButtonVariant = "primary" | "secondary" | "link";
@@ -10,8 +11,8 @@ export type ButtonVariant = "primary" | "secondary" | "link";
 const BASE =
   "inline-flex min-h-11 items-center justify-center gap-2 text-body font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "rounded-lg bg-brand px-4 text-white hover:opacity-90",
-  secondary: "rounded-lg border border-brand/40 bg-surface px-4 text-brand hover:border-brand hover:bg-brand-soft",
+  primary: "rounded-md bg-brand px-4 text-white hover:opacity-90",
+  secondary: "rounded-md border border-brand/40 bg-surface px-4 text-brand hover:border-brand hover:bg-brand-soft",
   link: "px-1 text-brand underline-offset-4 hover:underline",
 };
 

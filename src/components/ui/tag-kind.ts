@@ -1,11 +1,14 @@
-/** Four tag colours with fixed meanings (Round 11): urgent = danger, perks = ok, visa = brand, everything else grey. */
+/**
+ * Four kinds with fixed meanings, three border colours (Round 13): urgent = danger, perks and visa = brand,
+ * everything else grey. Red is kept for 急招, errors and dangerous actions.
+ */
 export type TagKind = "urgent" | "perk" | "visa" | "neutral";
 
 export const TAG_STYLES: Record<TagKind, string> = {
-  urgent: "bg-danger-soft text-danger",
-  perk: "bg-ok-soft text-ok",
-  visa: "bg-brand-soft text-brand",
-  neutral: "bg-neutral-soft text-muted",
+  urgent: "border-danger font-semibold text-danger",
+  perk: "border-brand/35 text-brand",
+  visa: "border-brand/35 text-brand",
+  neutral: "border-muted/40 text-muted",
 };
 
 const KIND_BY_LABEL: Record<string, TagKind> = {

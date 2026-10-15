@@ -8,12 +8,11 @@ import { getMyJob } from "@/app/employer/actions";
 import { candidateContext } from "@/components/account/candidate-context";
 import { useCandidateDirectory } from "@/components/seeker/hub-client";
 import { useChat } from "@/components/seeker/chat-client";
-import { formatPay } from "@/components/seeker/format";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
-import { PAY_TEXT } from "@/components/ui/text";
+import { Pay } from "@/components/ui/Pay";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import { candidateFacts, type Candidate } from "@/lib/candidate-matching";
@@ -134,7 +133,9 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
           <Link href={`/jobs/${job.id}`} className="block truncate text-subtitle font-semibold hover:underline">
             {job.titleZh}
           </Link>
-          <p className={PAY_TEXT.card}>{formatPay(job.pay, job.country)}</p>
+          <p>
+            <Pay pay={job.pay} country={job.country} />
+          </p>
         </div>
         {chatHref ? (
           <ButtonLink href={chatHref}>回到聊天</ButtonLink>

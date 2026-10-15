@@ -5,7 +5,7 @@ type Heading = "h2" | "h3";
 /**
  * A content area: white on the page background (Round 11 layer two). On phones it runs edge to edge with lines
  * above and below; from 640 px it is a rounded panel. Its children are Groups, split by thin lines; do not put
- * cards inside it. Stack sections with `space-y-section`. On phones it reaches out over the page's 16 px side
+ * cards inside it, and no shadows. Stack sections with `space-y-section`. On phones it reaches out over the page's 16 px side
  * padding (main has it), so do not put it inside another padded box.
  */
 export function Section({
@@ -32,7 +32,7 @@ export function Section({
     <section
       id={id}
       aria-labelledby={headingId}
-      className={`-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-xl sm:border sm:px-5 ${className}`.trim()}
+      className={`-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-md sm:border sm:px-5 ${className}`.trim()}
     >
       {(title || action) && (
         <div className="flex items-start justify-between gap-3 pt-group">

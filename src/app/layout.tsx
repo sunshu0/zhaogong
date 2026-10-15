@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Archivo } from "next/font/google";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
@@ -6,6 +7,9 @@ import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
+
+/** Pay figures and English text (globals.css: font-figure, font-latin). Latin only; Chinese uses the system font. */
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: `${PRODUCT_NAME} · 奥克兰中文工作`, template: `%s · ${PRODUCT_NAME}` },
@@ -22,7 +26,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-CN" className="h-full antialiased">
+    <html lang="zh-CN" className={`${archivo.variable} h-full antialiased`}>
       <head>
         {/* Site-wide install tags must be present before dynamic job metadata streams. */}
         <meta name="mobile-web-app-capable" content="yes" />
@@ -33,8 +37,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
+        <header className="sticky top-0 z-20 border-b border-border bg-surface">
+          <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
             <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold text-brand">
               {PRODUCT_NAME}
             </Link>

@@ -36,6 +36,19 @@
   --font-sans:
     -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Segoe UI",
     Roboto, sans-serif;
+  /* English (job titles in English, place names): Archivo, loaded in layout.tsx for Latin only; Chinese falls through. */
+  --font-latin:
+    var(--font-archivo), -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
+}
+
+/* Figures that matter, pay first: Archivo narrow (68 % width) and extra bold. Size it with a text-[…] class. */
+@utility font-figure {
+  font-family: var(--font-archivo), sans-serif;
+  font-stretch: 68%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 /*
@@ -57,6 +70,21 @@
   --text-display--line-height: 2.25rem;
   --spacing-section: 0.75rem;
   --spacing-group: 1rem;
+
+  /*
+   * Round 13 (window notice): two radii only — 3px for tags (rounded-sm), 6px for everything else (rounded-md).
+   * The larger names still in older pages map to 6px too, and there are no shadows, so pages follow the new look
+   * before they are reworked; new code uses rounded-sm / rounded-md and no shadow-* classes.
+   */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow: 0 0 #0000;
 }
 
 /*

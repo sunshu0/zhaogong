@@ -3,9 +3,9 @@ import { MessagesSquare, Phone } from "lucide-react";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
-import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
+import { formatHours, jobTags } from "@/components/seeker/format";
 import { Tag } from "@/components/ui/Tag";
-import { PAY_TEXT } from "@/components/ui/text";
+import { Pay } from "@/components/ui/Pay";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 
@@ -36,9 +36,13 @@ export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employe
               {job.titleZh}
             </Link>
           </Heading>
-          <p className="truncate text-meta text-muted">{job.titleEn}</p>
+          <p lang="en" className="truncate font-latin text-meta text-muted">
+            {job.titleEn}
+          </p>
         </div>
-        <p className={`shrink-0 whitespace-nowrap ${PAY_TEXT.card}`}>{formatPay(job.pay, job.country)}</p>
+        <p className="shrink-0">
+          <Pay pay={job.pay} country={job.country} />
+        </p>
       </div>
 
       <p className="mt-1 text-body text-muted">{facts.join(" · ")}</p>

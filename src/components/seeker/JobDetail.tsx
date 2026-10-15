@@ -4,11 +4,11 @@ import { regionById } from "@/config/countries";
 import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
-import { formatHours, formatPay, jobTags, postedAgoZh } from "@/components/seeker/format";
+import { formatHours, jobTags, postedAgoZh } from "@/components/seeker/format";
 import { expiryZh, formatDateZh, isExpired, minimumWageNote } from "@/components/seeker/job-facts";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { Tag } from "@/components/ui/Tag";
-import { PAY_TEXT } from "@/components/ui/text";
+import { Pay } from "@/components/ui/Pay";
 import { DescriptionTabs } from "@/components/seeker/DescriptionTabs";
 import { STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
@@ -43,7 +43,6 @@ export function JobDetail({
   const region = regionById(job.country, job.regionId);
   const payNote = minimumWageNote(job.pay, job.country);
   const tags = jobTags(job);
-  const [amount, unit] = formatPay(job.pay, job.country).split("/");
   const hours = [formatHours(job.hoursPerWeek), job.shiftsZh].filter(Boolean).join("，");
 
   const details = (
@@ -56,7 +55,7 @@ export function JobDetail({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h1 className="text-title font-semibold break-words">{job.titleZh}</h1>
-            <p lang="en" className="text-body text-muted">
+            <p lang="en" className="font-latin text-body text-muted">
               {job.titleEn}
             </p>
           </div>
@@ -75,8 +74,7 @@ export function JobDetail({
         {/* The facts both sides need first (A29): 2 columns on phones, 3 from 1024 px. */}
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 lg:grid-cols-3">
           <Fact term="薪资">
-            <span className={PAY_TEXT.detail}>{amount}</span>
-            {unit && <span className="text-body text-muted">/{unit}</span>}
+            <Pay pay={job.pay} country={job.country} size="detail" />
           </Fact>
           <Fact term="地区">
             {region?.nameZh}

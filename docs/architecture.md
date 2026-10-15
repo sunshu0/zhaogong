@@ -14,7 +14,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/components/seeker/` | 求职端页面组件，以及两种身份共用的聊天、通知、主页 | 历史原因放在 seeker 下，阶段二按功能整理 |
 | `src/components/employer/` | 雇主发帖、职位管理、推荐人才、企业验证 | |
 | `src/components/account/` | 「我的」、待办、资料完成度、候选人条件这类跨身份的逻辑 | 纯函数都有单测 |
-| `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav` | 视觉规则见 `docs/design-system.md` |
+| `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Pay`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav` | 视觉规则见 `docs/design-system.md`，设计稿在 `docs/design/` |
 | `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts` | 不依赖 React |
 | `src/config/`、`src/i18n/` | 国家配置（地区、最低工资）、中文名称表 | |
 | `src/mock/` | 演示数据 | 只由 `data.ts` 读取 |
