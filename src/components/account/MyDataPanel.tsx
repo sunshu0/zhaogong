@@ -76,7 +76,7 @@ export function MyDataPanel() {
       <Section
         id="export-data"
         title="导出我的数据"
-        description="下载一个 JSON 文件，包含我们保存的关于你的全部数据：账号、求职和雇主两种身份的资料、发布的职位、聊天记录、已读通知、收藏和求职进度、举报和浏览记录。"
+        description="下载一个 JSON 文件，包含我们保存的关于你的全部数据：账号、求职和雇主两种身份的资料、发布的职位、聊天记录、已读通知、收藏和求职进度、职位提醒、举报和浏览记录。"
       >
         <div className="space-y-3 py-group">
           <p className="text-meta text-muted">
@@ -103,7 +103,7 @@ export function MyDataPanel() {
         >
           <ul className="list-disc space-y-1 pl-5 text-body">
             <li>
-              删除账号、登录记录、两种身份的聊天记录和已读通知、收藏和求职进度，以及这台设备上的资料、举报和浏览记录。
+              删除账号、登录记录、两种身份的聊天记录和已读通知、收藏和求职进度、职位提醒，以及这台设备上的资料、举报和浏览记录。
             </li>
             <li>雇主身份发布的职位全部下架，职位上的联系方式一并清除。</li>
             <li>

@@ -6,6 +6,7 @@ import { databaseAuthStore } from "@/db/auth-store";
 import { databaseChatStore } from "@/db/chat-store";
 import { grantModerator, isModerator, listModerators, revokeModerator } from "@/db/moderators";
 import { database } from "@/db/ready";
+import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
 import { saveJob } from "@/db/saved-jobs";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
@@ -67,6 +68,8 @@ async function fullAccount(email: string) {
   await recordContactView("j1", email);
   await saveJob(email, "j1");
   await recordChatStart("j1", email);
+  await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
+  await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
   return { business, job };
 }
 
@@ -86,6 +89,10 @@ describe("exportAccountData (#54)", () => {
     expect(data?.chats.find((c) => c.identity === scopeOf(email, "seeker"))?.notificationsRead).toEqual(["n1"]);
     expect(data?.savedJobs).toEqual([{ jobId: "j1", savedAt: expect.any(String), stage: null, stageSetAt: null }]);
     expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
+    expect(data?.jobAlerts).toEqual([
+      { name: "全部新职位", query: "", paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
+    ]);
+    expect(data?.jobAlertHits).toEqual([{ jobId: "j2", alertName: "全部新职位", createdAt: expect.any(String) }]);
     expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
     expect(data?.sessions).toEqual([
       { activeRole: "seeker", createdAt: "2026-10-16T00:00:00.000Z", expiresAt: "2026-11-16T00:00:00.000Z" },
@@ -118,6 +125,8 @@ describe("deleteAccount (#54)", () => {
       [t.chatRecords, t.chatRecords.email],
       [t.contactViews, t.contactViews.viewerEmail],
       [t.savedJobs, t.savedJobs.email],
+      [t.jobAlerts, t.jobAlerts.email],
+      [t.jobAlertHits, t.jobAlertHits.email],
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
     }
@@ -181,6 +190,8 @@ describe("deleteAccount (#54)", () => {
       "contact_views.viewer_email",
       "saved_jobs.email",
       "job_chat_starts.seeker_email",
+      "job_alerts.email",
+      "job_alert_hits.email",
       "moderators.email",
       "conversations.seeker_email",
     ]);

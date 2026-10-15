@@ -21,6 +21,9 @@ export interface ServerAccountData {
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
   /** Jobs this account started a chat about (counted for the employer, #55). */
   chatStarts: { jobId: string; startedAt: string }[];
+  /** Job alerts (#53): saved searches, and the new jobs they found. */
+  jobAlerts: { name: string; query: string; paused: boolean; createdAt: string }[];
+  jobAlertHits: { jobId: string; alertName: string; createdAt: string }[];
   /** Jobs whose public contact details this account looked at. */
   contactViews: { jobId: string; viewedAt: string }[];
   /** Signed-in sessions. The cookie token is never stored, so there is nothing more to show. */
@@ -54,6 +57,16 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobChatStarts)
     .where(eq(t.jobChatStarts.seekerEmail, address))
     .orderBy(asc(t.jobChatStarts.startedAt));
+  const alerts = await db
+    .select()
+    .from(t.jobAlerts)
+    .where(eq(t.jobAlerts.email, address))
+    .orderBy(asc(t.jobAlerts.createdAt));
+  const hits = await db
+    .select()
+    .from(t.jobAlertHits)
+    .where(eq(t.jobAlertHits.email, address))
+    .orderBy(asc(t.jobAlertHits.createdAt));
   const views = await db
     .select()
     .from(t.contactViews)
@@ -77,6 +90,8 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     })),
     savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
     chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
+    jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
+    jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
     contactViews: views.map((v) => ({ jobId: v.jobId, viewedAt: v.viewedAt })),
     sessions: sessions.map((s) => ({ activeRole: s.activeRole, createdAt: s.createdAt, expiresAt: s.expiresAt })),
   };
@@ -107,6 +122,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
+    await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
+    await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
     await tx
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
