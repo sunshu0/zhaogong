@@ -9,6 +9,7 @@ import { database } from "@/db/ready";
 import { fromJob, jobPatch, toAccount, toContactView, toEmployer, toJob, toLogEntry, toReport } from "@/db/rows";
 import * as t from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
+import { isOpenJob } from "@/lib/job-expiry";
 import type {
   Account,
   ContactView,
@@ -71,12 +72,13 @@ async function selectJobs(where?: SQL): Promise<Job[]> {
   return rows.map(toJob);
 }
 
-/** Newest first, urgent jobs first within the same day. */
+/** Open jobs (past their closing date they are left out, ADR 0008), newest first, urgent first within a day. */
 export async function listJobs(filter: JobFilter): Promise<Job[]> {
   // The market and status narrow it in SQL; the rest of the filter is matchesFilter, shared with the tests.
   const jobs = await selectJobs(and(eq(t.jobs.country, filter.country), eq(t.jobs.status, "active")));
+  const now = Date.now();
   return jobs
-    .filter((j) => matchesFilter(j, filter))
+    .filter((j) => isOpenJob(j, now) && matchesFilter(j, filter))
     .sort((a, b) => {
       const day = (s: string) => s.slice(0, 10);
       if (day(a.postedAt) !== day(b.postedAt)) return b.postedAt.localeCompare(a.postedAt);
@@ -257,13 +259,17 @@ export async function getPlatformStats(country: CountryCode): Promise<PlatformSt
   };
 }
 
-/** Good jobs to show off: active, from a verified and not banned employer, best pay first, then newest. */
-export async function listFeaturedJobs(country: CountryCode, limit = 6): Promise<Job[]> {
+/**
+ * Good jobs to show off: active, from a verified and not banned employer, best pay first, then newest. With `now`,
+ * jobs closed by then are left out (ADR 0008). A snapshot prerendered at build time has no request time and leaves
+ * it out (Cache Components does not allow reading the clock there).
+ */
+export async function listFeaturedJobs(country: CountryCode, limit = 6, now?: number): Promise<Job[]> {
   const trusted = new Set(
     (await listEmployers()).filter((e) => e.verification !== "unverified" && !e.bannedAt).map((e) => e.id),
   );
   return (await selectJobs(and(eq(t.jobs.country, country), eq(t.jobs.status, "active"))))
-    .filter((j) => trusted.has(j.employerId))
+    .filter((j) => (now === undefined || isOpenJob(j, now)) && trusted.has(j.employerId))
     .sort((a, b) => (b.pay.max ?? b.pay.min) - (a.pay.max ?? a.pay.min) || b.postedAt.localeCompare(a.postedAt))
     .slice(0, limit);
 }

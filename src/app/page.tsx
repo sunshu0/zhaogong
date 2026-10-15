@@ -19,6 +19,7 @@ import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount, heroCounts } from 
 import { BeforeAfter, CheckIcon, FeatureIconSvg } from "@/components/seeker/landing-parts";
 import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay } from "@/components/seeker/format";
+import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
@@ -192,7 +193,7 @@ async function NoScriptLanding() {
 /** 橱窗告示: three real open jobs from verified employers, best pay first. */
 async function HeroNotices() {
   await connection();
-  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT);
+  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT, await requestTime());
   return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} />;
 }
 
@@ -232,7 +233,7 @@ async function HeroCount() {
 
 async function FeaturedBand() {
   await connection(); // featured jobs change as jobs are published
-  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT);
+  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT, await requestTime());
   const employers = await employersOf(jobs);
   return (
     <section id="featured" aria-labelledby="featured-heading" className={`${FULL_BLEED} scroll-mt-16`}>

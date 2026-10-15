@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createJob, getJob, listJobs, matchesFilter, updateJob } from "@/lib/data";
+import { createJob, getJob, listFeaturedJobs, listJobs, matchesFilter, updateJob } from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
@@ -240,5 +240,21 @@ describe("on the database", () => {
     } finally {
       Object.assign(env, saved);
     }
+  });
+});
+
+describe("closed jobs leave the lists when read (R-32, ADR 0008)", () => {
+  it("a job past its closing date is not listed, though its status is still active", async () => {
+    const base = { ...MOCK_JOBS[0], employerId: "e1", pay: { min: 99 } };
+    const past = await createJob({ ...base, titleZh: "已过截止日期的职位", expiresAt: "2020-01-01T00:00:00.000Z" });
+    const open = await createJob({ ...base, titleZh: "还在招的职位", expiresAt: "2099-01-01T00:00:00.000Z" });
+    expect((await getJob(past.id))?.status).toBe("active");
+
+    const listed = (await listJobs({ country: "NZ" })).map((j) => j.id);
+    expect(listed).toContain(open.id);
+    expect(listed).not.toContain(past.id);
+    const featured = (await listFeaturedJobs("NZ", 50, Date.now())).map((j) => j.id);
+    expect(featured).toContain(open.id);
+    expect(featured).not.toContain(past.id);
   });
 });

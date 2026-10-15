@@ -127,3 +127,7 @@
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
+| `/sitemap.xml` | 首页、职位列表、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；每次请求时生成 | — |
+| `/robots.txt` | 允许收录，但不收录 `/admin`、`/account`、`/workspace`、`/profile`、`/me`、`/messages`、`/notifications`、`/login`、`/employer/`、`/candidates/`、`/api/`；指向 sitemap | — |
+
+职位详情页 `/jobs/[id]` 在职位在招时带一段 schema.org `JobPosting` 结构化数据（`<script type="application/ld+json">`）：职位名、描述、发布和截止时间、雇主和企业主页链接、地点、时薪、用工形式，**不含联系方式**（`src/lib/job-posting.ts`）。sitemap、robots 和结构化数据里的绝对地址用环境变量 `SITE_URL`，没设置时用请求的域名。

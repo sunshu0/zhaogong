@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -19,6 +20,9 @@ import { shareSummary } from "@/components/seeker/share";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
 import { isExpired } from "@/components/seeker/job-facts";
+import { jobPostingJsonLd, jsonLdText } from "@/lib/job-posting";
+import { siteOrigin } from "@/lib/site";
+import type { Employer, Job as JobRecord } from "@/lib/types";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Promise<Metadata> {
   const job = await getJob((await params).id);
@@ -48,70 +52,85 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   const [employer, now] = await Promise.all([getEmployer(job.employerId), requestTime()]);
 
   return (
-    <JobDetail
-      job={job}
-      employer={employer}
-      now={now}
-      share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
-      actions={
-        employer && !employer.bannedAt ? (
+    <>
+      {employer && !employer.bannedAt && !isExpired(job, now) && <JobPostingData job={job} employer={employer} />}
+      <JobDetail
+        job={job}
+        employer={employer}
+        now={now}
+        share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
+        actions={
+          employer && !employer.bannedAt ? (
+            <>
+              <StartEmployerChat
+                employer={{ id: employer.id, name: employer.name }}
+                job={{
+                  id: job.id,
+                  employerId: job.employerId,
+                  titleZh: job.titleZh,
+                  status: job.status,
+                  expiresAt: job.expiresAt,
+                }}
+                closed={isExpired(job, now)}
+              />
+              {job.contactPublic && (
+                <a href="#contact" className={buttonClass("secondary")}>
+                  查看联系方式
+                </a>
+              )}
+            </>
+          ) : undefined
+        }
+        aside={
           <>
-            <StartEmployerChat
-              employer={{ id: employer.id, name: employer.name }}
-              job={{
-                id: job.id,
-                employerId: job.employerId,
-                titleZh: job.titleZh,
-                status: job.status,
-                expiresAt: job.expiresAt,
-              }}
-              closed={isExpired(job, now)}
-            />
-            {job.contactPublic && (
-              <a href="#contact" className={buttonClass("secondary")}>
-                查看联系方式
-              </a>
-            )}
+            <div id="contact" className="scroll-mt-20">
+              {job.contactPublic ? (
+                <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+              ) : (
+                <section
+                  aria-labelledby="contact-heading"
+                  className="space-y-3 rounded-lg border border-border bg-surface p-4"
+                >
+                  <h2 id="contact-heading" className="font-medium">
+                    联系方式
+                  </h2>
+                  <p className="text-sm text-muted">
+                    雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
+                  </p>
+                  {employer && (
+                    <Link
+                      href={`/employers/${employer.id}`}
+                      className="inline-flex min-h-11 items-center text-sm text-brand underline"
+                    >
+                      查看雇主主页
+                    </Link>
+                  )}
+                </section>
+              )}
+            </div>
           </>
-        ) : undefined
-      }
-      aside={
-        <>
-          <div id="contact" className="scroll-mt-20">
-            {job.contactPublic ? (
-              <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
-            ) : (
-              <section
-                aria-labelledby="contact-heading"
-                className="space-y-3 rounded-lg border border-border bg-surface p-4"
-              >
-                <h2 id="contact-heading" className="font-medium">
-                  联系方式
-                </h2>
-                <p className="text-sm text-muted">
-                  雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
-                </p>
-                {employer && (
-                  <Link
-                    href={`/employers/${employer.id}`}
-                    className="inline-flex min-h-11 items-center text-sm text-brand underline"
-                  >
-                    查看雇主主页
-                  </Link>
-                )}
-              </section>
-            )}
-          </div>
-        </>
-      }
-    >
-      <RecordView
-        jobId={job.id}
-        title={job.titleZh}
-        pay={formatPay(job.pay, job.country)}
-        region={regionById(job.country, job.regionId)?.nameZh ?? ""}
-      />
-      <ReportJob jobId={job.id} jobTitle={job.titleZh} />
-    </JobDetail>
+        }
+      >
+        <RecordView
+          jobId={job.id}
+          title={job.titleZh}
+          pay={formatPay(job.pay, job.country)}
+          region={regionById(job.country, job.regionId)?.nameZh ?? ""}
+        />
+        <ReportJob jobId={job.id} jobTitle={job.titleZh} />
+      </JobDetail>
+    </>
+  );
+}
+
+/** schema.org JobPosting for search engines (R-32), only while the job is open; never the contact details. */
+async function JobPostingData({ job, employer }: { job: JobRecord; employer: Employer }) {
+  const request = await headers();
+  const origin = siteOrigin(process.env.SITE_URL, request.get("host"), request.get("x-forwarded-proto"));
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: jsonLdText(jobPostingJsonLd(job, employer, origin)) }}
+    />
   );
 }

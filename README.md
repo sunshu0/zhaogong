@@ -90,4 +90,6 @@ npm run cf:dry-run
 
 Workers 本地预览：http://localhost:8704 。`cf:dry-run` 仅构建和检查，不上传。
 
+绑定自定义域名后设置环境变量 `SITE_URL`（例如 `https://example.com`），`sitemap.xml`、`robots.txt` 和职位的结构化数据都用它生成绝对地址；没设置时用请求的域名。
+
 完整步骤、版本兼容说明和演示数据限制见 [Cloudflare 部署说明](docs/cloudflare-deployment.md)。代码结构见 [前端代码地图](docs/frontend-code-map.md)。
