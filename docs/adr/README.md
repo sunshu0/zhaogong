@@ -9,6 +9,6 @@
 | [0003](0003-one-account-two-identities.md) | 一个账号两种身份，可切换 | 已采纳 |
 | [0004](0004-cloudflare-workers-opennext.md) | 部署到 Cloudflare Workers + OpenNext | 已采纳 |
 | 0005 | 数据库与 ORM（Drizzle + libSQL，`data.ts` 接数据库） | 预留，B12-1（#8）合并后写 |
-| 0006 | 线上数据库：Turso 与 D1 的取舍 | 预留给执行 B；结论由用户定（#15） |
+| [0006](0006-online-database.md) | 线上数据库：Turso 与 D1 的取舍 | 待用户决定（#15） |
 
 新编号由执行 C 统一分配：要写新 ADR 时先在队列里要一个号，避免两条线撞号。
