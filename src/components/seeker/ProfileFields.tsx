@@ -9,9 +9,8 @@ const PRIVATE_FIELDS = [
   ["phone", "交换用电话", ""],
   ["wechat", "交换用微信", ""],
   ["email", "交换用邮箱", ""],
-  ["address", "交换用地址", "填写愿意提供的面谈或联系地址"],
 ] as const;
-const NO_PRIVATE_DETAILS: PrivateDetails = { phone: "", wechat: "", email: "", address: "" };
+const NO_PRIVATE_DETAILS: PrivateDetails = { phone: "", wechat: "", email: "" };
 
 export function ProfileBasics({
   profile,
@@ -97,7 +96,9 @@ export function PrivateDetailsFields({
       <h2 id="profile-private" className="font-semibold">
         私密交换资料
       </h2>
-      <p className="text-xs text-muted">仅在双方同意交换后向聊天对方展示，不显示在公开主页。</p>
+      <p className="text-xs text-muted">
+        只在聊天里交换时给对方：你发起交换时对方马上能看到；对方发起时，你同意后才给。不显示在公开主页。
+      </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {PRIVATE_FIELDS.map(([key, label, placeholder]) => (
           <Field

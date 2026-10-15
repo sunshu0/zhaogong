@@ -37,22 +37,25 @@ export function ExchangeAction({
         >
           <p className="text-sm leading-relaxed">
             {incoming
-              ? "同意后，你和对方将同时获得彼此本次交换的资料。"
-              : "对方同意后，你和对方将同时获得彼此本次交换的资料。"}
+              ? "对方已经先提供了自己的资料。同意后，对方会看到你的这些资料。"
+              : "主动发起交换的一方先提供自己的资料：请求发出后，对方马上能看到你的这些资料；对方同意后，你才会看到对方的资料。"}
           </p>
           <section aria-label="我的交换内容" className="space-y-3 border-y border-border py-4">
-            <h3 className="text-sm font-semibold">本次将交换的我的资料</h3>
+            <h3 className="text-sm font-semibold">{incoming ? "同意后给对方的资料" : "发出请求时给对方的资料"}</h3>
             {payload ? (
               <PayloadView payload={payload} />
             ) : (
-              <p className="text-sm text-muted">尚未填写可交换的{EXCHANGE_LABELS[kind]}。</p>
+              <p className="text-sm text-muted">
+                你还没有填写{EXCHANGE_LABELS[kind]}。
+                {incoming ? "填好后才能同意交换。" : "先填好自己的，才能发起交换。"}
+              </p>
             )}
             <Link href="/profile" className="inline-flex min-h-11 items-center text-sm text-brand underline">
-              编辑我的资料
+              {payload ? "编辑我的资料" : `去主页填写${EXCHANGE_LABELS[kind]}`}
             </Link>
           </section>
           <p className="text-xs leading-relaxed text-muted">
-            同意交换后，对方可能保存这些资料。拒绝或撤回请求不会交换任何资料。
+            对方可能保存你给出的资料。请求被拒绝时，对方不会给出资料；撤回请求后，对方不再看到你的资料。
           </p>
           <div className="flex flex-wrap justify-end gap-2">
             <button type="button" className={CHAT_COMMAND_CLASS} onClick={() => setOpen(false)}>

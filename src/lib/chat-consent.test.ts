@@ -8,6 +8,7 @@ import {
   type Exchange,
 } from "@/lib/chat-consent";
 import { initialProfile } from "@/components/seeker/hub-state";
+import { demoExchangeRequests } from "@/mock/chat-exchanges";
 
 const payload = { title: "我的联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
 const incoming: Exchange = {
@@ -19,30 +20,34 @@ const incoming: Exchange = {
   createdAt: "2026-10-13",
 };
 
-it("reveals both sides only after the recipient agrees with their own information", () => {
-  expect(visibleExchange(incoming)).toBeUndefined();
+it("shows the asker's details as soon as the request arrives, and the reply only after the recipient agrees", () => {
+  // The side that asks offers first: the recipient sees it at once, and has given nothing yet.
+  expect(visibleExchange(incoming)).toEqual({ them: payload });
   expect(respondExchange(incoming, "them", "accepted", payload)).toBe(incoming);
   expect(respondExchange(incoming, "me", "accepted")).toBe(incoming);
   const accepted = respondExchange(incoming, "me", "accepted", { ...payload, title: "我的信息" });
-  expect(visibleExchange(accepted)?.me.title).toBe("我的信息");
-  expect(visibleExchange(accepted)?.them.title).toBe("我的联系方式");
+  expect(visibleExchange(accepted)?.me?.title).toBe("我的信息");
+  expect(visibleExchange(accepted)?.them?.title).toBe("我的联系方式");
   expect(respondExchange(accepted, "me", "rejected")).toBe(accepted);
 });
 
-it("never reveals information on refusal or cancellation, and only the sender can cancel", () => {
+it("a refusal gives nothing back, a withdrawn request is no longer shown, and only the asker can withdraw", () => {
   const rejected = respondExchange(incoming, "me", "rejected");
   expect(rejected.status).toBe("rejected");
   expect(visibleExchange(rejected)).toBeUndefined();
   expect(respondExchange(incoming, "me", "cancelled")).toBe(incoming);
-  expect(respondExchange(incoming, "them", "cancelled").status).toBe("cancelled");
+  const withdrawn = respondExchange(incoming, "them", "cancelled");
+  expect(withdrawn.status).toBe("cancelled");
+  expect(visibleExchange(withdrawn)).toBeUndefined();
 });
 
 it("deduplicates pending or accepted exchanges and requires a valid payload", () => {
   expect(requestExchange([incoming], "contact", payload, "x2")).toEqual([incoming]);
   expect(requestExchange([], "contact", { ...payload, fields: [] }, "x2")).toEqual([]);
-  const created = requestExchange([], "address", payload, "x2");
+  const created = requestExchange([], "resume", payload, "x2");
   expect(created[0].from).toBe("me");
-  expect(visibleExchange(created[0])).toBeUndefined();
+  // The asker sees what they offered; the other side's details come only with their agreement.
+  expect(visibleExchange(created[0])).toEqual({ me: payload });
   expect(respondExchange(created[0], "me", "accepted", payload)).toBe(created[0]);
 });
 
@@ -50,21 +55,35 @@ it("does not restore malformed accepted data as consent", () => {
   expect(parseExchange({ ...incoming, status: "accepted" })).toBeUndefined();
   expect(parseExchange({ ...incoming, status: "pending", response: payload })).toBeUndefined();
   expect(parseExchange({ ...incoming, kind: "other" })).toBeUndefined();
+  // Address exchanges were removed (A24); old ones are dropped when read.
+  expect(parseExchange({ ...incoming, kind: "address" })).toBeUndefined();
   const accepted = respondExchange(incoming, "me", "accepted", payload);
   expect(parseExchange(JSON.parse(JSON.stringify(accepted)))).toEqual(accepted);
 });
 
-it("keeps contact and address out of resume exchanges and never substitutes public location for a private address", () => {
+it("keeps contact details out of resume exchanges and has no address to offer", () => {
   const profile = {
     ...initialProfile(null),
-    privateDetails: { phone: "021 555 8888", wechat: "private", email: "", address: "private location" },
+    privateDetails: { phone: "021 555 8888", wechat: "private", email: "" },
   };
   expect(profilePayload(profile, "contact", false)?.fields.map((field) => field.value)).toEqual([
     "021 555 8888",
     "private",
   ]);
-  expect(profilePayload(profile, "address", false)?.fields).toEqual([{ label: "地址", value: "private location" }]);
   expect(JSON.stringify(profilePayload(profile, "resume", false))).not.toContain("private");
   expect(profilePayload(initialProfile(null), "contact", false)).toBeUndefined();
-  expect(profilePayload(initialProfile(null), "address", false)).toBeUndefined();
+});
+
+it("demo requests carry the asker's own details and never ask for an address", () => {
+  const seeker = demoExchangeRequests(false);
+  const employer = demoExchangeRequests(true);
+  for (const requests of [seeker, employer])
+    for (const item of Object.values(requests).flat()) {
+      expect(["contact", "resume"]).toContain(item.kind);
+      expect(item.from).toBe("them");
+      expect(parseExchange(item)).toEqual(item);
+    }
+  expect(seeker["mt-eden"][0].offered.fields).toContainEqual({ label: "企业", value: "Mt Eden 餐馆" });
+  expect(employer["candidate-chen"][0].offered.fields).toContainEqual({ label: "称呼", value: "陈雨" });
+  expect(seeker["clean-home"]).toBeUndefined();
 });

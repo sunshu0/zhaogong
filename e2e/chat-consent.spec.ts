@@ -3,16 +3,18 @@ import AxeBuilder from "@axe-core/playwright";
 import { signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
 
-test("information exchanges require both participants and survive reload without leaking private profile fields", async ({
+test("the side that asks offers first: the other side sees its details at once, and gives its own only by agreeing", async ({
   page,
 }, testInfo) => {
   await signIn(page, "/profile", `consent.${testInfo.project.name}.${Date.now()}@example.com`);
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8801");
   await page.getByLabel("交换用微信", { exact: true }).fill("private_seeker_wechat");
-  await page.getByLabel("交换用地址", { exact: true }).fill("私密面谈地址 88 号");
+  await expect(page.getByLabel("交换用地址", { exact: true })).toHaveCount(0); // A24: no address exchange
   await page.goto("/messages?conversation=north-tea");
+  // The employer asked, so its details are already here; mine are not.
   const contact = page.getByRole("region", { name: "联系方式交换请求", exact: true });
-  await expect(contact).not.toContainText("021 555 0901");
+  await expect(contact).toContainText("对方已先提供自己的资料");
+  await expect(contact).toContainText("021 555 0901");
   await expect(contact).not.toContainText("021 555 8801");
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
   const dialog = page.getByRole("dialog");
@@ -22,7 +24,7 @@ test("information exchanges require both participants and survive reload without
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(contact.getByRole("button", { name: "查看并同意", exact: true })).toBeFocused();
-  await expect(contact).not.toContainText("demo_chat_contact");
+  await expect(contact).not.toContainText("private_seeker_wechat");
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
   await dialog.getByRole("button", { name: "同意并交换双方资料", exact: true }).click();
   await expect(contact).toContainText("双方已同意");
@@ -30,32 +32,36 @@ test("information exchanges require both participants and survive reload without
   await expect(contact).toContainText("private_seeker_wechat");
   await page.reload();
   await expect(contact).toContainText("双方已同意");
-  await page.getByRole("button", { name: "交换地址", exact: true }).click();
-  await expect(dialog).toContainText("私密面谈地址 88 号");
+  await expect(page.getByRole("button", { name: "交换地址" })).toHaveCount(0);
+
+  // I ask for the résumé / business details: mine go with the request, theirs come only if they agree.
+  await page.getByRole("button", { name: "交换资料", exact: true }).click();
+  await expect(dialog).toContainText("发出请求时给对方的资料");
   await dialog.getByRole("button", { name: "发送交换请求", exact: true }).click();
-  const outgoing = page.getByRole("region", { name: "地址交换请求", exact: true });
-  await expect(outgoing).toContainText("等待对方同意");
+  const outgoing = page.getByRole("region", { name: "简历与企业资料交换请求", exact: true });
+  await expect(outgoing).toContainText("你已提供自己的资料，对方现在能看到");
+  await expect(outgoing.getByRole("heading", { name: "我提供的资料" })).toBeVisible();
+  await expect(outgoing.getByRole("heading", { name: "对方的资料" })).toHaveCount(0);
   await expect(outgoing.getByRole("button", { name: "查看并同意", exact: true })).toHaveCount(0);
-  await expect(outgoing).not.toContainText("私密面谈地址 88 号");
   await page.reload();
   await expect(outgoing).toContainText("等待对方同意");
   await outgoing.getByRole("button", { name: "撤回请求", exact: true }).click();
-  await expect(outgoing).toContainText("请求已撤回");
+  await expect(outgoing).toContainText("请求已撤回，对方不再看到你的资料");
+  await expect(outgoing.getByRole("heading", { name: "我提供的资料" })).toHaveCount(0);
+
+  // Refusing a request gives nothing back, and its details are no longer shown.
   await page.goto("/messages?conversation=mt-eden");
   const resume = page.getByRole("region", { name: "简历与企业资料交换请求", exact: true });
+  await expect(resume).toContainText("餐饮门店，招聘前厅与厨房同事");
   await resume.getByRole("button", { name: "拒绝交换", exact: true }).click();
-  await expect(resume).toContainText("你已拒绝");
+  await expect(resume).toContainText("你已拒绝，你的资料没有给对方");
   await expect(resume).not.toContainText("餐饮门店，招聘前厅与厨房同事");
   await page.reload();
   await expect(resume).toContainText("你已拒绝");
-  await page.goto("/messages?conversation=clean-home");
-  const address = page.getByRole("region", { name: "地址交换请求", exact: true });
-  await address.getByRole("button", { name: "查看并同意", exact: true }).click();
-  await dialog.getByRole("button", { name: "同意并交换双方资料", exact: true }).click();
-  await expect(address).toContainText("示例面谈地点");
-  await expect(address).toContainText("私密面谈地址 88 号");
-  await page.screenshot({ path: testInfo.outputPath("address-exchanged.png"), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath("exchange-refused.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+  await page.goto("/messages?conversation=clean-home");
   await page.getByRole("button", { name: "举报聊天", exact: true }).click();
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("请选择举报原因");
@@ -70,17 +76,31 @@ test("information exchanges require both participants and survive reload without
   await dialog.getByRole("button", { name: "关闭弹窗", exact: true }).click();
 });
 
+test("asking first needs your own details: without them the request cannot be sent", async ({ page }, testInfo) => {
+  await signIn(
+    page,
+    "/messages?conversation=clean-home",
+    `consent.empty.${testInfo.project.name}.${Date.now()}@example.com`,
+  );
+  await page.getByRole("button", { name: "交换联系方式", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("你还没有填写联系方式。先填好自己的，才能发起交换。");
+  await expect(dialog.getByRole("button", { name: "发送交换请求", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("link", { name: "去主页填写联系方式", exact: true })).toHaveAttribute(
+    "href",
+    "/profile",
+  );
+});
+
 test("employers can report seekers and accepted private data stays out of public pages and the other identity", async ({
   page,
 }, testInfo) => {
   const shop = await signUpEmployer(page, testInfo, "/profile");
   await page.getByLabel("企业介绍", { exact: true }).fill("餐饮企业的公开招聘介绍");
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8802");
-  await page.getByLabel("交换用地址", { exact: true }).fill("企业私密面谈地址 99 号");
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();
   await expect(page).toHaveURL(/\/employers\//);
   await expect(page.getByRole("main")).not.toContainText("021 555 8802");
-  await expect(page.getByRole("main")).not.toContainText("企业私密面谈地址 99 号");
   await page.goto("/messages?conversation=candidate-lin");
   const contact = page.getByRole("region", { name: "联系方式交换请求", exact: true });
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
@@ -114,7 +134,9 @@ test("employers can report seekers and accepted private data stays out of public
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/messages?conversation=north-tea");
   await expect(page.getByRole("log")).not.toContainText("021 555 8802");
-  await expect(page.getByRole("region", { name: "联系方式交换请求", exact: true })).toContainText("双方同意后才会交换");
+  await expect(page.getByRole("region", { name: "联系方式交换请求", exact: true })).toContainText(
+    "对方已先提供自己的资料",
+  );
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

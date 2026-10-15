@@ -1,6 +1,6 @@
 "use client";
 
-import { Contact, FileText, MapPin } from "lucide-react";
+import { Contact, FileText } from "lucide-react";
 import { useChat } from "@/components/seeker/chat-client";
 import { EXCHANGE_LABELS, visibleExchange, type Exchange } from "@/lib/chat-consent";
 import { CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
@@ -10,7 +10,6 @@ import { PayloadView } from "@/components/seeker/ExchangePayload";
 const TOOLS = [
   { kind: "resume" as const, label: "交换资料", icon: FileText },
   { kind: "contact" as const, label: "交换联系方式", icon: Contact },
-  { kind: "address" as const, label: "交换地址", icon: MapPin },
 ];
 
 export function ChatExchangeTools({ conversationId }: { conversationId: string }) {
@@ -81,7 +80,9 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
             {item.status === "pending" && (
               <>
                 <p className="text-xs leading-relaxed text-muted">
-                  {item.from === "me" ? "等待对方同意，双方资料尚未交换。" : "双方同意后才会交换资料，你可以拒绝。"}
+                  {item.from === "me"
+                    ? "你已提供自己的资料，对方现在能看到。等待对方同意后，你会看到对方的资料。"
+                    : "对方已先提供自己的资料。你同意后，对方才会看到你的资料；也可以拒绝。"}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <PendingExchangeActions
@@ -93,23 +94,31 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
               </>
             )}
             {item.status === "rejected" && (
-              <p className="text-muted">{item.from === "me" ? "对方已拒绝" : "你已拒绝"}，双方资料未交换。</p>
+              <p className="text-muted">
+                {item.from === "me" ? "对方已拒绝，没有给出资料。" : "你已拒绝，你的资料没有给对方。"}
+              </p>
             )}
-            {item.status === "cancelled" && <p className="text-muted">请求已撤回，双方资料未交换。</p>}
+            {item.status === "cancelled" && (
+              <p className="text-muted">
+                请求已撤回，{item.from === "me" ? "对方不再看到你的资料" : "对方的资料已收回"}。
+              </p>
+            )}
+            {item.status === "accepted" && <p className="text-ok">双方已同意，资料已交换。</p>}
             {visible && (
-              <>
-                <p className="text-ok">双方已同意，资料已交换。</p>
-                <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
+              <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
+                {visible.them && (
                   <div className="space-y-2">
                     <h4 className="font-medium">对方的资料</h4>
                     <PayloadView payload={visible.them} />
                   </div>
+                )}
+                {visible.me && (
                   <div className="space-y-2">
-                    <h4 className="font-medium">我的资料</h4>
+                    <h4 className="font-medium">{item.status === "pending" ? "我提供的资料" : "我的资料"}</h4>
                     <PayloadView payload={visible.me} />
                   </div>
-                </div>
-              </>
+                )}
+              </div>
             )}
           </section>
         );

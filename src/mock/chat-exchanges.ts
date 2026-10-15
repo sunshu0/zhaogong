@@ -1,45 +1,64 @@
 import type { Exchange, ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 
+/**
+ * The exchange requests the demo conversations start with. The side that asks offers its own details first, so
+ * each request carries the asker's details: the employer's when a job seeker receives it, the candidate's when an
+ * employer does.
+ */
 export function demoExchangeRequests(isEmployer: boolean): Record<string, Exchange[]> {
-  const ids = isEmployer
-    ? ["candidate-lin", "candidate-chen", "candidate-wang"]
-    : ["north-tea", "mt-eden", "clean-home"];
-  const names = isEmployer ? ["林晓", "陈雨", "王宁"] : ["北岸早茶酒家", "Mt Eden 餐馆", "洁净家政"];
-  const kinds: ExchangeKind[] = ["contact", "resume", "address"];
-  const payloads: ExchangePayload[] = [
-    {
-      title: "演示联系方式",
-      fields: [
-        { label: "电话", value: "021 555 0901（演示）" },
-        { label: "微信", value: "demo_chat_contact" },
-      ],
-    },
-    {
-      title: isEmployer ? "演示求职简历" : "演示企业资料",
-      fields: [
-        { label: isEmployer ? "求职者" : "企业", value: names[1] },
-        {
-          label: "介绍",
-          value: isEmployer ? "有前厅服务经验，可以周末排班。（演示）" : "餐饮门店，招聘前厅与厨房同事。（演示）",
-        },
-      ],
-    },
-    { title: "演示地址", fields: [{ label: "地址", value: "示例面谈地点 · 奥克兰（演示）" }] },
-  ];
+  const requests: [string, ExchangeKind, ExchangePayload][] = isEmployer
+    ? [
+        ["candidate-lin", "contact", contact("林晓的联系方式", "021 555 0901（演示）", "demo_chat_contact")],
+        [
+          "candidate-chen",
+          "resume",
+          {
+            title: "陈雨的简历",
+            fields: [
+              { label: "称呼", value: "陈雨" },
+              { label: "个人介绍", value: "有前厅服务经验，可以周末排班。（演示）" },
+            ],
+          },
+        ],
+      ]
+    : [
+        ["north-tea", "contact", contact("北岸早茶酒家的联系方式", "021 555 0901（演示）", "demo_chat_contact")],
+        [
+          "mt-eden",
+          "resume",
+          {
+            title: "Mt Eden 餐馆的企业资料",
+            fields: [
+              { label: "企业", value: "Mt Eden 餐馆" },
+              { label: "企业介绍", value: "餐饮门店，招聘前厅与厨房同事。（演示）" },
+            ],
+          },
+        ],
+      ];
   return Object.fromEntries(
-    ids.map((id, index) => [
+    requests.map(([id, kind, offered]) => [
       id,
       [
         {
           id: `demo-exchange-${id}`,
-          kind: kinds[index],
+          kind,
           from: "them",
           status: "pending",
-          offered: payloads[index],
+          offered,
           createdAt: "2026-10-13T10:00:00Z",
           demo: true,
         } satisfies Exchange,
       ],
     ]),
   );
+}
+
+function contact(title: string, phone: string, wechat: string): ExchangePayload {
+  return {
+    title,
+    fields: [
+      { label: "电话", value: phone },
+      { label: "微信", value: wechat },
+    ],
+  };
 }

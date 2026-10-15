@@ -12,7 +12,7 @@ export type Profile = {
   availability: string;
   bio: string;
   resume?: Resume;
-  privateDetails?: { phone: string; wechat: string; email: string; address: string };
+  privateDetails?: { phone: string; wechat: string; email: string };
 };
 
 export function initialProfile(session: DemoSession | null): Profile {
@@ -38,7 +38,8 @@ export function initialProfile(session: DemoSession | null): Profile {
 }
 
 const PROFILE_FIELDS = ["name", "contactName", "headline", "location", "languages", "availability", "bio"] as const;
-const PRIVATE_FIELDS = ["phone", "wechat", "email", "address"] as const;
+// An address used to be one of them (exchange removed in A24); a stored one is dropped when read.
+const PRIVATE_FIELDS = ["phone", "wechat", "email"] as const;
 
 /**
  * What the browser keeps of a profile: only what the user changed. Each field is checked on its own, so one bad

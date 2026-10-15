@@ -1,7 +1,7 @@
 import type { Profile } from "@/components/seeker/hub-state";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 
-export type ExchangeKind = "contact" | "resume" | "address";
+export type ExchangeKind = "contact" | "resume";
 export type ExchangePayload = { title: string; fields: { label: string; value: string }[] };
 export type Exchange = {
   id: string;
@@ -17,7 +17,6 @@ export type Exchange = {
 export const EXCHANGE_LABELS: Record<ExchangeKind, string> = {
   contact: "联系方式",
   resume: "简历与企业资料",
-  address: "地址",
 };
 
 export function parsePayload(value: unknown): ExchangePayload | undefined {
@@ -55,7 +54,7 @@ export function parseExchange(value: unknown): Exchange | undefined {
   if (
     typeof input.id !== "string" ||
     !input.id ||
-    !["contact", "resume", "address"].includes(input.kind) ||
+    !["contact", "resume"].includes(input.kind) ||
     !["me", "them"].includes(input.from) ||
     !["pending", "accepted", "rejected", "cancelled"].includes(input.status) ||
     typeof input.createdAt !== "string" ||
@@ -106,9 +105,16 @@ export function respondExchange(
   return { ...item, status, respondedAt: new Date().toISOString(), ...(status === "accepted" ? { response } : {}) };
 }
 
-export function visibleExchange(item: Exchange) {
-  if (item.status !== "accepted" || !item.response) return undefined;
-  return item.from === "me" ? { me: item.offered, them: item.response } : { me: item.response, them: item.offered };
+/**
+ * What each side sees of an exchange. The side that asks offers its own details first: the other side sees them
+ * as soon as the request arrives, until it is withdrawn. The asker sees the other side's details only once they
+ * agree; a refusal gives nothing back.
+ */
+export function visibleExchange(item: Exchange): { me?: ExchangePayload; them?: ExchangePayload } | undefined {
+  if (item.status === "accepted" && item.response)
+    return item.from === "me" ? { me: item.offered, them: item.response } : { me: item.response, them: item.offered };
+  if (item.status === "pending") return item.from === "me" ? { me: item.offered } : { them: item.offered };
+  return undefined;
 }
 
 export function profilePayload(profile: Profile, kind: ExchangeKind, isEmployer: boolean): ExchangePayload | undefined {
@@ -120,8 +126,7 @@ export function profilePayload(profile: Profile, kind: ExchangeKind, isEmployer:
     add("电话", profile.privateDetails?.phone);
     add("微信", profile.privateDetails?.wechat);
     add("邮箱", profile.privateDetails?.email);
-  } else if (kind === "address") add("地址", profile.privateDetails?.address);
-  else {
+  } else {
     if (!(profile.bio.trim() || profile.resume?.skills.trim())) return undefined;
     add(isEmployer ? "企业" : "称呼", profile.name);
     add("简介", profile.headline);

@@ -211,10 +211,10 @@ describe("chats from before versioning", () => {
 
 describe("exchanges", () => {
   it("store a new request, and an answer to a demo request under the demo's id", () => {
-    let record = addExchangeRequest(EMPTY_CHAT, seekerDemo, "clean-home", "contact", offered, "mine");
-    expect(record.exchanges["clean-home"].map((x) => x.id)).toEqual(["mine"]);
+    let record = addExchangeRequest(EMPTY_CHAT, seekerDemo, "mt-eden", "contact", offered, "mine");
+    expect(record.exchanges["mt-eden"].map((x) => x.id)).toEqual(["mine"]);
     // A second pending request of the same kind is refused.
-    expect(addExchangeRequest(record, seekerDemo, "clean-home", "contact", offered, "again")).toBe(record);
+    expect(addExchangeRequest(record, seekerDemo, "mt-eden", "contact", offered, "again")).toBe(record);
 
     const demoId = seekerDemo.exchanges["north-tea"][0].id;
     record = answerExchange(record, seekerDemo, "north-tea", demoId, "accepted", offered);
@@ -222,7 +222,8 @@ describe("exchanges", () => {
     const view = chatView(record, seekerDemo);
     expect(view.exchanges["north-tea"]).toHaveLength(1);
     expect(view.exchanges["north-tea"][0]).toMatchObject({ id: demoId, status: "accepted", response: offered });
-    expect(view.exchanges["clean-home"].map((x) => x.id)).toEqual([seekerDemo.exchanges["clean-home"][0].id, "mine"]);
+    expect(view.exchanges["mt-eden"].map((x) => x.id)).toEqual([seekerDemo.exchanges["mt-eden"][0].id, "mine"]);
+    expect(view.exchanges["clean-home"]).toEqual([]);
     expect(answerExchange(record, seekerDemo, "north-tea", "nope", "rejected")).toBe(record);
   });
 });

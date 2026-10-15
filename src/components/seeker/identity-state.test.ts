@@ -168,7 +168,7 @@ describe("identity-specific workspace state", () => {
     expect(JSON.parse(raw).version).toBe(LOCAL_DATA_VERSION);
     expect(parseStoredProfiles(raw)[identityScope(seeker)]).toEqual({
       name: "小周",
-      privateDetails: { phone: "021 1", wechat: "", email: "", address: "" },
+      privateDetails: { phone: "021 1", wechat: "", email: "" },
     });
     const profile = parseProfiles(raw)[identityScope(seeker)];
     expect(profile.name).toBe("小周");

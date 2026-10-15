@@ -61,7 +61,7 @@ const EMPLOYER_START: DemoStart = {
       { from: "them", text: "您好，我有前厅服务经验，今天下午可以到店面谈。", time: "10:42" },
     ],
     "candidate-chen": [{ from: "them", text: "您好，我想应聘前厅服务员，可以先发简历给您吗？", time: "昨天" }],
-    "candidate-wang": [{ from: "them", text: "谢谢，收到工作地址了。", time: "周一" }],
+    "candidate-wang": [{ from: "them", text: "谢谢，面试时间收到了。", time: "周一" }],
   },
 };
 
