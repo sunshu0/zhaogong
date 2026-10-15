@@ -1,13 +1,29 @@
 import { expect, type Page } from "@playwright/test";
 
-/** Signs in through /login like a user would: any email, then any six-digit code. */
-export async function signIn(page: Page, next: string, email = "e2e.seeker@example.com") {
+/**
+ * Types the sign-in code. Codes are random (A12-1); outside production the sign-in page shows the code, which is
+ * what a developer reads from the server log.
+ */
+export async function fillSignInCode(page: Page) {
+  const shown = page.getByTestId("dev-sign-in-code");
+  await expect(shown).toHaveText(/^\d{6}$/);
+  await page.getByLabel("验证码").fill((await shown.textContent())!.trim());
+}
+
+/** A fresh address for one test: a code can be asked for once a minute per email, and specs run side by side. */
+export function freshEmail(tag = "e2e.seeker") {
+  return `${tag}.${Date.now()}.${Math.floor(Math.random() * 1e6)}@example.com`;
+}
+
+/** Signs in through /login like a user would: an email, then the code it was sent; ends on `next`. */
+export async function signIn(page: Page, next: string, email = freshEmail()) {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("邮箱", { exact: true }).fill(email);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码").fill("123456");
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL(next);
+  return email;
 }
 
 /** The visible contact block on a job page. */

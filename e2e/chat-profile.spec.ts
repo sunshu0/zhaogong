@@ -1,15 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
 test("chat header avatar and employer name both open the company home", async ({ page }, testInfo) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "zhaogong:session",
-      JSON.stringify({ email: "chat-profile@example.com", activeRole: "seeker", signedInAt: "2026-10-13" }),
-    );
-  });
-  await page.goto("/messages?conversation=north-tea");
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("chat-profile"));
   const header = page.getByRole("region", { name: "与北岸早茶酒家的聊天" });
   const profile = header.getByRole("link", { name: "查看北岸早茶酒家的主页", exact: true });
   await expect(profile).toHaveAttribute("href", "/employers/e2");

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openOptionalProfile, expectProfileSaved } from "./helpers";
+import { expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 const AVATAR =
@@ -7,11 +7,7 @@ const AVATAR =
 
 test("profile avatar upload persists and appears on employer job cards and public home", async ({ page }) => {
   await page.addInitScript(() => {
-    if (localStorage.getItem("zhaogong:session")) return;
-    localStorage.setItem(
-      "zhaogong:session",
-      JSON.stringify({ email: "avatar@example.com", activeRole: "seeker", signedInAt: "2026-10-13" }),
-    );
+    if (localStorage.getItem("zhaogong:profiles-by-identity")) return;
     const scope = JSON.stringify(["avatar@example.com", "employer", "e3"]);
     localStorage.setItem(
       "zhaogong:profiles-by-identity",
@@ -29,7 +25,7 @@ test("profile avatar upload persists and appears on employer job cards and publi
       }),
     );
   });
-  await page.goto("/profile");
+  await signIn(page, "/profile", freshEmail("avatar"));
   await expect(page.getByRole("heading", { name: "我的求职主页" })).toBeVisible();
   await openOptionalProfile(page);
   await page

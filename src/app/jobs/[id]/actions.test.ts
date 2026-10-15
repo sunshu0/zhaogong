@@ -1,45 +1,73 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { jobSummary, reportJob, revealContact } from "@/app/jobs/[id]/actions";
-import { listContactViews, listReports } from "@/lib/data";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createSession, type CookieJar } from "@/lib/auth";
+import { setAuthStoreForTests } from "@/lib/auth/store";
+import { ensureAccount, listContactViews, listReports } from "@/lib/data";
+
+// Server Functions read the request's cookies; here one jar stands in for one browser.
+const cookies = new Map<string, string>();
+const jar: CookieJar = {
+  get: (name) => (cookies.has(name) ? { name, value: cookies.get(name)! } : undefined),
+  set: (name, value) => void cookies.set(name, value),
+  delete: (name) => void cookies.delete(name),
+};
+vi.mock("next/headers", () => ({ cookies: async () => jar }));
+
+const { jobSummary, reportJob, revealContact } = await import("@/app/jobs/[id]/actions");
+
+/** A signed-in browser: the account and a server session in the cookie. */
+async function signedIn(email: string) {
+  cookies.clear();
+  await ensureAccount(email);
+  await createSession(email, "seeker", jar);
+}
+
+beforeEach(() => {
+  setAuthStoreForTests();
+  cookies.clear();
+});
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe("revealContact", () => {
-  it("returns the contact details and records who saw them", async () => {
-    const contact = await revealContact("j1", " Viewer.One@Example.com ");
+  it("returns the contact details to the signed-in account and records who saw them", async () => {
+    await signedIn("viewer.one@example.com");
+    const contact = await revealContact("j1");
     expect(contact).toEqual({ phone: "021 555 0101", wechat: "demo_chuanwei", email: undefined });
     const views = await listContactViews("j1");
     expect(views.filter((v) => v.viewerEmail === "viewer.one@example.com")).toHaveLength(1);
   });
 
   it("records the same person on the same job once per 30 minutes", async () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-12T01:00:00Z"));
+    await signedIn("viewer.two@example.com");
     const mine = async () => (await listContactViews("j3")).filter((v) => v.viewerEmail === "viewer.two@example.com");
 
-    await revealContact("j3", "viewer.two@example.com");
-    await revealContact("j3", "viewer.two@example.com"); // page opened again, or React's dev double effect
+    await revealContact("j3");
+    await revealContact("j3"); // page opened again, or React's dev double effect
     expect(await mine()).toHaveLength(1);
 
     vi.setSystemTime(new Date("2026-10-12T01:31:00Z"));
-    await revealContact("j3", "viewer.two@example.com");
+    await revealContact("j3");
     expect(await mine()).toHaveLength(2);
   });
 
-  it("returns nothing and records nothing without a valid email or a public job", async () => {
-    const before = (await listContactViews("j2")).length;
-    expect(await revealContact("j2", "not-an-email")).toBeNull();
-    expect(await revealContact("nope", "viewer.three@example.com")).toBeNull();
-    expect((await listContactViews("j2")).length).toBe(before);
+  it("returns nothing and records nothing when signed out, or for a job seekers cannot see", async () => {
+    const before = (await listContactViews("j1")).length;
+    expect(await revealContact("j1")).toBeNull(); // no session cookie
+    await signedIn("viewer.three@example.com");
+    expect(await revealContact("nope")).toBeNull();
+    expect((await listContactViews("j1")).length).toBe(before);
   });
 });
 
 describe("revealContact on a job whose employer keeps contact details private", () => {
   it("returns nothing and records nothing: details are exchanged in the chat instead", async () => {
+    await signedIn("viewer.private@example.com");
     const before = (await listContactViews("j2")).length;
-    expect(await revealContact("j2", "viewer.private@example.com")).toBeNull();
+    expect(await revealContact("j2")).toBeNull();
     expect((await listContactViews("j2")).length).toBe(before);
   });
 });

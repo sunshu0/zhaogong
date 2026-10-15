@@ -1,19 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { chatEntry, siteNav } from "./helpers";
+import { chatEntry, freshEmail, signIn, siteNav } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 test("workspace navigation stays visible across its pages", async ({ page }, testInfo) => {
-  await page.addInitScript(() => {
-    localStorage.setItem(
-      "zhaogong:session",
-      JSON.stringify({
-        email: "workspace@example.com",
-        signedInAt: "2026-10-13T00:00:00.000Z",
-        activeRole: "seeker",
-      }),
-    );
-  });
-  await page.goto("/workspace");
+  await signIn(page, "/workspace", freshEmail("workspace"));
   await expect(chatEntry(page)).toBeVisible();
   const mobile = testInfo.project.name === "mobile";
   if (!mobile) await expect(siteNav(page).getByRole("link", { name: "工作台", exact: true })).toBeVisible();
@@ -55,14 +45,7 @@ test("signed-out workspace sign-in returns to the selected page", async ({ page 
 });
 
 test("总览 lists what needs doing, most urgent first, and each item opens the right page", async ({ page }) => {
-  await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session"))
-      localStorage.setItem(
-        "zhaogong:session",
-        JSON.stringify({ email: "todos@example.com", signedInAt: "2026-10-13T00:00:00.000Z", activeRole: "seeker" }),
-      );
-  });
-  await page.goto("/workspace");
+  await signIn(page, "/workspace", freshEmail("todos"));
   const todos = page.getByRole("region", { name: "待办" });
   const items = todos.getByRole("listitem");
   // Requests waiting for consent come before unread chats, and the profile comes last.

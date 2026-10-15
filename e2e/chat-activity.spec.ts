@@ -1,19 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { chatMenuItem } from "./helpers";
+import { chatMenuItem, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
 test("seeker sees employer activity and receipts only change when the counterpart reads", async ({
   page,
 }, testInfo) => {
-  await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session"))
-      localStorage.setItem(
-        "zhaogong:session",
-        JSON.stringify({ email: "activity-seeker@example.com", activeRole: "seeker", signedInAt: "2026-10-13" }),
-      );
-  });
-  await page.goto("/messages?conversation=north-tea");
+  const email = await signIn(page, "/messages?conversation=north-tea", freshEmail("activity-seeker"));
   const activity = page.getByLabel("沟通状态", { exact: true });
   await expect(activity).toContainText(/对方约 \d+ 分钟前在线/);
   await expect(activity).toContainText(/雇主今日已回复 \d+ 位求职者/);
@@ -28,17 +21,17 @@ test("seeker sees employer activity and receipts only change when the counterpar
   await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(1);
   await page.reload();
   await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(1);
-  await page.evaluate(() => {
+  await page.evaluate((address) => {
     const key = "zhaogong:chat-demo";
     const stored = JSON.parse(localStorage.getItem(key)!);
-    const scope = JSON.stringify(["activity-seeker@example.com", "seeker", null]);
+    const scope = JSON.stringify([address, "seeker", null]);
     // Only messages added after the demo thread are stored (A23); a reply from another tab is added there.
     const added = stored.identities[scope].added["north-tea"];
     added.at(-1).readAt = new Date().toISOString();
     added.push({ from: "them", text: "新的回复已送达", time: "刚刚", sentAt: new Date().toISOString() });
     localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
-  });
+  }, email);
   await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(2);
   await expect(log.getByLabel("我已读", { exact: true })).toHaveCount(3);
   await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(0);

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { fillSignInCode } from "./helpers";
 
 // A17: one account, two identities. Accounts live in the dev server's memory and the three demo businesses can
 // each be claimed once per server, so every test uses fresh emails and new businesses; the demo-business test
@@ -13,7 +14,7 @@ const accountButton = (page: Page) => page.getByRole("banner").getByRole("button
 async function emailAndCode(page: Page, address: string) {
   await page.getByLabel("邮箱", { exact: true }).fill(address);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码").fill("123456");
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
 }
 

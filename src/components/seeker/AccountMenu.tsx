@@ -3,24 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { accountStatus } from "@/app/login/actions";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
-import { setIdentity, signOut, syncAccountIdentity, useHydrated, useSession } from "@/components/seeker/session-client";
-import type { DemoSession } from "@/components/seeker/session";
+import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { navRole, showsPostJob } from "@/components/ui/nav";
 
-/** Once per page load, make the browser's copy of the identity match the account on the server. */
-function useAccountSync(session: DemoSession | null) {
-  const synced = useRef<string | null>(null);
-  useEffect(() => {
-    if (!session || synced.current === session.email) return;
-    synced.current = session.email;
-    accountStatus(session.email).then((status) => {
-      if (!status) return;
-      syncAccountIdentity(session, status);
-    });
-  }, [session]);
+/** Once per page load, make the browser's copy of the session match the server's (A12-1: the cookie is the truth). */
+function useAccountSync() {
+  useEffect(() => syncWithServer(), []);
 }
 
 /**
@@ -35,7 +25,7 @@ export function AccountMenu() {
   const button = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const { employer, toEmployer, toSeeker, notice, clearNotice } = useIdentitySwitch();
-  useAccountSync(session);
+  useAccountSync();
 
   useEffect(() => {
     if (!open) return;

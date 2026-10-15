@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { fillSignInCode } from "./helpers";
 import { DEMO_DATA, visibleStats } from "../src/config/landing";
 
 test("landing: hero with logo, headline, buttons and trust row; height by content", async ({ page }, testInfo) => {
@@ -129,8 +130,8 @@ test("注册找工作 goes through 注册或登录 and lands on the job list", a
 
   await page.getByLabel("邮箱", { exact: true }).fill(`new.seeker.${Date.now()}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await expect(page.getByText("输入任意 6 位数字即可注册或登录").filter({ visible: true })).toBeVisible();
-  await page.getByLabel("验证码").fill("135790");
+  await expect(page.getByText("开发环境没有接邮件服务", { exact: false }).filter({ visible: true })).toBeVisible();
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/jobs");
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();

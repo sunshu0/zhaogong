@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { fillSignInCode } from "./helpers";
 
 // A18: the landing page's order, and the replay of a real AI chat post (startChat / nextTurn, not a script).
 
@@ -70,7 +71,7 @@ test("我要招人 goes straight to posting once the account is an employer", as
   await page.goto("/login?role=employer&next=%2F");
   await page.getByLabel("邮箱", { exact: true }).fill(email(testInfo));
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码").fill("123456");
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(`回放测试店${Date.now() % 1e6}`);

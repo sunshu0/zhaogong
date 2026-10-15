@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyServerSession,
   DEMO_BUSINESS_IDS,
   defaultBusinessChoice,
   employerSignUpHref,
@@ -174,5 +175,60 @@ describe("delayed account synchronization", () => {
     const current = writeSession(storage, requested.email, new Date(now.getTime() + 1000));
     syncSessionIdentity(storage, requested, { employer });
     expect(readSession(storage)).toEqual(current);
+  });
+});
+
+describe("applyServerSession (A12-1: the server's session is the truth, the browser keeps a copy)", () => {
+  const employer = { id: "e4", name: "悦美发型工作室" };
+  const t0 = new Date("2026-10-15T00:00:00Z");
+  const t1 = new Date("2026-10-15T01:00:00Z");
+
+  function memory() {
+    const data = new Map<string, string>();
+    return {
+      getItem: (key: string) => data.get(key) ?? null,
+      setItem: (key: string, value: string) => void data.set(key, value),
+      removeItem: (key: string) => void data.delete(key),
+    };
+  }
+
+  it("clears a copy the server has no session for (signed out, expired, or written by hand)", () => {
+    const storage = memory();
+    const forged = writeSession(storage, "a@example.com", t0, { activeRole: "employer", employer });
+    expect(applyServerSession(storage, forged, null, t1)).toBeNull();
+    expect(readSession(storage)).toBeNull();
+  });
+
+  it("restores the copy from the server's session, keeping when it started", () => {
+    const storage = memory();
+    expect(applyServerSession(storage, null, { email: "a@example.com", activeRole: "seeker" }, t1)).toEqual({
+      email: "a@example.com",
+      signedInAt: t1.toISOString(),
+      activeRole: "seeker",
+    });
+    const copy = readSession(storage)!;
+    const server = { email: "a@example.com", activeRole: "employer" as const, employer };
+    expect(applyServerSession(storage, copy, server, new Date("2026-10-16T00:00:00Z"))).toEqual({
+      ...copy,
+      activeRole: "employer",
+      employerId: "e4",
+      employerName: "悦美发型工作室",
+    });
+  });
+
+  it("replaces a copy of another account with the server's", () => {
+    const storage = memory();
+    const other = writeSession(storage, "b@example.com", t0);
+    expect(applyServerSession(storage, other, { email: "a@example.com", activeRole: "seeker" }, t1)?.email).toBe(
+      "a@example.com",
+    );
+  });
+
+  it("ignores an answer to a request made before the copy changed (a sign-in or sign-out in between)", () => {
+    const storage = memory();
+    const before = null;
+    const signedIn = writeSession(storage, "a@example.com", t1);
+    expect(applyServerSession(storage, before, null, t1)).toEqual(signedIn);
+    expect(readSession(storage)).toEqual(signedIn);
   });
 });

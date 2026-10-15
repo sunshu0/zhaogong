@@ -1,5 +1,6 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
 import { expect, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { fillSignInCode } from "../helpers";
 
 /** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
 export const CLEAN_MESSAGE =
@@ -28,7 +29,7 @@ export async function signUpEmployer(page: Page, testInfo: TestInfo, next = "/em
   await page.goto(`/login?role=employer&next=${encodeURIComponent(next)}`);
   await page.getByLabel("邮箱", { exact: true }).fill(`e2e.b.${run}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码").fill("123456");
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
   await page.getByRole("radio", { name: /新建企业/ }).check();

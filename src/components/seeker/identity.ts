@@ -3,8 +3,10 @@
 import { COUNTRIES } from "@/config/countries";
 import type { CountryCode } from "@/lib/types";
 import {
+  clearSession,
   readSession,
   updateIdentity,
+  writeSession,
   type ActiveRole,
   type DemoSession,
   type SessionIdentity,
@@ -101,4 +103,29 @@ export function syncSessionIdentity(
     return current;
   }
   return updateIdentity(storage, reconcileIdentity(current.activeRole, server));
+}
+
+/** The browser's view of the server's session (login actions' AccountStatus). */
+export type ServerSession = { email: string; activeRole: ActiveRole; employer?: { id: string; name: string } };
+
+/**
+ * Make the browser's copy match the server's session (A12-1): the cookie session is the truth, the copy is for
+ * display. `requested` is the copy when the question was asked; if it changed since (a sign-in, sign-out or
+ * switch in between), the answer is out of date and the copy is left alone.
+ */
+export function applyServerSession(
+  storage: StorageLike,
+  requested: DemoSession | null,
+  server: ServerSession | null,
+  now = new Date(),
+): DemoSession | null {
+  const current = readSession(storage);
+  const unchanged = current?.email === requested?.email && current?.signedInAt === requested?.signedInAt;
+  if (!unchanged) return current;
+  if (!server) {
+    clearSession(storage);
+    return null;
+  }
+  const since = current?.email === server.email ? new Date(current.signedInAt) : now;
+  return writeSession(storage, server.email, since, { activeRole: server.activeRole, employer: server.employer });
 }

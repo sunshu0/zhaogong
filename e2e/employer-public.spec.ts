@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chatMenuItem, openOptionalProfile, expectProfileSaved } from "./helpers";
+import { chatMenuItem, expectProfileSaved, fillSignInCode, openOptionalProfile } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -38,7 +38,7 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
     .getByLabel("邮箱", { exact: true })
     .fill(`public-seeker.${testInfo.project.name}.${Date.now()}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
-  await page.getByLabel("验证码").fill("123456");
+  await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/jobs/j1");
   await page.getByRole("button", { name: "立即沟通", exact: true }).click();
@@ -107,6 +107,8 @@ test("employer edits a public company home and chat remains in the seeker identi
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/messages");
   await expect(page.getByRole("complementary", { name: "聊天列表" })).not.toContainText("川味小馆");
+  // Signed out (A12-1: the server session too, not only the browser's copy).
+  await page.context().clearCookies();
   await page.evaluate(() => localStorage.removeItem("zhaogong:session"));
   await page.goto(companyUrl);
   await expect(page.getByRole("region", { name: "企业介绍", exact: true })).toContainText("公开企业介绍");

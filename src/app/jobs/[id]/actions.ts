@@ -1,26 +1,26 @@
 "use server";
 
+import { getCurrentSession } from "@/lib/auth";
 import { getJob, listContactViews, recordContactView, submitReport } from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { isExpired, isPublic } from "@/components/seeker/job-facts";
 import { formatPay } from "@/components/seeker/format";
 import { parseReport } from "@/components/seeker/report";
-import { isValidEmail, normalizeEmail } from "@/components/seeker/session";
 
 /** The job page fetches contact details on every visit, so one person counts once per job in this window. */
 const RECORD_AGAIN_AFTER_MS = 30 * 60 * 1000;
 
 /**
- * A job's contact details, fetched after sign-in so they are not in the page HTML for everyone, and
- * recorded with recordContactView so the employer side can see who looked. Only for jobs whose employer made
- * them public (contactPublic); otherwise they are exchanged in the chat, and this returns nothing.
- * Demo only: the session lives in the browser, so the server trusts the email it is given.
- * When real authentication arrives, check the session here instead.
+ * A job's contact details, fetched after sign-in so they are not in the page HTML for everyone, and recorded with
+ * recordContactView so the employer side can see who looked. The viewer is the account of this browser's server
+ * session (the cookie), never an email the page sends. Only for jobs whose employer made the details public
+ * (contactPublic); otherwise they are exchanged in the chat, and this returns nothing.
  */
-export async function revealContact(jobId: string, email: string): Promise<Job["contact"] | null> {
-  if (typeof jobId !== "string" || typeof email !== "string") return null;
-  const viewer = normalizeEmail(email);
-  if (!isValidEmail(viewer)) return null;
+export async function revealContact(jobId: string): Promise<Job["contact"] | null> {
+  if (typeof jobId !== "string") return null;
+  const session = await getCurrentSession();
+  if (!session) return null;
+  const viewer = session.email;
   const job = await getJob(jobId);
   if (!job || !isPublic(job) || !job.contactPublic) return null;
 

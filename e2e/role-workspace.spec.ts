@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { chatEntry, exchangeTool, openOptionalProfile, expectProfileSaved } from "./helpers";
+import { chatEntry, exchangeTool, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -117,19 +117,10 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(page.getByRole("log")).toContainText("求职专属消息");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
-  await page.goto("/profile");
-  await page.evaluate(() => {
-    const key = "zhaogong:session";
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        email: "different-workspace@example.com",
-        activeRole: "seeker",
-        signedInAt: "2026-10-13T00:00:00Z",
-      }),
-    );
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  });
+  // Someone else signs in on this browser (A12-1: a real sign-in; the server's session decides who it is).
+  await page.context().clearCookies();
+  await page.evaluate(() => localStorage.removeItem("zhaogong:session"));
+  await signIn(page, "/profile", freshEmail("different-workspace"));
   await expect(page.getByLabel("称呼", { exact: true })).not.toHaveValue("求职者小林");
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await page.goto("/me");

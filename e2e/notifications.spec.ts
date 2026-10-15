@@ -1,21 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { chatEntry, openWorkspacePage } from "./helpers";
+import { chatEntry, freshEmail, openWorkspacePage, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
 test("seeker notifications open related threads and persist both read states", async ({ page }, testInfo) => {
-  await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session"))
-      localStorage.setItem(
-        "zhaogong:session",
-        JSON.stringify({
-          email: "notifications@example.com",
-          activeRole: "seeker",
-          signedInAt: "2026-10-13T00:00:00Z",
-        }),
-      );
-  });
-  await page.goto("/notifications");
+  await signIn(page, "/notifications", freshEmail("notifications"));
   const list = page.getByRole("region", { name: "通知列表" });
   await expect(list).toContainText("2 条未读");
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);

@@ -1,19 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 // A26: reminders when a chat message asks for fees, sells visas or picks people by ethnicity.
 test("a received message asking for a deposit gets a reminder and a report link; my own draft gets a hint", async ({
   page,
 }, testInfo) => {
-  const email = `compliance.${testInfo.project.name}.${Date.now()}@example.com`;
-  await page.addInitScript((address) => {
-    if (!localStorage.getItem("zhaogong:session"))
-      localStorage.setItem(
-        "zhaogong:session",
-        JSON.stringify({ email: address, activeRole: "seeker", signedInAt: "2026-10-15T00:00:00Z" }),
-      );
-  }, email);
-  await page.goto("/messages?conversation=north-tea");
+  const email = await signIn(page, "/messages?conversation=north-tea", freshEmail("compliance"));
   const log = page.getByRole("log");
   await expect(log.getByRole("note", { name: "合规提醒" })).toHaveCount(0); // the demo messages are fine
 

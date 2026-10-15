@@ -1,14 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { openOptionalProfile } from "./helpers";
+import { freshEmail, openOptionalProfile, signIn } from "./helpers";
 
+// A12-1: a real sign-in (a session written into localStorage is cleared by the server).
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    if (!localStorage.getItem("zhaogong:session"))
-      localStorage.setItem(
-        "zhaogong:session",
-        JSON.stringify({ email: "profile@example.com", signedInAt: "2026-10-13T00:00:00.000Z", activeRole: "seeker" }),
-      );
-  });
+  await signIn(page, "/profile", freshEmail("profile"));
 });
 
 test("我的主页: preview first, completeness counts the key items, optional fields folded, saved as you type", async ({

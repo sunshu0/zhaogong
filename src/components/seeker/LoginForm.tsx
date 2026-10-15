@@ -2,7 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { accountStatus, openEmployerForAccount, signInAccount, type AccountStatus } from "@/app/login/actions";
+import {
+  accountStatus,
+  openEmployerForAccount,
+  requestSignInCode,
+  signInAccount,
+  type AccountStatus,
+} from "@/app/login/actions";
 import { COUNTRIES } from "@/config/countries";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import type { EmployerVerification } from "@/lib/types";
@@ -30,7 +36,7 @@ const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
 ];
 
 /**
- * 注册或登录 (the email code does both). Job seekers: email → code → `next`. Employers: email → code → their
+ * 注册或登录 (the email code does both; A12-1: the code is checked and the session started on the server). Job seekers: email → code → `next`. Employers: email → code → their
  * business (one of the demo businesses or a new one) → `next`, default /employer/post. A signed-in job seeker
  * who comes here as an employer goes straight to the business step.
  */
@@ -50,6 +56,8 @@ export function LoginForm({
   const [role, setRole] = useState<ActiveRole>(initialRole);
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
+  // Outside production there is no mail service: the server also prints the code to its log and sends it back here.
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
@@ -65,6 +73,7 @@ export function LoginForm({
       setRole(role0);
       setStep("email");
       setEmail("");
+      setDevCode(null);
       setError(null);
       setCheckedFor(null);
     };
@@ -126,13 +135,23 @@ export function LoginForm({
     );
   }
 
+  function sendCode(address: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await requestSignInCode(address).catch(() => null);
+      if (!result) return setError("网络有问题，请稍后再试");
+      if (!result.ok) return setError(result.error);
+      setEmail(address);
+      setDevCode(result.devCode ?? null);
+      setStep("code");
+    });
+  }
+
   function submitEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const value = normalizeEmail(String(new FormData(e.currentTarget).get("email") ?? ""));
     if (!isValidEmail(value)) return setError("请输入正确的邮箱地址");
-    setEmail(value);
-    setError(null);
-    setStep("code");
+    sendCode(value);
   }
 
   function submitCode(e: FormEvent<HTMLFormElement>) {
@@ -141,7 +160,7 @@ export function LoginForm({
     if (!isValidCode(code)) return setError("请输入 6 位数字验证码");
     setError(null);
     startTransition(async () => {
-      const result = await signInAccount(email, code).catch(() => null);
+      const result = await signInAccount(email, code, role).catch(() => null);
       if (!result) return setError("网络有问题，请稍后再试");
       if (!result.ok) return setError(result.error);
       finishSignIn(result.account);
@@ -200,8 +219,8 @@ export function LoginForm({
         />
       </label>
       {error && <ErrorText>{error}</ErrorText>}
-      <button type="submit" className={primaryClass}>
-        获取验证码
+      <button type="submit" disabled={pending} className={primaryClass}>
+        {pending ? "正在发送…" : "获取验证码"}
       </button>
       <p className="text-xs text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
     </form>
@@ -210,9 +229,16 @@ export function LoginForm({
       <p className="text-sm">
         验证码已发送到 <span className="font-medium">{email}</span>
       </p>
-      <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">
-        演示版不会真的发送邮件，输入任意 6 位数字即可注册或登录。
-      </p>
+      {devCode ? (
+        <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">
+          开发环境没有接邮件服务，验证码打印在服务器日志里：
+          <span data-testid="dev-sign-in-code" className="ml-1 font-mono text-sm font-semibold tracking-widest">
+            {devCode}
+          </span>
+        </p>
+      ) : (
+        <p className="text-xs text-muted">10 分钟内有效。没收到可以 1 分钟后重新获取。</p>
+      )}
       <label className="block">
         <span className="mb-1 block text-sm font-medium">验证码</span>
         <input
@@ -231,10 +257,14 @@ export function LoginForm({
       <button type="submit" disabled={pending} className={primaryClass}>
         登录
       </button>
+      <button type="button" disabled={pending} onClick={() => sendCode(email)} className={linkButtonClass}>
+        重新获取验证码
+      </button>
       <button
         type="button"
         onClick={() => {
           setStep("email");
+          setDevCode(null);
           setError(null);
         }}
         className={linkButtonClass}

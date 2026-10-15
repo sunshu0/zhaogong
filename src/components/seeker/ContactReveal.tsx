@@ -19,7 +19,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
     if (!session) return;
     let cancelled = false;
     const email = session.email;
-    revealContact(jobId, email)
+    revealContact(jobId) // the server reads who is asking from the session cookie
       .catch(() => null)
       .then((contact) => {
         if (!cancelled) setLoaded({ jobId, email, contact });
