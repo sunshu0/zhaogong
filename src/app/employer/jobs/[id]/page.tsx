@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "编辑职位", robots: { index: fals
 
 export default function EditJobPage({ params }: PageProps<"/employer/jobs/[id]">) {
   return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />}>
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-md border border-border bg-surface" />}>
       <Edit params={params} />
     </Suspense>
   );

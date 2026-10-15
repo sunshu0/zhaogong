@@ -45,7 +45,7 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
     <div className="space-y-4 pb-24">
       <StepList mode={posting.mode} step={posting.step} />
       {choosingMode && <ModeSwitch mode={posting.mode} onSwitch={posting.switchMode} />}
-      {posting.error && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{posting.error}</p>}
+      {posting.error && <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">{posting.error}</p>}
       <CurrentStep view={view} />
       <StepBar view={view} />
     </div>

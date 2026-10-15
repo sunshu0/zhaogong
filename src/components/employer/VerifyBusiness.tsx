@@ -51,21 +51,21 @@ function Verify({ me }: { me: EmployerIdentity }) {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-lg font-semibold">企业验证</h1>
+        <h1 className="text-title font-semibold">企业验证</h1>
         {employer ? (
-          <p className="flex flex-wrap items-center gap-2 text-sm">
+          <p className="flex flex-wrap items-center gap-2 text-body">
             {employer.name} 现在是 <VerificationBadge verification={employer.verification} />
             {employer.businessNumber && <span className="text-muted">NZBN {employer.businessNumber}</span>}
           </p>
         ) : (
-          <p className="text-sm text-muted">用公司名称或 NZBN 在新西兰企业登记里查找你的公司。</p>
+          <p className="text-body text-muted">用公司名称或 NZBN 在新西兰企业登记里查找你的公司。</p>
         )}
       </header>
 
       <BadgeMeaning />
 
       <form onSubmit={search} className="space-y-2">
-        <label htmlFor="verify-query" className="block text-sm font-medium">
+        <label htmlFor="verify-query" className="block text-body font-medium">
           公司名称或 NZBN
         </label>
         <div className="flex gap-2">
@@ -74,17 +74,17 @@ function Verify({ me }: { me: EmployerIdentity }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="例如：Demo Yuemei 或 9429000000004"
-            className="h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3"
+            className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3"
           />
           <button
             type="submit"
             disabled={pending || !query.trim()}
-            className="h-11 rounded-lg bg-brand px-4 font-medium text-white disabled:opacity-40"
+            className="h-11 rounded-md bg-brand px-4 font-medium text-white disabled:opacity-40"
           >
             查询
           </button>
         </div>
-        <p className="text-xs text-muted">演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。</p>
+        <p className="text-meta text-muted">演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。</p>
       </form>
 
       {message && (
@@ -92,36 +92,36 @@ function Verify({ me }: { me: EmployerIdentity }) {
           ref={messageRef}
           tabIndex={-1}
           role="status"
-          className={`rounded-lg px-3 py-2 text-sm outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+          className={`rounded-md px-3 py-2 text-body outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
         >
           {message.text}
         </p>
       )}
 
-      {found?.error_zh && <p className="text-sm text-warn">{found.error_zh}</p>}
+      {found?.error_zh && <p className="text-body text-warn">{found.error_zh}</p>}
       {found && found.results.length > 0 && (
         <ul className="space-y-2">
           {found.results.map((entry) => {
             const mine = employer?.businessNumber === entry.nzbn;
             return (
-              <li key={entry.nzbn} className="rounded-xl border border-border bg-surface p-4">
+              <li key={entry.nzbn} className="rounded-md border border-border bg-surface p-4">
                 <p className="font-medium" lang="en">
                   {entry.legalName}
                 </p>
-                <p className="text-sm text-muted">
+                <p className="text-body text-muted">
                   NZBN {entry.nzbn} · 商号：{entry.tradingNames.join("、")}
                 </p>
-                <p className={`mt-1 text-sm ${entry.status === "registered" ? "text-ok" : "text-danger"}`}>
+                <p className={`mt-1 text-body ${entry.status === "registered" ? "text-ok" : "text-danger"}`}>
                   {entry.status === "registered" ? "登记状态：正常" : "登记状态：已注销"}
                 </p>
                 {mine ? (
-                  <p className="mt-2 text-sm text-ok">这是你已验证的公司。</p>
+                  <p className="mt-2 text-body text-ok">这是你已验证的公司。</p>
                 ) : (
                   <button
                     type="button"
                     disabled={entry.status !== "registered" || pending}
                     onClick={() => verify(entry.nzbn)}
-                    className="mt-3 h-10 w-full rounded-lg border border-brand text-sm font-medium text-brand disabled:border-border disabled:text-muted"
+                    className="mt-3 h-10 w-full rounded-md border border-brand text-body font-medium text-brand disabled:border-border disabled:text-muted"
                   >
                     这是我的公司，用它验证
                   </button>
@@ -132,7 +132,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
         </ul>
       )}
 
-      <p className="text-xs text-muted">
+      <p className="text-meta text-muted">
         演示说明：正式版还会确认你能代表这家公司（例如向登记的公司邮箱发送确认码），之后才显示标识。
         <Link href="/employer/jobs" className="ml-1 text-brand underline">
           回到职位管理
@@ -144,7 +144,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
 function BadgeMeaning() {
   return (
-    <section className="space-y-3 rounded-xl border border-border bg-surface p-4 text-sm leading-relaxed">
+    <section className="space-y-3 rounded-md border border-border bg-surface p-4 text-body leading-relaxed">
       <div>
         <h2 className="font-medium text-ok">「已验证企业」是什么</h2>
         <p className="mt-1">

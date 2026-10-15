@@ -35,11 +35,11 @@ export function HiresQuestion({
   const answer: HiresAnswer | undefined =
     choice === "hired" ? { hired: true, count } : choice === "none" ? { hired: false } : undefined;
   const chip =
-    "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-surface px-3 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand";
+    "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-body has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand";
 
   return (
-    <fieldset className="mt-3 w-full space-y-2 rounded-lg border border-border bg-background p-3">
-      <legend className="px-1 text-sm font-medium">
+    <fieldset className="mt-3 w-full space-y-2 rounded-md border border-border bg-background p-3">
+      <legend className="px-1 text-body font-medium">
         通过{PRODUCT_NAME}招到人了吗？{optional && <span className="font-normal text-muted">（可不填）</span>}
       </legend>
       <div className="flex flex-wrap items-center gap-2">
@@ -54,13 +54,13 @@ export function HiresQuestion({
           />
           招到了
         </label>
-        <label className="inline-flex items-center gap-1 text-sm">
+        <label className="inline-flex items-center gap-1 text-body">
           <select
             aria-label="招到的人数"
             value={count}
             disabled={choice !== "hired"}
             onChange={(e) => setCount(Number(e.target.value))}
-            className="h-9 rounded-lg border border-border bg-surface px-2 disabled:opacity-40"
+            className="h-9 rounded-md border border-border bg-surface px-2 disabled:opacity-40"
           >
             {COUNTS.map((n) => (
               <option key={n} value={n}>
@@ -81,7 +81,7 @@ export function HiresQuestion({
           没有 / 不确定
         </label>
       </div>
-      <p className="text-xs text-muted">只用来统计{PRODUCT_NAME}一共帮多少人找到了工作。</p>
+      <p className="text-meta text-muted">只用来统计{PRODUCT_NAME}一共帮多少人找到了工作。</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -91,7 +91,7 @@ export function HiresQuestion({
         >
           {submitLabel}
         </button>
-        <button type="button" onClick={onCancel} className="h-9 px-2 text-sm text-muted underline">
+        <button type="button" onClick={onCancel} className="h-9 px-2 text-body text-muted underline">
           取消
         </button>
       </div>

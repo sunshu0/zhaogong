@@ -128,8 +128,8 @@ function JobSummary({
 /** Why a job is not live, when it is not. */
 function StatusNote({ status }: { status: ShownStatus }) {
   if (status === "removed")
-    return <p className="mt-2 text-sm text-danger">这个职位已被后台下架。如有疑问请联系我们。</p>;
-  if (status === "pending_review") return <p className="mt-2 text-sm text-warn">审核通过后才会公开。</p>;
+    return <p className="mt-2 text-body text-danger">这个职位已被后台下架。如有疑问请联系我们。</p>;
+  if (status === "pending_review") return <p className="mt-2 text-body text-warn">审核通过后才会公开。</p>;
   return null;
 }
 

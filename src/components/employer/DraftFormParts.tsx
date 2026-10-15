@@ -40,7 +40,7 @@ export function fieldKit({
     missing: (missing as (keyof JobDraft)[]).includes(field),
     findings: findings.filter((f) => f.field === field),
   });
-  const box = (field: keyof JobDraft) => `w-full rounded-lg border bg-background px-3 ${fieldTone(state(field))}`;
+  const box = (field: keyof JobDraft) => `w-full rounded-md border bg-background px-3 ${fieldTone(state(field))}`;
   return { form, set, config: COUNTRIES[country], state, box, visaChoices };
 }
 
@@ -58,7 +58,7 @@ const numberOrUndefined = (value: string) => (value === "" ? undefined : Number(
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-surface p-4">
+    <section className="space-y-4 rounded-md border border-border bg-surface p-4">
       <h2 className="font-medium">{title}</h2>
       {children}
     </section>
@@ -68,11 +68,11 @@ export function Section({ title, children }: { title: string; children: ReactNod
 function Notes({ missing, findings, hint }: FieldState & { hint?: string }) {
   return (
     <>
-      {missing && <p className="text-xs text-warn">没有识别到，请填写</p>}
+      {missing && <p className="text-meta text-warn">没有识别到，请填写</p>}
       {findings.map((f, i) => (
         <FindingItem key={i} finding={f} />
       ))}
-      {hint && <p className="text-xs text-muted">{hint}</p>}
+      {hint && <p className="text-meta text-muted">{hint}</p>}
     </>
   );
 }
@@ -83,7 +83,7 @@ type LabelledProps = FieldState & { name: string; required?: boolean; hint?: str
 export function Field({ name, label, required, hint, children, ...state }: LabelledProps & { label: string }) {
   return (
     <div id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
-      <label htmlFor={`in-${name}`} className="block text-sm font-medium">
+      <label htmlFor={`in-${name}`} className="block text-body font-medium">
         {label}
         {required && <span className="text-danger"> *</span>}
       </label>
@@ -97,7 +97,7 @@ export function Field({ name, label, required, hint, children, ...state }: Label
 export function Group({ name, legend, required, hint, children, ...state }: LabelledProps & { legend: string }) {
   return (
     <fieldset id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
-      <legend className="mb-1.5 text-sm font-medium">
+      <legend className="mb-1.5 text-body font-medium">
         {legend}
         {required && <span className="text-danger"> *</span>}
       </legend>
@@ -121,7 +121,7 @@ export function Chip({
   children: ReactNode;
 }) {
   return (
-    <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-background px-3 text-sm has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand">
+    <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 text-body has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand">
       <input type={type} name={name} checked={checked} onChange={onChange} className="accent-brand" />
       {children}
     </label>
@@ -169,7 +169,7 @@ export function RangeInputs({
         placeholder="可不填"
         className={`h-11 ${className}`}
       />
-      <span className="shrink-0 text-sm text-muted">{unit}</span>
+      <span className="shrink-0 text-body text-muted">{unit}</span>
     </div>
   );
 }

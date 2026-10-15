@@ -13,11 +13,13 @@ import {
   type ModerationQueue as Queue,
   type QueueItem,
 } from "@/app/admin/actions";
-import { FindingItem } from "@/components/employer/FindingsPanel";
-import { TabList, TabPanel } from "@/components/employer/Tabs";
+import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
+import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
-import { STATUS_LABELS } from "@/components/employer/job-status";
-import { formatPay } from "@/components/seeker/format";
+import { StatusTag } from "@/components/employer/StatusTag";
+import { Pay } from "@/components/ui/Pay";
+import { Section } from "@/components/ui/Section";
+import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 type Tab = "flagged" | "reported" | "log";
@@ -62,17 +64,15 @@ export function ModerationQueue() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">审核后台</h1>
+      <h1 className="text-title font-semibold">审核后台</h1>
       <TabList
         label="审核队列"
         idBase="admin"
         tabs={tabs.map((t) => ({ key: t.key, label: `${t.label} ${t.count ?? ""}` }))}
         value={tab}
         onChange={setTab}
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"
-        tabClassName={(selected) =>
-          `h-9 shrink-0 rounded-full px-3 text-sm ${selected ? "bg-brand text-white" : "border border-border bg-surface text-muted"}`
-        }
+        className={UNDERLINE_TABS}
+        tabClassName={underlineTab}
       />
 
       {result && (
@@ -80,7 +80,7 @@ export function ModerationQueue() {
           ref={resultRef}
           tabIndex={-1}
           role="status"
-          className={`rounded-lg px-3 py-2 text-sm outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+          className={`rounded-md px-3 py-2 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
         >
           {result.ok ? `已处理：${result.text}` : result.error_zh}
         </p>
@@ -90,29 +90,31 @@ export function ModerationQueue() {
         {queue === null ? (
           <Empty>登录已失效，请重新登录。</Empty>
         ) : !queue ? (
-          <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />
+          <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
         ) : tab === "log" ? (
           queue.log.length === 0 ? (
             <Empty>还没有处理记录。</Empty>
           ) : (
-            <ol className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-              {queue.log.map((e) => (
-                <li key={e.id} className="flex gap-3 px-4 py-3 text-sm">
-                  <time dateTime={e.at} className="w-24 shrink-0 text-muted">
-                    {time.format(new Date(e.at))}
-                  </time>
-                  <span>
-                    {e.text}
-                    <span className="ml-1 text-xs text-muted">· 演示管理员</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <Section>
+              <ol className="divide-y divide-border">
+                {queue.log.map((e) => (
+                  <li key={e.id} className="flex gap-3 py-3 text-body">
+                    <time dateTime={e.at} className="w-24 shrink-0 text-muted">
+                      {time.format(new Date(e.at))}
+                    </time>
+                    <span>
+                      {e.text}
+                      <span className="ml-1 text-meta text-muted">· 演示管理员</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </Section>
           )
         ) : (
           <>
             {tab === "reported" && (
-              <p className="mb-3 text-xs text-muted">这里只收录对职位的举报，聊天里的举报不在这里。</p>
+              <p className="mb-3 text-meta text-muted">这里只收录对职位的举报，聊天里的举报不在这里。</p>
             )}
             <QueueList
               items={tab === "flagged" ? queue.flagged : queue.reported}
@@ -137,21 +139,23 @@ function QueueList({
 }) {
   if (items.length === 0) return <Empty>{empty}</Empty>;
   return (
-    <ul className="space-y-3">
-      {items.map((entry) => (
-        <li key={entry.job.id}>
-          <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
-        </li>
-      ))}
-    </ul>
+    <Section>
+      <ul className="divide-y divide-border">
+        {items.map((entry) => (
+          <li key={entry.job.id}>
+            <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
 function Empty({ children }: { children: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
-      {children}
-    </div>
+    <Section>
+      <p className="py-8 text-center text-body text-muted">{children}</p>
+    </Section>
   );
 }
 
@@ -168,38 +172,44 @@ function QueueCard({
   const [pending, startTransition] = useTransition();
   const [confirmBan, setConfirmBan] = useState(false);
   const run = (action: () => Promise<AdminResult>) => startTransition(async () => onDone(await action()));
-  const status = STATUS_LABELS[job.status];
-  const button = "h-9 rounded-lg border px-3 text-sm disabled:opacity-40";
+  const button = "h-9 rounded-md border px-3 text-body disabled:opacity-40";
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-4">
+    <article className="py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-semibold leading-snug">{job.titleZh}</h2>
-          <p className="truncate text-xs text-muted">
-            {job.titleEn} · {regionById(job.country, job.regionId)?.nameZh} · {formatPay(job.pay, job.country)} ·{" "}
-            {job.id}
+          <h2 className="break-words text-subtitle font-semibold">{job.titleZh}</h2>
+          <p className="truncate text-meta text-muted">
+            <span lang="en" className="font-latin">
+              {job.titleEn}
+            </span>{" "}
+            · {regionById(job.country, job.regionId)?.nameZh} · {job.id}
           </p>
         </div>
-        <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${status.className}`}>{status.zh}</span>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <StatusTag status={job.status} />
+          <p className="leading-none">
+            <Pay pay={job.pay} country={job.country} />
+          </p>
+        </div>
       </div>
-      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-body">
         <span>{employer?.name ?? job.employerId}</span>
         {employer && <VerificationBadge verification={employer.verification} />}
-        {employer?.bannedAt && <span className="rounded bg-danger-soft px-1.5 py-0.5 text-xs text-danger">已封禁</span>}
-        <span className="text-xs text-muted">发布于 {time.format(new Date(job.postedAt))}</span>
+        {employer?.bannedAt && <Tag kind="urgent">已封禁</Tag>}
+        <span className="text-meta text-muted">发布于 {time.format(new Date(job.postedAt))}</span>
       </p>
-      <p className="mt-2 line-clamp-3 text-sm whitespace-pre-line text-muted">{job.descriptionZh}</p>
+      <p className="mt-2 line-clamp-3 text-body whitespace-pre-line text-muted">{job.descriptionZh}</p>
 
       {reports && (
         <div className="mt-3 space-y-1.5">
-          <h3 className="text-sm font-medium">{reports.length} 条举报</h3>
+          <h3 className="text-body font-medium">{reports.length} 条举报</h3>
           <ul className="space-y-1.5">
             {reports.map((r) => (
-              <li key={r.id} className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
+              <li key={r.id} className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">
                 <span className="font-medium">{REPORT_REASON_LABELS[r.reason].zh}</span>
                 {r.note && <span>：{r.note}</span>}
-                <span className="ml-1 text-xs">{time.format(new Date(r.createdAt))}</span>
+                <span className="ml-1 text-meta">{time.format(new Date(r.createdAt))}</span>
               </li>
             ))}
           </ul>
@@ -208,9 +218,12 @@ function QueueCard({
 
       {findings.length > 0 && (
         <div className="mt-3 space-y-1.5">
-          <h3 className="text-sm font-medium">规则检查</h3>
+          <h3 className="text-body font-medium">规则检查</h3>
           {findings.map((f, i) => (
-            <FindingItem key={i} finding={f} />
+            <div key={i}>
+              <p className="mb-1 text-meta text-muted">{FIELD_LABELS[f.field] ?? f.field}</p>
+              <FindingItem finding={f} />
+            </div>
           ))}
         </div>
       )}
@@ -260,7 +273,7 @@ function QueueCard({
               <button
                 type="button"
                 onClick={() => setConfirmBan(false)}
-                className="h-9 px-2 text-sm text-muted underline"
+                className="h-9 px-2 text-body text-muted underline"
               >
                 取消
               </button>

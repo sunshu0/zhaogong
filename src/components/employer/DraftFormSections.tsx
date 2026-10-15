@@ -82,7 +82,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
           onChange={(e) => set({ descriptionEn: e.target.value })}
           className={`py-2 ${box("descriptionEn")}`}
         />
-        <button type="button" onClick={onRegenerateEn} className="text-sm text-brand underline">
+        <button type="button" onClick={onRegenerateEn} className="text-body text-brand underline">
           按表格重新生成
         </button>
       </Field>
@@ -101,11 +101,11 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
   return (
     <Section title="联系方式">
       <fieldset id="field-contactPublic" className="scroll-mt-20 space-y-2">
-        <legend className="mb-1.5 text-sm font-medium">求职者怎么联系你</legend>
+        <legend className="mb-1.5 text-body font-medium">求职者怎么联系你</legend>
         {CONTACT_CHOICES.map(([value, label, note]) => (
           <label
             key={label}
-            className="flex cursor-pointer items-start gap-2 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
+            className="flex cursor-pointer items-start gap-2 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
           >
             <input
               type="radio"
@@ -115,8 +115,8 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
               className="mt-1 accent-brand"
             />
             <span>
-              <span className="block text-sm">{label}</span>
-              <span className="block text-xs text-muted">{note}</span>
+              <span className="block text-body">{label}</span>
+              <span className="block text-meta text-muted">{note}</span>
             </span>
           </label>
         ))}
@@ -126,7 +126,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
           <div className="space-y-2">
             {CONTACT_FIELDS.map(([key, label, type, placeholder]) => (
               <label key={key} className="flex items-center gap-2">
-                <span className="w-12 shrink-0 text-sm">{label}</span>
+                <span className="w-12 shrink-0 text-body">{label}</span>
                 <input
                   type={type}
                   value={form[key]}
@@ -139,7 +139,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
           </div>
         </Group>
       ) : (
-        <p className="text-sm text-muted">
+        <p className="text-body text-muted">
           不用在这里填写。交换时给求职者的资料，请在
           <Link href="/profile" className="text-brand underline underline-offset-2">
             企业主页

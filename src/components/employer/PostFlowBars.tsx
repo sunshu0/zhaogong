@@ -2,16 +2,15 @@
 // The sticky bars at the bottom of the form and preview steps of /employer/post.
 import type { ReactNode } from "react";
 import { holdReason, type DraftFormState } from "@/components/employer/use-draft-form";
+import { buttonClass } from "@/components/ui/Button";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
-const PRIMARY_BUTTON = "h-11 rounded-xl bg-brand px-5 font-semibold text-white disabled:opacity-40";
+const PRIMARY_BUTTON = buttonClass("primary");
 
 /** The sticky bar at the bottom of the form and preview steps; full width of the form on desktop. */
 export function BottomBar({ wide, children }: { wide: boolean; children: ReactNode }) {
   return (
-    <div
-      className={`sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur ${wide ? WIDE_ON_DESKTOP : ""}`}
-    >
+    <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface px-4 py-3 ${wide ? WIDE_ON_DESKTOP : ""}`}>
       {children}
     </div>
   );
@@ -28,10 +27,10 @@ export function FormBar({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <button type="button" onClick={onBack} className="text-sm text-muted underline">
+      <button type="button" onClick={onBack} className="text-body text-muted underline">
         上一步
       </button>
-      <p className="flex-1 text-xs text-muted">{formStatusText(form)}</p>
+      <p className="flex-1 text-meta text-muted">{formStatusText(form)}</p>
       <button type="button" disabled={!form.ready} onClick={onPreview} className={PRIMARY_BUTTON}>
         预览
       </button>
@@ -62,10 +61,10 @@ export function PreviewBar({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <button type="button" onClick={onBack} className="text-sm text-muted underline">
+      <button type="button" onClick={onBack} className="text-body text-muted underline">
         返回修改
       </button>
-      <p className="flex-1 text-xs text-muted">{`以「${shopName}」发布`}</p>
+      <p className="flex-1 text-meta text-muted">{`以「${shopName}」发布`}</p>
       <button type="button" disabled={disabled} onClick={onPublish} className={PRIMARY_BUTTON}>
         {publishLabel(pending, needsReview)}
       </button>

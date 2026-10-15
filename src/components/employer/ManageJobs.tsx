@@ -5,7 +5,7 @@ import type { ChangeResult } from "@/app/employer/actions";
 import { effectiveStatus, type ShownStatus } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";
-import { TabList, TabPanel } from "@/components/employer/Tabs";
+import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
@@ -90,16 +90,11 @@ function StatusTabs({ ready, value, onChange }: { ready?: Loaded; value: TabKey;
       tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${tabCount(t.key, ready, counts)}` }))}
       value={value}
       onChange={onChange}
-      className={STATUS_TABS}
-      tabClassName={statusTab}
+      className={UNDERLINE_TABS}
+      tabClassName={underlineTab}
     />
   );
 }
-
-/** Round 13 tabs: plain text over a thin line, the chosen one in brand colour and underlined (like the bottom nav). */
-export const STATUS_TABS = "-mx-4 flex gap-4 overflow-x-auto border-b border-border px-4";
-export const statusTab = (selected: boolean) =>
-  `-mb-px h-11 shrink-0 border-b-2 text-body ${selected ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`;
 
 /** How many jobs show under each status, as the employer sees them now. */
 function countByStatus(ready?: Loaded): Map<string, number> {

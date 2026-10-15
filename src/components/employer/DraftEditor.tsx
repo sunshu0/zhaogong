@@ -24,7 +24,7 @@ export function DraftEditor({
       </aside>
       <div className="space-y-4">
         {notes.map((n) => (
-          <p key={n} className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">
+          <p key={n} className="rounded-md bg-warn-soft px-3 py-2 text-body text-warn">
             {n}
           </p>
         ))}

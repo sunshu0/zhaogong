@@ -32,7 +32,7 @@ export function DraftCard({
     .join(" · ");
 
   return (
-    <section aria-label="职位卡，随对话更新" className="rounded-xl border border-border bg-surface p-4 text-sm">
+    <section aria-label="职位卡，随对话更新" className="rounded-md border border-border bg-surface p-4 text-body">
       <DraftTitle draft={draft} />
       {summary && <p className="mt-1 text-muted">{summary}</p>}
       <button
@@ -42,7 +42,7 @@ export function DraftCard({
         onClick={() => setOpen((o) => !o)}
         className="mt-3 block w-full text-left"
       >
-        <span className="flex items-center justify-between gap-2 text-xs">
+        <span className="flex items-center justify-between gap-2 text-meta">
           <span className={list.ready ? "text-ok" : "text-foreground"}>
             {list.ready ? "可以预览" : `已填 ${list.done} / ${list.total} 项`}
             {list.problems > 0 && <span className="text-danger"> · {list.problems} 个问题要处理</span>}
@@ -65,7 +65,7 @@ export function DraftCard({
           ))}
         </ul>
       )}
-      {reviewNeeded && <p className="mt-2 text-xs text-warn">这个职位发布后要人工审核。</p>}
+      {reviewNeeded && <p className="mt-2 text-meta text-warn">这个职位发布后要人工审核。</p>}
     </section>
   );
 }
@@ -75,9 +75,9 @@ function DraftTitle({ draft }: { draft: JobDraft }) {
   if (!draft.titleZh) return <p className="text-muted">还没有职位名称</p>;
   return (
     <>
-      <h2 className="text-base font-semibold">{draft.titleZh}</h2>
+      <h2 className="text-subtitle font-semibold">{draft.titleZh}</h2>
       {draft.titleEn && (
-        <p lang="en" className="text-xs text-muted">
+        <p lang="en" className="text-meta text-muted">
           {draft.titleEn}
         </p>
       )}
@@ -96,7 +96,7 @@ function ChecklistRow({ item, enabled, onAsk }: { item: ChecklistItem; enabled: 
     >
       <span className="w-16 shrink-0 text-muted">{item.label}</span>
       <span className={`min-w-0 flex-1 ${tone}`}>{item.value ?? (item.required ? "待填" : "可不填")}</span>
-      {enabled && <span className="shrink-0 text-xs text-brand">{item.done ? "改" : "去填"}</span>}
+      {enabled && <span className="shrink-0 text-meta text-brand">{item.done ? "改" : "去填"}</span>}
     </button>
   );
 }

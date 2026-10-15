@@ -8,7 +8,7 @@ import { MoreMenu } from "@/components/ui/MoreMenu";
 
 export type { Asking } from "@/components/employer/job-card";
 
-export const ACTION_BUTTON = "h-9 rounded-lg border border-border px-3 text-sm disabled:opacity-40";
+export const ACTION_BUTTON = "h-9 rounded-md border border-border px-3 text-body disabled:opacity-40";
 
 /** Runs a change and reports it, with the text to show when it worked. */
 export type Run = (action: () => Promise<ChangeResult>, okText: string) => void;

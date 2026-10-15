@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Check } from "lucide-react";
+import { ButtonLink } from "@/components/ui/Button";
+import { LinkList } from "@/components/ui/LinkList";
+import { Section } from "@/components/ui/Section";
 
 export const metadata: Metadata = {
   title: "雇主发布招聘",
@@ -14,38 +17,34 @@ const POINTS = [
 
 export default function EmployerHome() {
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl bg-brand-soft px-4 py-5">
-        <h1 className="text-xl font-semibold leading-snug">招中文员工，一分钟发好招聘</h1>
-        <ul className="mt-3 space-y-2">
+    <div className="space-y-section">
+      <section className="space-y-4 py-2">
+        <h1 className="text-title font-semibold">招中文员工，一分钟发好招聘</h1>
+        <ul className="space-y-2">
           {POINTS.map((point) => (
-            <li key={point} className="flex gap-2 text-sm leading-relaxed">
-              <svg viewBox="0 0 16 16" aria-hidden="true" className="mt-1 size-3.5 shrink-0 fill-brand">
-                <path d="M6.4 11.2 3.2 8l1.1-1.1 2.1 2.1 5.3-5.3 1.1 1.1z" />
-              </svg>
+            <li key={point} className="flex gap-2 text-body">
+              <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand" />
               {point}
             </li>
           ))}
         </ul>
-        <Link
-          href="/employer/post"
-          className="mt-5 flex h-14 w-full items-center justify-center rounded-xl bg-brand text-lg font-semibold text-white shadow-sm hover:opacity-90"
-        >
-          一分钟发布招聘
-        </Link>
-        <p className="mt-2 text-center text-xs text-muted">用邮箱开通雇主身份，不用设密码，开通后马上开始写。</p>
+        <div>
+          <ButtonLink href="/employer/post" block>
+            一分钟发布招聘
+          </ButtonLink>
+          <p className="mt-2 text-center text-meta text-muted">用邮箱开通雇主身份，不用设密码，开通后马上开始写。</p>
+        </div>
       </section>
 
-      <section className="grid grid-cols-2 gap-3 text-sm">
-        <Link href="/employer/jobs" className="rounded-xl border border-border bg-surface p-4 hover:border-brand/40">
-          <span className="font-medium">职位管理</span>
-          <span className="mt-1 block text-xs text-muted">编辑、刷新、关闭</span>
-        </Link>
-        <Link href="/employer/verify" className="rounded-xl border border-border bg-surface p-4 hover:border-brand/40">
-          <span className="font-medium">企业验证</span>
-          <span className="mt-1 block text-xs text-muted">显示「已验证企业」标识</span>
-        </Link>
-      </section>
+      <Section>
+        <LinkList
+          label="雇主常用"
+          items={[
+            { href: "/employer/jobs", label: "职位管理", detail: "编辑、刷新、关闭" },
+            { href: "/employer/verify", label: "企业验证", detail: "显示「已验证企业」标识" },
+          ]}
+        />
+      </Section>
     </div>
   );
 }

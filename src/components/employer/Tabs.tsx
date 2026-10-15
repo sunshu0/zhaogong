@@ -6,6 +6,11 @@ export interface TabItem<K extends string> {
   label: ReactNode;
 }
 
+/** Round 13 tabs: plain text over a thin line, the chosen one in brand colour and underlined (like the bottom nav). */
+export const UNDERLINE_TABS = "-mx-4 flex gap-4 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0";
+export const underlineTab = (selected: boolean) =>
+  `-mb-px h-11 shrink-0 border-b-2 text-body ${selected ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`;
+
 /** Ids that tie the tabs to their panel. */
 export const tabIds = (base: string, key: string) => ({ tab: `${base}-tab-${key}`, panel: `${base}-panel` });
 

@@ -5,6 +5,7 @@ import type { CountryCode } from "@/lib/types";
 import { chatTurn } from "@/app/employer/actions";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * Posting by conversation: the assistant asks one thing at a time, quick replies are buttons, and
@@ -76,7 +77,7 @@ export function ChatPost({
     <div className={WIDE_ON_DESKTOP}>
       <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-labelledby="chat-heading" className="flex flex-col">
-          <h1 id="chat-heading" ref={headingRef} tabIndex={-1} className="mb-3 text-lg font-semibold outline-none">
+          <h1 id="chat-heading" ref={headingRef} tabIndex={-1} className="mb-3 text-title font-semibold outline-none">
             和发帖助手一起写招聘
           </h1>
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
@@ -90,7 +91,7 @@ export function ChatPost({
                   className={m.from === "assistant" ? "mr-8" : "ml-8 flex justify-end"}
                 >
                   <p
-                    className={`rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${
+                    className={`rounded-md px-3 py-2 text-body leading-relaxed whitespace-pre-line ${
                       m.from === "assistant"
                         ? "rounded-tl-sm bg-surface border border-border"
                         : "rounded-tr-sm bg-brand text-white"
@@ -103,7 +104,7 @@ export function ChatPost({
               ))}
               {sending && (
                 <li ref={lastMessage} className="ml-8 flex justify-end">
-                  <p className="rounded-2xl rounded-tr-sm bg-brand/80 px-3 py-2 text-sm whitespace-pre-line text-white">
+                  <p className="rounded-md bg-brand/80 px-3 py-2 text-body whitespace-pre-line text-white">
                     <span className="sr-only">你：</span>
                     {sending}
                   </p>
@@ -112,12 +113,12 @@ export function ChatPost({
             </ol>
           </div>
           {pending && (
-            <p aria-hidden="true" className="mt-2 text-xs text-muted">
+            <p aria-hidden="true" className="mt-2 text-meta text-muted">
               助手正在整理…
             </p>
           )}
 
-          <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 border-t border-border bg-background/95 px-4 py-3 backdrop-blur lg:mx-0 lg:px-0">
+          <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 border-t border-border bg-background px-4 py-3 lg:mx-0 lg:px-0">
             {replies.length > 0 && !pending && (
               <div role="group" aria-label="快捷回复" className="flex flex-wrap gap-2">
                 {replies.map((q) => (
@@ -125,7 +126,7 @@ export function ChatPost({
                     key={q.label}
                     type="button"
                     onClick={() => send(q.value ?? q.label)}
-                    className="h-9 rounded-full border border-brand bg-surface px-3 text-sm text-brand hover:bg-brand-soft"
+                    className="h-9 rounded-md border border-brand/35 bg-surface px-3 text-body text-brand hover:bg-brand-soft"
                   >
                     {q.label}
                   </button>
@@ -133,7 +134,7 @@ export function ChatPost({
               </div>
             )}
             {error && (
-              <p role="alert" className="text-sm text-danger">
+              <p role="alert" className="text-body text-danger">
                 {error}
               </p>
             )}
@@ -149,17 +150,13 @@ export function ChatPost({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="输入回复，回车发送（Shift + 回车换行）"
-                className="min-h-11 flex-1 resize-y rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+                className="min-h-11 flex-1 resize-y rounded-md border border-border bg-surface px-3 py-2 text-body"
               />
-              <button
-                type="submit"
-                disabled={pending || !text.trim()}
-                className="h-11 rounded-xl bg-brand px-4 font-medium text-white disabled:opacity-40"
-              >
+              <button type="submit" disabled={pending || !text.trim()} className={buttonClass("primary")}>
                 发送
               </button>
             </form>
-            <button type="button" onClick={onUseForm} className="text-xs text-muted underline">
+            <button type="button" onClick={onUseForm} className="text-meta text-muted underline">
               在表单里改
             </button>
           </div>

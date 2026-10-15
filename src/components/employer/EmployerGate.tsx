@@ -12,7 +12,7 @@ export interface EmployerIdentity {
   employerName: string;
 }
 
-const skeleton = <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />;
+const skeleton = <div className="h-40 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />;
 
 /**
  * Posting and managing jobs need the employer identity first. Without one, sends the visitor to line A's
@@ -42,7 +42,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
     return (
       <p
         role="status"
-        className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center text-sm text-muted"
+        className="rounded-md border border-dashed border-border bg-surface px-4 py-6 text-center text-body text-muted"
       >
         发布和管理招聘需要雇主身份，正在带你去开通……
         <Link href={signUp} className="ml-1 text-brand underline">
@@ -53,7 +53,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   }
   if (seekerNow) {
     return (
-      <div className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm">
+      <div className="rounded-md border border-border bg-surface px-4 py-6 text-center text-body">
         <p>你现在用的是求职者身份。发布和管理招聘要用雇主身份。</p>
         <button
           type="button"
@@ -62,7 +62,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
             setSwitching(true);
             setIdentity({ activeRole: "employer", employer: { id: me.employerId, name: me.employerName } });
           }}
-          className="mt-3 rounded-lg bg-brand px-4 py-2 font-medium text-white disabled:opacity-40"
+          className="mt-3 rounded-md bg-brand px-4 py-2 font-medium text-white disabled:opacity-40"
         >
           切换为雇主（{me.employerName}）
         </button>
