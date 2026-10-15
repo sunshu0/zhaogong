@@ -10,6 +10,7 @@ import type { Employer, Job } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { chatDemo } from "@/components/seeker/chat-demo";
+import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
 import {
   EMPTY_CHAT,
   addExchangeRequest,
@@ -62,13 +63,16 @@ const isEmpty = (record: ChatRecord) =>
   !record.reports.length;
 
 // The server's records are the truth (#10); this browser's copy is a cache, refreshed once per identity per page
-// load. Records from before #10 that only this browser has are handed to the server once.
+// load, after sending what the outbox still holds. Records from before #10 that only this browser has are handed
+// to the server once.
 const syncedScopes = new Set<string>();
 
 function syncScope(scope: string) {
   if (syncedScopes.has(scope)) return;
   syncedScopes.add(scope);
   (async () => {
+    // A change that cannot be sent now stays for the next page load; the records are fetched either way.
+    for (const item of outboxFor(localStorage, scope)) if (!(await deliver(item).catch(() => false))) break;
     const server = await myChat();
     if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
     const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
@@ -76,11 +80,23 @@ function syncScope(scope: string) {
   })().catch(() => syncedScopes.delete(scope));
 }
 
-/** Sends one change to the server and keeps its answer (the browser has already shown the change). */
+/**
+ * Sends one change to the server and keeps its answer (the browser has already shown the change). It waits in the
+ * outbox until the server has it, so leaving the page first does not lose it.
+ */
 function sendChange(scope: string, change: ChatChange) {
-  changeMyChat(change)
-    .then(keep)
-    .catch(() => {});
+  const item: OutboxItem = { id: crypto.randomUUID(), scope, change };
+  addToOutbox(localStorage, item);
+  deliver(item).catch(() => {});
+}
+
+/** True once the server has the change for the identity it was made in; it then leaves the outbox. */
+async function deliver(item: OutboxItem): Promise<boolean> {
+  const snapshot = await changeMyChat(item.change, { id: item.id, scope: item.scope });
+  keep(snapshot);
+  if (snapshot?.scope !== item.scope) return false;
+  removeFromOutbox(localStorage, item.id);
+  return true;
 }
 
 export function useChat() {

@@ -44,6 +44,51 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("changes from the browser's outbox (a ticket)", () => {
+  const send = { type: "send", conversationId: "north-tea", text: "只发一次" } as const;
+
+  it("are applied once however often they are sent", async () => {
+    await signedIn("twice@example.com");
+    const ticket = { id: "0b9c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b", scope: seekerScope("twice@example.com") };
+    const first = await changeMyChat(send, ticket);
+    const again = await changeMyChat(send, ticket);
+    expect(first?.record.added["north-tea"]).toHaveLength(1);
+    expect(again).toEqual(first);
+    expect((await my())?.added["north-tea"]).toHaveLength(1);
+    // A new ticket is a new change.
+    await changeMyChat(send, { ...ticket, id: "1b9c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b" });
+    expect((await my())?.added["north-tea"]).toHaveLength(2);
+  });
+
+  it("wait while the session is another identity, and refuse a bad id", async () => {
+    await signedIn("other@example.com");
+    const elsewhere = { id: "2b9c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b", scope: seekerScope("someone@example.com") };
+    expect(await changeMyChat(send, elsewhere)).toEqual({
+      scope: seekerScope("other@example.com"),
+      record: EMPTY_CHAT,
+    });
+    for (const id of ["short", "x".repeat(65), "has space in it", 7]) {
+      const bad = { id, scope: seekerScope("other@example.com") } as unknown as { id: string; scope: string };
+      expect((await changeMyChat(send, bad))?.record).toEqual(EMPTY_CHAT);
+    }
+    expect(await store.getAppliedChanges(seekerScope("other@example.com"))).toBeUndefined();
+  });
+
+  it("remember the newest 200 ids", async () => {
+    await signedIn("many@example.com");
+    const scope = seekerScope("many@example.com");
+    for (let i = 0; i < 205; i++) {
+      await changeMyChat(
+        { type: "read", conversationId: "north-tea" },
+        { id: `ticket-${String(i).padStart(4, "0")}`, scope },
+      );
+    }
+    const ids = (await store.getAppliedChanges(scope))!;
+    expect(ids).toHaveLength(200);
+    expect(ids[0]).toBe("ticket-0005");
+  });
+});
+
 describe("chat on the server (#10)", () => {
   it("is nothing for a signed-out browser, and empty records for a new account", async () => {
     expect(await my()).toBeNull();

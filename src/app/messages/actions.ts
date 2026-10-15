@@ -28,6 +28,9 @@ import { MOCK_CANDIDATES } from "@/mock/candidates";
 
 const MESSAGE_MAX = 2000;
 const NAME_MAX = 40;
+/** Applied change ids kept per identity: far more than a browser sends before it hears back. */
+const APPLIED_KEPT = 200;
+const TICKET_ID = /^[A-Za-z0-9-]{8,64}$/;
 
 export type ChatChange =
   | { type: "read"; conversationId: string }
@@ -61,14 +64,31 @@ export async function myChat(): Promise<ChatSnapshot | null> {
   return { scope: me.scope, record: (await chatServerStore().getChat(me.scope)) ?? EMPTY_CHAT };
 }
 
-/** Applies one change and returns the records as they now are (unchanged when the change does not fit). */
-export async function changeMyChat(change: ChatChange): Promise<ChatSnapshot | null> {
+/** The browser's outbox entry for a change (chat-outbox.ts): its id, and the identity it was made in. */
+export type ChangeTicket = { id: string; scope: string };
+
+/**
+ * Applies one change and returns the records as they now are (unchanged when the change does not fit). With a
+ * ticket, the change is applied once however often it is sent, and only while the session is the identity it was
+ * made in (during a switch the browser waits and sends it again).
+ */
+export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): Promise<ChatSnapshot | null> {
   const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
   const current = (await store.getChat(me.scope)) ?? EMPTY_CHAT;
+  const unchanged = { scope: me.scope, record: current };
+  let applied: string[] | undefined;
+  if (ticket !== undefined) {
+    if (!ticket || typeof ticket.id !== "string" || !TICKET_ID.test(ticket.id) || ticket.scope !== me.scope) {
+      return unchanged;
+    }
+    applied = (await store.getAppliedChanges(me.scope)) ?? [];
+    if (applied.includes(ticket.id)) return unchanged;
+  }
   const next = await apply(current, change, me);
   if (next !== current) await store.putChat(me.scope, next);
+  if (applied && ticket) await store.putAppliedChanges(me.scope, [...applied, ticket.id].slice(-APPLIED_KEPT));
   return { scope: me.scope, record: next };
 }
 
