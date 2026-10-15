@@ -21,7 +21,7 @@ To change a file you do not own, write a one-line request in the queue (`D:/dev/
 - Mobile first: design for a 375 px wide phone, then check desktop.
 - Never show anything that reads as visa or immigration advice. Visa fields state facts only.
 - Never add a field that asks for race, ethnicity or nationality. Language requirements are allowed.
-- Contact details (phone, WeChat, email) are shown only to signed-in users.
+- Contact details (phone, WeChat, email) are shown only to signed-in users, and only in one of two ways the employer chooses per job (`Job.contactPublic`): public on the job page (each view recorded), or exchanged in chat, where whoever starts the exchange offers their own details first. No address exchange. See ADR 0002.
 - Tests first for logic (Vitest, `*.test.ts` next to the code). One commit per item, message says what changed.
 - Before every push: `npm run check` must pass (typecheck, lint, unit tests, build). Push only after it exits 0.
 - In Git Bash, prefix Next commands with `NEXT_TELEMETRY_DISABLED=1` (the telemetry config write fails on this machine with EXDEV).
