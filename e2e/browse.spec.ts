@@ -50,9 +50,11 @@ test("a keyword with no match shows the empty state, which clears the filters", 
   await expect(page).toHaveURL(/q=%E5%8F%89%E8%BD%A6/);
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
   // A tap during hydration can be lost on a slow server (mobile flake); tap again until the list changes.
+  const clear = page.getByRole("link", { name: "清除筛选，看全部职位" });
   await expect(async () => {
-    await page.getByRole("link", { name: "清除筛选，看全部职位" }).click({ timeout: 2000 });
-    await expect(page).toHaveURL("/jobs", { timeout: 2000 });
+    // Tap only while the link is still there: a slow navigation from the last tap may still be on its way.
+    if (await clear.isVisible()) await clear.click({ timeout: 2000 });
+    await expect(page).toHaveURL("/jobs", { timeout: 3000 });
   }).toPass();
   await expect(page.getByText(/共 \d+ 个职位，最新发布在前/).filter({ visible: true })).toBeVisible();
 });
