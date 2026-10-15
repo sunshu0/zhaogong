@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { chatEntry, freshEmail, signIn } from "./helpers";
+import { chatEntry, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 test("chat is prominent, unread counts sync and the composer stays visible", async ({ page }, testInfo) => {
-  const email = await signIn(page, "/jobs", freshEmail("chat"));
+  await signIn(page, "/jobs", freshEmail("chat"));
   const entry = chatEntry(page);
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await entry.click();
@@ -50,17 +50,9 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
     .getByRole("button", { name: /Mt Eden/ })
     .click();
   await expect(entry).toHaveAttribute("title", "聊天");
-  // A storage event models a new message arriving from another tab in this frontend demo.
+  // A new message arrives from the employer (#10: written on the server, shown after a reload).
   await page.goto("/jobs");
-  await page.evaluate((address) => {
-    const key = "zhaogong:chat-demo";
-    const stored = JSON.parse(localStorage.getItem(key)!);
-    const record = stored.identities[JSON.stringify([address, "seeker", null])];
-    const reply = { from: "them", text: "新的回复", time: "刚刚", sentAt: new Date(Date.now() + 1000).toISOString() };
-    record.added["north-tea"] = [...(record.added["north-tea"] ?? []), reply];
-    localStorage.setItem(key, JSON.stringify(stored));
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  }, email);
+  await counterpartActs(page, "north-tea", { reply: "新的回复" });
   await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");
   // A different account must start with its own demo unread state.
   await page.evaluate(() => {

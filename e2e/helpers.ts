@@ -82,3 +82,13 @@ export async function openOptionalProfile(page: Page) {
 export async function expectProfileSaved(page: Page) {
   await expect(page.getByText("已自动保存到本机")).toBeVisible();
 }
+
+/**
+ * The demo counterpart of an open conversation reads my messages and/or replies (#10: chats live on the server;
+ * POST /api/dev/chat-reply exists outside production only). The page reloads to show it.
+ */
+export async function counterpartActs(page: Page, conversationId: string, act: { reply?: string; readMine?: boolean }) {
+  const response = await page.request.post("/api/dev/chat-reply", { data: { conversationId, ...act } });
+  expect(response.ok()).toBe(true);
+  await page.reload();
+}

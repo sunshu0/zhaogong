@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { markMyNotificationsRead, myNotificationReads, type ReadsSnapshot } from "@/app/messages/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, stringifyStoredIdentities } from "@/components/seeker/identity-scope";
@@ -57,10 +58,41 @@ export function useProfile() {
   };
 }
 
+/** Keeps the server's answer as the copy of the identity it is for (see chat-client.ts). */
+function keepReads(snapshot: ReadsSnapshot | null) {
+  if (!snapshot) return;
+  notificationReads.update((storage) => {
+    const current = parseNotificationReads(storage.getItem(NOTIFICATIONS_KEY));
+    storage.setItem(NOTIFICATIONS_KEY, stringifyStoredIdentities({ ...current, [snapshot.scope]: snapshot.ids }));
+  });
+}
+
+// Which notifications are read is kept on the server (#10); this copy is a cache, refreshed once per identity per
+// page load. Reads only this browser had from before #10 are handed to the server once.
+const syncedScopes = new Set<string>();
+
+function syncReads(scope: string) {
+  if (syncedScopes.has(scope)) return;
+  syncedScopes.add(scope);
+  (async () => {
+    const server = await myNotificationReads();
+    if (!server || server.scope !== scope) return syncedScopes.delete(scope);
+    const local = notificationReads.update(
+      (storage) => parseNotificationReads(storage.getItem(NOTIFICATIONS_KEY))[scope],
+    );
+    const missing = (local ?? []).filter((id) => !server.ids.includes(id));
+    keepReads(missing.length ? await markMyNotificationsRead(missing) : server);
+  })().catch(() => syncedScopes.delete(scope));
+}
+
 export function useNotifications() {
   const session = useSession();
   const scope = identityScope(session);
   const items = notificationsFor(session, notificationReads.useValue()[scope] ?? []);
+  const signedIn = Boolean(session);
+  useEffect(() => {
+    if (signedIn) syncReads(scope);
+  }, [signedIn, scope]);
   return {
     items,
     unread: session ? items.filter((item) => item.unread).length : 0,
@@ -72,6 +104,9 @@ export function useNotifications() {
         const read = [...new Set([...(current[scope] ?? []), ...ids])];
         storage.setItem(NOTIFICATIONS_KEY, stringifyStoredIdentities({ ...current, [scope]: read }));
       });
+      markMyNotificationsRead(id ? [id] : "all")
+        .then(keepReads)
+        .catch(() => {});
     },
   };
 }

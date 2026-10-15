@@ -19,6 +19,12 @@ const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myNotificat
   await import("@/app/messages/actions");
 
 const seekerScope = (email: string) => JSON.stringify([email, "seeker", null]);
+// Most checks are about the records; the scope each answer names is checked once below.
+const my = async () => (await myChat())?.record ?? null;
+const change = async (c: Parameters<typeof changeMyChat>[0]) => (await changeMyChat(c))?.record ?? null;
+const importRecord = async (r: unknown) => (await importMyChat(r))?.record ?? null;
+const reads = async () => (await myNotificationReads())?.ids ?? null;
+const markRead = async (ids: string[] | "all") => (await markMyNotificationsRead(ids))?.ids ?? null;
 let store = memoryChatStore();
 
 async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
@@ -40,31 +46,31 @@ afterEach(() => {
 
 describe("chat on the server (#10)", () => {
   it("is nothing for a signed-out browser, and empty records for a new account", async () => {
-    expect(await myChat()).toBeNull();
-    expect(await changeMyChat({ type: "send", conversationId: "north-tea", text: "你好" })).toBeNull();
+    expect(await my()).toBeNull();
+    expect(await change({ type: "send", conversationId: "north-tea", text: "你好" })).toBeNull();
     await signedIn("new@example.com");
-    expect(await myChat()).toEqual(EMPTY_CHAT);
+    expect(await my()).toEqual(EMPTY_CHAT);
   });
 
   it("keeps what the account sends and reads, with the server's clock, for every device that signs in", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-15T09:00:00Z"));
     await signedIn("li@example.com");
-    await changeMyChat({ type: "read", conversationId: "north-tea" });
-    const after = await changeMyChat({ type: "send", conversationId: "north-tea", text: " 我下午有空 " });
+    await change({ type: "read", conversationId: "north-tea" });
+    const after = await change({ type: "send", conversationId: "north-tea", text: " 我下午有空 " });
     expect(after?.added["north-tea"]).toEqual([
       { from: "me", text: "我下午有空", time: "刚刚", sentAt: "2026-10-15T09:00:00.000Z" },
     ]);
     expect(after?.readAt["north-tea"]).toBe("2026-10-15T09:00:00.000Z");
 
     await signedIn("li@example.com"); // another device: a new session, same account
-    expect(await myChat()).toEqual(after);
+    expect(await myChat()).toEqual({ scope: seekerScope("li@example.com"), record: after });
     expect(store.chats.get(seekerScope("li@example.com"))).toEqual(after);
   });
 
   it("refuses changes that do not fit: unknown conversations, empty or long text, bad exchange kinds", async () => {
     await signedIn("careful@example.com");
-    for (const change of [
+    for (const bad of [
       { type: "send", conversationId: "nobody", text: "你好" },
       { type: "send", conversationId: "north-tea", text: "   " },
       { type: "send", conversationId: "north-tea", text: "字".repeat(2001) },
@@ -72,19 +78,19 @@ describe("chat on the server (#10)", () => {
       { type: "open", conversation: { id: "employer:e1:nope" } },
       "send",
     ]) {
-      expect(await changeMyChat(change as never)).toEqual(EMPTY_CHAT);
+      expect(await change(bad as never)).toEqual(EMPTY_CHAT);
     }
   });
 
   it("keeps the identities apart: the employer side of an account has its own chat", async () => {
     await signedIn("two.hats@example.com");
-    await changeMyChat({ type: "send", conversationId: "north-tea", text: "求职身份的消息" });
+    await change({ type: "send", conversationId: "north-tea", text: "求职身份的消息" });
     const shop = await createEmployer({ name: "两顶帽子", regionId: "akl-cbd" });
     await openEmployerIdentity("two.hats@example.com", shop.id);
     await signedIn("two.hats@example.com", "employer");
-    expect(await myChat()).toEqual(EMPTY_CHAT);
-    expect(await changeMyChat({ type: "send", conversationId: "north-tea", text: "x" })).toEqual(EMPTY_CHAT); // not an employer conversation
-    const sent = await changeMyChat({ type: "send", conversationId: "candidate-lin", text: "雇主身份的消息" });
+    expect(await my()).toEqual(EMPTY_CHAT);
+    expect(await change({ type: "send", conversationId: "north-tea", text: "x" })).toEqual(EMPTY_CHAT); // not an employer conversation
+    const sent = await change({ type: "send", conversationId: "candidate-lin", text: "雇主身份的消息" });
     expect(sent?.added["candidate-lin"]?.[0].text).toBe("雇主身份的消息");
   });
 
@@ -92,7 +98,7 @@ describe("chat on the server (#10)", () => {
     await signedIn("answer@example.com");
     const demoId = chatDemo(false).exchanges["north-tea"][0].id;
     const offer = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
-    const answered = await changeMyChat({
+    const answered = await change({
       type: "answer",
       conversationId: "north-tea",
       exchangeId: demoId,
@@ -103,7 +109,7 @@ describe("chat on the server (#10)", () => {
       status: "accepted",
       response: offer,
     });
-    const reported = await changeMyChat({
+    const reported = await change({
       type: "report",
       conversationId: "north-tea",
       reason: "fraud",
@@ -118,10 +124,10 @@ describe("chat on the server (#10)", () => {
       evidence: [chatDemo(false).messages["north-tea"][0]],
     });
     // A report on one of my own messages is not accepted.
-    await changeMyChat({ type: "send", conversationId: "north-tea", text: "我的消息" });
-    const view = chatView((await myChat())!, chatDemo(false));
+    await change({ type: "send", conversationId: "north-tea", text: "我的消息" });
+    const view = chatView((await my())!, chatDemo(false));
     const mine = view.messages["north-tea"].length - 1;
-    const refused = await changeMyChat({
+    const refused = await change({
       type: "report",
       conversationId: "north-tea",
       reason: "fraud",
@@ -133,28 +139,28 @@ describe("chat on the server (#10)", () => {
 
   it("opens a chat with an employer about one of its active jobs only", async () => {
     await signedIn("asker@example.com");
-    const opened = await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: "j1" } });
+    const opened = await change({ type: "open", conversation: { kind: "employer", jobId: "j1" } });
     expect(opened?.extra[0]).toMatchObject({ id: "employer:e1:j1", person: "川味小馆", job: "j1", employerId: "e1" });
-    expect(await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: "j17" } })).toEqual(opened); // expired
+    expect(await change({ type: "open", conversation: { kind: "employer", jobId: "j17" } })).toEqual(opened); // expired
   });
 
   it("takes the browser's older records once, when the server has none for that identity", async () => {
     await signedIn("upload@example.com");
     const local = addSentMessage(EMPTY_CHAT, "north-tea", "本机的消息", "2026-10-14T01:00:00.000Z");
-    expect(await importMyChat(local)).toEqual(local);
-    expect(await importMyChat(addSentMessage(EMPTY_CHAT, "mt-eden", "第二次", "2026-10-14T02:00:00.000Z"))).toEqual(
+    expect(await importRecord(local)).toEqual(local);
+    expect(await importRecord(addSentMessage(EMPTY_CHAT, "mt-eden", "第二次", "2026-10-14T02:00:00.000Z"))).toEqual(
       local,
     );
-    expect(await importMyChat({ junk: true })).toEqual(local);
+    expect(await importRecord({ junk: true })).toEqual(local);
   });
 });
 
 describe("notifications on the server (#10)", () => {
   it("remembers which ones the identity has read, and only ids the demo has", async () => {
-    expect(await myNotificationReads()).toBeNull();
+    expect(await reads()).toBeNull();
     await signedIn("reader@example.com");
-    expect(await myNotificationReads()).toEqual([]);
-    expect(await markMyNotificationsRead(["n1", "n1", "made-up"])).toEqual(["n1"]);
-    expect(await markMyNotificationsRead("all")).toEqual(["n1", "n2", "n3"]);
+    expect(await reads()).toEqual([]);
+    expect(await markRead(["n1", "n1", "made-up"])).toEqual(["n1"]);
+    expect(await markRead("all")).toEqual(["n1", "n2", "n3"]);
   });
 });

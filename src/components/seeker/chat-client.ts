@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { changeMyChat, importMyChat, myChat, type ChatChange, type ChatSnapshot } from "@/app/messages/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, stringifyStoredIdentities } from "@/components/seeker/identity-scope";
@@ -41,6 +42,47 @@ export function parseChats(raw: string | null): Record<string, ChatRecord> {
 }
 const store = createLocalStore(CHAT_KEY, parseChats);
 
+/**
+ * Keeps the server's answer as the copy of the identity it is for. The cookie decides which identity the server
+ * answers for; during a switch or sign-in that may not be the one asked about, so the answer names its scope.
+ */
+function keep(snapshot: ChatSnapshot | null) {
+  if (!snapshot) return;
+  store.update((storage) => {
+    const current = parseChats(storage.getItem(CHAT_KEY));
+    storage.setItem(CHAT_KEY, stringifyStoredIdentities({ ...current, [snapshot.scope]: snapshot.record }));
+  });
+}
+
+const isEmpty = (record: ChatRecord) =>
+  !Object.keys(record.added).length &&
+  !Object.keys(record.readAt).length &&
+  !record.extra.length &&
+  !Object.keys(record.exchanges).length &&
+  !record.reports.length;
+
+// The server's records are the truth (#10); this browser's copy is a cache, refreshed once per identity per page
+// load. Records from before #10 that only this browser has are handed to the server once.
+const syncedScopes = new Set<string>();
+
+function syncScope(scope: string) {
+  if (syncedScopes.has(scope)) return;
+  syncedScopes.add(scope);
+  (async () => {
+    const server = await myChat();
+    if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
+    const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
+    keep(isEmpty(server.record) && local && !isEmpty(local) ? await importMyChat(local) : server);
+  })().catch(() => syncedScopes.delete(scope));
+}
+
+/** Sends one change to the server and keeps its answer (the browser has already shown the change). */
+function sendChange(scope: string, change: ChatChange) {
+  changeMyChat(change)
+    .then(keep)
+    .catch(() => {});
+}
+
 export function useChat() {
   const session = useSession();
   const accounts = store.useValue();
@@ -50,6 +92,10 @@ export function useChat() {
   const record = accounts[scope] ?? EMPTY_CHAT;
   // Memoized: pages keep `messages` and the like in effect dependencies.
   const view = useMemo(() => chatView(record, demo), [record, demo]);
+  const signedIn = Boolean(session);
+  useEffect(() => {
+    if (signedIn) syncScope(scope);
+  }, [signedIn, scope]);
 
   function change(update: (current: ChatRecord) => ChatRecord) {
     if (!session) return;
@@ -70,14 +116,17 @@ export function useChat() {
       if (!view.messages[id]) return;
       if (!view.unread[id] && view.messages[id].every((message) => message.from === "me" || message.readAt)) return;
       change((current) => markConversationRead(current, id, new Date().toISOString()));
+      sendChange(scope, { type: "read", conversationId: id });
     },
     send(id: string, text: string) {
       if (!view.messages[id] || !text.trim()) return;
       change((current) => addSentMessage(current, id, text, new Date().toISOString()));
+      sendChange(scope, { type: "send", conversationId: id, text });
     },
     requestInfo(id: string, kind: ExchangeKind, payload: ExchangePayload) {
       if (!view.messages[id]) return;
       change((current) => addExchangeRequest(current, demo, id, kind, payload, crypto.randomUUID()));
+      sendChange(scope, { type: "request", conversationId: id, kind, payload });
     },
     respondInfo(
       id: string,
@@ -87,6 +136,7 @@ export function useChat() {
     ) {
       if (!view.messages[id]) return;
       change((current) => answerExchange(current, demo, id, exchangeId, status, payload));
+      sendChange(scope, { type: "answer", conversationId: id, exchangeId, status, payload });
     },
     reportConversation(id: string, reason: ChatReportReason, note: string, messageIndex?: number) {
       const conversation = view.conversations.find((item) => item.id === id);
@@ -105,7 +155,9 @@ export function useChat() {
         ...(messageIndex !== undefined ? { messageIndex } : {}),
       });
       if (!report) return false;
-      return change((current) => addReport(current, report)) === true;
+      const saved = change((current) => addReport(current, report)) === true;
+      if (saved) sendChange(scope, { type: "report", conversationId: id, reason, note, messageIndex });
+      return saved;
     },
     openCandidateChat(candidate: Candidate, job: Job) {
       if (!session || !isEmployer || job.employerId !== session.employerId || !candidate.resume.discoverable)
@@ -122,6 +174,10 @@ export function useChat() {
           candidateId: candidate.id,
         }),
       );
+      sendChange(scope, {
+        type: "open",
+        conversation: { kind: "candidate", jobId: job.id, candidateId: candidate.id, name: candidate.name },
+      });
       return id;
     },
     openEmployerChat(
@@ -149,6 +205,7 @@ export function useChat() {
           employerId: employer.id,
         }),
       );
+      sendChange(scope, { type: "open", conversation: { kind: "employer", jobId: job.id } });
       return id;
     },
   };

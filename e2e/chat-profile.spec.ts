@@ -22,26 +22,25 @@ test("chat header avatar and employer name both open the company home", async ({
 test("employer opens candidate home, including legacy local chats and withdrawn public profiles", async ({
   page,
 }, testInfo) => {
-  await signUpEmployer(page, testInfo, "/messages?conversation=candidate-lin");
-  const profile = page.getByRole("link", { name: "查看林晓的主页", exact: true });
-  await profile.locator("span").first().click();
-  await expect(page).toHaveURL("/candidates/candidate-lin");
-  await expect(page.getByRole("heading", { name: "林晓", exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "公开求职资料", exact: true })).toContainText("点餐");
-  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("candidate-home.png"), fullPage: true });
-  await page.getByRole("link", { name: "回到聊天", exact: true }).click();
-  await expect(page).toHaveURL("/messages?conversation=candidate-lin");
-  await profile.getByRole("heading", { name: "林晓", exact: true }).click();
-  await expect(page).toHaveURL("/candidates/candidate-lin");
-
+  // A chat that only this browser had from before #10 is handed to the server on the first sync, when the server
+  // has nothing for the employer yet; so it comes first, before anything else is sent.
+  await signUpEmployer(page, testInfo, "/profile");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
+        const scope = JSON.stringify([session.email, "employer", session.employerId]);
+        return Boolean(JSON.parse(localStorage.getItem("zhaogong:chat-demo") ?? "{}").identities?.[scope]);
+      }),
+    )
+    .toBe(true);
   await page.evaluate(() => {
     const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
     const scope = JSON.stringify([session.email, "employer", session.employerId]);
     const key = "zhaogong:chat-demo";
-    const stored = JSON.parse(localStorage.getItem(key)!);
+    const stored = JSON.parse(localStorage.getItem(key) ?? '{"version":2,"identities":{}}');
     const id = "recommend:local-public-demo:j1";
+    stored.identities[scope] ??= { added: {}, readAt: {}, extra: [], exchanges: {}, reports: [] };
     stored.identities[scope].extra = [
       { id, person: "公开求职者", title: "服务员", avatar: "公", time: "刚刚", job: "j1" },
     ];
@@ -92,4 +91,18 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
   await expect(page.getByRole("main")).not.toContainText("公开个人介绍");
   await page.goto("/candidates/missing");
   await expect(page.getByRole("heading", { name: "求职主页暂不可查看", exact: true })).toBeVisible();
+
+  await page.goto("/messages?conversation=candidate-lin");
+  const profile = page.getByRole("link", { name: "查看林晓的主页", exact: true });
+  await profile.locator("span").first().click();
+  await expect(page).toHaveURL("/candidates/candidate-lin");
+  await expect(page.getByRole("heading", { name: "林晓", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "公开求职资料", exact: true })).toContainText("点餐");
+  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("candidate-home.png"), fullPage: true });
+  await page.getByRole("link", { name: "回到聊天", exact: true }).click();
+  await expect(page).toHaveURL("/messages?conversation=candidate-lin");
+  await profile.getByRole("heading", { name: "林晓", exact: true }).click();
+  await expect(page).toHaveURL("/candidates/candidate-lin");
 });

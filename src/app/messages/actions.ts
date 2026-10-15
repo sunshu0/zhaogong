@@ -5,12 +5,11 @@
 // Every change is checked and applied here with the same pure functions the browser uses (chat-store.ts), with
 // the server's clock and ids.
 import { randomUUID } from "node:crypto";
-import { getCurrentSession, type SessionView } from "@/lib/auth";
 import { getEmployer, getJob } from "@/lib/data";
+import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { parsePayload, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
-import { chatDemo } from "@/components/seeker/chat-demo";
 import {
   EMPTY_CHAT,
   addExchangeRequest,
@@ -23,7 +22,6 @@ import {
   parseChatRecord,
   type ChatRecord,
 } from "@/components/seeker/chat-store";
-import { identityScope } from "@/components/seeker/identity-scope";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
@@ -49,62 +47,48 @@ export type ChatChange =
         { kind: "employer"; jobId: string } | { kind: "candidate"; jobId: string; candidateId: string; name: string };
     };
 
-/** The signed-in identity: the session, its scope (as the browser's copy names it) and its demo. */
-async function identity() {
-  const session = await getCurrentSession();
-  if (!session) return null;
-  const isEmployer = session.activeRole === "employer";
-  return { session, isEmployer, scope: scopeOf(session), demo: chatDemo(isEmployer) };
-}
-
-function scopeOf(session: SessionView): string {
-  return identityScope({
-    email: session.email,
-    signedInAt: "",
-    activeRole: session.activeRole,
-    employerId: session.employer?.id,
-  });
-}
-
 /** The signed-in identity's chat records; null when signed out. */
-export async function myChat(): Promise<ChatRecord | null> {
-  const me = await identity();
+/**
+ * What the server answers with: the records and the identity they belong to (the browser's copy may name another
+ * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for).
+ */
+export type ChatSnapshot = { scope: string; record: ChatRecord };
+export type ReadsSnapshot = { scope: string; ids: string[] };
+
+export async function myChat(): Promise<ChatSnapshot | null> {
+  const me = await currentChatIdentity();
   if (!me) return null;
-  return (await chatServerStore().getChat(me.scope)) ?? EMPTY_CHAT;
+  return { scope: me.scope, record: (await chatServerStore().getChat(me.scope)) ?? EMPTY_CHAT };
 }
 
 /** Applies one change and returns the records as they now are (unchanged when the change does not fit). */
-export async function changeMyChat(change: ChatChange): Promise<ChatRecord | null> {
-  const me = await identity();
+export async function changeMyChat(change: ChatChange): Promise<ChatSnapshot | null> {
+  const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
   const current = (await store.getChat(me.scope)) ?? EMPTY_CHAT;
   const next = await apply(current, change, me);
   if (next !== current) await store.putChat(me.scope, next);
-  return next;
+  return { scope: me.scope, record: next };
 }
 
 /**
  * The browser's records from before #10 (kept only in localStorage), taken once: when the server has nothing for
  * that identity yet. Checked like anything else that comes from a browser.
  */
-export async function importMyChat(record: unknown): Promise<ChatRecord | null> {
-  const me = await identity();
+export async function importMyChat(record: unknown): Promise<ChatSnapshot | null> {
+  const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
   const current = await store.getChat(me.scope);
-  if (current) return current;
+  if (current) return { scope: me.scope, record: current };
   const parsed = parseChatRecord(record);
-  if (!parsed) return EMPTY_CHAT;
+  if (!parsed) return { scope: me.scope, record: EMPTY_CHAT };
   await store.putChat(me.scope, parsed);
-  return parsed;
+  return { scope: me.scope, record: parsed };
 }
 
-async function apply(
-  record: ChatRecord,
-  change: ChatChange,
-  me: NonNullable<Awaited<ReturnType<typeof identity>>>,
-): Promise<ChatRecord> {
+async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): Promise<ChatRecord> {
   if (!change || typeof change !== "object") return record;
   const now = new Date().toISOString();
   const view = chatView(record, me.demo);
@@ -161,7 +145,7 @@ async function apply(
 async function openFor(
   record: ChatRecord,
   target: Extract<ChatChange, { type: "open" }>["conversation"],
-  me: NonNullable<Awaited<ReturnType<typeof identity>>>,
+  me: ChatIdentity,
 ): Promise<ChatRecord> {
   if (!target || typeof target !== "object" || typeof target.jobId !== "string") return record;
   const job = await getJob(target.jobId);
@@ -202,15 +186,15 @@ async function openFor(
 }
 
 /** The ids of the notifications the signed-in identity has read; null when signed out. */
-export async function myNotificationReads(): Promise<string[] | null> {
-  const me = await identity();
+export async function myNotificationReads(): Promise<ReadsSnapshot | null> {
+  const me = await currentChatIdentity();
   if (!me) return null;
-  return (await chatServerStore().getNotificationReads(me.scope)) ?? [];
+  return { scope: me.scope, ids: (await chatServerStore().getNotificationReads(me.scope)) ?? [] };
 }
 
 /** Marks notifications read: some ids, or "all" the identity has. Only ids its notifications have. */
-export async function markMyNotificationsRead(ids: string[] | "all"): Promise<string[] | null> {
-  const me = await identity();
+export async function markMyNotificationsRead(ids: string[] | "all"): Promise<ReadsSnapshot | null> {
+  const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
   const mine = initialNotifications({
@@ -223,5 +207,5 @@ export async function markMyNotificationsRead(ids: string[] | "all"): Promise<st
   const asked = ids === "all" ? mine : Array.isArray(ids) ? ids.filter((id) => mine.includes(id)) : [];
   const read = [...new Set([...((await store.getNotificationReads(me.scope)) ?? []), ...asked])];
   await store.putNotificationReads(me.scope, read);
-  return read;
+  return { scope: me.scope, ids: read };
 }
