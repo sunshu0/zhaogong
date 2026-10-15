@@ -14,8 +14,14 @@ test("recommends by selected job, explains matches and opens a persistent role-s
     uniqueTitle("厨房帮工", testInfo),
     "Mt Eden 餐馆招厨房帮工，时薪 $25-27，每周 35-40 小时，全职，包工作餐，开放工签可做，需会普通话，负责备菜、洗碗和厨房清洁，微信 demo_candidate",
   );
-  await page.goto("/workspace");
-  await expect(page.getByRole("link", { name: /推荐人才.*查看/ })).toBeVisible();
+  // 推荐人才 is on 我的 (and in the desktop header), no longer a card on the workspace.
+  await page.goto("/account");
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: /^推荐人才/ })
+      .last(),
+  ).toBeVisible();
   await page.goto("/employer/candidates");
   await page.getByLabel("招聘职位").selectOption(id!);
   const rows = page.getByRole("article");

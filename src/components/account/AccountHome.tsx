@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
-import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useNotifications, useProfile } from "@/components/seeker/hub-client";
 import { employerSignUpHref } from "@/components/seeker/identity";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { signOut, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
+import { LinkList, type LinkListItem } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
-
-type Row = { href: string; label: string; hint?: string; badge?: number };
 
 /** 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. */
 export function AccountHome() {
@@ -25,15 +22,15 @@ export function AccountHome() {
   const isEmployer = session.activeRole === "employer";
   const name = (isEmployer ? session.employerName : profile.name) || session.email;
 
-  const rows: Row[] = [
-    { href: "/workspace", label: "总览", hint: "要处理的事" },
+  const rows: LinkListItem[] = [
+    { href: "/workspace", label: "总览", detail: "要处理的事" },
     { href: "/notifications", label: "通知", badge: unread },
     isEmployer
-      ? { href: "/profile", label: "企业主页", hint: "企业介绍和招聘联系人" }
-      : { href: "/profile", label: "我的主页", hint: "雇主看到的资料和简历" },
+      ? { href: "/profile", label: "企业主页", detail: "企业介绍和招聘联系人" }
+      : { href: "/profile", label: "我的主页", detail: "雇主看到的资料和简历" },
     isEmployer
       ? { href: "/employer/candidates", label: "推荐人才" }
-      : { href: "/me", label: "浏览与举报", hint: "看过的职位和举报记录" },
+      : { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
   ];
 
   return (
@@ -68,20 +65,7 @@ export function AccountHome() {
         )}
       </Section>
       <Section>
-        <ul>
-          {rows.map((row) => (
-            <li key={row.href} className="border-b border-border last:border-b-0">
-              <Link href={row.href} className="flex min-h-14 items-center gap-3 py-2">
-                <span className="min-w-0 flex-1">
-                  <span className="block text-subtitle">{row.label}</span>
-                  {row.hint && <span className="block text-meta text-muted">{row.hint}</span>}
-                </span>
-                {row.badge ? <UnreadBadge count={row.badge} /> : null}
-                <ChevronRight aria-hidden="true" className="size-4 text-muted" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <LinkList items={rows} />
       </Section>
       <Section>
         <div className="py-2">
