@@ -1,5 +1,6 @@
-// Where sign-in codes and sessions are kept. One interface, so the database (B12-1) can take over from the
-// in-memory store without touching codes.ts or sessions.ts. Server only.
+// Where sign-in codes and sessions are kept: the database by default, the in-memory store for tests. One
+// interface, so codes.ts and sessions.ts do not care which. Server only.
+import { databaseAuthStore } from "@/db/auth-store";
 import type { ActiveRole } from "@/components/seeker/session";
 
 /** One live code per email: its HMAC, when it expires, wrong tries so far, when it was sent. */
@@ -32,7 +33,7 @@ export interface AuthStore {
   deleteSession(id: string): Promise<void>;
 }
 
-/** Kept in the server's memory, like the rest of the data until the database arrives: a restart signs everyone out. */
+/** Kept in the server's memory (tests): a restart forgets everything. */
 export function memoryAuthStore(): AuthStore & {
   codes: Map<string, SignInCodeRow>;
   sessions: Map<string, SessionRow>;
@@ -73,8 +74,8 @@ export function memoryAuthStore(): AuthStore & {
   };
 }
 
-// One store per server process, like the demo data in data.ts.
-let current: AuthStore = memoryAuthStore();
+// The database (#8, src/db/auth-store.ts): codes and sessions survive a restart. Tests may swap in the memory store.
+let current: AuthStore = databaseAuthStore() satisfies AuthStore;
 
 export function authStore(): AuthStore {
   return current;
