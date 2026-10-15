@@ -135,7 +135,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
       <p className="text-xs text-muted">
         演示说明：正式版还会确认你能代表这家公司（例如向登记的公司邮箱发送确认码），之后才显示标识。
         <Link href="/employer/jobs" className="ml-1 text-brand underline">
-          回到管理职位
+          回到职位管理
         </Link>
       </p>
     </div>

@@ -75,7 +75,7 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await signUpEmployer(page, testInfo, "/employer");
   await publishJob(page, uniqueTitle("前厅服务员", testInfo));
   await page.goto("/employer");
-  await expect(page.getByText("管理全部").filter({ visible: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^职位管理/ }).filter({ visible: true })).toBeVisible();
   await expectNoViolations(page, "/employer signed in");
 
   await page.goto("/employer/jobs");

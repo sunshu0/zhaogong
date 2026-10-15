@@ -1,4 +1,4 @@
-// What a card on 管理职位 shows: the same numbers on every card, one main button and the rest under 更多.
+// What a card on 职位管理 shows: the same numbers on every card, one main button and the rest under 更多.
 import type { Job } from "@/lib/types";
 import { canClose, effectiveStatus, refreshState } from "@/components/employer/job-status";
 

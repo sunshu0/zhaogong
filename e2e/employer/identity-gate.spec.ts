@@ -26,10 +26,9 @@ test("a signed-in job seeker without a business lands on the business step", asy
 test("the employer intro stays open to everyone", async ({ page }) => {
   await page.goto("/employer");
   await expect(page.getByRole("heading", { name: "招中文员工，一分钟发好招聘" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "注册 / 登录" })).toHaveAttribute(
-    "href",
-    "/login?role=employer&next=%2Femployer",
-  );
+  // The page lists no jobs any more (C2): 职位管理 links to them.
+  await expect(page.getByRole("link", { name: "一分钟发布招聘" })).toHaveAttribute("href", "/employer/post");
+  await expect(page.getByRole("link", { name: /^职位管理/ })).toHaveAttribute("href", "/employer/jobs");
 });
 
 test("a hand-edited session that claims a business gets nothing from the server", async ({ page }) => {
@@ -64,5 +63,5 @@ test("in the job-seeker identity, an employer page asks to switch instead of swi
   await page.goto("/employer/jobs");
   await expect(page.getByText("你现在用的是求职者身份").filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: `切换为雇主（${shop}）` }).click();
-  await expect(page.getByRole("heading", { name: "管理职位" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "职位管理" })).toBeVisible();
 });

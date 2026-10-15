@@ -70,7 +70,7 @@ function noticeFor(result: ChangeResult, okText: string): Notice {
 function ManageHeader({ name, employer }: { name: string; employer?: Employer }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-      <h1 className="text-lg font-semibold">管理职位</h1>
+      <h1 className="text-lg font-semibold">职位管理</h1>
       <span className="text-sm">{name}</span>
       {employer && <VerificationBadge verification={employer.verification} />}
       <Link href="/employer/post" className="ml-auto rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white">

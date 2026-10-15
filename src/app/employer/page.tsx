@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MyJobs } from "@/components/employer/MyJobs";
 
 export const metadata: Metadata = {
   title: "雇主发布招聘",
@@ -37,14 +36,9 @@ export default function EmployerHome() {
         <p className="mt-2 text-center text-xs text-muted">用邮箱开通雇主身份，不用设密码，开通后马上开始写。</p>
       </section>
 
-      <section>
-        <h2 className="mb-3 font-semibold">我的职位</h2>
-        <MyJobs />
-      </section>
-
       <section className="grid grid-cols-2 gap-3 text-sm">
         <Link href="/employer/jobs" className="rounded-xl border border-border bg-surface p-4 hover:border-brand/40">
-          <span className="font-medium">管理职位</span>
+          <span className="font-medium">职位管理</span>
           <span className="mt-1 block text-xs text-muted">编辑、刷新、关闭</span>
         </Link>
         <Link href="/employer/verify" className="rounded-xl border border-border bg-surface p-4 hover:border-brand/40">

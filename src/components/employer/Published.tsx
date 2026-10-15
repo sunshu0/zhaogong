@@ -28,7 +28,7 @@ export function Published({
           {live ? "已发布" : "已提交审核"}
         </h1>
         <p className="mt-1 text-sm">
-          {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「管理职位」里看到进度。"}
+          {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「职位管理」里看到进度。"}
         </p>
         {live && (
           <Link href={`/jobs/${job.id}`} className="mt-3 inline-block text-sm text-brand underline">
@@ -39,7 +39,7 @@ export function Published({
       {live ? (
         <ShareTexts job={job} employer={employer} />
       ) : (
-        <p className="text-sm text-muted">审核通过后，可以在「管理职位」里复制发到微信群、小红书和 Skykiwi 的文案。</p>
+        <p className="text-sm text-muted">审核通过后，可以在「职位管理」里复制发到微信群、小红书和 Skykiwi 的文案。</p>
       )}
       <div className="flex gap-3">
         <button
@@ -53,7 +53,7 @@ export function Published({
           href="/employer/jobs"
           className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white"
         >
-          管理职位
+          职位管理
         </Link>
       </div>
     </section>

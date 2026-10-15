@@ -130,7 +130,7 @@ export async function openReportForm(page: Page) {
   }).toPass({ timeout: 20_000 });
 }
 
-/** A job card on 管理职位 keeps one main button; the other actions are under 更多 (a menu). */
+/** A job card on 职位管理 keeps one main button; the other actions are under 更多 (a menu). */
 export async function cardMenuItem(card: Locator, name: string): Promise<Locator> {
   await card.getByRole("button", { name: /^更多操作/ }).click();
   return card.getByRole("menuitem", { name, exact: true });

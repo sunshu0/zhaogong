@@ -43,7 +43,7 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
       <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-sm text-muted">
         {job ? "这个职位已被后台下架，不能修改。" : "找不到这个职位，或者它不属于你登录的店铺。"}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
-          回到管理职位
+          回到职位管理
         </Link>
       </div>
     );
@@ -92,7 +92,7 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
             href="/employer/jobs"
             className="flex h-11 flex-1 items-center justify-center rounded-xl bg-brand font-medium text-white"
           >
-            回到管理职位
+            回到职位管理
           </Link>
           {saved.status === "active" && (
             <Link
