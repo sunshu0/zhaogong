@@ -8,7 +8,15 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { useCandidateDirectory } from "@/components/seeker/hub-client";
 import { useChat } from "@/components/seeker/chat-client";
-import { rankCandidates, type CandidateMatch, type MatchFactor } from "@/lib/candidate-matching";
+import {
+  candidateFacts,
+  keyConcerns,
+  rankCandidates,
+  splitLowMatches,
+  type CandidateMatch,
+  type MatchFactor,
+} from "@/lib/candidate-matching";
+import { Button } from "@/components/ui/Button";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import { regionById } from "@/config/countries";
 import type { Job } from "@/lib/types";
@@ -140,17 +148,51 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               暂无符合条件的求职者
             </p>
           ) : (
-            <ul className="space-y-3">
-              {matches.map((match) => (
-                <li key={`${job.id}:${match.candidate.id}`}>
-                  <CandidateRow match={match} job={job} />
-                </li>
-              ))}
-            </ul>
+            <MatchList key={job.id} matches={matches} job={job} />
           )}
         </>
       )}
     </div>
+  );
+}
+
+/** The candidates, with low matches folded at the bottom (the user's choice: folded, not hidden). */
+function MatchList({ matches, job }: { matches: CandidateMatch[]; job: Job }) {
+  const [showLow, setShowLow] = useState(false);
+  const { shown, low } = splitLowMatches(matches);
+  const rows = (list: CandidateMatch[]) =>
+    list.map((match) => (
+      <li key={`${job.id}:${match.candidate.id}`}>
+        <CandidateRow match={match} job={job} />
+      </li>
+    ));
+  return (
+    <>
+      <ul className="space-y-3">{rows(shown)}</ul>
+      {low.length > 0 && (
+        <section aria-label="匹配度较低的求职者" className="space-y-3">
+          <button
+            type="button"
+            aria-expanded={showLow}
+            aria-controls={`low-${job.id}`}
+            onClick={() => setShowLow((v) => !v)}
+            className="flex min-h-11 w-full items-center justify-between rounded-lg border border-dashed border-border px-4 text-sm text-muted"
+          >
+            另外 {low.length} 位匹配度较低
+            {showLow ? (
+              <ChevronUp aria-hidden="true" className="size-4" />
+            ) : (
+              <ChevronDown aria-hidden="true" className="size-4" />
+            )}
+          </button>
+          {showLow && (
+            <ul id={`low-${job.id}`} className="space-y-3">
+              {rows(low)}
+            </ul>
+          )}
+        </section>
+      )}
+    </>
   );
 }
 
@@ -159,8 +201,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
   const [expanded, setExpanded] = useState(false);
   const { openCandidateChat } = useChat();
   const router = useRouter();
-  const highlights = factors.filter((item) => item.status === "matched").slice(0, 3);
-  const concerns = factors.filter((item) => ["unknown", "mismatch", "partial"].includes(item.status));
+  const concerns = keyConcerns(factors);
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="p-4 sm:p-5">
@@ -171,12 +212,6 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
               <span className="text-xs text-muted">{candidate.source === "demo" ? "演示简历" : "公开主页"}</span>
             </div>
             <p className="mt-1 break-words text-sm">{candidate.headline || "求职意向待完善"}</p>
-            <p className="mt-2 text-xs text-muted">
-              {candidate.location || "地区待补充"} ·{" "}
-              {candidate.resume.experienceYears != null
-                ? `${candidate.resume.experienceYears} 年经验`
-                : "经验年数待确认"}
-            </p>
           </div>
           <div className="shrink-0 text-right">
             <p className="text-xs text-muted">匹配分</p>
@@ -186,13 +221,14 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
             </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {highlights.map((item) => (
-            <span key={item.key} className="rounded px-2 py-1 text-xs text-ok bg-ok-soft">
-              {item.label}匹配
-            </span>
+        <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+          {candidateFacts(candidate).map((fact) => (
+            <div key={fact.label} className="contents">
+              <dt className="text-muted">{fact.label}</dt>
+              <dd className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>{fact.value}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
         <p className="mt-3 break-words text-xs text-muted">
           {concerns.length
             ? `需关注：${concerns.map((item) => `${item.label}${STATUS[item.status].label}`).join("、")}`
@@ -214,17 +250,16 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
               <ChevronDown aria-hidden="true" className="size-4" />
             )}
           </button>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={() => {
               const id = openCandidateChat(candidate, job);
               if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
             }}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-3 text-sm font-medium text-white"
           >
             <MessageSquare aria-hidden="true" className="size-4" />
             发起聊天
-          </button>
+          </Button>
         </div>
       </div>
       {expanded && (
@@ -238,16 +273,8 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
                 <dd className="break-words">{candidate.resume.skills || "待补充"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">语言</dt>
-                <dd>{candidate.languages || "待补充"}</dd>
-              </div>
-              <div>
                 <dt className="text-xs text-muted">求职意向</dt>
                 <dd>{formatEmploymentTypes(candidate.resume.employmentTypes) || "待补充"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted">可工作时间</dt>
-                <dd className="break-words">{candidate.availability || "待补充"}</dd>
               </div>
             </dl>
           </section>

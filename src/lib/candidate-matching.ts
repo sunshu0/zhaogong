@@ -265,3 +265,43 @@ export function rankCandidates(candidates: Candidate[], job: Job): CandidateMatc
         (b.score ?? -1) - (a.score ?? -1) || b.coverage - a.coverage || a.candidate.id.localeCompare(b.candidate.id),
     );
 }
+
+// ---- the recommendation card (B28); /candidates/[id] (C6) shows the same five facts ----
+
+export const CANDIDATE_FACT_LABELS = ["可上班时间", "地区", "期望时薪", "语言", "经验"] as const;
+
+/** What an employer checks first, in a fixed order, with 待补充 where the profile says nothing. */
+export function candidateFacts(
+  candidate: Candidate,
+): { label: (typeof CANDIDATE_FACT_LABELS)[number]; value: string }[] {
+  const { resume } = candidate;
+  const hours = resume.hoursPerWeek && `每周 ${resume.hoursPerWeek.min}–${resume.hoursPerWeek.max} 小时`;
+  const regions = resume.regionIds.map((id) => regionById("NZ", id)?.nameZh ?? id).join("、");
+  const values = [
+    [candidate.availability.trim(), hours].filter(Boolean).join(" · "),
+    regions || candidate.location.trim(),
+    resume.expectedMinPay != null ? `$${resume.expectedMinPay} 起` : "",
+    candidate.languages.trim(),
+    resume.experienceYears == null ? "" : resume.experienceYears === 0 ? "无经验" : `${resume.experienceYears} 年`,
+  ];
+  return CANDIDATE_FACT_LABELS.map((label, i) => ({ label, value: values[i] || "待补充" }));
+}
+
+const CONCERN_ORDER: Partial<Record<MatchFactor["status"], number>> = { mismatch: 0, partial: 1, unknown: 2 };
+
+/** The two concerns that matter most: mismatches first, then partial matches, then unknowns; heavier first. */
+export function keyConcerns(factors: MatchFactor[], count = 2): MatchFactor[] {
+  return factors
+    .filter((f) => CONCERN_ORDER[f.status] != null)
+    .sort((a, b) => CONCERN_ORDER[a.status]! - CONCERN_ORDER[b.status]! || b.weight - a.weight)
+    .slice(0, count);
+}
+
+/** Below this score a candidate is folded under 「另外 N 位匹配度较低」 (folded, not hidden). */
+export const LOW_MATCH_SCORE = 40;
+
+/** Matches to list, and the low ones folded below them. An unknown score is not a low one. */
+export function splitLowMatches(matches: CandidateMatch[]): { shown: CandidateMatch[]; low: CandidateMatch[] } {
+  const isLow = (m: CandidateMatch) => m.score !== null && m.score < LOW_MATCH_SCORE;
+  return { shown: matches.filter((m) => !isLow(m)), low: matches.filter(isLow) };
+}

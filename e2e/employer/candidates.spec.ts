@@ -26,6 +26,17 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.getByLabel("招聘职位").selectOption(id!);
   const rows = page.getByRole("article");
   await expect(rows.first().getByRole("heading", { name: "林晓" })).toBeVisible();
+  // Five facts on every card, in the order of the candidate page (C6).
+  await expect(rows.first().locator("dt")).toHaveText(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
+  await expect(rows.first()).toContainText("$25 起");
+  // Scores below 40 are folded at the bottom, not hidden.
+  await expect(rows).toHaveCount(3);
+  const low = page.getByRole("button", { name: "另外 3 位匹配度较低" });
+  await expect(low).toHaveAttribute("aria-expanded", "false");
+  await low.click();
+  await expect(rows).toHaveCount(6);
+  await expect(rows.last().getByRole("heading")).toBeVisible();
+  await low.click();
   await rows.first().getByRole("button", { name: "简历与匹配分析" }).click();
   await expect(rows.first().getByRole("region", { name: "匹配分析", exact: true })).toContainText("用工形式");
   await page.screenshot({ path: testInfo.outputPath("candidates.png"), fullPage: true });
@@ -117,6 +128,8 @@ test("recommends by selected job, explains matches and opens a persistent role-s
     localStorage.setItem(key, JSON.stringify(stored));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });
+  // Half a profile scores low, so it is folded at the bottom (not hidden): open the fold to see it.
+  await page.getByRole("button", { name: /^另外 \d+ 位匹配度较低/ }).click();
   await expect(page.getByRole("heading", { name: "公开候选人", exact: true })).toBeVisible();
   await page.evaluate(() => {
     const key = "zhaogong:profiles-by-identity";

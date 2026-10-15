@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { MOCK_JOBS } from "@/mock/data";
-import { EMPTY_RESUME, matchCandidate, parseResume, rankCandidates, type Candidate } from "@/lib/candidate-matching";
+import {
+  CANDIDATE_FACT_LABELS,
+  candidateFacts,
+  EMPTY_RESUME,
+  keyConcerns,
+  LOW_MATCH_SCORE,
+  matchCandidate,
+  parseResume,
+  rankCandidates,
+  splitLowMatches,
+  type Candidate,
+  type CandidateMatch,
+} from "@/lib/candidate-matching";
 
 const candidate: Candidate = {
   id: "demo",
@@ -123,5 +135,59 @@ describe("candidate matching", () => {
     expect(parsed.regionIds).toEqual(["akl-mt-eden"]);
     expect(parsed.hoursPerWeek).toBeUndefined();
     expect(parsed.expectedMinPay).toBeUndefined();
+  });
+});
+
+describe("the five facts on a recommendation card", () => {
+  it("lists availability, area, expected pay, languages and experience, in that order", () => {
+    expect(CANDIDATE_FACT_LABELS).toEqual(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
+    expect(candidateFacts(candidate)).toEqual([
+      { label: "可上班时间", value: "周末晚班 · 每周 15–25 小时" },
+      { label: "地区", value: "Mt Eden / Dominion Rd" },
+      { label: "期望时薪", value: "$25 起" },
+      { label: "语言", value: "普通话、英语" },
+      { label: "经验", value: "3 年" },
+    ]);
+  });
+
+  it("says what is missing instead of leaving gaps", () => {
+    const bare = { ...candidate, availability: "", languages: "", location: "", resume: { ...EMPTY_RESUME } };
+    expect(candidateFacts(bare).map((f) => f.value)).toEqual(["待补充", "待补充", "待补充", "待补充", "待补充"]);
+    expect(candidateFacts({ ...bare, location: "奥克兰 · 北岸" })[1].value).toBe("奥克兰 · 北岸");
+    expect(candidateFacts({ ...bare, resume: { ...EMPTY_RESUME, experienceYears: 0 } })[4].value).toBe("无经验");
+  });
+});
+
+describe("keyConcerns", () => {
+  it("keeps the two weightiest concerns, mismatches before partial matches before unknowns", () => {
+    const result = matchCandidate(
+      {
+        ...candidate,
+        languages: "",
+        resume: {
+          ...candidate.resume,
+          regionIds: ["akl-albany"],
+          expectedMinPay: 99,
+          hoursPerWeek: { min: 40, max: 50 },
+        },
+      },
+      MOCK_JOBS[0],
+    );
+    expect(keyConcerns(result.factors).map((f) => f.key)).toEqual(["region", "hours"]);
+  });
+
+  it("is empty when everything known matches", () => {
+    expect(keyConcerns(matchCandidate(candidate, MOCK_JOBS[0]).factors)).toEqual([]);
+  });
+});
+
+describe("splitLowMatches", () => {
+  const at = (id: string, score: number | null) => ({ candidate: { ...candidate, id }, score }) as CandidateMatch;
+
+  it("folds scores below 40 away and keeps unknown scores in the list", () => {
+    expect(LOW_MATCH_SCORE).toBe(40);
+    const { shown, low } = splitLowMatches([at("a", 90), at("b", null), at("c", 39), at("d", 40), at("e", 0)]);
+    expect(shown.map((m) => m.candidate.id)).toEqual(["a", "b", "d"]);
+    expect(low.map((m) => m.candidate.id)).toEqual(["c", "e"]);
   });
 });
