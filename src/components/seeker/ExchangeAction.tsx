@@ -70,7 +70,7 @@ export function ExchangeAction({
                 else requestInfo(conversationId, kind, payload);
                 setOpen(false);
               }}
-              className="min-h-11 rounded-lg bg-brand px-4 text-sm font-medium text-white disabled:opacity-50"
+              className="min-h-11 rounded-md bg-brand px-4 text-sm font-medium text-white disabled:opacity-50"
             >
               {incoming ? "同意并交换双方资料" : "发送交换请求"}
             </button>

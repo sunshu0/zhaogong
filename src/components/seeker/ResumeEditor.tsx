@@ -8,7 +8,7 @@ import type { EmploymentType } from "@/lib/types";
 const toggle = <T,>(values: T[], value: T) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 const numberOrEmpty = (value: string) => (value === "" ? undefined : Number(value));
-const inputClass = "h-11 w-full rounded-lg border border-border bg-background px-3 text-body focus:border-brand";
+const inputClass = "h-11 w-full rounded-md border border-border bg-background px-3 text-body focus:border-brand";
 
 type ResumeProps = { value?: Resume; onChange: (value: Resume) => void };
 
@@ -77,7 +77,7 @@ export function ResumeMoreFields(props: ResumeProps) {
           {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string }][]).map(([type, label]) => (
             <label
               key={type}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-body ${value.employmentTypes.includes(type) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-body ${value.employmentTypes.includes(type) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
             >
               <input
                 type="checkbox"

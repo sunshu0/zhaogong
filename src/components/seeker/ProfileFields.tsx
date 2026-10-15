@@ -143,7 +143,7 @@ export function PrivateDetailsFields({
 }
 
 const CONTROL =
-  "w-full rounded-lg border border-border bg-background px-3 text-body outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-md border border-border bg-background px-3 text-body outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 function Field({
   label,

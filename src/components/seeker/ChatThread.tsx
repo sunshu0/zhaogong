@@ -86,7 +86,7 @@ function ThreadHeader({
         onClick={onBack}
         aria-label="返回会话列表"
         title="返回会话列表"
-        className="flex size-11 shrink-0 items-center justify-center rounded-lg hover:bg-background lg:hidden"
+        className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-background lg:hidden"
       >
         <ArrowLeft aria-hidden="true" className="size-5" />
       </button>
@@ -124,7 +124,7 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
       href={profileHref}
       aria-label={`查看${conversation.person}的主页`}
       title={`查看${conversation.person}的主页`}
-      className="group flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-brand"
+      className="group flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-brand"
     >
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
       <div className="min-w-0">
@@ -164,12 +164,12 @@ function MessageComposer({
         placeholder="输入消息…"
         rows={3}
         aria-describedby={warning ? "message-draft-warning" : undefined}
-        className="min-h-11 min-w-0 flex-1 resize-none rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+        className="min-h-11 min-w-0 flex-1 resize-none rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
       <button
         type="submit"
         disabled={!draft.trim()}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
         <Send aria-hidden="true" className="size-4" />
         发送

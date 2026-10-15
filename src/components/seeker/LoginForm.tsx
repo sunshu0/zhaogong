@@ -26,8 +26,8 @@ export interface DemoBusiness {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-brand aria-invalid:border-danger";
-const primaryClass = "w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60";
+  "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-brand aria-invalid:border-danger";
+const primaryClass = "w-full rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60";
 const linkButtonClass = "w-full py-1 text-sm text-muted underline underline-offset-2";
 
 const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
@@ -116,7 +116,7 @@ export function LoginForm({
 
   if (session) {
     return (
-      <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
+      <div className="space-y-3 rounded-md border border-border bg-surface p-4">
         <p className="text-sm">
           你已登录：<span className="font-medium">{session.email}</span>
         </p>
@@ -179,14 +179,14 @@ export function LoginForm({
   }
 
   return step === "email" ? (
-    <form onSubmit={submitEmail} noValidate className="space-y-4 rounded-xl border border-border bg-surface p-4">
+    <form onSubmit={submitEmail} noValidate className="space-y-4 rounded-md border border-border bg-surface p-4">
       <fieldset>
         <legend className="mb-2 text-sm font-medium">你想做什么？</legend>
         <div className="grid gap-2">
           {ROLE_OPTIONS.map((option) => (
             <label
               key={option.role}
-              className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
+              className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
             >
               <input
                 type="radio"
@@ -225,12 +225,12 @@ export function LoginForm({
       <p className="text-xs text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
     </form>
   ) : (
-    <form onSubmit={submitCode} noValidate className="space-y-3 rounded-xl border border-border bg-surface p-4">
+    <form onSubmit={submitCode} noValidate className="space-y-3 rounded-md border border-border bg-surface p-4">
       <p className="text-sm">
         验证码已发送到 <span className="font-medium">{email}</span>
       </p>
       {devCode ? (
-        <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-brand">
+        <p className="rounded-md bg-brand-soft px-3 py-2 text-xs text-brand">
           开发环境没有接邮件服务，验证码打印在服务器日志里：
           <span data-testid="dev-sign-in-code" className="ml-1 font-mono text-sm font-semibold tracking-widest">
             {devCode}
@@ -317,7 +317,7 @@ function BusinessStep({
   }
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4 rounded-xl border border-border bg-surface p-4">
+    <form onSubmit={submit} noValidate className="space-y-4 rounded-md border border-border bg-surface p-4">
       <div>
         <h2 className="font-medium">开通雇主身份</h2>
         <p className="mt-1 text-xs text-muted">
@@ -387,7 +387,7 @@ function Choice({
   children: ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft has-disabled:cursor-not-allowed has-disabled:bg-background">
+    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft has-disabled:cursor-not-allowed has-disabled:bg-background">
       <input
         type="radio"
         name="business"
@@ -407,12 +407,12 @@ function Placeholder() {
     <>
       <div
         data-nojs-hide=""
-        className="h-40 animate-pulse rounded-xl border border-border bg-surface"
+        className="h-40 animate-pulse rounded-md border border-border bg-surface"
         aria-hidden="true"
       />
       {/* Signing in runs in the browser (the code step, the session copy): say so instead of an endless placeholder. */}
       <noscript>
-        <p className="rounded-xl border border-border bg-surface p-4 text-sm">
+        <p className="rounded-md border border-border bg-surface p-4 text-sm">
           登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。
         </p>
       </noscript>

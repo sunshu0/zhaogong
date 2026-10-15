@@ -50,7 +50,7 @@ function MessageBubble({
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[85%] break-words rounded-lg px-4 py-3 text-sm leading-relaxed lg:max-w-[75%] lg:text-base ${mine ? "bg-brand text-white" : "border border-border bg-surface"}`}
+        className={`max-w-[85%] break-words rounded-md px-4 py-3 text-sm leading-relaxed lg:max-w-[75%] lg:text-base ${mine ? "bg-brand text-white" : "border border-border bg-surface"}`}
       >
         <p>{message.text}</p>
         <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${mine ? "text-white" : "text-muted"}`}>
@@ -64,7 +64,7 @@ function MessageBubble({
         <div
           role="note"
           aria-label="合规提醒"
-          className="mt-1.5 max-w-[85%] space-y-1 rounded-lg bg-warn-soft px-3 py-2 text-xs leading-relaxed text-warn lg:max-w-[75%]"
+          className="mt-1.5 max-w-[85%] space-y-1 rounded-md bg-warn-soft px-3 py-2 text-xs leading-relaxed text-warn lg:max-w-[75%]"
         >
           {warnings.map((warning) => (
             <p key={warning.rule} className="flex gap-1.5">

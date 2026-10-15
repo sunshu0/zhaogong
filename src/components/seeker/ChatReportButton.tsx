@@ -33,7 +33,7 @@ export function ChatReportButton({
         className={
           label
             ? "inline-flex min-h-11 items-center text-sm font-medium text-danger underline underline-offset-2"
-            : "flex size-11 shrink-0 items-center justify-center rounded-lg text-danger hover:bg-danger-soft"
+            : "flex size-11 shrink-0 items-center justify-center rounded-md text-danger hover:bg-danger-soft"
         }
       >
         {label ?? <Flag aria-hidden="true" className="size-5" />}
@@ -105,7 +105,7 @@ export function ChatReportDialog({
                 setReason(event.target.value as ChatReportReason);
                 setError("");
               }}
-              className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-3"
+              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3"
             >
               <option value="">请选择</option>
               {Object.entries(CHAT_REPORT_REASONS).map(([key, label]) => (
@@ -121,7 +121,7 @@ export function ChatReportDialog({
               aria-label="举报范围"
               value={range}
               onChange={(event) => setRange(event.target.value)}
-              className="mt-1 h-11 w-full rounded-lg border border-border bg-surface px-3"
+              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3"
             >
               <option value="">整段聊天（最近 100 条）</option>
               {thread.map((message, index) =>
@@ -145,7 +145,7 @@ export function ChatReportDialog({
               maxLength={1000}
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="mt-1 w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-base"
+              className="mt-1 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-base"
             />
           </label>
           <p className="text-xs text-muted">举报会附带所选聊天内容，仅用于处理举报。前端演示记录保存在本机。</p>
@@ -158,7 +158,7 @@ export function ChatReportDialog({
             <button type="button" className={CHAT_COMMAND_CLASS} onClick={onClose}>
               取消
             </button>
-            <button type="submit" className="min-h-11 rounded-lg bg-danger px-4 text-sm font-medium text-white">
+            <button type="submit" className="min-h-11 rounded-md bg-danger px-4 text-sm font-medium text-white">
               提交举报
             </button>
           </div>

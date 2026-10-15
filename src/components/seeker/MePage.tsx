@@ -16,15 +16,15 @@ export function MePage() {
   const reports = useSentReports();
 
   if (!hydrated)
-    return <div className="h-48 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />;
+    return <div className="h-48 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />;
 
   if (!session) {
     return (
-      <div className="rounded-xl border border-border bg-surface px-4 py-10 text-center">
+      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
         <p className="font-medium">登录后可以查看浏览记录和举报记录</p>
         <Link
           href="/login?next=%2Fme"
-          className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
+          className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-medium text-white"
         >
           登录
         </Link>
@@ -116,7 +116,7 @@ function Panel({
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="rounded-xl border border-border bg-surface p-4">
+    <section aria-labelledby={headingId} className="rounded-md border border-border bg-surface p-4">
       <div className="mb-1 flex items-center justify-between gap-3">
         <h2 id={headingId} className="font-medium">
           {title}

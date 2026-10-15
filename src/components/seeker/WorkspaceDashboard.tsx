@@ -46,7 +46,7 @@ export function WorkspaceDashboard() {
         </p>
       </header>
       {loading ? (
-        <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />
+        <div className="h-40 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />
       ) : todos.length ? (
         <Section id="todos" title="待办">
           <LinkList

@@ -12,11 +12,11 @@ export function SignInGate({ message, children }: { message: string; children: R
   const session = useSession();
   if (hydrated && session) return children;
   return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-12 text-center">
+    <div className="rounded-md border border-border bg-surface px-4 py-12 text-center">
       <p className="font-medium">{message}</p>
       <Link
         href={`/login?next=${encodeURIComponent(pathname)}`}
-        className="mt-4 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
+        className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-medium text-white"
       >
         登录 / 注册
       </Link>

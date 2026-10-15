@@ -19,7 +19,9 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
   ];
 }
 
-const ACTIVE = "bg-brand-soft font-medium text-brand";
+// The current page: brand and semibold with a short 3px line on its left, like the bottom bar (Round 13).
+const ACTIVE =
+  "relative font-semibold text-brand before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand";
 
 export function WorkspaceNav({ pathname, isEmployer }: { pathname: string; isEmployer: boolean }) {
   const { unread: notificationUnread } = useNotifications();
@@ -32,7 +34,7 @@ export function WorkspaceNav({ pathname, isEmployer }: { pathname: string; isEmp
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-11 items-center justify-between gap-2 rounded-lg px-2.5 text-body ${
+            className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-2.5 text-body ${
               active ? ACTIVE : "hover:bg-background"
             }`}
           >

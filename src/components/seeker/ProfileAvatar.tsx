@@ -122,7 +122,7 @@ export function ProfileAvatarEditor({
             type="button"
             disabled={busy}
             onClick={() => inputRef.current?.click()}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm hover:border-brand disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-sm hover:border-brand disabled:opacity-50"
           >
             <Camera aria-hidden="true" className="size-4" />
             {busy ? "处理中…" : "上传头像"}

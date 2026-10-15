@@ -30,7 +30,7 @@ export function NotificationWorkspace() {
           </button>
         )}
       </header>
-      <section className="overflow-hidden rounded-xl border border-border bg-surface" aria-label="通知列表">
+      <section className="overflow-hidden rounded-md border border-border bg-surface" aria-label="通知列表">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-medium">全部通知</h2>
           <span className="text-xs text-muted">{unread ? `${unread} 条未读` : "已全部读完"}</span>

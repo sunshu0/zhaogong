@@ -94,7 +94,7 @@ export function ProfileWorkspace() {
           <p className="mt-3 text-meta text-muted">{isEmployer ? "求职者最看重：" : "雇主最看重："}</p>
           <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-body">
             {keyItems.map((item) => (
-              <li key={item.id} className={`flex items-center gap-1 ${item.done ? "" : "text-danger"}`}>
+              <li key={item.id} className={`flex items-center gap-1 ${item.done ? "" : "text-warn"}`}>
                 {item.done ? (
                   <Check aria-hidden="true" className="size-4 text-ok" />
                 ) : (
@@ -195,7 +195,7 @@ function SaveStatus({ state }: { state: SaveState }) {
   return (
     <p
       role="status"
-      className={`sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface/95 px-4 py-2 text-meta backdrop-blur sm:mx-0 sm:rounded-lg sm:border ${
+      className={`sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface px-4 py-2 text-meta sm:mx-0 sm:rounded-md sm:border ${
         state === "failed" ? "text-danger" : "text-muted"
       }`}
     >

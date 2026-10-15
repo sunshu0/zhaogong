@@ -47,7 +47,7 @@ export function EmployerPublicPage({ employer, jobs }: { employer: Employer; job
           {jobs.length > 0 ? (
             <a
               href="#company-jobs"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-4 text-sm font-semibold text-white"
             >
               <MessageSquare aria-hidden="true" className="size-4" />
               选择岗位并沟通<span className="text-xs">{jobs.length}</span>
