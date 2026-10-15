@@ -51,8 +51,10 @@ test("compact job cards: title, pay, employer, region · type · hours and up to
         (el) => [el.textContent?.trim(), parseFloat(getComputedStyle(el).fontSize)] as const,
       ),
     );
-    const pay = sizes.find(([text]) => text === "$24/小时")![1];
-    expect(Math.max(...sizes.filter(([text]) => text !== "$24/小时").map(([, size]) => size))).toBeLessThan(pay);
+    // Pay (#36) is a large figure with a small 「/小时」 after it: the figure is what must be biggest.
+    const payTexts = ["$24/小时", "$24", "/小时"];
+    const pay = sizes.find(([text]) => text === "$24")![1];
+    expect(Math.max(...sizes.filter(([text]) => !payTexts.includes(text!)).map(([, size]) => size))).toBeLessThan(pay);
 
     expect(await noSideScroll(page)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`job-cards-${width}.png`) });
