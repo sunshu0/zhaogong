@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openOptionalProfile, expectProfileSaved } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 const AVATAR =
@@ -30,12 +31,14 @@ test("profile avatar upload persists and appears on employer job cards and publi
   });
   await page.goto("/profile");
   await expect(page.getByRole("heading", { name: "我的求职主页" })).toBeVisible();
+  await openOptionalProfile(page);
   await page
     .locator('input[type="file"]')
     .setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: Buffer.from(AVATAR.split(",")[1], "base64") });
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
-  await page.getByRole("button", { name: "保存资料" }).click();
+  await expectProfileSaved(page);
   await page.reload();
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
 
   await page.evaluate((avatar) => {
@@ -82,11 +85,13 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
   const title = uniqueTitle("头像验收岗位", testInfo);
   await publishJob(page, title);
   await page.goto("/profile");
+  await openOptionalProfile(page);
   await page
     .getByLabel("选择头像图片")
     .setInputFiles({ name: "avatar.png", mimeType: "image/png", buffer: Buffer.from(AVATAR.split(",")[1], "base64") });
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
   await page.reload();
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();
   await expect(page.getByRole("img", { name: `${shop}头像` }).first()).toBeVisible();
@@ -103,6 +108,7 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
     .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/profile");
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toHaveCount(0);
   await page.getByLabel("选择头像图片").setInputFiles({
     name: "personal.png",
@@ -116,9 +122,11 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
     .click();
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/profile");
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
   await page.getByRole("button", { name: "移除头像", exact: true }).click();
   await page.reload();
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toHaveCount(0);
   await page
     .getByRole("banner")
@@ -126,6 +134,7 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
     .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/profile");
+  await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chatMenuItem } from "./helpers";
+import { chatMenuItem, openOptionalProfile, expectProfileSaved } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -68,9 +68,9 @@ test("employer edits a public company home and chat remains in the seeker identi
   await publishJob(page, title);
   await page.goto("/profile");
   await page.getByLabel("企业介绍", { exact: true }).fill("公开企业介绍：欢迎前厅同事加入。");
-  await page.getByLabel("工作地址", { exact: true }).fill("测试门店地址，预约到店前请沟通。");
+  await page.getByLabel("地区", { exact: true }).fill("测试门店地址，预约到店前请沟通。");
   await page.getByLabel("招聘联系人", { exact: true }).fill("陈经理");
-  await page.getByRole("button", { name: "保存资料" }).click();
+  await expectProfileSaved(page);
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();
   await expect(page.getByRole("heading", { name: shop, exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/employers\//);
@@ -86,6 +86,7 @@ test("employer edits a public company home and chat remains in the seeker identi
     .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/profile");
+  await openOptionalProfile(page);
   await page.getByLabel("个人介绍", { exact: true }).fill("不可公开到企业主页的个人简历");
   await page.goto(companyUrl);
   await expect(page.getByRole("main")).not.toContainText("不可公开到企业主页");

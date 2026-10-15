@@ -1,115 +1,264 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
-import { ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { Check, ExternalLink } from "lucide-react";
+import { candidateFacts } from "@/components/account/candidate-facts";
+import { profileChecklist, profileProgress } from "@/components/account/profile-checklist";
+import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useProfile } from "@/components/seeker/hub-client";
 import type { Profile } from "@/components/seeker/hub-state";
-import { ProfileAvatarEditor } from "@/components/seeker/ProfileAvatar";
-import { PrivateDetailsFields, ProfileBasics, type UpdateProfileField } from "@/components/seeker/ProfileFields";
-import { ResumeEditor } from "@/components/seeker/ResumeEditor";
+import { AvatarImage, ProfileAvatarEditor } from "@/components/seeker/ProfileAvatar";
+import {
+  EmployerOptionalFields,
+  EmployerRequiredFields,
+  PrivateDetailsFields,
+  SeekerOptionalFields,
+  SeekerRequiredFields,
+  type UpdateProfileField,
+} from "@/components/seeker/ProfileFields";
+import { DiscoverableToggle, ResumeKeyFields, ResumeMoreFields } from "@/components/seeker/ResumeEditor";
 import { useSession } from "@/components/seeker/session-client";
-import { workspaceTitle } from "@/components/seeker/workspace";
+import { Group, Section } from "@/components/ui/Section";
+import { VerificationBadge } from "@/components/ui/VerificationBadge";
+import type { EmployerVerification } from "@/lib/types";
 
+type SaveState = "idle" | "saved" | "failed";
+
+/**
+ * /profile (我的主页 / 企业主页): what the other side sees at the top, how complete it is, then the required
+ * fields; optional ones are folded away. Every change is saved in this browser as you type (C5): there is no
+ * save button, and a failed save says so instead of pretending.
+ */
 export function ProfileWorkspace() {
   const { profile, update: updateProfile } = useProfile();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
-  const [saved, setSaved] = useState(false);
+  const verification = useEmployerProfile(isEmployer ? session.email : undefined).profile?.verification;
+  const [save, setSave] = useState<SaveState>("idle");
 
   const update: UpdateProfileField = (field, value) => {
-    setSaved(false);
-    return updateProfile({ [field]: value });
+    const saved = updateProfile({ [field]: value }) === true;
+    setSave(saved ? "saved" : "failed");
+    return saved || undefined;
   };
 
-  function save(event: FormEvent) {
-    event.preventDefault();
-    updateProfile(profile);
-    setSaved(true);
-  }
+  const progress = profileProgress(profileChecklist(profile, isEmployer, verification));
+  const keyItems = profileChecklist(profile, isEmployer, verification).filter((item) => item.key);
+  const optionalMissing = progress.missing.filter((item) => !item.key).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-section">
       <header>
-        <p className="text-xs font-medium text-brand">{workspaceTitle(isEmployer)}</p>
-        <h1 className="mt-1 text-2xl font-semibold">{isEmployer ? "企业主页" : "我的求职主页"}</h1>
+        <h1 className="text-title font-semibold">{isEmployer ? "企业主页" : "我的求职主页"}</h1>
+        <p className="mt-0.5 text-meta text-muted">改动会自动保存在这台设备上。</p>
       </header>
-      {isEmployer && <EmployerPageLinks employerId={session.employerId} />}
-      <form onSubmit={save} className="space-y-4">
-        <section className="flex flex-wrap items-center gap-3 border-b border-border py-4">
-          <ProfileAvatarEditor
-            value={profile.avatar}
-            fallback={profile.name.slice(0, 1) || "我"}
-            onChange={(avatar) => update("avatar", avatar)}
-          />
-          <div>
-            <p className="font-medium">{profile.name || (isEmployer ? "企业名称" : "你的名字")}</p>
-            <p className="text-xs text-muted">{visibilityNote(isEmployer, profile.resume?.discoverable)}</p>
-          </div>
-        </section>
-        <ProfileBasics profile={profile} isEmployer={isEmployer} update={update} />
-        <ProfilePreview profile={profile} isEmployer={isEmployer} />
-        {!isEmployer && <ResumeEditor value={profile.resume} onChange={(resume) => update("resume", resume)} />}
-        <PrivateDetailsFields
-          details={profile.privateDetails}
-          onChange={(details) => update("privateDetails", details)}
-        />
-        <div className="flex items-center justify-end gap-3">
-          <span role="status" className="text-sm text-ok">
-            {saved ? "已保存到本机" : ""}
-          </span>
-          <button
-            type="submit"
-            className="rounded-lg bg-brand px-5 py-2.5 text-sm font-medium text-white hover:opacity-90"
-          >
-            保存资料
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
 
-/** Who can see this profile, under the name. */
-function visibilityNote(isEmployer: boolean, discoverable: boolean | undefined): string {
-  if (isEmployer) return "企业主页 · 招聘联系人";
-  if (discoverable) return "求职主页 · 可向雇主推荐";
-  return "个人主页 · 仅对你选择的联系人可见";
-}
-
-function EmployerPageLinks({ employerId }: { employerId?: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-border pb-4">
-      <Link
-        href={`/employers/${employerId}`}
-        className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand underline"
+      <Section
+        id="profile-preview"
+        title="别人看到的样子"
+        description={isEmployer ? "求职者在职位和企业主页上看到这些" : "雇主在推荐人才和聊天里看到这些"}
+        action={
+          isEmployer && session?.employerId ? (
+            <Link
+              href={`/employers/${session.employerId}`}
+              className="inline-flex min-h-11 items-center gap-1 text-body text-brand underline-offset-4 hover:underline"
+            >
+              <ExternalLink aria-hidden="true" className="size-4" />
+              查看公开主页
+            </Link>
+          ) : undefined
+        }
       >
-        <ExternalLink aria-hidden="true" className="size-4" />
-        查看公开主页
-      </Link>
-      <Link href="/employer/verify" className="inline-flex min-h-11 items-center text-sm text-brand underline">
-        管理公司资质
-      </Link>
-      <p className="text-xs text-muted">企业资料对求职者公开；本机演示资料。</p>
+        <Group>
+          {isEmployer ? (
+            <EmployerPreview profile={profile} verification={verification} />
+          ) : (
+            <SeekerPreview profile={profile} />
+          )}
+        </Group>
+      </Section>
+
+      <Section id="profile-progress" title={`资料完成度 ${progress.done}/${progress.total}`}>
+        <Group>
+          <div
+            role="progressbar"
+            aria-label="资料完成度"
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-valuenow={progress.done}
+            className="h-2 overflow-hidden rounded-full bg-neutral-soft"
+          >
+            <div className="h-full bg-brand" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          </div>
+          <p className="mt-3 text-meta text-muted">{isEmployer ? "求职者最看重：" : "雇主最看重："}</p>
+          <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-body">
+            {keyItems.map((item) => (
+              <li key={item.id} className={`flex items-center gap-1 ${item.done ? "" : "text-danger"}`}>
+                {item.done ? (
+                  <Check aria-hidden="true" className="size-4 text-ok" />
+                ) : (
+                  <span aria-hidden="true">·</span>
+                )}
+                {item.label}
+                <span className="sr-only">{item.done ? "（已填）" : "（待填）"}</span>
+              </li>
+            ))}
+          </ul>
+        </Group>
+      </Section>
+
+      <Section id="profile-required" title="必填" description="对方最先看的几项">
+        <Group className="space-y-4">
+          {isEmployer ? (
+            <>
+              <EmployerRequiredFields profile={profile} update={update} />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
+                <span className="font-medium">企业验证</span>
+                {verification && <VerificationBadge verification={verification} />}
+                <Link href="/employer/verify" className="text-brand underline-offset-4 hover:underline">
+                  管理公司资质
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <SeekerRequiredFields profile={profile} update={update} />
+              <ResumeKeyFields value={profile.resume} onChange={(resume) => update("resume", resume)} />
+            </>
+          )}
+        </Group>
+      </Section>
+
+      <Section>
+        <details className="group py-group">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-subtitle font-semibold [&::-webkit-details-marker]:hidden">
+            <span>
+              选填资料
+              <span className="ml-2 text-meta font-normal text-muted">
+                {optionalMissing ? `${optionalMissing} 项未填` : "已全部填写"}
+              </span>
+            </span>
+            <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">
+              ▾
+            </span>
+          </summary>
+          <div className="mt-3 space-y-4">
+            <div>
+              <p className="mb-1 text-body font-medium">头像</p>
+              <ProfileAvatarEditor
+                value={profile.avatar}
+                fallback={profile.name.slice(0, 1) || "我"}
+                onChange={(avatar) => update("avatar", avatar)}
+              />
+            </div>
+            {isEmployer ? (
+              <EmployerOptionalFields profile={profile} update={update} />
+            ) : (
+              <>
+                <SeekerOptionalFields profile={profile} update={update} />
+                <ResumeMoreFields value={profile.resume} onChange={(resume) => update("resume", resume)} />
+              </>
+            )}
+          </div>
+        </details>
+      </Section>
+
+      {!isEmployer && (
+        <Section id="profile-recommend" title="推荐给雇主" description="打开后，雇主可以在「推荐人才」里看到上面的资料">
+          <Group>
+            <DiscoverableToggle value={profile.resume} onChange={(resume) => update("resume", resume)} />
+          </Group>
+        </Section>
+      )}
+
+      <Section
+        id="profile-private"
+        title="私密交换资料"
+        description="只在聊天里交换时给对方：你发起交换时对方马上能看到；对方发起时，你同意后才给。不显示在公开主页。"
+      >
+        <Group>
+          <PrivateDetailsFields
+            details={profile.privateDetails}
+            onChange={(details) => update("privateDetails", details)}
+          />
+        </Group>
+      </Section>
+
+      <SaveStatus state={save} />
     </div>
   );
 }
 
-function ProfilePreview({ profile, isEmployer }: { profile: Profile; isEmployer: boolean }) {
+/** Stays in view at the bottom while the form scrolls, above the phone's bottom bar. */
+function SaveStatus({ state }: { state: SaveState }) {
   return (
-    <section className="border-t border-border pt-4">
-      <h2 className="font-medium">资料预览</h2>
-      <div className="mt-3 space-y-2 rounded-lg border border-border bg-surface p-4">
-        <p className="font-semibold">{profile.headline || "简介待填写"}</p>
-        {isEmployer && <p className="text-sm">招聘联系人：{profile.contactName || "待填写"}</p>}
-        <p className="text-sm text-muted">
-          {profile.location || "地区待填写"} · {profile.languages || "语言待填写"}
-        </p>
-        <p className="text-sm leading-relaxed">{profile.bio || (isEmployer ? "企业介绍待填写" : "个人介绍待填写")}</p>
-        <p className="text-xs text-muted">
-          {profile.availability || (isEmployer ? "联系时间待填写" : "可工作时间待填写")}
-        </p>
+    <p
+      role="status"
+      className={`sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface/95 px-4 py-2 text-meta backdrop-blur sm:mx-0 sm:rounded-lg sm:border ${
+        state === "failed" ? "text-danger" : "text-muted"
+      }`}
+    >
+      {state === "failed"
+        ? "没有保存：这个浏览器不让本站保存资料（可能是无痕模式或存储空间已满），刷新后改动会丢失。"
+        : state === "saved"
+          ? "已自动保存到本机"
+          : "资料只保存在这台设备上，改动会自动保存。"}
+    </p>
+  );
+}
+
+function SeekerPreview({ profile }: { profile: Profile }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <AvatarImage avatar={profile.avatar} fallback={profile.name || "我"} />
+        <div className="min-w-0">
+          <p className="truncate text-subtitle font-semibold">{profile.name || "称呼待填写"}</p>
+          <p className="truncate text-meta text-muted">{profile.headline || "一句话介绍待填写"}</p>
+        </div>
       </div>
-    </section>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
+        {candidateFacts(profile).map((fact) => (
+          <div key={fact.term} className="min-w-0">
+            <dt className="text-meta text-muted">{fact.term}</dt>
+            <dd className={`break-words ${fact.value ? "" : "text-muted"}`}>{fact.value ?? "待填写"}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function EmployerPreview({ profile, verification }: { profile: Profile; verification?: EmployerVerification }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <AvatarImage avatar={profile.avatar} fallback={profile.name || "企"} />
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
+            <span className="break-words">{profile.name || "企业名称待填写"}</span>
+            {verification && <VerificationBadge verification={verification} />}
+          </p>
+          <p className="truncate text-meta text-muted">{profile.headline || "招聘简介待填写"}</p>
+        </div>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
+        <PreviewFact term="地区" value={profile.location} />
+        <PreviewFact term="招聘联系人" value={profile.contactName} />
+      </dl>
+      <p className={`line-clamp-3 whitespace-pre-line text-body ${profile.bio ? "" : "text-muted"}`}>
+        {profile.bio || "企业介绍待填写"}
+      </p>
+    </div>
+  );
+}
+
+function PreviewFact({ term, value }: { term: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-meta text-muted">{term}</dt>
+      <dd className={`break-words ${value.trim() ? "" : "text-muted"}`}>{value.trim() || "待填写"}</dd>
+    </div>
   );
 }

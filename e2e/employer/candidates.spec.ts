@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { openOptionalProfile } from "../helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("recommends by selected job, explains matches and opens a persistent role-specific chat", async ({
@@ -90,12 +91,14 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.goto("/messages");
   await expect(page.getByRole("complementary", { name: "聊天列表" })).not.toContainText(title);
   await page.goto("/profile");
-  await page.getByLabel("相关岗位经验（年）").fill("3");
+  await page.getByLabel("经验（年）").fill("3");
+  await openOptionalProfile(page);
   await page.getByLabel("最少小时", { exact: true }).fill("15");
   await page.getByLabel("最多小时", { exact: true }).fill("25");
   await page.getByLabel("允许向雇主推荐我的求职主页").check();
   await page.reload();
   await expect(page.getByLabel("允许向雇主推荐我的求职主页")).toBeChecked();
+  await openOptionalProfile(page);
   await expect(page.getByLabel("最少小时", { exact: true })).toHaveValue("15");
   await page.screenshot({ path: testInfo.outputPath("resume-editor.png"), fullPage: true });
   await page

@@ -8,24 +8,61 @@ import type { EmploymentType } from "@/lib/types";
 const toggle = <T,>(values: T[], value: T) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 const numberOrEmpty = (value: string) => (value === "" ? undefined : Number(value));
-const inputClass = "h-11 w-full rounded-lg border border-border bg-background px-3 focus:border-brand";
+const inputClass = "h-11 w-full rounded-lg border border-border bg-background px-3 text-body focus:border-brand";
 
-export function ResumeEditor({
-  value = EMPTY_RESUME,
-  onChange,
-}: {
-  value?: Resume;
-  onChange: (value: Resume) => void;
-}) {
-  function update(patch: Partial<Resume>) {
+type ResumeProps = { value?: Resume; onChange: (value: Resume) => void };
+
+/** Applies a change to the resume, giving it an id the first time so it can be recommended. */
+function resumeUpdater({ value = EMPTY_RESUME, onChange }: ResumeProps) {
+  return (patch: Partial<Resume>) =>
     onChange({ ...value, ...patch, candidateId: value.candidateId ?? crypto.randomUUID() });
-  }
+}
+
+/** 期望时薪 and 经验: two of the five things employers look at first. */
+export function ResumeKeyFields(props: ResumeProps) {
+  const value = props.value ?? EMPTY_RESUME;
+  const update = resumeUpdater(props);
   return (
-    <section className="space-y-4 border-t border-border pt-5" aria-labelledby="resume-heading">
-      <h2 id="resume-heading" className="font-semibold">
-        求职意向与简历
-      </h2>
-      <label className="block text-sm">
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="block text-body">
+        <span className="mb-1 block font-medium">期望时薪（NZ$ / 小时起）</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          max="200"
+          step="0.5"
+          value={value.expectedMinPay ?? ""}
+          onChange={(event) => update({ expectedMinPay: numberOrEmpty(event.target.value) })}
+          placeholder="例如：25"
+          className={inputClass}
+        />
+      </label>
+      <label className="block text-body">
+        <span className="mb-1 block font-medium">经验（年）</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          max="60"
+          step="0.5"
+          value={value.experienceYears ?? ""}
+          onChange={(event) => update({ experienceYears: numberOrEmpty(event.target.value) })}
+          placeholder="没有经验填 0"
+          className={inputClass}
+        />
+      </label>
+    </div>
+  );
+}
+
+/** The rest of the resume: skills, employment types, weekly hours and the regions you can work in. */
+export function ResumeMoreFields(props: ResumeProps) {
+  const value = props.value ?? EMPTY_RESUME;
+  const update = resumeUpdater(props);
+  return (
+    <div className="space-y-4">
+      <label className="block text-body">
         <span className="mb-1 block font-medium">工作技能</span>
         <input
           value={value.skills}
@@ -34,39 +71,13 @@ export function ResumeEditor({
           className={inputClass}
         />
       </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">相关岗位经验（年）</span>
-          <input
-            type="number"
-            min="0"
-            max="60"
-            step="0.5"
-            value={value.experienceYears ?? ""}
-            onChange={(event) => update({ experienceYears: numberOrEmpty(event.target.value) })}
-            className={inputClass}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">期望最低时薪（NZ$）</span>
-          <input
-            type="number"
-            min="0"
-            max="200"
-            step="0.5"
-            value={value.expectedMinPay ?? ""}
-            onChange={(event) => update({ expectedMinPay: numberOrEmpty(event.target.value) })}
-            className={inputClass}
-          />
-        </label>
-      </div>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">期望用工形式</legend>
+        <legend className="mb-2 text-body font-medium">期望用工形式</legend>
         <div className="flex flex-wrap gap-2">
           {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string }][]).map(([type, label]) => (
             <label
               key={type}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ${value.employmentTypes.includes(type) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-body ${value.employmentTypes.includes(type) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
             >
               <input
                 type="checkbox"
@@ -80,10 +91,10 @@ export function ResumeEditor({
         </div>
       </fieldset>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">每周可工作工时</legend>
+        <legend className="mb-2 text-body font-medium">每周可工作工时</legend>
         <div className="grid grid-cols-2 gap-3">
           {(["min", "max"] as const).map((key) => (
-            <label key={key} className="text-sm">
+            <label key={key} className="text-body">
               <span className="mb-1 block text-muted">{key === "min" ? "最少小时" : "最多小时"}</span>
               <input
                 type="number"
@@ -109,10 +120,10 @@ export function ResumeEditor({
         </div>
       </fieldset>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">可工作地区</legend>
+        <legend className="mb-2 text-body font-medium">可工作地区</legend>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNTRIES.NZ.regions.map((region) => (
-            <label key={region.id} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+            <label key={region.id} className="flex min-h-11 cursor-pointer items-center gap-2 text-body">
               <input
                 type="checkbox"
                 className="size-4 shrink-0 accent-brand"
@@ -124,15 +135,23 @@ export function ResumeEditor({
           ))}
         </div>
       </fieldset>
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 border-t border-border pt-4 text-sm font-medium">
-        <input
-          type="checkbox"
-          className="size-4 shrink-0 accent-brand"
-          checked={value.discoverable}
-          onChange={(event) => update({ discoverable: event.target.checked })}
-        />
-        允许向雇主推荐我的求职主页
-      </label>
-    </section>
+    </div>
+  );
+}
+
+/** Whether employers can find this profile in 推荐人才. */
+export function DiscoverableToggle(props: ResumeProps) {
+  const value = props.value ?? EMPTY_RESUME;
+  const update = resumeUpdater(props);
+  return (
+    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
+      <input
+        type="checkbox"
+        className="size-4 shrink-0 accent-brand"
+        checked={value.discoverable}
+        onChange={(event) => update({ discoverable: event.target.checked })}
+      />
+      允许向雇主推荐我的求职主页
+    </label>
   );
 }

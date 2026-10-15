@@ -55,3 +55,14 @@ export async function exchangeTool(page: Page, name: string) {
   if ((await plus.getAttribute("aria-expanded")) !== "true") await plus.click();
   return page.getByRole("group", { name: "沟通工具" }).getByRole("button", { name, exact: true });
 }
+
+/** Opens 选填资料 on /profile, which is folded by default (C4). */
+export async function openOptionalProfile(page: Page) {
+  const details = page.locator("details", { has: page.locator("summary", { hasText: "选填资料" }) });
+  if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) await details.locator("summary").click();
+}
+
+/** Profile edits save as you type; the page says so. */
+export async function expectProfileSaved(page: Page) {
+  await expect(page.getByText("已自动保存到本机")).toBeVisible();
+}

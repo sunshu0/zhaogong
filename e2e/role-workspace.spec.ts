@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { chatEntry, exchangeTool } from "./helpers";
+import { chatEntry, exchangeTool, openOptionalProfile, expectProfileSaved } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -25,10 +25,10 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await page.goto("/profile");
   await expect(page.getByRole("heading", { level: 1, name: "企业主页" })).toBeVisible();
   await expect(page.getByLabel("企业名称", { exact: true })).toHaveValue(shop);
-  await expect(page.getByLabel("可工作时间", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("可上班时间", { exact: true })).toHaveCount(0);
   await page.getByLabel("招聘联系人", { exact: true }).fill("陈经理");
   await page.getByLabel("企业介绍", { exact: true }).fill("我们提供前厅和厨房岗位。欢迎预约面试。");
-  await page.getByRole("button", { name: "保存资料" }).click();
+  await expectProfileSaved(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath("employer-profile.png"), fullPage: true });
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
@@ -58,8 +58,9 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(page.getByRole("heading", { name: "我的求职主页", level: 1 })).toBeVisible();
   await expect(page.getByLabel("企业名称", { exact: true })).toHaveCount(0);
   await page.getByLabel("称呼", { exact: true }).fill("求职者小林");
+  await openOptionalProfile(page);
   await page.getByLabel("个人介绍", { exact: true }).fill("我的求职经历只保存在求职身份下。");
-  await page.getByRole("button", { name: "保存资料" }).click();
+  await expectProfileSaved(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath("seeker-profile.png"), fullPage: true });
   await page.goto("/messages");
