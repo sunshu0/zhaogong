@@ -1,6 +1,6 @@
 # 接口说明
 
-> 描述 2026-10-15 `main` 上的接口。阶段三（#8 数据库、#9 登录和会话、#10 聊天存服务器、#11 举报和审核入库）合并后补充新增的接口，并更新「身份」一节。
+> 描述 2026-10-16 `main` 上的接口：数据库（#8、#11）、登录和服务器会话（#9）、聊天存服务器（#10、#42）、雇主和审核接口读会话（#19）都已合并。
 
 找工没有单独的 REST 服务。浏览器通过 **Server Functions**（`"use server"` 的 `actions.ts`）读写服务器数据：页面里的客户端组件直接调用这些异步函数，Next.js 把调用变成对当前页面地址的 POST 请求（带 `Next-Action` 头）。这个请求格式是 Next.js 的内部约定，不是给外部调用的公开 API；对外稳定的是下面列出的**函数签名、返回值和错误文字**。
 
@@ -8,7 +8,8 @@
 
 ## 约定
 
-- **身份（演示阶段）：** 需要知道是谁的函数都收 `email` 参数，服务器按邮箱找到账号和绑定的企业（`getAccountEmployer`），从不使用浏览器传来的企业编号。服务器目前**信任**收到的邮箱；#9 接入服务器会话后，这些参数会去掉，改为读会话。
+- **身份：** 登录后服务器发一个 httpOnly 会话 cookie（`zg_session`，ADR 0007）。职位、聊天、雇主和审核的函数都从会话读出账号和当前身份，不收邮箱（登录一节只在登录和开通雇主身份时带邮箱）；企业每次用 `getAccountEmployer` 从账号查，从不使用浏览器传来的企业编号。
+- **未登录：** 需要登录的读操作返回 `null`，聊天的写操作也返回 `null`（不改任何东西）；登录一节的函数返回「请先登录」。
 - **结果形状：** 写操作返回带 `ok` 的联合类型，失败时 `error`（登录、举报）或 `error_zh`（雇主、审核）是可以直接显示给用户的中文句子。读操作在没有权限或找不到时返回 `null`、空数组或空对象，不抛错。
 - **输入：** 所有参数都在服务器上重新校验（类型、长度、枚举值），浏览器的校验只是提示。
 - **国家：** 目前固定新西兰（`DEFAULT_COUNTRY = "NZ"`）。
@@ -17,15 +18,22 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `signInAccount(email, code)` | 邮箱；6 位数字验证码（演示：任意 6 位） | `{ ok: true, account: AccountStatus }`，首次使用时创建账号 | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」 |
-| `accountStatus(email)` | 邮箱 | `AccountStatus`：`{ email, employer?: { id, name } }`，浏览器用它校正本机的会话 | 邮箱无效时 `null` |
-| `openEmployerForAccount(email, choice)` | `choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
+`AccountStatus`（即 `SessionView`）：`{ email, activeRole: "seeker" | "employer", employer?: { id, name } }`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `requestSignInCode(email)` | 邮箱 | `{ ok: true }`，验证码 10 分钟有效。开发和测试环境另带 `devCode`（登录页直接显示），生产环境永远不带 | `{ ok: false, error }`：「请输入正确的邮箱地址」「验证码刚发过，请 N 秒后再获取」（每个邮箱每分钟一次）「邮件服务还没有配置，暂时无法发送验证码」（生产环境，#16） |
+| `signInAccount(email, code, role?)` | 邮箱；6 位数字验证码；想要的身份，默认 `seeker`，账号有企业时才能是 `employer` | `{ ok: true, account: AccountStatus }`，首次使用时创建账号，并设置会话 cookie（30 天） | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」「请先获取验证码」「验证码已过期，请重新获取」「验证码不对，还可以再试 N 次」「错误次数太多，请重新获取验证码」（错 5 次作废） |
+| `accountStatus(email?)` | 可选：浏览器副本里的邮箱 | 当前会话的 `AccountStatus`；浏览器每次加载页面用它校正本机副本 | 没有会话、或会话属于另一个邮箱时 `null` |
+| `switchIdentity(role)` | `"seeker"` 或 `"employer"` | 切换后的 `AccountStatus`；账号没有企业时留在求职者身份 | 没有会话时 `null` |
+| `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
+| `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
 
 ## 职位（求职者）— `src/app/jobs/[id]/actions.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `revealContact(jobId, email)` | 职位编号；登录用户的邮箱 | `{ phone?, wechat?, email? }`。只对雇主选择公开联系方式（`contactPublic`）、且求职者能看到的职位；同一人对同一职位 30 分钟内只记一次查看 | `null`（参数无效、职位不公开联系方式、已下架或不存在） |
+| `revealContact(jobId)` | 职位编号；查看的人取自会话 | `{ phone?, wechat?, email? }`。只对雇主选择公开联系方式（`contactPublic`）、且求职者能看到的职位；同一人对同一职位 30 分钟内只记一次查看 | `null`（未登录、参数无效、职位不公开联系方式、已下架或不存在） |
 | `reportJob(jobId, reason, note?)` | `reason`：`fake_job`、`charges_fee`、`below_min_wage`、`discriminatory`、`visa_selling`、`inappropriate`、`other`；`note` 最多 500 字，选 `other` 时必填。不需要登录 | `{ ok: true, reportId }` | `{ ok: false, error }`：「请选择举报原因」「补充说明最多 500 字」「选择“其他”时，请简单写一下原因」「找不到这个职位，可能已经下架」 |
 | `jobSummary(jobId)` | 职位编号 | `{ id, title, pay, open }`，聊天顶部的职位条用；`open` 表示还在招 | `null` |
 
@@ -50,6 +58,39 @@
 | `verifyBusiness(nzbn)` | NZBN | `{ ok: true, employer }`，显示「已验证企业」，认证雇主保持原级别 | `{ ok: false, error_zh }`：「企业登记里没有这个 NZBN。」「这家公司在企业登记里已注销，不能用来验证。」「这个 NZBN 已经被其他店铺验证。…」「账号已被停用，不能验证。」 |
 
 `findings` 的每一项：`{ level: "block" | "rewrite" | "review", field, message_zh, rule, matches }`（`src/lib/compliance/`）。
+
+## 聊天、交换和通知 — `src/app/messages/actions.ts`
+
+每个身份（邮箱 + 身份 + 企业，`identityScope`）有自己的一份聊天记录：会话里的消息、已读、交换请求和回应、聊天举报（`ChatRecord`，`src/components/seeker/chat-store.ts`），存在数据库的 `chat_records` 表（#42）。服务器上的这一份是准的；浏览器 `localStorage` 里的是缓存，跟着服务器的回答更新。每次回答都带 `scope`，浏览器只在对应的身份下采用。
+
+`ChatSnapshot`：`{ scope, record: ChatRecord }`。`ReadsSnapshot`：`{ scope, ids: string[] }`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myChat()` | | 当前身份的 `ChatSnapshot`，还没有记录时是空记录 | 未登录时 `null` |
+| `changeMyChat(change, ticket?)` | `change` 见下表；`ticket`：`{ id, scope }`，浏览器待发送队列里这一项的编号（8–64 位字母、数字、连字符）和它产生时的身份 | 改动后的 `ChatSnapshot`。带 `ticket` 时同一编号只应用一次（每个身份记最近 200 个），`scope` 和当前会话不一致时不应用（切换身份期间浏览器稍后重发） | 未登录时 `null`；改动不合规则时原样返回当前记录，不报错 |
+| `importMyChat(record)` | #10 之前只存在浏览器里的记录 | 服务器还没有这个身份的记录时，校验后存下并返回；已有记录时返回服务器的，不覆盖 | 未登录时 `null`；格式不对时返回空记录 |
+| `myNotificationReads()` | | 当前身份已读的通知编号 | 未登录时 `null` |
+| `markMyNotificationsRead(ids)` | 通知编号数组，或 `"all"` | 合并后的已读编号；只收这个身份确实有的通知 | 未登录时 `null` |
+
+`changeMyChat` 的 `change`（服务器用和浏览器同一套纯函数检查和应用，时间和编号由服务器生成）：
+
+| `type` | 其余字段 | 规则 |
+| --- | --- | --- |
+| `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找候选人只能用自己企业的职位，演示候选人的名字以服务器为准，名字最多 40 字 |
+| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字 |
+| `read` | `conversationId` | 把这个对话标为已读 |
+| `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
+| `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
+| `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条 |
+
+## 只在开发环境存在的接口
+
+`POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
+
+| 请求体 | 成功 | 失败 |
+| --- | --- | --- |
+| `{ conversationId, reply?, readMine? }`：`reply` 最多 2000 字；`readMine: true` 把我发的消息标为对方已读 | 200，改动后的 `ChatRecord` | 401 `{ error: "请先登录" }`；400 `{ error: "没有这个对话" }` |
 
 ## 审核后台 — `src/app/admin/actions.ts`
 
@@ -76,4 +117,5 @@
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理、编辑职位、推荐人才、企业验证 | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，登录 |
+| `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |

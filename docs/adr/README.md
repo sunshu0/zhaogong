@@ -10,5 +10,6 @@
 | [0004](0004-cloudflare-workers-opennext.md) | 部署到 Cloudflare Workers + OpenNext | 已采纳 |
 | [0005](0005-database-drizzle-libsql.md) | 数据库与 ORM：Drizzle + libSQL，`data.ts` 接数据库 | 已采纳 |
 | [0006](0006-online-database.md) | 线上数据库：Turso 与 D1 的取舍 | 待用户决定（#15） |
+| [0007](0007-sign-in-and-sessions.md) | 登录与会话：邮箱验证码 + httpOnly cookie 的服务器会话 | 已采纳；生产环境的邮件服务待用户决定（#16） |
 
 新编号由执行 C 统一分配：要写新 ADR 时先在队列里要一个号，避免两条线撞号。
