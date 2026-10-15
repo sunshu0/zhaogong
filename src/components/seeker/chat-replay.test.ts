@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReplay, REPLAY_SCRIPT } from "@/components/seeker/chat-replay";
+import { buildReplay, firstRoundLength, REPLAY_SCRIPT, type ReplayMessage } from "@/components/seeker/chat-replay";
 
 describe("buildReplay", () => {
   it("is a real conversation from startChat / nextTurn: the script's messages in turn with the assistant", async () => {
@@ -25,5 +25,25 @@ describe("buildReplay", () => {
     const withChips = (await buildReplay()).filter((m) => m.quickReplies.length > 0);
     expect(withChips.length).toBeGreaterThan(0);
     for (const m of withChips) for (const label of m.quickReplies) expect(typeof label).toBe("string");
+  });
+});
+
+describe("firstRoundLength", () => {
+  const m = (from: ReplayMessage["from"]): ReplayMessage => ({
+    id: String(Math.random()),
+    from,
+    text: "",
+    quickReplies: [],
+  });
+
+  it("is the greeting, the employer's first message and the assistant's reply", async () => {
+    expect(firstRoundLength(await buildReplay())).toBe(3);
+    expect(firstRoundLength([m("employer"), m("assistant"), m("employer")])).toBe(2);
+  });
+
+  it("is the whole conversation when it has no full round", () => {
+    expect(firstRoundLength([m("assistant")])).toBe(1);
+    expect(firstRoundLength([m("assistant"), m("employer")])).toBe(2);
+    expect(firstRoundLength([])).toBe(0);
   });
 });

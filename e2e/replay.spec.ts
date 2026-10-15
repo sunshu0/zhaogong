@@ -33,6 +33,14 @@ test("screen readers get the whole conversation, with the three problems and the
 test.describe("at 1280 × 800", () => {
   test.use({ viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false });
 
+  test("before the replay starts, the window already shows the first round (no blank box)", async ({ page }) => {
+    await page.goto("/");
+    // Not scrolled into view yet: the greeting, the employer's post and the assistant's reply are there.
+    await expect(bubbles(page)).toHaveCount(3);
+    await expect(bubbles(page).nth(1)).toContainText("奶茶店招兼职店员");
+    for (let i = 0; i < 3; i += 1) await expect(bubbles(page).nth(i)).toBeVisible();
+  });
+
   test("the replay plays message by message when it comes into view, and can play again", async ({ page }) => {
     test.setTimeout(90_000);
     await page.goto("/");

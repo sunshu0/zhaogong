@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { ReplayMessage } from "@/components/seeker/chat-replay";
+import { firstRoundLength, type ReplayMessage } from "@/components/seeker/chat-replay";
 
 /** Same rule as the count-up: animate only with scripting on and no request for less motion. */
 const CAN_ANIMATE = "(scripting: enabled) and (prefers-reduced-motion: no-preference)";
-/** The conversation is in the HTML from the start; hidden (keeping its size) until the replay takes over. */
-const HIDDEN_UNTIL_READY = "[@media(scripting:enabled)_and_(prefers-reduced-motion:no-preference)]:invisible";
+/**
+ * The whole conversation is in the HTML (for no JavaScript and reduced motion). Where the replay will run, all but
+ * the first round is hidden until it takes over, so the window starts with that round instead of a blank box.
+ */
+const HIDDEN_UNTIL_REPLAY = "[@media(scripting:enabled)_and_(prefers-reduced-motion:no-preference)]:hidden";
 
 const TYPING_MS = 500;
 const READ_MS = 600;
@@ -26,8 +29,15 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
     () => window.matchMedia(CAN_ANIMATE).matches && "IntersectionObserver" in window,
     () => false,
   );
-  // How many messages are shown, whether the assistant is "typing", and which run of the replay this is.
-  const [shown, setShown] = useState(0);
+  const hydrated = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+  const firstRound = firstRoundLength(messages);
+  // How many messages are shown (the first round from the start), whether the assistant is "typing", and which
+  // run of the replay this is.
+  const [shown, setShown] = useState(firstRound);
   const [typing, setTyping] = useState(false);
   const [run, setRun] = useState(0);
   const [started, setStarted] = useState(false);
@@ -54,6 +64,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
     const timers: number[] = [];
     let at = 300;
     messages.forEach((m, i) => {
+      if (i < firstRound) return; // already on screen
       if (m.from === "assistant") {
         timers.push(window.setTimeout(() => setTyping(true), at));
         at += TYPING_MS;
@@ -67,7 +78,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
       at += READ_MS + Math.min(m.text.length * 8, 600);
     });
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [canAnimate, started, run, messages]);
+  }, [canAnimate, started, run, messages, firstRound]);
 
   // Keep the newest message in view inside the window (not the page).
   useEffect(() => {
@@ -94,14 +105,15 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
         ))}
       </ol>
 
-      <div
-        ref={log}
-        aria-hidden="true"
-        data-replay-log=""
-        className={`h-[26rem] space-y-3 overflow-y-auto px-3 py-4 ${canAnimate ? "" : HIDDEN_UNTIL_READY}`}
-      >
-        {visible.map((m) => (
-          <div key={m.id} data-bubble="" className={`flex ${m.from === "employer" ? "justify-end" : "justify-start"}`}>
+      <div ref={log} aria-hidden="true" data-replay-log="" className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4">
+        {visible.map((m, i) => (
+          <div
+            key={m.id}
+            data-bubble=""
+            className={`flex ${m.from === "employer" ? "justify-end" : "justify-start"} ${
+              !hydrated && i >= firstRound ? HIDDEN_UNTIL_REPLAY : ""
+            }`}
+          >
             <div className="max-w-[85%]">
               <p
                 className={`rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line ${
@@ -147,7 +159,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
           <button
             type="button"
             onClick={() => {
-              setShown(0);
+              setShown(firstRound);
               setTyping(false);
               setRun((r) => r + 1);
             }}

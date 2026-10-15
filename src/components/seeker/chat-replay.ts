@@ -30,3 +30,14 @@ export async function buildReplay(script: string[] = REPLAY_SCRIPT): Promise<Rep
     quickReplies: (m.quickReplies ?? []).map((q) => q.label),
   }));
 }
+
+/**
+ * How many messages make the first round — up to the assistant's reply to the employer's first message. They
+ * show before the replay starts, so the window is never a blank box (A31).
+ */
+export function firstRoundLength(messages: readonly ReplayMessage[]): number {
+  const employer = messages.findIndex((m) => m.from === "employer");
+  if (employer < 0) return messages.length;
+  const reply = messages.findIndex((m, i) => i > employer && m.from === "assistant");
+  return reply < 0 ? messages.length : reply + 1;
+}
