@@ -99,7 +99,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const done = !canAnimate || shown === messages.length;
 
   return (
-    <div ref={root} className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+    <div ref={root} className="overflow-hidden rounded-md border border-border bg-background">
       <div className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5">
         <p className="text-sm font-medium">找工发帖助手</p>
         <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">真实对话回放</span>

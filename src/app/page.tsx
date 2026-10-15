@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
@@ -7,8 +6,9 @@ import { Suspense } from "react";
 import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
 import { DEMO_DATA, visibleStats } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
+import type { JobFilter } from "@/lib/types";
 import { englishSummary, parsePost } from "@/lib/ai-post";
-import { getPlatformStats, listFeaturedJobs } from "@/lib/data";
+import { getPlatformStats, listFeaturedJobs, listJobs } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobCard } from "@/components/seeker/JobCard";
@@ -17,7 +17,8 @@ import { PostJobLink } from "@/components/seeker/AccountMenu";
 import { buildReplay } from "@/components/seeker/chat-replay";
 import { ChatReplay } from "@/components/seeker/ChatReplay";
 import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES } from "@/components/seeker/landing";
-import { BeforeAfter, CheckIcon, FeatureIconSvg, JobStack } from "@/components/seeker/landing-parts";
+import { BeforeAfter, CheckIcon, FeatureIconSvg } from "@/components/seeker/landing-parts";
+import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay } from "@/components/seeker/format";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 
@@ -31,7 +32,15 @@ export const metadata: Metadata = {
   openGraph: { title: TITLE, description: DESCRIPTION, type: "website", locale: "zh_CN" },
 };
 
-const TRUST = ["雇主验证", "发布前查合规", "对求职者免费"];
+/** One tap into /jobs with a filter it already has. */
+const QUICK_FILTERS: { label: string; filter: Omit<JobFilter, "country"> }[] = [
+  { label: "接受学签", filter: { visa: "student" } },
+  { label: "包餐", filter: { mealsIncluded: true } },
+  { label: "兼职", filter: { employmentTypes: ["part_time"] } },
+  { label: "市中心", filter: { regionIds: ["akl-cbd"] } },
+];
+
+const NOTICE_COUNT = 3;
 
 const EMPLOYER_POINTS = [
   "粘贴微信群里的招聘消息，自动整理成中英文职位",
@@ -51,74 +60,56 @@ export default function Home({ searchParams }: PageProps<"/">) {
       </Suspense>
       <NoScriptLanding />
 
-      <section
-        aria-labelledby="hero-heading"
-        className={`${FULL_BLEED} relative overflow-hidden bg-linear-135 from-brand via-[#0c5f59] to-[#073b37] text-white`}
-      >
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0" style={DOT_GRID} />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -bottom-20 text-[18rem] leading-none font-bold text-white/[0.06] select-none lg:right-[4%] lg:-bottom-28 lg:text-[30rem]"
-        >
-          找
-        </span>
-
+      <section aria-labelledby="hero-heading" className={`${FULL_BLEED} bg-background`}>
         <div
-          className={`${SITE_CONTAINER} relative grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:py-20`}
+          className={`${SITE_CONTAINER} grid gap-6 pt-6 pb-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-14 lg:pb-6`}
         >
           <div>
-            <p className="flex items-center gap-3">
-              <Image
-                src="/icons/icon-192.png"
-                alt=""
-                width={56}
-                height={56}
-                preload
-                className="size-14 rounded-[22%] ring-2 ring-white/40"
-              />
-              <span className="text-3xl font-bold tracking-wider">{PRODUCT_NAME}</span>
-            </p>
-            <h1 id="hero-heading" className="mt-6 text-3xl leading-tight font-bold lg:text-[3.25rem]">
-              奥克兰的中文工作平台
+            <h1 id="hero-heading" className="text-[1.75rem] leading-tight font-black lg:text-[3.25rem]">
+              奥克兰的中文工作，
+              <br />
+              时薪写在最前面。
             </h1>
-            <p className="mt-3 max-w-xl text-base text-white lg:mt-4 lg:max-w-[40rem] lg:text-lg">
-              餐饮、零售、清洁、装修等工作，时薪、地区、签证写清楚，联系雇主更放心。
+            <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">
+              餐饮、零售、清洁、装修。每个职位发布前都核对过最低工资，雇主有没有通过验证、接受哪些签证，都写得清清楚楚。
             </p>
-            <div className="mt-7 flex gap-3">
-              <Link
-                href="/login?role=seeker"
-                className="flex-1 rounded-lg bg-white px-6 py-3 text-center font-semibold text-brand hover:bg-white/90 lg:flex-none"
+            <form action={jobsHref("")} role="search" className="mt-5 flex max-w-xl">
+              <input
+                type="search"
+                name="q"
+                maxLength={50}
+                enterKeyHint="search"
+                placeholder="服务员、厨师、Mt Eden…"
+                aria-label="搜索职位"
+                className="min-w-0 flex-1 rounded-l-md border border-r-0 border-brand bg-surface px-3.5 py-3 text-base outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-r-md bg-brand px-4 font-bold text-white hover:bg-brand/90"
               >
-                注册找工作
-              </Link>
-              <Link
-                href={jobsHref("")}
-                className="flex-1 rounded-lg border border-white/80 px-6 py-3 text-center font-semibold text-white hover:bg-white/10 lg:flex-none"
-              >
-                直接浏览工作
-              </Link>
-            </div>
-            <p className="mt-4 text-sm text-white">
-              招人？{" "}
-              <PostJobLink className="font-medium underline underline-offset-4 hover:no-underline">
-                我要招人 →
-              </PostJobLink>
-            </p>
-            <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white" aria-label="我们的承诺">
-              {TRUST.map((item) => (
-                <li key={item} className="flex items-center gap-1.5">
-                  <CheckIcon />
-                  {item}
+                找工作
+              </button>
+            </form>
+            <ul aria-label="快捷筛选" className="mt-3 flex flex-wrap gap-2">
+              {QUICK_FILTERS.map((quick) => (
+                <li key={quick.label}>
+                  <Link
+                    href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
+                    className="inline-block rounded-sm bg-brand-soft px-2.5 py-1.5 text-body text-brand hover:bg-brand hover:text-white"
+                  >
+                    {quick.label}
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div className="hidden lg:block">
-            <Suspense fallback={<div className="h-[26rem]" />}>
-              <HeroPicture />
+            <Suspense fallback={<p className="mt-4 h-6" />}>
+              <HeroCount />
             </Suspense>
           </div>
+
+          <Suspense fallback={<div className="h-72 lg:h-[26rem]" />}>
+            <HeroNotices />
+          </Suspense>
         </div>
       </section>
 
@@ -153,7 +144,7 @@ async function NoScriptLanding() {
   return (
     <noscript>
       <div className={`${SITE_CONTAINER} py-4`}>
-        <div className="rounded-xl border border-border bg-surface p-4 text-sm">
+        <div className="rounded-md border border-border bg-surface p-4 text-sm">
           {stats.length > 0 && (
             <section aria-labelledby="no-js-stats-heading">
               <h2 id="no-js-stats-heading" className="font-semibold">
@@ -203,16 +194,25 @@ async function NoScriptLanding() {
   );
 }
 
-const DOT_GRID = {
-  backgroundImage: "radial-gradient(rgb(255 255 255 / 0.13) 1px, transparent 1.6px)",
-  backgroundSize: "22px 22px",
-  maskImage: "linear-gradient(to bottom, black, transparent 90%)",
-};
-
-async function HeroPicture() {
+/** 橱窗告示: three real open jobs from verified employers, best pay first. */
+async function HeroNotices() {
   await connection();
-  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, 3);
-  return <JobStack jobs={jobs} employers={await employersOf(jobs)} />;
+  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT);
+  return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} />;
+}
+
+/** 「N 个职位在招，来自 M 家已验证雇主」: counted from the open jobs, per request. */
+async function HeroCount() {
+  await connection();
+  const jobs = await listJobs({ country: DEFAULT_COUNTRY });
+  const employers = await employersOf(jobs);
+  const verified = [...employers.values()].filter((e) => e.verification !== "unverified").length;
+  return (
+    <p className="mt-4 text-body text-muted">
+      <b className="font-figure text-[1.375rem] text-foreground">{jobs.length}</b> 个职位在招，来自{" "}
+      <b className="font-figure text-[1.375rem] text-foreground">{verified}</b> 家已验证雇主
+    </p>
+  );
 }
 
 /** Real counts from getPlatformStats, per request, counting up on screen; while the data is demo data it says so. */
@@ -253,7 +253,7 @@ async function FeaturedBand() {
             查看全部职位 →
           </Link>
         </div>
-        <ul className="mt-6 grid grid-cols-1 gap-4">
+        <ul className="mt-6 divide-y divide-border border-y border-border">
           {jobs.map((job) => (
             <li key={job.id}>
               <JobCard job={job} employer={employers.get(job.employerId)} headingLevel={3} />
@@ -275,12 +275,9 @@ async function FeaturesBand() {
           功能展示
         </h2>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <article
-            aria-labelledby="ai-feature-heading"
-            className="rounded-2xl border border-brand/30 bg-brand-soft/50 p-4 lg:p-5"
-          >
+          <article aria-labelledby="ai-feature-heading" className="border-t-2 border-brand pt-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand text-white">
                 <FeatureIconSvg name="chat" />
               </span>
               <div>
@@ -294,14 +291,17 @@ async function FeaturesBand() {
               <ChatReplay messages={replay} />
             </div>
           </article>
-          <ul className="grid gap-4">
+          {/* Thin lines between the features (Round 13), no cards. */}
+          <ul className="divide-y divide-border border-y border-border">
             {FEATURES.map((feature) => (
-              <li key={feature.title} className="rounded-2xl border border-border p-5">
-                <span className="flex size-11 items-center justify-center rounded-xl bg-brand-soft text-brand">
+              <li key={feature.title} className="flex items-start gap-3 py-5">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
                   <FeatureIconSvg name={feature.icon} />
                 </span>
-                <h3 className="mt-4 font-semibold">{feature.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{feature.text}</p>
+                <div>
+                  <h3 className="font-semibold">{feature.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{feature.text}</p>
+                </div>
               </li>
             ))}
           </ul>

@@ -10,7 +10,7 @@ const transcript = (page: Page) => features(page).locator("ol.sr-only li");
 test("the landing page runs hero → stats → features → featured jobs → employers", async ({ page }) => {
   await page.goto("/");
   const order = [
-    page.getByRole("region", { name: "奥克兰的中文工作平台" }),
+    page.getByRole("region", { name: /^奥克兰的中文工作/ }),
     page.getByRole("region", { name: "平台数据" }),
     features(page),
     page.getByRole("region", { name: "精选工作" }),
@@ -81,8 +81,13 @@ test("我要招人 goes straight to posting once the account is an employer", as
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/");
 
-  const hero = page.getByRole("region", { name: "奥克兰的中文工作平台" });
-  await expect(hero.getByRole("link", { name: "我要招人 →" })).toHaveAttribute("href", "/employer/post");
+  // The header's 发布招聘 (phones post from the bottom bar instead) and the employer band both go to posting.
+  if (testInfo.project.name === "desktop") {
+    await expect(page.getByRole("banner").getByRole("link", { name: "发布招聘" })).toHaveAttribute(
+      "href",
+      "/employer/post",
+    );
+  }
   await expect(
     page.getByRole("region", { name: "招人？一分钟发布招聘" }).getByRole("link", { name: "注册雇主 →" }),
   ).toHaveAttribute("href", "/employer/post");

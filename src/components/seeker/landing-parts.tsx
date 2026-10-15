@@ -3,10 +3,8 @@ import { regionById } from "@/config/countries";
 import { LANGUAGE_LABELS } from "@/i18n/labels";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { JobDraft } from "@/lib/compliance";
-import type { Employer, Job } from "@/lib/types";
-import { formatHours, formatPay, jobTags } from "@/components/seeker/format";
+import { formatHours, formatPay } from "@/components/seeker/format";
 import type { FeatureIcon } from "@/components/seeker/landing";
-import { VerificationBadge } from "@/components/ui/VerificationBadge";
 
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
   return (
@@ -19,60 +17,6 @@ function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
 }
 
 /** A job card as a picture: same facts as the list's card, but not a link. */
-function PictureCard({ job, employer, className }: { job: Job; employer?: Employer; className: string }) {
-  const facts = [regionById(job.country, job.regionId)?.nameZh, formatEmploymentTypes(job.employmentType)].filter(
-    Boolean,
-  );
-  const tags = jobTags(job);
-  return (
-    <div className={`w-80 rounded-xl bg-surface p-4 text-foreground shadow-2xl ring-1 ring-black/5 ${className}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-semibold">{job.titleZh}</p>
-          <p className="truncate text-xs text-muted">{job.titleEn}</p>
-        </div>
-        <p className="shrink-0 font-semibold text-brand">{formatPay(job.pay, job.country)}</p>
-      </div>
-      {employer && (
-        <p className="mt-2 flex items-center gap-2 text-sm">
-          {employer.name}
-          <VerificationBadge verification={employer.verification} />
-        </p>
-      )}
-      <p className="mt-1 text-xs text-muted">{facts.join(" · ")}</p>
-      {tags.length > 0 && (
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {tags.map((tag) => (
-            <Tag key={tag} urgent={tag === "急招"}>
-              {tag}
-            </Tag>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// Each card overlaps the one above by 0.25rem and turns at most 2°, so the overlap (under 1rem with the turn)
-// stays inside the card's 1rem bottom padding: only card edges are covered, never text or tags.
-const STACK_POSITIONS = ["ml-2 -rotate-2", "-mt-1 ml-24 rotate-[1.5deg]", "-mt-1 ml-10 -rotate-1"];
-
-/** Three featured jobs stacked with a slight offset: the hero's picture on desktop. Decorative; the list below has the links. */
-export function JobStack({ jobs, employers }: { jobs: Job[]; employers: Map<string, Employer> }) {
-  return (
-    <div aria-hidden="true" className="flex flex-col py-4" data-job-stack="">
-      {jobs.slice(0, STACK_POSITIONS.length).map((job, i) => (
-        <PictureCard
-          key={job.id}
-          job={job}
-          employer={employers.get(job.employerId)}
-          className={`relative ${STACK_POSITIONS[i]}`}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function CheckIcon({ className = "size-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" className={`shrink-0 fill-current ${className}`}>
@@ -136,7 +80,7 @@ export function BeforeAfter({ message, draft, summaryEn }: { message: string; dr
     <figure className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div>
         <p className="mb-2 text-xs text-white/75">改前 · 微信群里的一段话</p>
-        <div className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-black shadow-lg">
+        <div className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-black">
           <span aria-hidden="true" className="absolute top-4 -right-1.5 size-3 rotate-45 bg-[#95ec69]" />
           {message}
         </div>
@@ -158,7 +102,7 @@ export function BeforeAfter({ message, draft, summaryEn }: { message: string; dr
 
       <div>
         <p className="mb-2 text-xs text-white/75">改后 · 找工整理好的中英文职位</p>
-        <div className="rounded-xl bg-surface p-4 text-foreground shadow-lg">
+        <div className="rounded-md bg-surface p-4 text-foreground">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="font-semibold">{draft.titleZh}</p>

@@ -1,54 +1,48 @@
 import { expect, test } from "@playwright/test";
-import { fillSignInCode } from "./helpers";
 import { DEMO_DATA, visibleStats } from "../src/config/landing";
 
-test("landing: hero with logo, headline, buttons and trust row; height by content", async ({ page }, testInfo) => {
+test("landing: headline, search, quick filters, the open jobs counted, and three window notices", async ({
+  page,
+}, testInfo) => {
   await page.goto("/");
   await expect(page).toHaveTitle("找工 · 奥克兰的中文工作平台");
-  const hero = page.getByRole("region", { name: "奥克兰的中文工作平台" });
-  await expect(hero.locator('img[src*="icon-192"]')).toBeVisible();
-  await expect(hero.getByText("找工", { exact: true })).toBeVisible();
-  await expect(hero.getByRole("heading", { level: 1, name: "奥克兰的中文工作平台" })).toBeVisible();
-  await expect(hero.getByRole("link", { name: "注册找工作" })).toBeInViewport();
-  await expect(hero.getByRole("link", { name: "注册找工作" })).toHaveAttribute("href", "/login?role=seeker");
-  // The quieter way in for employers (signed out: employer sign-up, then posting).
-  await expect(hero.getByRole("link", { name: "我要招人 →" })).toHaveAttribute(
-    "href",
-    "/login?role=employer&next=%2Femployer%2Fpost",
-  );
-  await expect(hero.getByRole("link", { name: "直接浏览工作" })).toBeInViewport();
-  await expect(hero.getByRole("list", { name: "我们的承诺" }).getByRole("listitem")).toHaveText([
-    "雇主验证",
-    "发布前查合规",
-    "对求职者免费",
-  ]);
+  const hero = page.getByRole("region", { name: /^奥克兰的中文工作/ });
+  await expect(hero.getByRole("heading", { level: 1 })).toHaveText("奥克兰的中文工作，时薪写在最前面。");
+  await expect(hero.getByRole("searchbox", { name: "搜索职位" })).toBeInViewport();
+  await expect(hero.getByRole("button", { name: "找工作" })).toBeInViewport();
+  const quick = hero.getByRole("list", { name: "快捷筛选" }).getByRole("link");
+  await expect(quick).toHaveText(["接受学签", "包餐", "兼职", "市中心"]);
+  await expect(quick.first()).toHaveAttribute("href", "/jobs?visa=student");
+  await expect(hero.getByText(/^\d+ 个职位在招，来自 \d+ 家已验证雇主$/)).toBeVisible();
 
-  const height = (await hero.boundingBox())!.height;
+  // 橱窗告示: three open jobs, each a link to its page with the pay large; turned on desktop, straight and
+  // scrolling sideways on phones.
+  const notices = hero.getByRole("list", { name: "正在招聘" }).getByRole("listitem");
+  await expect(notices).toHaveCount(3);
+  for (let i = 0; i < 3; i++) {
+    await expect(notices.nth(i).getByRole("link")).toHaveAttribute("href", /^\/jobs\/[^/]+$/);
+    await expect(notices.nth(i)).toContainText("/小时");
+  }
+  const turns = await notices.evaluateAll((items) => items.map((li) => getComputedStyle(li).rotate));
+  const headline = (await hero.getByRole("heading", { level: 1 }).boundingBox())!;
   if (testInfo.project.name === "desktop") {
-    expect(height).toBeGreaterThanOrEqual(520);
-    expect(height).toBeLessThanOrEqual(680);
-    // The headline is large on desktop (48–56 px).
+    expect(turns.every((turn) => turn !== "none" && turn !== "0deg")).toBe(true);
+    // The headline is large on desktop (48–56 px), the notices on its right.
     const size = await hero
       .getByRole("heading", { level: 1 })
       .evaluate((h) => parseFloat(getComputedStyle(h).fontSize));
     expect(size).toBeGreaterThanOrEqual(48);
     expect(size).toBeLessThanOrEqual(56);
-    // The header's logo and the hero's content start at the same x: one site container.
+    expect((await notices.first().boundingBox())!.x).toBeGreaterThan(headline.x + headline.width);
+    // The header's logo and the headline start at the same x: one site container.
     const headerLogo = (await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).boundingBox())!;
-    const heroLogo = (await hero.locator("img").boundingBox())!;
-    expect(Math.abs(headerLogo.x - heroLogo.x)).toBeLessThanOrEqual(1);
-
-    // The stacked cards on the right overlap only at their edges: each card starts below the last line
-    // (tags or facts) of the card above it.
-    const stack = hero.locator("[data-job-stack] > div");
-    await expect(stack).toHaveCount(3);
-    for (let i = 0; i < 2; i++) {
-      const lastLine = (await stack.nth(i).locator(":scope > *").last().boundingBox())!;
-      const next = (await stack.nth(i + 1).boundingBox())!;
-      expect(next.y, `card ${i + 2} covers card ${i + 1}`).toBeGreaterThanOrEqual(lastLine.y + lastLine.height);
-    }
+    expect(Math.abs(headerLogo.x - headline.x)).toBeLessThanOrEqual(1);
   } else {
-    expect(height).toBeLessThan(page.viewportSize()!.height); // no empty first screen on phones
+    expect(turns.every((turn) => turn === "none" || turn === "0deg")).toBe(true);
+    const list = hero.getByRole("list", { name: "正在招聘" });
+    expect(await list.evaluate((ul) => ul.scrollWidth > ul.clientWidth)).toBe(true);
+    expect((await notices.first().boundingBox())!.x).toBeCloseTo(16, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
 
@@ -121,28 +115,31 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   await expect(page).toHaveURL("/jobs");
 });
 
-test("注册找工作 goes through 注册或登录 and lands on the job list", async ({ page }) => {
+test("the search box opens the job list for the keyword", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "注册找工作" }).click();
-  await expect(page).toHaveURL("/login?role=seeker");
-  await expect(page.getByRole("radio", { name: /我要找工作/ })).toBeChecked();
-  await expect(page.getByRole("heading", { level: 1, name: "注册或登录" })).toBeVisible();
-
-  await page.getByLabel("邮箱", { exact: true }).fill(`new.seeker.${Date.now()}@example.com`);
-  await page.getByRole("button", { name: "获取验证码" }).click();
-  await expect(page.getByText("开发环境没有接邮件服务", { exact: false }).filter({ visible: true })).toBeVisible();
-  await fillSignInCode(page);
-  await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL("/jobs");
-  await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
+  await page
+    .getByRole("region", { name: /^奥克兰的中文工作/ })
+    .getByRole("searchbox", { name: "搜索职位" })
+    .fill("点心");
+  await page
+    .getByRole("region", { name: /^奥克兰的中文工作/ })
+    .getByRole("button", { name: "找工作" })
+    .click();
+  await expect(page).toHaveURL("/jobs?q=%E7%82%B9%E5%BF%83");
+  await expect(page.getByRole("main").getByRole("heading", { level: 2, name: "点心师傅" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "去掉条件：“点心”" })).toBeVisible();
 });
 
-test("直接浏览工作 opens the job list; the logo leads back to the intro", async ({ page }) => {
+test("a quick filter opens the filtered job list; the logo leads back to the intro", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "直接浏览工作" }).click();
-  await expect(page).toHaveURL("/jobs");
+  await page
+    .getByRole("region", { name: /^奥克兰的中文工作/ })
+    .getByRole("link", { name: "包餐" })
+    .click();
+  await expect(page).toHaveURL("/jobs?meals=1");
   await expect(page.getByRole("heading", { level: 1, name: "奥克兰中文工作" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "去掉条件：包餐" })).toBeVisible();
   await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await expect(page).toHaveURL("/");
-  await expect(page.getByRole("heading", { level: 1, name: "奥克兰的中文工作平台" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /^奥克兰的中文工作/ })).toBeVisible();
 });
