@@ -6,6 +6,7 @@ import { databaseAuthStore } from "@/db/auth-store";
 import { databaseChatStore } from "@/db/chat-store";
 import { grantModerator, isModerator, listModerators, revokeModerator } from "@/db/moderators";
 import { database } from "@/db/ready";
+import { saveJob } from "@/db/saved-jobs";
 import * as t from "@/db/schema";
 import { DEMO_MODERATOR } from "@/db/seed";
 import {
@@ -63,6 +64,7 @@ async function fullAccount(email: string) {
   await chats.putNotificationReads(scopeOf(email, "seeker"), ["n1"]);
   await chats.putNotificationReads(scopeOf(email, "employer", business.id), ["n2"]);
   await recordContactView("j1", email);
+  await saveJob(email, "j1");
   return { business, job };
 }
 
@@ -80,6 +82,7 @@ describe("exportAccountData (#54)", () => {
       [scopeOf(email, "employer", business.id), scopeOf(email, "seeker")].sort(),
     );
     expect(data?.chats.find((c) => c.identity === scopeOf(email, "seeker"))?.notificationsRead).toEqual(["n1"]);
+    expect(data?.savedJobs).toEqual([{ jobId: "j1", savedAt: expect.any(String), stage: null, stageSetAt: null }]);
     expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
     expect(data?.sessions).toEqual([
       { activeRole: "seeker", createdAt: "2026-10-16T00:00:00.000Z", expiresAt: "2026-11-16T00:00:00.000Z" },
@@ -110,6 +113,7 @@ describe("deleteAccount (#54)", () => {
       [t.signInCodes, t.signInCodes.email],
       [t.chatRecords, t.chatRecords.email],
       [t.contactViews, t.contactViews.viewerEmail],
+      [t.savedJobs, t.savedJobs.email],
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
     }
@@ -168,6 +172,7 @@ describe("deleteAccount (#54)", () => {
       "sign_in_codes.email",
       "chat_records.email",
       "contact_views.viewer_email",
+      "saved_jobs.email",
       "moderators.email",
       "conversations.seeker_email",
     ]);

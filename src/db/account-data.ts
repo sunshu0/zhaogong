@@ -17,6 +17,8 @@ export interface ServerAccountData {
   employer: { business: Employer; jobs: Job[] } | null;
   /** Each identity's chat records and the notifications it has read. */
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
+  /** Saved jobs and how far the application got (#52). */
+  savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
   /** Jobs whose public contact details this account looked at. */
   contactViews: { jobId: string; viewedAt: string }[];
   /** Signed-in sessions. The cookie token is never stored, so there is nothing more to show. */
@@ -40,6 +42,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.chatRecords)
     .where(eq(t.chatRecords.email, address))
     .orderBy(asc(t.chatRecords.scope));
+  const saved = await db
+    .select()
+    .from(t.savedJobs)
+    .where(eq(t.savedJobs.email, address))
+    .orderBy(asc(t.savedJobs.savedAt));
   const views = await db
     .select()
     .from(t.contactViews)
@@ -61,6 +68,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       notificationsRead: row.notificationReads ?? [],
       updatedAt: row.updatedAt,
     })),
+    savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
     contactViews: views.map((v) => ({ jobId: v.jobId, viewedAt: v.viewedAt })),
     sessions: sessions.map((s) => ({ activeRole: s.activeRole, createdAt: s.createdAt, expiresAt: s.expiresAt })),
   };
@@ -90,6 +98,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.sessions).where(eq(t.sessions.email, address));
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
+    await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
     await tx
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
