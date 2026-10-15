@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getEmployer, listJobsByEmployer } from "@/lib/data";
@@ -14,9 +15,10 @@ export async function generateMetadata({ params }: PageProps<"/employers/[id]">)
 export default function EmployerPage({ params }: PageProps<"/employers/[id]">) {
   return (
     <div className={WIDE_ON_DESKTOP}>
+      <NoScriptStreams />
       <Suspense
         fallback={
-          <p role="status" className="py-12 text-muted">
+          <p data-nojs-hide="" role="status" className="py-12 text-muted">
             加载雇主主页…
           </p>
         }

@@ -35,7 +35,7 @@ export function JobList({
 
 export function JobListSkeleton() {
   return (
-    <ul className="grid grid-cols-1 gap-3" aria-hidden="true">
+    <ul data-nojs-hide="" className="grid grid-cols-1 gap-3" aria-hidden="true">
       {[0, 1, 2, 3].map((i) => (
         <li key={i}>
           <JobCardSkeleton />

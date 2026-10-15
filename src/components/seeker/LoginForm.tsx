@@ -373,7 +373,21 @@ function Choice({
 }
 
 function Placeholder() {
-  return <div className="h-40 animate-pulse rounded-xl border border-border bg-surface" aria-hidden="true" />;
+  return (
+    <>
+      <div
+        data-nojs-hide=""
+        className="h-40 animate-pulse rounded-xl border border-border bg-surface"
+        aria-hidden="true"
+      />
+      {/* Signing in runs in the browser (the code step, the session copy): say so instead of an endless placeholder. */}
+      <noscript>
+        <p className="rounded-xl border border-border bg-surface p-4 text-sm">
+          登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。
+        </p>
+      </noscript>
+    </>
+  );
 }
 
 function ErrorText({ children }: { children: string }) {

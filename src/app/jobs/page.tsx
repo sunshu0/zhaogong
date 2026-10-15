@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -18,6 +19,7 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
     <div className={WIDE_ON_DESKTOP}>
       <h1 className="mb-3 text-lg font-semibold">奥克兰中文工作</h1>
+      <NoScriptStreams />
       <Suspense fallback={<JobListSkeleton />}>
         <Results searchParams={searchParams} />
       </Suspense>

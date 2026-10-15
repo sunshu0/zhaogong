@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Suspense } from "react";
 import { regionById } from "@/config/countries";
 import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
@@ -14,7 +15,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
       <p className="mt-1 mb-4 text-sm text-muted">
         用邮箱验证码注册或登录，不用设密码。同一个账号可以找工作，也可以开通雇主身份招人。
       </p>
-      <Suspense fallback={<div className="h-40 animate-pulse rounded-xl border border-border bg-surface" />}>
+      <NoScriptStreams />
+      <Suspense
+        fallback={<div data-nojs-hide="" className="h-40 animate-pulse rounded-xl border border-border bg-surface" />}
+      >
         <Login searchParams={searchParams} />
       </Suspense>
     </div>

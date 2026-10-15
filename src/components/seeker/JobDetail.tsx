@@ -168,7 +168,7 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
 
 export function JobDetailSkeleton() {
   return (
-    <div className="space-y-3" aria-hidden="true">
+    <div data-nojs-hide="" className="space-y-3" aria-hidden="true">
       <div className="h-44 animate-pulse rounded-xl border border-border bg-surface" />
       <div className="h-20 animate-pulse rounded-xl border border-border bg-surface" />
       <div className="h-56 animate-pulse rounded-xl border border-border bg-surface" />

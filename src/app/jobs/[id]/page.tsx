@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -33,6 +34,7 @@ export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
       <div className="mb-2">
         <BackLink />
       </div>
+      <NoScriptStreams />
       <Suspense fallback={<JobDetailSkeleton />}>
         <Job params={params} />
       </Suspense>
