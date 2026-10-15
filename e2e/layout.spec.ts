@@ -135,30 +135,63 @@ test("job list: filters collapsed in one bar at every width; Esc or a tap outsid
   await expect(page.getByRole("group", { name: "行业" }).getByLabel("餐饮")).toBeChecked();
 });
 
-test("job page: contact and share in a right column that stays in view on desktop, after the description on phones", async ({
+test("job page: contact in a right column that stays in view on desktop, after the description on phones", async ({
   page,
 }, testInfo) => {
   await page.goto("/jobs/j3");
-  const description = page.getByRole("heading", { name: "Job description" });
+  const description = page.getByRole("heading", { name: "职位描述" });
   const contact = page.getByRole("region", { name: "联系方式" });
-  const share = page.getByRole("region", { name: "分享给朋友" });
   const report = page.getByRole("button", { name: "举报这个职位" });
   await expect(contact).toBeVisible();
   expect(await noSideScroll(page)).toBe(true);
 
   if (testInfo.project.name === "mobile") {
     expect((await box(contact)).y).toBeGreaterThan((await box(description)).y);
-    expect((await box(share)).y).toBeGreaterThan((await box(contact)).y);
-    expect((await box(report)).y).toBeGreaterThan((await box(share)).y);
+    expect((await box(report)).y).toBeGreaterThan((await box(contact)).y);
     return;
   }
 
   expect((await box(contact)).x).toBeGreaterThan((await box(description)).x + (await box(description)).width);
-  expect((await box(share)).x).toBe((await box(contact)).x);
   expect((await box(report)).x).toBeLessThan((await box(contact)).x); // report stays under the description
 
   await page.mouse.wheel(0, 2000);
   await expect.poll(async () => Math.round((await box(contact)).y)).toBeGreaterThanOrEqual(72);
   const viewport = page.viewportSize()!;
   expect((await box(contact)).y).toBeLessThan(viewport.height);
+});
+
+test("job page facts first: pay, region, hours, type, meals, visas; share is a button; actions sit above the bottom bar", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/jobs/j1"); // contact details public
+  const facts = page.locator("article header dl");
+  await expect(facts.locator("dt")).toHaveText(["薪资", "地区", "工时和班次", "用工形式", "食宿", "接受的签证"]);
+  const columns = await facts.evaluate((dl) => getComputedStyle(dl).gridTemplateColumns.split(" ").length);
+  expect(columns).toBe(testInfo.project.name === "mobile" ? 2 : 3);
+
+  await page.getByRole("button", { name: "分享" }).click();
+  await expect(page.getByRole("dialog", { name: "分享给朋友" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const chat = page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true });
+  const contactLink = page.getByRole("link", { name: "查看联系方式", exact: true });
+  await expect(chat).toBeVisible();
+  await expect(contactLink).toBeVisible();
+  if (testInfo.project.name === "mobile") {
+    // Fixed above the bottom navigation, and the end of the page can scroll clear of it.
+    const nav = await box(page.getByRole("navigation", { name: "底部导航" }));
+    const bar = await box(chat);
+    expect(bar.y + bar.height).toBeLessThanOrEqual(nav.y);
+    await page.mouse.wheel(0, 5000);
+    const report = page.getByRole("button", { name: "举报这个职位" });
+    await expect.poll(async () => (await box(report)).y + (await box(report)).height).toBeLessThanOrEqual(bar.y);
+  }
+  await contactLink.click();
+  await expect(page).toHaveURL("/jobs/j1#contact");
+
+  await page.goto("/jobs/j2"); // contact details exchanged in the chat
+  await expect(page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "查看联系方式", exact: true })).toHaveCount(0);
+  expect(await noSideScroll(page)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("job-page.png"), fullPage: true });
 });

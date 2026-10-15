@@ -7,7 +7,8 @@ import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { RecordView } from "@/components/seeker/RecordView";
 import { ReportJob } from "@/components/seeker/ReportJob";
-import { ShareJob } from "@/components/seeker/ShareJob";
+import { ShareJobButton } from "@/components/seeker/ShareJob";
+import { buttonClass } from "@/components/ui/Button";
 import { formatPay } from "@/components/seeker/format";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
@@ -49,47 +50,56 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
       job={job}
       employer={employer}
       now={now}
+      share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
       actions={
         employer && !employer.bannedAt ? (
-          <StartEmployerChat
-            employer={{ id: employer.id, name: employer.name }}
-            job={{
-              id: job.id,
-              employerId: job.employerId,
-              titleZh: job.titleZh,
-              status: job.status,
-              expiresAt: job.expiresAt,
-            }}
-            closed={isExpired(job, now)}
-          />
+          <>
+            <StartEmployerChat
+              employer={{ id: employer.id, name: employer.name }}
+              job={{
+                id: job.id,
+                employerId: job.employerId,
+                titleZh: job.titleZh,
+                status: job.status,
+                expiresAt: job.expiresAt,
+              }}
+              closed={isExpired(job, now)}
+            />
+            {job.contactPublic && (
+              <a href="#contact" className={buttonClass("secondary")}>
+                查看联系方式
+              </a>
+            )}
+          </>
         ) : undefined
       }
       aside={
         <>
-          {job.contactPublic ? (
-            <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
-          ) : (
-            <section
-              aria-labelledby="contact-heading"
-              className="space-y-3 rounded-lg border border-border bg-surface p-4"
-            >
-              <h2 id="contact-heading" className="font-medium">
-                联系方式
-              </h2>
-              <p className="text-sm text-muted">
-                雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
-              </p>
-              {employer && (
-                <Link
-                  href={`/employers/${employer.id}`}
-                  className="inline-flex min-h-11 items-center text-sm text-brand underline"
-                >
-                  查看雇主主页
-                </Link>
-              )}
-            </section>
-          )}
-          <ShareJob path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />
+          <div id="contact" className="scroll-mt-20">
+            {job.contactPublic ? (
+              <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+            ) : (
+              <section
+                aria-labelledby="contact-heading"
+                className="space-y-3 rounded-lg border border-border bg-surface p-4"
+              >
+                <h2 id="contact-heading" className="font-medium">
+                  联系方式
+                </h2>
+                <p className="text-sm text-muted">
+                  雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
+                </p>
+                {employer && (
+                  <Link
+                    href={`/employers/${employer.id}`}
+                    className="inline-flex min-h-11 items-center text-sm text-brand underline"
+                  >
+                    查看雇主主页
+                  </Link>
+                )}
+              </section>
+            )}
+          </div>
         </>
       }
     >

@@ -70,7 +70,7 @@ test("profile avatar upload persists and appears on employer job cards and publi
   await page.goto("/jobs/j5");
   const employer = page.getByRole("region", { name: "雇主", exact: true });
   await expect(employer.getByRole("img", { name: "东区亚洲超市头像" })).toBeVisible();
-  await expect(employer).toContainText("雇主ID：e3");
+  await expect(employer).not.toContainText("雇主ID"); // A29: name, badge and its explanation only
   await page.goto("/employers/e3");
   await expect(page.getByRole("img", { name: "东区亚洲超市头像" }).first()).toBeVisible();
   await expect(page.getByText("雇主主页 · 演示企业 · ID：e3", { exact: true })).toBeVisible();

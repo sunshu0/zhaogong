@@ -28,8 +28,11 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   await expect(page).toHaveURL("/jobs/j3");
   await expect(page.getByRole("heading", { level: 1, name: "点心师傅" })).toBeVisible();
   await expect(page.getByText("Dim sum chef").filter({ visible: true })).toBeVisible();
+  // A29: one description at a time, Chinese first.
   await expect(page.getByRole("heading", { name: "职位描述" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Job description" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "中文" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "English" }).click();
+  await expect(page.getByRole("tabpanel")).toHaveAttribute("lang", "en");
   await expect(page.getByText("认证雇主", { exact: true }).filter({ visible: true })).toBeVisible();
   await expect(page).toHaveTitle("点心师傅 · $30–35/小时 · Northcote · 找工");
 
@@ -57,7 +60,9 @@ test("a keyword with no match shows the empty state, which clears the filters", 
 test("a job near the minimum wage says so, and an unknown job is not found", async ({ page }) => {
   await page.goto("/jobs/j13");
   await expect(page.getByText("接近新西兰最低时薪 $23.95（2026-04-01 起）。").filter({ visible: true })).toBeVisible();
-  await expect(page.getByText("以上为雇主提供的信息，不构成签证或移民建议。").filter({ visible: true })).toBeVisible();
+  await expect(
+    page.getByText(/签证一项是雇主提供的信息，不构成签证或移民建议。/).filter({ visible: true }),
+  ).toBeVisible();
 
   await page.goto("/jobs/nope");
   await expect(page.getByRole("heading", { name: "这个职位不存在或已下架" })).toBeVisible();

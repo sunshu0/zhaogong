@@ -7,7 +7,10 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
 }, testInfo) => {
   await page.goto("/jobs/j1");
   await expect(page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "查看雇主主页与其他岗位" }).click();
+  await page
+    .getByRole("region", { name: "雇主", exact: true })
+    .getByRole("link", { name: /^查看雇主主页/ })
+    .click();
   await expect(page).toHaveURL("/employers/e1");
   await expect(page.getByRole("heading", { name: "川味小馆", exact: true })).toBeVisible();
   const credentials = page.getByRole("region", { name: "公司资质", exact: true });
@@ -112,7 +115,10 @@ test("expired jobs cannot start chats and empty or missing companies have clear 
   await page.goto("/jobs/j17");
   await expect(page.getByText("招聘已结束", { exact: true })).toBeVisible();
   await expect(page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: "查看雇主主页与其他岗位" }).click();
+  await page
+    .getByRole("region", { name: "雇主", exact: true })
+    .getByRole("link", { name: /^查看雇主主页/ })
+    .click();
   await expect(page.getByRole("region", { name: /在招岗位/ })).not.toContainText("收银员");
   await signUpEmployer(page, testInfo, "/profile");
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();

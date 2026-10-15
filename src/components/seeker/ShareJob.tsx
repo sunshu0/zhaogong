@@ -1,6 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { Share2 } from "lucide-react";
+import { ChatDialog } from "@/components/seeker/ChatDialog";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { isWeChat, withLink } from "@/components/seeker/share";
 
@@ -11,8 +13,33 @@ function useBrowserValue<T>(read: () => T, fallback: T): T {
   return useSyncExternalStore(noop, read, () => fallback);
 }
 
+type ShareProps = { path: string; title: string; summary: string };
+
+/** 分享: an icon button that opens the share panel in a dialog. */
+export function ShareJobButton(props: ShareProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="分享"
+        title="分享给朋友"
+        onClick={() => setOpen(true)}
+        className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-background hover:text-brand"
+      >
+        <Share2 aria-hidden="true" className="size-5" />
+      </button>
+      {open && (
+        <ChatDialog title="分享给朋友" onClose={() => setOpen(false)}>
+          <SharePanel {...props} />
+        </ChatDialog>
+      )}
+    </>
+  );
+}
+
 /** Share sheet where the browser has one, copy link, and a short text block to paste into groups. */
-export function ShareJob({ path, title, summary }: { path: string; title: string; summary: string }) {
+function SharePanel({ path, title, summary }: ShareProps) {
   const origin = useBrowserValue(() => location.origin, "");
   const canShare = useBrowserValue(() => typeof navigator.share === "function", false);
   const inWeChat = useBrowserValue(() => isWeChat(navigator.userAgent), false);
@@ -28,13 +55,10 @@ export function ShareJob({ path, title, summary }: { path: string; title: string
   }
 
   return (
-    <section aria-labelledby="share-heading" className="rounded-xl border border-border bg-surface p-4">
-      <h2 id="share-heading" className="font-medium">
-        分享给朋友
-      </h2>
-      {inWeChat && <p className="mt-1 text-sm text-muted">点右上角「···」，可以发送给朋友或分享到朋友圈。</p>}
+    <div>
+      {inWeChat && <p className="text-sm text-muted">点右上角「···」，可以发送给朋友或分享到朋友圈。</p>}
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2 first:mt-0">
         {canShare && (
           <button
             type="button"
@@ -51,6 +75,6 @@ export function ShareJob({ path, title, summary }: { path: string; title: string
         <p className="text-sm break-all whitespace-pre-line">{text}</p>
         <CopyButton text={text} label="复制这段文字" className="mt-2" />
       </div>
-    </section>
+    </div>
   );
 }
