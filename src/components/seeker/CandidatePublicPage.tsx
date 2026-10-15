@@ -1,112 +1,175 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
+import { getMyJob } from "@/app/employer/actions";
+import { candidateContext } from "@/components/account/candidate-context";
+import { candidateFacts } from "@/components/account/candidate-facts";
 import { useCandidateDirectory } from "@/components/seeker/hub-client";
 import { useChat } from "@/components/seeker/chat-client";
+import { formatPay } from "@/components/seeker/format";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
+import { AvatarImage } from "@/components/seeker/ProfileAvatar";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Group, Section } from "@/components/ui/Section";
+import { PAY_TEXT } from "@/components/ui/text";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
-import { AvatarImage } from "@/components/seeker/ProfileAvatar";
+import type { Candidate } from "@/lib/candidate-matching";
+import type { Job } from "@/lib/types";
 
+/**
+ * /candidates/[id]: a job seeker's page as an employer sees it. Coming from a chat or 推荐人才, the top says which
+ * job it is about and offers 回到聊天 or 发起聊天; the five facts employers check first come before the rest.
+ */
 export function CandidatePublicPage() {
   const { id } = useParams<{ id: string }>();
+  const jobParam = useSearchParams().get("job");
   const hydrated = useHydrated();
   const session = useSession();
   const candidates = useCandidateDirectory();
   const { conversations } = useChat();
   const candidate = candidates.find((item) => item.id === id && item.resume.discoverable);
-  const conversation =
-    session?.activeRole === "employer"
-      ? conversations.find(
-          (item) =>
-            ("candidateId" in item && item.candidateId === id) ||
-            item.id === id ||
-            item.id.startsWith(`recommend:${id}:`),
-        )
-      : undefined;
-  const backHref = conversation ? `/messages?conversation=${encodeURIComponent(conversation.id)}` : "/messages";
-  const back = (
-    <Link href={backHref} className="inline-flex min-h-11 items-center gap-2 text-sm text-brand">
-      <ArrowLeft aria-hidden="true" className="size-4" />
-      返回聊天
-    </Link>
-  );
+  const isEmployer = session?.activeRole === "employer";
+  const context = isEmployer ? candidateContext(conversations, id, jobParam) : { jobId: null, conversationId: null };
+  const job = useOwnJob(context.jobId, isEmployer ? session.email : undefined);
+  const chatHref = context.conversationId
+    ? `/messages?conversation=${encodeURIComponent(context.conversationId)}`
+    : "/messages";
+
   if (!hydrated)
     return (
-      <p role="status" className="py-8 text-sm text-muted">
+      <p role="status" className="py-8 text-body text-muted">
         正在加载主页…
       </p>
     );
   if (!candidate)
     return (
       <div className="space-y-4">
-        {back}
-        <h1 className="text-2xl font-semibold">求职主页暂不可查看</h1>
-        <p className="text-sm text-muted">该求职者尚未公开资料或已关闭公开主页。</p>
+        <BackToChat href={chatHref} />
+        <h1 className="text-title font-semibold">求职主页暂不可查看</h1>
+        <p className="text-body text-muted">该求职者尚未公开资料或已关闭公开主页。</p>
       </div>
     );
-  const { resume } = candidate;
+
   return (
-    <div className="space-y-6">
-      {back}
-      <header className="flex items-start gap-4 border-b border-border pb-6">
-        <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={`${candidate.name}头像`} large />
-        <div className="min-w-0">
-          <p className="text-xs text-muted">求职者主页{candidate.source === "demo" ? " · 演示资料" : ""}</p>
-          <h1 className="mt-1 break-words text-2xl font-semibold">{candidate.name}</h1>
-          <p className="mt-2 break-words text-sm">{candidate.headline || "求职意向待补充"}</p>
-          <p className="mt-2 flex items-center gap-1 text-sm text-muted">
-            <MapPin aria-hidden="true" className="size-4 shrink-0" />
-            {candidate.location || "地区待补充"}
+    <div className="space-y-section">
+      {job ? (
+        <JobBar job={job} candidate={candidate} chatHref={context.conversationId ? chatHref : null} />
+      ) : (
+        <BackToChat href={chatHref} />
+      )}
+      <Section>
+        <Group>
+          <header className="flex items-start gap-4">
+            <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={`${candidate.name}头像`} large />
+            <div className="min-w-0">
+              <p className="text-meta text-muted">求职者主页{candidate.source === "demo" ? " · 演示资料" : ""}</p>
+              <h1 className="break-words text-title font-semibold">{candidate.name}</h1>
+              <p className="mt-1 break-words text-body">{candidate.headline || "求职意向待补充"}</p>
+              <p className="mt-1 flex items-center gap-1 text-body text-muted">
+                <MapPin aria-hidden="true" className="size-4 shrink-0" />
+                {candidate.location || "地区待补充"}
+              </p>
+            </div>
+          </header>
+        </Group>
+        <Group>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body" aria-label="主要条件">
+            {candidateFacts(candidate).map((fact) => (
+              <Fact key={fact.term} term={fact.term} value={fact.value} />
+            ))}
+          </dl>
+        </Group>
+      </Section>
+      <Section id="candidate-about" title="个人介绍">
+        <Group>
+          <p className="whitespace-pre-line break-words text-body leading-relaxed">
+            {candidate.bio || "尚未填写个人介绍。"}
           </p>
-        </div>
-      </header>
-      <section aria-labelledby="candidate-about" className="space-y-3">
-        <h2 id="candidate-about" className="text-lg font-semibold">
-          个人介绍
-        </h2>
-        <p className="whitespace-pre-line break-words text-sm leading-relaxed">
-          {candidate.bio || "尚未填写个人介绍。"}
-        </p>
-      </section>
-      <section aria-labelledby="candidate-preferences" className="space-y-4 border-t border-border pt-5">
-        <h2 id="candidate-preferences" className="text-lg font-semibold">
-          公开求职资料
-        </h2>
-        <dl className="grid gap-5 text-sm sm:grid-cols-2">
-          <Info term="技能" value={resume.skills} />
-          <Info
-            term="相关岗位经验"
-            value={resume.experienceYears != null ? `${resume.experienceYears} 年` : undefined}
-          />
-          <Info term="沟通语言" value={candidate.languages} />
-          <Info term="可工作时间" value={candidate.availability} />
-          <Info term="用工形式" value={formatEmploymentTypes(resume.employmentTypes)} />
-          <Info
-            term="工作地区"
-            value={resume.regionIds.map((region) => regionById("NZ", region)?.nameZh ?? region).join("、")}
-          />
-          <Info
-            term="每周工时"
-            value={resume.hoursPerWeek ? `${resume.hoursPerWeek.min}–${resume.hoursPerWeek.max} 小时` : undefined}
-          />
-          <Info
-            term="期望最低时薪"
-            value={resume.expectedMinPay != null ? `$${resume.expectedMinPay} / 小时` : undefined}
-          />
-        </dl>
-      </section>
+        </Group>
+      </Section>
+      <Section id="candidate-preferences" title="公开求职资料">
+        <Group>
+          <dl className="grid gap-4 text-body sm:grid-cols-2">
+            <Fact term="技能" value={candidate.resume.skills} />
+            <Fact term="用工形式" value={formatEmploymentTypes(candidate.resume.employmentTypes)} />
+            <Fact
+              term="可工作地区"
+              value={candidate.resume.regionIds.map((region) => regionById("NZ", region)?.nameZh ?? region).join("、")}
+            />
+          </dl>
+        </Group>
+      </Section>
     </div>
   );
 }
 
-function Info({ term, value }: { term: string; value?: string }) {
+/** The employer's own job, read on the server (null when it is not theirs). */
+function useOwnJob(jobId: string | null, email: string | undefined): Job | null {
+  const [loaded, setLoaded] = useState<{ key: string; job: Job | null }>();
+  const key = `${jobId}:${email}`;
+  useEffect(() => {
+    if (!jobId || !email) return;
+    let live = true;
+    getMyJob(jobId, email).then((job) => {
+      if (live) setLoaded({ key, job });
+    });
+    return () => {
+      live = false;
+    };
+  }, [jobId, email, key]);
+  return loaded?.key === key ? loaded.job : null;
+}
+
+function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; chatHref: string | null }) {
+  const router = useRouter();
+  const { openCandidateChat } = useChat();
   return (
-    <div>
-      <dt className="text-xs text-muted">{term}</dt>
-      <dd className="mt-1 whitespace-pre-line break-words">{value?.trim() || "待补充"}</dd>
+    <Section>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-group">
+        <div className="min-w-0">
+          <p className="text-meta text-muted">应聘职位</p>
+          <Link href={`/jobs/${job.id}`} className="block truncate text-subtitle font-semibold hover:underline">
+            {job.titleZh}
+          </Link>
+          <p className={PAY_TEXT.card}>{formatPay(job.pay, job.country)}</p>
+        </div>
+        {chatHref ? (
+          <ButtonLink href={chatHref}>回到聊天</ButtonLink>
+        ) : (
+          <Button
+            onClick={() => {
+              const id = openCandidateChat(candidate, job);
+              if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
+            }}
+          >
+            发起聊天
+          </Button>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function BackToChat({ href }: { href: string }) {
+  return (
+    <Link href={href} className="inline-flex min-h-11 items-center gap-2 text-body text-brand">
+      <ArrowLeft aria-hidden="true" className="size-4" />
+      回到聊天
+    </Link>
+  );
+}
+
+function Fact({ term, value }: { term: string; value?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-meta text-muted">{term}</dt>
+      <dd className={`mt-0.5 whitespace-pre-line break-words ${value?.trim() ? "" : "text-muted"}`}>
+        {value?.trim() || "待补充"}
+      </dd>
     </div>
   );
 }

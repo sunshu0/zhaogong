@@ -70,7 +70,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.getByRole("link", { name: "查看林晓的主页", exact: true }).click();
   await expect(page).toHaveURL("/candidates/candidate-lin");
   await expect(page.getByRole("heading", { name: "林晓", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "返回聊天", exact: true }).click();
+  await page.getByRole("link", { name: "回到聊天", exact: true }).click();
   await expect(page).toHaveURL(conversationUrl);
   await expect(log).toContainText("方便聊聊吗");
   await expect(page.getByRole("link", { name: /^聊的职位：/ })).toHaveAttribute("href", `/jobs/${id}`);

@@ -36,7 +36,7 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("candidate-home.png"), fullPage: true });
-  await page.getByRole("link", { name: "返回聊天", exact: true }).click();
+  await page.getByRole("link", { name: "回到聊天", exact: true }).click();
   await expect(page).toHaveURL("/messages?conversation=candidate-lin");
   await profile.getByRole("heading", { name: "林晓", exact: true }).click();
   await expect(page).toHaveURL("/candidates/candidate-lin");
