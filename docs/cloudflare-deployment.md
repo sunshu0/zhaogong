@@ -6,7 +6,9 @@
 
 这是找工的**前端演示版**，部署至 Cloudflare Workers，通过 OpenNext 保留 Next.js 的动态页面、流式渲染和 Server Actions。不能把 `.next` 直接上传至 Pages，也不使用静态导出。
 
-当前配置不需要数据库、R2、KV、Durable Objects、邮件服务或 AI 密钥。业务仍读取模拟数据。`ASSETS` 提供页面资源及构建时缓存；`WORKER_SELF_REFERENCE` 用于适配器内部请求。
+当前配置不需要数据库、R2、KV、Durable Objects、邮件服务或 AI 密钥。业务仍读取模拟数据。
+
+> **第 12 轮起（#8）：** 代码改为从数据库读写（Drizzle + libSQL，本机为文件 `data/zhaogong.db`）。Worker 里没有本地文件，下次部署之前，要先选定线上数据库（Turso 或 Cloudflare D1），取舍见 `docs/adr/0006-online-database.md`。选定之前不要用当前代码重新发布。`ASSETS` 提供页面资源及构建时缓存；`WORKER_SELF_REFERENCE` 用于适配器内部请求。
 
 ## 固定版本与配置
 
