@@ -164,9 +164,13 @@ test("job page facts first: pay, region, hours, type, meals, visas; share is a b
   page,
 }, testInfo) => {
   await page.goto("/jobs/j1"); // contact details public
-  const facts = page.locator("article header dl");
+  const facts = page.locator("article header dl").filter({ visible: true });
   await expect(facts.locator("dt")).toHaveText(["薪资", "地区", "工时和班次", "用工形式", "食宿", "接受的签证"]);
-  const columns = await facts.evaluate((dl) => getComputedStyle(dl).gridTemplateColumns.split(" ").length);
+  // Facts in the first row share its top edge (the computed grid template can still read "repeat(2, …)").
+  const columns = await facts.evaluate((dl) => {
+    const tops = [...dl.querySelectorAll("dt")].map((dt) => Math.round(dt.getBoundingClientRect().top));
+    return tops.filter((top) => top === tops[0]).length;
+  });
   expect(columns).toBe(testInfo.project.name === "mobile" ? 2 : 3);
 
   await page.getByRole("button", { name: "分享" }).click();
