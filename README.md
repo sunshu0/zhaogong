@@ -38,6 +38,10 @@ npm run test:e2e
 
 浏览器测试会发布演示职位，验收前重启服务器以清空测试数据。
 
+### 持续集成
+
+`.github/workflows/ci.yml` 在每个 PR 和推到 `main` 时跑同一套门槛：`npm run check`，以及 Playwright 浏览器测试（手机和桌面两个项目，失败时上传 `test-results/`）。目前组织的 GitHub Actions 账单问题还没解决，工作流可能无法启动；在那之前，每个 PR 的门槛仍在本机跑，结果写在 PR 正文里。
+
 ## Cloudflare
 
 采用 **Cloudflare Workers + OpenNext**，已发布至 [找工演示站](https://zhaogong-demo.zhaogong.workers.dev)。可直接打开 [职位列表](https://zhaogong-demo.zhaogong.workers.dev/jobs) 验收。云端内存数据可能丢失，详细限制与发布验收记录见下方部署说明。
