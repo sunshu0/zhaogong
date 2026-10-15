@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { ensureAccount, getEmployer, getJob, listJobs, listReports, submitReport, updateJob } from "@/lib/data";
+import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
 import { grantModerator, isModerator, listModerators } from "@/db/moderators";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
@@ -153,6 +154,8 @@ describe("moderation queue", () => {
   });
 
   it("approves a flagged job: live for 30 days from now, and logged", async () => {
+    await ensureAccount("alert.cleaner@example.com");
+    await createJobAlert("alert.cleaner@example.com", { name: "清洁", country: "NZ", query: "industry=cleaning" });
     const result = await approveJob("j10");
     expect(result).toEqual({ ok: true, text: "审核通过「家庭清洁」（洁净家政） · 标记：高风险行业" });
     const job = await getJob("j10");
@@ -160,6 +163,8 @@ describe("moderation queue", () => {
     expect(Date.parse(job!.expiresAt) - Date.now()).toBeGreaterThan(29 * 86_400_000);
     expect((await queue()).flagged.map((f) => f.job.id)).not.toContain("j10");
     expect(await approveJob("j10")).toMatchObject({ ok: false });
+    // Now live, so the job seeker whose alert it matches is told (#53).
+    expect((await listJobAlertHits("alert.cleaner@example.com")).map((hit) => hit.jobId)).toEqual(["j10"]);
   });
 
   it("refuses to approve what still breaks the rules", async () => {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { useNotifications, useProfile } from "@/components/seeker/hub-client";
 import { employerSignUpHref } from "@/components/seeker/identity";
+import { ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { signOut, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +33,7 @@ export function AccountHome() {
       ? [{ href: "/employer/candidates", label: "推荐人才" }]
       : [
           { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
+          { href: ALERTS_PATH, label: "职位提醒", detail: "有符合条件的新职位时通知你" },
           { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
         ]),
     { href: "/account/data", label: "数据与账号", detail: "导出我的数据、删除账号" },

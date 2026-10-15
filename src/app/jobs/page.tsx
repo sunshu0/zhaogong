@@ -12,6 +12,7 @@ import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/s
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
 import { RememberListQuery } from "@/components/seeker/last-list";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
+import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
@@ -46,9 +47,13 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
       <FilterForm filter={filter} />
       <section aria-label="职位列表" className="lg:col-start-2">
         <ActiveFilters filter={filter} />
-        <p className="mb-3 text-body text-muted">
-          {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}
-        </p>
+        {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
+        <div className="mb-3 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
+          <p className="text-body text-muted">
+            {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}
+          </p>
+          <SaveAlert key={query} query={query} />
+        </div>
         <JobList
           jobs={jobs}
           employers={employers}

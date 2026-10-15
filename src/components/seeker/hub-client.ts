@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { markMyNotificationsRead, myNotificationReads, type ReadsSnapshot } from "@/app/messages/actions";
+import { myAlertNotifications } from "@/app/me/alerts/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, stringifyStoredIdentities } from "@/components/seeker/identity-scope";
@@ -11,6 +12,7 @@ import {
   parseNotificationReads,
   parseStoredProfiles,
   resolveProfiles,
+  type Notification,
   type Profile,
 } from "@/components/seeker/hub-state";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
@@ -85,13 +87,56 @@ function syncReads(scope: string) {
   })().catch(() => syncedScopes.delete(scope));
 }
 
+// The jobs the account's job alerts found (#53) are on the server only: fetched once per identity per page load.
+let alertItems: Readonly<Record<string, readonly Notification[]>> = {};
+const alertListeners = new Set<() => void>();
+const alertScopes = new Set<string>();
+const NO_ITEMS: readonly Notification[] = [];
+
+function loadAlertItems(scope: string) {
+  if (alertScopes.has(scope)) return;
+  alertScopes.add(scope);
+  myAlertNotifications()
+    .then((answer) => {
+      if (!answer || answer.scope !== scope) return alertScopes.delete(scope);
+      alertItems = { ...alertItems, [scope]: answer.items };
+      for (const listener of alertListeners) listener();
+    })
+    .catch(() => alertScopes.delete(scope));
+}
+
+/** For the notifications page: asks the server again on opening it, so jobs found since the page loaded show. */
+export function useFreshAlertNotifications() {
+  const session = useSession();
+  const scope = identityScope(session);
+  const signedIn = Boolean(session);
+  useEffect(() => {
+    if (!signedIn) return;
+    alertScopes.delete(scope);
+    loadAlertItems(scope);
+  }, [signedIn, scope]);
+}
+
+function useAlertItems(scope: string): readonly Notification[] {
+  return useSyncExternalStore(
+    (listener) => {
+      alertListeners.add(listener);
+      return () => alertListeners.delete(listener);
+    },
+    () => alertItems[scope] ?? NO_ITEMS,
+    () => NO_ITEMS,
+  );
+}
+
 export function useNotifications() {
   const session = useSession();
   const scope = identityScope(session);
-  const items = notificationsFor(session, notificationReads.useValue()[scope] ?? []);
+  const items = notificationsFor(session, notificationReads.useValue()[scope] ?? [], useAlertItems(scope));
   const signedIn = Boolean(session);
   useEffect(() => {
-    if (signedIn) syncReads(scope);
+    if (!signedIn) return;
+    syncReads(scope);
+    loadAlertItems(scope);
   }, [signedIn, scope]);
   return {
     items,

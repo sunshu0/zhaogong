@@ -6,6 +6,7 @@
 // the server's clock and ids.
 import { randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
+import { listJobAlertHits } from "@/db/job-alerts";
 import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
@@ -24,6 +25,7 @@ import {
   type ChatRecord,
 } from "@/components/seeker/chat-store";
 import { initialNotifications } from "@/components/seeker/hub-state";
+import { alertNotificationId } from "@/components/seeker/job-alerts";
 import { isExpired } from "@/components/seeker/job-facts";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
 
@@ -215,7 +217,7 @@ export async function myNotificationReads(): Promise<ReadsSnapshot | null> {
   return { scope: me.scope, ids: (await chatServerStore().getNotificationReads(me.scope)) ?? [] };
 }
 
-/** Marks notifications read: some ids, or "all" the identity has. Only ids its notifications have. */
+/** Marks notifications read: some ids, or "all" the identity has. Only ids its notifications have (alerts' too). */
 export async function markMyNotificationsRead(ids: string[] | "all"): Promise<ReadsSnapshot | null> {
   const me = await currentChatIdentity();
   if (!me) return null;
@@ -227,6 +229,8 @@ export async function markMyNotificationsRead(ids: string[] | "all"): Promise<Re
     employerId: me.session.employer?.id,
     employerName: me.session.employer?.name,
   }).map((n) => n.id);
+  if (!me.isEmployer)
+    mine.push(...(await listJobAlertHits(me.session.email)).map((hit) => alertNotificationId(hit.jobId)));
   const asked = ids === "all" ? mine : Array.isArray(ids) ? ids.filter((id) => mine.includes(id)) : [];
   const read = [...new Set([...((await store.getNotificationReads(me.scope)) ?? []), ...asked])];
   await store.putNotificationReads(me.scope, read);

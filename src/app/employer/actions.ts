@@ -27,6 +27,7 @@ import {
   updateJob,
 } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
+import { matchJobAlerts } from "@/db/job-alerts";
 import {
   buildRegister,
   normalizeNzbn,
@@ -119,7 +120,9 @@ export async function publishJob(input: unknown): Promise<PublishResult> {
   const decision = publishDecision(findings);
   const job = decision.canPublish ? completeJob(draft, employer.id, Date.now(), decision.status) : undefined;
   if (!job) return { ok: false, reason: "not_ready", findings, missing };
-  return { ok: true, job: await createJob(job) };
+  const created = await createJob(job);
+  await matchJobAlerts(created); // live at once: tell job seekers whose alerts it matches (#53)
+  return { ok: true, job: created };
 }
 
 // ---- managing published jobs (B6) ----

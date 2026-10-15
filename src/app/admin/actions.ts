@@ -2,6 +2,7 @@
 // Server Functions for /admin. Each one first checks the ADMIN_ENABLED switch, then the signed-in session,
 // then the moderator role (requireModerator, #50); anyone else is refused.
 import { DEFAULT_COUNTRY } from "@/config/countries";
+import { matchJobAlerts } from "@/db/job-alerts";
 import { grantModerator, listModerators, revokeModerator, type Moderator } from "@/db/moderators";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import {
@@ -101,7 +102,8 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
   const findings = checkJob(s.job, s.job.country, s.employer);
   if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
-  await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
+  const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
+  if (approved) await matchJobAlerts(approved); // now live: tell job seekers whose alerts it matches (#53)
   const entry = await addModerationLog({ action: "approve", ...s.names, rules: findings.map((f) => f.rule) });
   return { ok: true, text: describeAction(entry) };
 }

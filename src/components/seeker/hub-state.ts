@@ -90,7 +90,7 @@ export function resolveProfiles(patches: Record<string, Partial<Profile>>): Reco
 const SEEKER: DemoSession = { email: "", signedInAt: "", activeRole: "seeker" };
 const EMPLOYER: DemoSession = { ...SEEKER, activeRole: "employer" };
 
-type NotificationTarget = { type: "conversation"; id: string } | { type: "profile" };
+type NotificationTarget = { type: "conversation"; id: string } | { type: "profile" } | { type: "job"; id: string };
 export type Notification = {
   id: string;
   type: string;
@@ -176,8 +176,15 @@ export function parseNotificationReads(raw: string | null): Record<string, strin
   });
 }
 
-export function notificationsFor(session: DemoSession | null, read: readonly string[]): Notification[] {
-  return initialNotifications(session).map((item) => (read.includes(item.id) ? { ...item, unread: false } : item));
+/** The identity's notifications, newest first: `fromServer` (jobs its alerts found, #53) before the demo ones. */
+export function notificationsFor(
+  session: DemoSession | null,
+  read: readonly string[],
+  fromServer: readonly Notification[] = [],
+): Notification[] {
+  return [...fromServer, ...initialNotifications(session)].map((item) =>
+    read.includes(item.id) ? { ...item, unread: false } : item,
+  );
 }
 
 export function notificationHref(item: Notification, session: DemoSession | null): string | undefined {
@@ -185,7 +192,9 @@ export function notificationHref(item: Notification, session: DemoSession | null
   const target = item.target;
   return target?.type === "conversation"
     ? `/messages?conversation=${encodeURIComponent(target.id)}`
-    : target?.type === "profile"
-      ? "/profile"
-      : undefined;
+    : target?.type === "job"
+      ? `/jobs/${encodeURIComponent(target.id)}`
+      : target?.type === "profile"
+        ? "/profile"
+        : undefined;
 }

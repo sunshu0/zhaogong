@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useNotifications } from "@/components/seeker/hub-client";
+import { ALERTS_PATH } from "@/components/seeker/job-alerts";
 
 type NavItem = { href: string; label: string };
 
@@ -19,6 +20,7 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
       ? [{ href: "/employer/candidates", label: "推荐人才" }]
       : [
           { href: "/me/saved", label: "收藏和进度" },
+          { href: ALERTS_PATH, label: "职位提醒" },
           { href: "/me", label: "浏览与举报" },
         ]),
   ];

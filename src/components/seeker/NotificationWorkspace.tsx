@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useNotifications } from "@/components/seeker/hub-client";
+import { useFreshAlertNotifications, useNotifications } from "@/components/seeker/hub-client";
 import { notificationHref, type Notification } from "@/components/seeker/hub-state";
 import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
@@ -10,6 +10,7 @@ const ROW = "flex w-full gap-3 px-4 py-4 text-left hover:bg-background";
 
 export function NotificationWorkspace() {
   const { items, unread, markRead } = useNotifications();
+  useFreshAlertNotifications();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
 

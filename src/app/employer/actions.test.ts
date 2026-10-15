@@ -12,6 +12,7 @@ import {
   openEmployerIdentity,
   recordContactView,
 } from "@/lib/data";
+import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -80,6 +81,17 @@ describe("publishJob", () => {
     const { draft } = await parseDraft(`${MESSAGE}，KTV 包间`);
     const result = await as(E.e1, () => publishJob(draft));
     expect(result.ok && result.job.status).toBe("pending_review");
+  });
+
+  it("tells job seekers whose alerts match, once the job is live (#53)", async () => {
+    await ensureAccount("alert.seeker@example.com");
+    await createJobAlert("alert.seeker@example.com", { name: "前厅", country: "NZ", query: "q=前厅服务员" });
+    const found = async () => (await listJobAlertHits("alert.seeker@example.com")).map((hit) => hit.jobId);
+
+    const review = await as(E.e1, async () => publishJob((await parseDraft(`${MESSAGE}，KTV 包间`)).draft));
+    expect(review.ok && (await found()).includes(review.job.id)).toBe(false);
+    const live = await as(E.e1, async () => publishJob((await parseDraft(MESSAGE)).draft));
+    expect(live.ok && (await found()).includes(live.job.id)).toBe(true);
   });
 
   it("re-checks on the server and refuses what the browser should have held back", async () => {

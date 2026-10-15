@@ -4,6 +4,7 @@
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type {
   AccountRole,
+  CountryCode,
   EmployerVerification,
   EmploymentType,
   Industry,
@@ -273,4 +274,41 @@ export const jobChatStarts = sqliteTable(
     startedAt: text("started_at").notNull(),
   },
   (t) => [index("job_chat_starts_job_idx").on(t.jobId)],
+);
+
+// ---- job alerts (#53) ----
+
+/** A job seeker's saved search (PRD R-29): the job list's filter as its query string, at most 5 per account. */
+export const jobAlerts = sqliteTable(
+  "job_alerts",
+  {
+    id: text("id").primaryKey(),
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    name: text("name").notNull(),
+    country: text("country").$type<CountryCode>().notNull(),
+    /** filterToQuery of the filter; read with parseFilter, so values the app no longer knows drop out. */
+    query: text("query").notNull(),
+    paused: integer("paused", { mode: "boolean" }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("job_alerts_email_idx").on(table.email)],
+);
+
+/** A new job an alert found for an account. One row per account and job, so a job is announced to a person once. */
+export const jobAlertHits = sqliteTable(
+  "job_alert_hits",
+  {
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    /** The alert's name when it matched: the alert may be renamed or deleted later, the notification stays. */
+    alertName: text("alert_name").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.email, table.jobId] })],
 );
