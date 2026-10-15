@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { ensureAccount, getEmployer, getJob, listJobs, listReports, submitReport, updateJob } from "@/lib/data";
+import { grantModerator, isModerator, listModerators } from "@/db/moderators";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -12,29 +13,40 @@ const jar: CookieJar = {
 };
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
-const { approveJob, banJobEmployer, dismissReports, getModerationQueue, takeDownJob } =
-  await import("@/app/admin/actions");
+const {
+  addModerator,
+  approveJob,
+  banJobEmployer,
+  dismissReports,
+  getModerationQueue,
+  getModerators,
+  removeModerator,
+  takeDownJob,
+} = await import("@/app/admin/actions");
 
-const MODERATOR = "moderator@example.com";
+const MODERATOR = "the.moderator@example.com";
 
-async function signIn() {
+/** A browser signed in as `email` (the moderator by default). */
+async function signIn(email = MODERATOR) {
   cookies.clear();
-  await ensureAccount(MODERATOR);
-  await createSession(MODERATOR, "seeker", jar);
+  await ensureAccount(email);
+  await createSession(email, "seeker", jar);
 }
 
-/** The queue for a signed-in browser. */
+/** The queue for the moderator's browser. */
 async function queue() {
   const q = await getModerationQueue();
-  if (!q) throw new Error("getModerationQueue: signed out");
+  if ("refused" in q) throw new Error(`getModerationQueue: ${q.refused}`);
   return q;
 }
 
 // /admin is open only with ADMIN_ENABLED=1 (local development sets it in .env.development),
-// and then only to a signed-in session. There is no moderator role yet.
+// and then only to a signed-in moderator (#50).
 beforeAll(async () => {
   vi.stubEnv("ADMIN_ENABLED", "1");
   setAuthStoreForTests();
+  await ensureAccount(MODERATOR);
+  await grantModerator(MODERATOR, null);
   await signIn();
 });
 afterAll(() => {
@@ -53,24 +65,81 @@ describe("admin switch", () => {
     }
     expect((await getJob("j10"))?.status).toBe("active");
     vi.stubEnv("ADMIN_ENABLED", "1");
-    await expect(getModerationQueue()).resolves.toBeTruthy();
+    await expect(queue()).resolves.toBeTruthy();
   });
 
   it("refuses a browser that is not signed in (#19)", async () => {
     cookies.clear();
     try {
-      expect(await getModerationQueue()).toBeNull();
-      for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer]) {
+      expect(await getModerationQueue()).toMatchObject({ refused: "signed_out" });
+      expect(await getModerators()).toMatchObject({ refused: "signed_out" });
+      for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer, addModerator, removeModerator]) {
         expect(await act("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
       }
       cookies.set("zg_session", "made-up-token");
-      expect(await getModerationQueue()).toBeNull();
+      expect(await getModerationQueue()).toMatchObject({ refused: "signed_out" });
       expect(await takeDownJob("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
       expect((await getJob("j10"))?.status).toBe("active");
       expect((await getEmployer((await getJob("j10"))!.employerId))?.bannedAt).toBeUndefined();
     } finally {
       await signIn();
     }
+  });
+
+  it("refuses a signed-in account that is not a moderator (#50)", async () => {
+    await signIn("just.an.employer@example.com");
+    try {
+      const refused = { ok: false, error_zh: "只有审核员能使用审核后台。" };
+      expect(await getModerationQueue()).toMatchObject({ refused: "not_moderator" });
+      expect(await getModerators()).toMatchObject({ refused: "not_moderator" });
+      for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer]) {
+        expect(await act("j10")).toEqual(refused);
+      }
+      expect(await addModerator("just.an.employer@example.com")).toEqual(refused); // cannot promote itself
+      expect(await removeModerator(MODERATOR)).toEqual(refused);
+      expect(await isModerator("just.an.employer@example.com")).toBe(false);
+      expect((await getJob("j10"))?.status).toBe("active");
+    } finally {
+      await signIn();
+    }
+  });
+});
+
+describe("moderators (#50)", () => {
+  it("lists the moderators and says which one is asking", async () => {
+    const answer = await getModerators();
+    if ("refused" in answer) throw new Error(answer.refused);
+    expect(answer.me).toBe(MODERATOR);
+    expect(answer.moderators.map((m) => m.email)).toContain(MODERATOR);
+  });
+
+  it("adds a signed-up account by email, and only that", async () => {
+    expect(await addModerator("not an email")).toEqual({ ok: false, error_zh: "请输入正确的邮箱地址。" });
+    expect(await addModerator("never.signed.in@example.com")).toEqual({
+      ok: false,
+      error_zh: "这个邮箱还没有注册。请对方先用这个邮箱登录一次。",
+    });
+    await ensureAccount("helper.mod@example.com");
+    expect(await addModerator(" Helper.Mod@example.com ")).toEqual({
+      ok: true,
+      text: "添加审核员 helper.mod@example.com",
+    });
+    expect(await addModerator("helper.mod@example.com")).toEqual({ ok: false, error_zh: "这个账号已经是审核员。" });
+    expect((await listModerators()).find((m) => m.email === "helper.mod@example.com")?.grantedBy).toBe(MODERATOR);
+  });
+
+  it("removes a moderator, but never the last one", async () => {
+    expect(await removeModerator("helper.mod@example.com")).toEqual({
+      ok: true,
+      text: "移除审核员 helper.mod@example.com",
+    });
+    expect(await removeModerator("helper.mod@example.com")).toEqual({ ok: false, error_zh: "这个账号不是审核员。" });
+    for (const m of await listModerators()) if (m.email !== MODERATOR) await removeModerator(m.email);
+    expect(await removeModerator(MODERATOR)).toEqual({
+      ok: false,
+      error_zh: "至少要留一位审核员，不能移除最后一位。",
+    });
+    expect(await isModerator(MODERATOR)).toBe(true);
   });
 });
 

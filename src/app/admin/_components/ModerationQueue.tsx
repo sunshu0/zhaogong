@@ -12,7 +12,10 @@ import {
   type AdminResult,
   type ModerationQueue as Queue,
   type QueueItem,
+  type Refused,
 } from "@/app/admin/actions";
+import { Empty } from "@/app/admin/_components/Empty";
+import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
 import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -22,7 +25,7 @@ import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "log";
+type Tab = "flagged" | "reported" | "log" | "moderators";
 
 const time = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -33,8 +36,8 @@ const time = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function ModerationQueue() {
-  // null: the server found no signed-in session (it expired, or the browser's copy was stale).
-  const [queue, setQueue] = useState<Queue | null>();
+  // Refused: not a moderator, or no signed-in session (it expired, or the browser's copy was stale).
+  const [answer, setAnswer] = useState<Queue | Refused>();
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
@@ -44,7 +47,7 @@ export function ModerationQueue() {
   useEffect(() => {
     let live = true;
     getModerationQueue().then((q) => {
-      if (live) setQueue(q);
+      if (live) setAnswer(q);
     });
     return () => {
       live = false;
@@ -56,10 +59,21 @@ export function ModerationQueue() {
     reload();
   };
 
+  if (answer && "refused" in answer) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-title font-semibold">审核后台</h1>
+        <Empty>{answer.error_zh}</Empty>
+      </div>
+    );
+  }
+  const queue = answer;
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "flagged", label: "发布时被标记", count: queue?.flagged.length },
     { key: "reported", label: "被举报", count: queue?.reported.length },
     { key: "log", label: "操作记录", count: queue?.log.length },
+    { key: "moderators", label: "审核员" },
   ];
 
   return (
@@ -87,8 +101,8 @@ export function ModerationQueue() {
       )}
 
       <TabPanel idBase="admin" value={tab}>
-        {queue === null ? (
-          <Empty>登录已失效，请重新登录。</Empty>
+        {tab === "moderators" ? (
+          <ModeratorList onDone={setResult} />
         ) : !queue ? (
           <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
         ) : tab === "log" ? (
@@ -102,10 +116,7 @@ export function ModerationQueue() {
                     <time dateTime={e.at} className="w-24 shrink-0 text-muted">
                       {time.format(new Date(e.at))}
                     </time>
-                    <span>
-                      {e.text}
-                      <span className="ml-1 text-meta text-muted">· 演示管理员</span>
-                    </span>
+                    <span>{e.text}</span>
                   </li>
                 ))}
               </ol>
@@ -147,14 +158,6 @@ function QueueList({
           </li>
         ))}
       </ul>
-    </Section>
-  );
-}
-
-function Empty({ children }: { children: string }) {
-  return (
-    <Section>
-      <p className="py-8 text-center text-body text-muted">{children}</p>
     </Section>
   );
 }

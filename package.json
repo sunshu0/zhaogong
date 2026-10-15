@@ -21,7 +21,9 @@
     "db:generate": "drizzle-kit generate",
     "db:reset": "node scripts/db-reset.mjs",
     "db:migrate": "tsx src/db/cli.ts migrate",
-    "db:seed": "tsx src/db/cli.ts seed"
+    "db:seed": "tsx src/db/cli.ts seed",
+    "admin:grant": "tsx src/db/cli.ts admin:grant",
+    "admin:revoke": "tsx src/db/cli.ts admin:revoke"
   },
   "engines": {
     "node": ">=24 <25"

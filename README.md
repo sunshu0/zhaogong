@@ -47,6 +47,8 @@ npm run test:e2e
 | `npm run db:migrate` | 把 `drizzle/` 里还没执行的迁移应用到数据库 |
 | `npm run db:seed` | 先迁移；数据库是空的就导入演示数据，已有数据则不动 |
 | `npm run db:reset` | 删除本机数据库文件（先停开发服务器），之后用 `db:seed` 或重新启动开发服务器建一个新的 |
+| `npm run admin:grant <邮箱>` | 把这个账号设为审核员（账号不存在就先建一个），用来添加第一位审核员；之后审核员在 /admin 里增删 |
+| `npm run admin:revoke <邮箱>` | 取消审核员（最后一位不能取消） |
 | `npm run db:generate` | 改了 `schema.ts` 之后生成下一个迁移文件，连同 `drizzle/meta` 一起提交 |
 
 - 开发服务器第一次读写数据时会自动迁移；数据库为空、并且 `DEMO_DATA` 允许时，还会导入演示数据。`DEMO_DATA` 在开发和测试中默认开启，生产构建中默认关闭。设 `DEMO_DATA=false` 可以从空库开始开发。

@@ -47,7 +47,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 - **登录：** 邮箱验证码，注册和登录是同一步；成功后服务器发一个 httpOnly 的会话 cookie，库里存它的哈希、账号和当前身份，30 天过期（ADR 0007，`src/lib/auth/`）。生产环境要等接上邮件服务（#16）才能发验证码。
 - **读身份：** Server Functions 用 `getCurrentSession()` / `requireSession()` / `requireEmployer()` 从 cookie 读账号和当前身份，不收邮箱参数（雇主和审核接口在 #19 改完）；企业每次用 `getAccountEmployer` 从账号查，不信任浏览器传来的企业编号。
 - **切换身份：** `switchIdentity` 在服务器上改会话的当前身份，只有账号有企业时才能切到雇主。
-- `/admin` 只有设置 `ADMIN_ENABLED=1` 时开放（B24），打开时还要求登录（#19）；审核员角色还没做（PRD R-24），任何已登录账号都能使用。
+- `/admin` 只有设置 `ADMIN_ENABLED=1` 时开放（B24），打开时还要求登录并且是审核员（`requireModerator()`，#50，ADR 0007 补充）。第一位审核员用 `npm run admin:grant <邮箱>` 添加，之后在 /admin 的「审核员」一页里增删。
 
 ## Server Functions
 
@@ -57,7 +57,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/jobs/[id]/actions.ts` | `revealContact`、`reportJob`、`jobSummary` |
 | `src/app/messages/actions.ts` | `myChat`、`changeMyChat`、`importMyChat`、`myNotificationReads`、`markMyNotificationsRead` |
 | `src/app/employer/actions.ts` | `getMyJobs`、`getMyJob`、`getContactViewCounts`、`parseDraft`、`chatTurn`、`publishJob`、`editMyJob`、`closeMyJob`、`confirmHires`、`refreshMyJob`、`getMyEmployer`、`lookupBusiness`、`verifyBusiness` |
-| `src/app/admin/actions.ts` | `getModerationQueue`、`approveJob`、`takeDownJob`、`dismissReports`、`banJobEmployer` |
+| `src/app/admin/actions.ts` | `getModerationQueue`、`approveJob`、`takeDownJob`、`dismissReports`、`banJobEmployer`、`getModerators`、`addModerator`、`removeModerator` |
 
 请求、响应和错误的详细说明在 `docs/api.md`。另有一个只在开发环境存在的路由 `POST /api/dev/chat-reply`，让演示对话的对方已读或回复，浏览器测试用。
 

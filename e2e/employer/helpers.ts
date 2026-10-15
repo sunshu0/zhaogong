@@ -1,6 +1,19 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
-import { expect, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { expect, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { fillSignInCode } from "../helpers";
+
+/** The demo moderator (DEMO_MODERATOR in src/db/seed.ts), signed in once by e2e/moderator.setup.ts. */
+export const MODERATOR_EMAIL = "moderator@example.com";
+export const MODERATOR_STATE = "e2e/.auth/moderator.json";
+
+/**
+ * A second browser, signed in as the demo moderator (#50), beside the test's own page (usually an employer). Same
+ * viewport as the test's project. Close it with `moderator.context().close()`.
+ */
+export async function moderatorPage(browser: Browser, testInfo: TestInfo): Promise<Page> {
+  const context = await browser.newContext({ ...testInfo.project.use, storageState: MODERATOR_STATE });
+  return context.newPage();
+}
 
 /** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
 export const CLEAN_MESSAGE =

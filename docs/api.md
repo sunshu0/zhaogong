@@ -94,15 +94,23 @@
 
 ## 审核后台 — `src/app/admin/actions.ts`
 
-只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录（#19）：未登录时 `getModerationQueue()` 返回 `null`，其他函数返回「请先登录。」。还没有审核员角色，任何已登录账号都能使用。
+只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/admin/moderator.ts`，#50）：
+
+- 未登录：`getModerationQueue()`、`getModerators()` 返回 `{ refused: "signed_out", error_zh: "请先登录。" }`，其他函数返回「请先登录。」。
+- 已登录但不是审核员：返回 `{ refused: "not_moderator", error_zh: "只有审核员能使用审核后台。" }`，其他函数返回「只有审核员能使用审核后台。」。
+
+第一位审核员用命令行 `npm run admin:grant <邮箱>` 添加（`admin:revoke` 移除），之后审核员在 /admin 的「审核员」一页里增删。开发环境的演示数据带一个演示审核员 `moderator@example.com`。
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getModerationQueue()` | | `{ flagged, reported, log }`：待审核的职位、有未处理举报的职位（只含职位举报）、操作日志 | `null`（未登录） |
+| `getModerationQueue()` | | `{ flagged, reported, log }`：待审核的职位、有未处理举报的职位（只含职位举报）、操作日志 | `{ refused, error_zh }` |
 | `approveJob(jobId)` | | `{ ok: true, text }`，职位上线 30 天，记日志 | `{ ok: false, error_zh }`：「这个职位不在待审核列表里。」「雇主已被封禁，不能通过。」「这个职位仍有不能发布的问题，只能下架。」 |
 | `takeDownJob(jobId)` | | 下架，未处理的举报标为已处理，记日志 | 「找不到这个职位。」 |
 | `dismissReports(jobId)` | | 驳回这个职位的举报，职位不变，记日志 | 「找不到这个职位。」「这个职位没有待处理的举报。」 |
 | `banJobEmployer(jobId)` | | 封禁职位的雇主，下架其所有职位并关闭相关举报，记日志 | 「找不到这个雇主。」「这个雇主已经被封禁。」 |
+| `getModerators()` | | `{ me, moderators: [{ email, grantedAt, grantedBy }] }`，从早到晚；`grantedBy` 为 `null` 表示在服务器上添加（命令行或演示数据） | `{ refused, error_zh }` |
+| `addModerator(email)` | 已经登录过的账号的邮箱 | `{ ok: true, text }` | 「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个账号已经是审核员。」 |
+| `removeModerator(email)` | 审核员的邮箱 | `{ ok: true, text }` | 「至少要留一位审核员，不能移除最后一位。」「这个账号不是审核员。」 |
 
 ## 页面路由
 
@@ -116,6 +124,6 @@
 | `/candidates/[id]` | 求职者主页（`?job=` 带上职位） | 雇主身份才显示职位和聊天入口 |
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理、编辑职位、推荐人才、企业验证 | 雇主身份 |
-| `/admin` | 审核后台 | `ADMIN_ENABLED=1`，登录 |
+| `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |

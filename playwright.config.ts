@@ -21,13 +21,18 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
+    // Signs in the demo moderator once (#50): a code can be asked for once a minute per email, so specs that need
+    // /admin share this session (e2e/.auth/moderator.json, see moderatorPage in e2e/employer/helpers.ts).
+    { name: "moderator-session", testMatch: /moderator\.setup\.ts/ },
     {
       name: "mobile",
       use: { viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+      dependencies: ["moderator-session"],
     },
     {
       name: "desktop",
       use: { viewport: { width: 1280, height: 800 } },
+      dependencies: ["moderator-session"],
     },
   ],
   webServer: {

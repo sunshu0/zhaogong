@@ -202,3 +202,18 @@ export const chatRecords = sqliteTable(
   },
   (table) => [index("chat_records_email_idx").on(table.email)],
 );
+
+// ---- moderators (#50) ----
+
+/**
+ * Accounts that may use /admin. A row per moderator rather than a column on accounts: adding a NOT NULL column to
+ * an existing SQLite table needs an SQL DEFAULT (which #31 keeps out for D1), and the row also says who granted it.
+ */
+export const moderators = sqliteTable("moderators", {
+  email: text("email")
+    .primaryKey()
+    .references(() => accounts.email),
+  grantedAt: text("granted_at").notNull(),
+  /** The moderator who added this one in /admin; null when granted from the command line (npm run admin:grant). */
+  grantedBy: text("granted_by"),
+});

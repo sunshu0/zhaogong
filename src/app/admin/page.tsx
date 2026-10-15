@@ -4,16 +4,16 @@ import { ModerationQueue } from "@/app/admin/_components/ModerationQueue";
 import { adminEnabled } from "@/app/admin/enabled";
 import { SignInGate } from "@/components/seeker/SignInGate";
 
-export const metadata: Metadata = { title: "审核后台（演示）", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "审核后台", robots: { index: false, follow: false } };
 
 // Read at build time for the static page: a build without ADMIN_ENABLED=1 (the deployed one) has no /admin.
 export default function AdminPage() {
   if (!adminEnabled()) notFound();
   return (
     <div className="space-y-4">
-      <p role="note" className="rounded-md border border-warn bg-warn-soft px-3 py-2 text-body text-warn">
-        <span className="font-semibold">演示后台</span> ·
-        这一版还没有审核人员角色，登录后任何账号都能打开，只用来演示审核流程。正式版只有审核人员能打开。
+      <p role="note" className="text-meta text-muted">
+        只有审核员能使用审核后台。第一位审核员在服务器上用 <code>npm run admin:grant 邮箱</code>{" "}
+        添加，之后由审核员在「审核员」一页里增删。
       </p>
       <SignInGate message="登录后进入审核后台">
         <ModerationQueue />

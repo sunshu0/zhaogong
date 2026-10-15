@@ -8,6 +8,7 @@ import {
   uniqueTitle,
   openReportForm,
   cardMenuItem,
+  moderatorPage,
 } from "./helpers";
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
@@ -99,7 +100,7 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await expectNoViolations(page, "/employer/verify with results");
 });
 
-test("moderation queue, each tab", async ({ page }, testInfo) => {
+test("moderation queue, each tab", async ({ browser, page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
   await signUpEmployer(page, testInfo);
   const id = await publishJob(page, title);
@@ -115,16 +116,25 @@ test("moderation queue, each tab", async ({ page }, testInfo) => {
   await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");
 
   await page.goto("/admin");
-  await expect(page.getByRole("article").first()).toBeVisible();
-  await expectNoViolations(page, "/admin flagged");
-  await page.getByRole("tab", { name: /被举报/ }).click();
-  await page
+  await expect(page.getByText("只有审核员能使用审核后台。", { exact: true })).toBeVisible();
+  await expectNoViolations(page, "/admin refused");
+
+  const admin = await moderatorPage(browser, testInfo);
+  await admin.goto("/admin");
+  await expect(admin.getByRole("article").first()).toBeVisible();
+  await expectNoViolations(admin, "/admin flagged");
+  await admin.getByRole("tab", { name: /被举报/ }).click();
+  await admin
     .getByRole("article")
-    .filter({ has: page.getByRole("heading", { name: title }) })
+    .filter({ has: admin.getByRole("heading", { name: title }) })
     .getByRole("button", { name: "下架" })
     .click();
-  await expect(page.getByRole("status")).toContainText("已处理");
-  await expectNoViolations(page, "/admin after an action");
-  await page.getByRole("tab", { name: /操作记录/ }).click();
-  await expectNoViolations(page, "/admin log");
+  await expect(admin.getByRole("status")).toContainText("已处理");
+  await expectNoViolations(admin, "/admin after an action");
+  await admin.getByRole("tab", { name: /操作记录/ }).click();
+  await expectNoViolations(admin, "/admin log");
+  await admin.getByRole("tab", { name: "审核员" }).click();
+  await expect(admin.getByLabel("邮箱")).toBeVisible();
+  await expectNoViolations(admin, "/admin moderators");
+  await admin.context().close();
 });
