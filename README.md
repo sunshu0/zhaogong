@@ -42,6 +42,16 @@ npm run test:e2e
 
 `.github/workflows/ci.yml` 在每个 PR 和推到 `main` 时跑同一套门槛：`npm run check`，以及 Playwright 浏览器测试（手机和桌面两个项目，失败时上传 `test-results/`）。目前组织的 GitHub Actions 账单问题还没解决，工作流可能无法启动；在那之前，每个 PR 的门槛仍在本机跑，结果写在 PR 正文里。
 
+## Docker
+
+`Dockerfile` 把应用作为 Node 服务（`next start`）打包，`docker-compose.yml` 再加一个 libSQL 数据库服务：
+
+```sh
+docker compose up --build
+```
+
+应用在 http://localhost:3000 。数据库接入（#8）合并前，应用仍使用内存演示数据，数据库服务不会被用到。**这两个文件还没有在本机实际运行过**：在本机使用 Docker 要等用户批准。
+
 ## Cloudflare
 
 采用 **Cloudflare Workers + OpenNext**，已发布至 [找工演示站](https://zhaogong-demo.zhaogong.workers.dev)。可直接打开 [职位列表](https://zhaogong-demo.zhaogong.workers.dev/jobs) 验收。云端内存数据可能丢失，详细限制与发布验收记录见下方部署说明。

@@ -1,0 +1,25 @@
+# The app with its database: a libSQL server (the same engine the code uses through Drizzle; ADR 0005).
+# Start: docker compose up --build   → http://localhost:3000
+# Not run yet: using Docker on this machine waits for the user's approval. The app reads DATABASE_URL once the
+# database item (#8) is merged; until then it keeps its in-memory demo data and the db service is unused.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: http://db:8080
+      # Load the demo jobs and employers into an empty database (#8's seed).
+      DEMO_DATA: "true"
+    depends_on:
+      - db
+
+  db:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - db-data:/var/lib/sqld
+
+volumes:
+  db-data:
