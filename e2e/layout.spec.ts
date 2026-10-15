@@ -143,6 +143,8 @@ test("job page: contact in a right column that stays in view on desktop, after t
   const contact = page.getByRole("region", { name: "联系方式" });
   const report = page.getByRole("button", { name: "举报这个职位" });
   await expect(contact).toBeVisible();
+  // Enabled once the page has hydrated: before that the button is a placeholder that gets replaced.
+  await expect(report).toBeEnabled();
   expect(await noSideScroll(page)).toBe(true);
 
   if (testInfo.project.name === "mobile") {
