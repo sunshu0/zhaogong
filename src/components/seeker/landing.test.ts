@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { employersOf } from "@/components/seeker/employers";
-import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount } from "@/components/seeker/landing";
+import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount, heroCounts } from "@/components/seeker/landing";
+import { DEMO_DATA, STAT_MIN_TO_SHOW } from "@/config/landing";
 import { englishSummary, parsePost } from "@/lib/ai-post";
 import { listFeaturedJobs } from "@/lib/data";
 
@@ -9,6 +10,31 @@ describe("formatCount", () => {
     expect(formatCount(0)).toBe("0");
     expect(formatCount(43)).toBe("43");
     expect(formatCount(1234)).toBe("1,234");
+  });
+});
+
+describe("heroCounts (#51: the home page's one line of numbers)", () => {
+  const stats = { employersPosting: 8, jobsPosted: 19, hiresConfirmed: 13, contactViews: 63 };
+
+  it("starts with the open jobs and their verified employers, then hires and contacts, never the duplicates", () => {
+    const parts = heroCounts(16, 6, stats);
+    expect(parts.slice(0, 2)).toEqual([
+      { value: 16, label: "个职位在招，来自" },
+      { value: 6, label: "家已验证雇主" },
+    ]);
+    const rest = parts.slice(2).map((p) => p.label);
+    expect(rest).not.toContain("个职位");
+    expect(rest).not.toContain("家雇主发布过招聘");
+    if (DEMO_DATA)
+      expect(parts.slice(2)).toEqual([
+        { value: 13, label: "人通过这里找到工作" },
+        { value: 63, label: "次咨询雇主" },
+      ]);
+  });
+
+  it("leaves out hires and contacts below their thresholds unless the data is demo data", () => {
+    const low = { ...stats, hiresConfirmed: STAT_MIN_TO_SHOW.hiresConfirmed - 1, contactViews: 0 };
+    expect(heroCounts(3, 1, low)).toHaveLength(DEMO_DATA ? 4 : 2);
   });
 });
 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { firstRoundLength, type ReplayMessage } from "@/components/seeker/chat-replay";
 
-/** Same rule as the count-up: animate only with scripting on and no request for less motion. */
+/** Animate only with scripting on and no request for less motion. */
 const CAN_ANIMATE = "(scripting: enabled) and (prefers-reduced-motion: no-preference)";
 /**
  * The whole conversation is in the HTML (for no JavaScript and reduced motion). Where the replay will run, all but

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
 import { DEMO_DATA, visibleStats } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
@@ -12,11 +12,10 @@ import { getPlatformStats, listFeaturedJobs, listJobs } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobCard } from "@/components/seeker/JobCard";
-import { CountUpStats } from "@/components/seeker/CountUpStats";
 import { PostJobLink } from "@/components/seeker/AccountMenu";
 import { buildReplay } from "@/components/seeker/chat-replay";
 import { ChatReplay } from "@/components/seeker/ChatReplay";
-import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES } from "@/components/seeker/landing";
+import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount, heroCounts } from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, FeatureIconSvg } from "@/components/seeker/landing-parts";
 import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay } from "@/components/seeker/format";
@@ -113,10 +112,6 @@ export default function Home({ searchParams }: PageProps<"/">) {
         </div>
       </section>
 
-      <Suspense fallback={<div className={`${FULL_BLEED} h-56 border-b border-border bg-surface`} />}>
-        <StatsBand />
-      </Suspense>
-
       <FeaturesBand />
 
       <Suspense fallback={<div className={`${FULL_BLEED} h-96`} />}>
@@ -201,37 +196,37 @@ async function HeroNotices() {
   return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} />;
 }
 
-/** 「N 个职位在招，来自 M 家已验证雇主」: counted from the open jobs, per request. */
+/**
+ * The home page's one line of numbers (#51): 「N 个职位在招，来自 M 家已验证雇主」 from the open jobs, then hires and
+ * contacts where they may be shown (heroCounts), per request; while the data is demo data it says so.
+ */
 async function HeroCount() {
   await connection();
-  const jobs = await listJobs({ country: DEFAULT_COUNTRY });
+  const [jobs, stats] = await Promise.all([listJobs({ country: DEFAULT_COUNTRY }), getPlatformStats(DEFAULT_COUNTRY)]);
   const employers = await employersOf(jobs);
   const verified = [...employers.values()].filter((e) => e.verification !== "unverified").length;
+  const [open, by, ...more] = heroCounts(jobs.length, verified, stats);
+  const figure = (n: number) => <b className="font-figure text-[1.375rem] text-foreground">{formatCount(n)}</b>;
   return (
-    <p className="mt-4 text-body text-muted">
-      <b className="font-figure text-[1.375rem] text-foreground">{jobs.length}</b> 个职位在招，来自{" "}
-      <b className="font-figure text-[1.375rem] text-foreground">{verified}</b> 家已验证雇主
+    <p data-hero-counts="" className="mt-4 text-body text-muted">
+      <span className="whitespace-nowrap">
+        {figure(open.value)} {open.label} {figure(by.value)} {by.label}
+      </span>
+      {more.map((part) => (
+        // The space between parts is outside the unbreakable part, so the line can wrap there.
+        <Fragment key={part.label}>
+          {" "}
+          <span className="whitespace-nowrap">
+            · {figure(part.value)} {part.label}
+          </span>
+        </Fragment>
+      ))}
+      {DEMO_DATA && (
+        <span className="ml-2 inline-block rounded-sm bg-warn-soft px-1.5 py-0.5 text-meta whitespace-nowrap text-warn">
+          演示数据
+        </span>
+      )}
     </p>
-  );
-}
-
-/** Real counts from getPlatformStats, per request, counting up on screen; while the data is demo data it says so. */
-async function StatsBand() {
-  await connection();
-  const stats = visibleStats(await getPlatformStats(DEFAULT_COUNTRY));
-  if (stats.length === 0) return null;
-  return (
-    <section aria-labelledby="stats-heading" className={`${FULL_BLEED} border-b border-border bg-surface`}>
-      <div className={`${SITE_CONTAINER} py-8 lg:py-10`}>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id="stats-heading" className="text-sm font-medium text-muted">
-            平台数据
-          </h2>
-          {DEMO_DATA && <span className="rounded-full bg-warn-soft px-2 py-0.5 text-xs text-warn">演示数据</span>}
-        </div>
-        <CountUpStats stats={stats} />
-      </div>
-    </section>
   );
 }
 

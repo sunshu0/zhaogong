@@ -13,7 +13,7 @@ test("landing: headline, search, quick filters, the open jobs counted, and three
   const quick = hero.getByRole("list", { name: "快捷筛选" }).getByRole("link");
   await expect(quick).toHaveText(["接受学签", "包餐", "兼职", "市中心"]);
   await expect(quick.first()).toHaveAttribute("href", "/jobs?visa=student");
-  await expect(hero.getByText(/^\d+ 个职位在招，来自 \d+ 家已验证雇主$/)).toBeVisible();
+  await expect(hero.locator("[data-hero-counts]")).toHaveText(/^[\d,]+ 个职位在招，来自 [\d,]+ 家已验证雇主/);
 
   // 橱窗告示: three open jobs, each a link to its page with the pay large; turned on desktop, straight and
   // scrolling sideways on phones.
@@ -46,26 +46,25 @@ test("landing: headline, search, quick filters, the open jobs counted, and three
   }
 });
 
-test("landing: stats band with real counts and the 演示数据 tag", async ({ page }, testInfo) => {
+test("landing: one line of numbers from the data, with the 演示数据 tag, in the page's HTML too (#51)", async ({
+  page,
+  request,
+}) => {
   await page.goto("/");
-  const stats = page.getByRole("region", { name: "平台数据" });
-  const shown = visibleStats({ employersPosting: 0, jobsPosted: 0, hiresConfirmed: 0, contactViews: 0 });
-  const cells = stats.getByRole("definition");
-  if (DEMO_DATA) {
-    await expect(stats.getByText("演示数据", { exact: true })).toBeVisible();
-    await expect(cells).toHaveCount(shown.length);
-    await expect(stats.getByRole("term")).toHaveText(shown.map((s) => s.label));
-  }
-  // Screen readers get the real number only; the counting digits are aria-hidden.
-  for (const cell of await cells.all()) {
-    await expect(cell.locator(".sr-only")).toHaveText(/^\d{1,3}(,\d{3})*$/);
-    await expect(cell.locator("[data-count-up]")).toHaveAttribute("aria-hidden", "true");
-  }
+  const line = page.locator("[data-hero-counts]");
+  const shown = visibleStats({ employersPosting: 0, jobsPosted: 0, hiresConfirmed: 0, contactViews: 0 })
+    .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
+    .map((s) => s.label);
+  await expect(line).toHaveText(
+    new RegExp(`^[\\d,]+ 个职位在招，来自 [\\d,]+ 家已验证雇主${shown.map((label) => ` · [\\d,]+ ${label}`).join("")}`),
+  );
+  if (DEMO_DATA) await expect(line.getByText("演示数据", { exact: true })).toBeVisible();
+  // No second set of the same numbers further down.
+  await expect(page.getByRole("region", { name: "平台数据" })).toHaveCount(0);
 
-  const tops = await Promise.all((await cells.all()).map(async (c) => Math.round((await c.boundingBox())!.y)));
-  if (testInfo.project.name === "desktop")
-    expect(new Set(tops).size).toBe(1); // one row of four
-  else expect(new Set(tops).size).toBe(2); // 2 × 2
+  // Rendered on the server: the HTML already carries the numbers (crawlers, share previews, no JavaScript).
+  const html = await (await request.get("/")).text();
+  expect(html).toMatch(/data-hero-counts=""[^>]*>(<[^b][^>]*>)*<b[^>]*>[\d,]+<\/b>/);
 });
 
 test("landing: features with the AI chat post, featured jobs, and the employer before → after", async ({

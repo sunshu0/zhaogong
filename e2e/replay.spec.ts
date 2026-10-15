@@ -7,11 +7,10 @@ const features = (page: Page) => page.getByRole("region", { name: "功能展示"
 const bubbles = (page: Page) => features(page).locator("[data-replay-log] [data-bubble]");
 const transcript = (page: Page) => features(page).locator("ol.sr-only li");
 
-test("the landing page runs hero → stats → features → featured jobs → employers", async ({ page }) => {
+test("the landing page runs hero → features → featured jobs → employers", async ({ page }) => {
   await page.goto("/");
   const order = [
     page.getByRole("region", { name: /^奥克兰的中文工作/ }),
-    page.getByRole("region", { name: "平台数据" }),
     features(page),
     page.getByRole("region", { name: "精选工作" }),
     page.getByRole("region", { name: "招人？一分钟发布招聘" }),

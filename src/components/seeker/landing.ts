@@ -1,8 +1,29 @@
 // Pieces of the landing page that are not markup. Everything said here must be true of the product today.
+import { visibleStats } from "@/config/landing";
+import type { PlatformStats } from "@/lib/types";
 
 /** 1234 → "1,234". Counts are shown exactly as counted, never rounded up. */
 export function formatCount(n: number): string {
   return new Intl.NumberFormat("zh-CN").format(n);
+}
+
+/**
+ * The home page's one line of numbers (#51): open jobs and the verified employers among them, then the platform's
+ * hires and contacts where they may be shown (visibleStats: past their thresholds, or all while it is demo data).
+ * Jobs and employers ever posted are left out: they would repeat the first two.
+ */
+export function heroCounts(
+  openJobs: number,
+  verifiedEmployers: number,
+  stats: PlatformStats,
+): { value: number; label: string }[] {
+  return [
+    { value: openJobs, label: "个职位在招，来自" },
+    { value: verifiedEmployers, label: "家已验证雇主" },
+    ...visibleStats(stats)
+      .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
+      .map(({ value, label }) => ({ value, label })),
+  ];
 }
 
 export type FeatureIcon = "chat" | "language" | "check" | "shield";
