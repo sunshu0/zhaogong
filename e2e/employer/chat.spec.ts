@@ -24,7 +24,7 @@ test("a full conversation, from a short message to a published job", async ({ pa
   await sayInChat(page, `招${title}`);
   await expect(lastAssistant(page)).toContainText("时薪多少");
   await expect(card).toContainText(title);
-  await expect(card).toContainText("还差");
+  await expect(card).toContainText(/已填 \d+ \/ \d+ 项/);
 
   await sayInChat(page, "25");
   await expect(lastAssistant(page)).toContainText("每周大概多少小时");
@@ -52,7 +52,13 @@ test("a full conversation, from a short message to a published job", async ({ pa
   // Contact details stay private unless the employer makes them public.
   await expect(lastAssistant(page)).toContainText("都齐了");
   await expect(lastAssistant(page)).toContainText("联系方式不公开");
+  // The progress line opens into the list; an item there takes the chat back to its question.
+  await card.getByRole("button", { name: "查看各项" }).click();
   await expect(card).toContainText("不公开 · 聊天交换");
+  await card.getByRole("button", { name: /^地区/ }).click();
+  await expect(lastAssistant(page)).toContainText("改到哪个区");
+  await page.getByRole("button", { name: "Northcote", exact: true }).click();
+  await expect(lastAssistant(page)).toContainText("都齐了");
   await page.getByRole("button", { name: "公开联系方式", exact: true }).click();
   await expect(lastAssistant(page)).toContainText("求职者怎么联系你");
   await sayInChat(page, "demo_e2e_chat");
@@ -82,7 +88,7 @@ test("compliance questions arrive in the chat and the employer's fixes reach the
 
   await expect(lastAssistant(page)).toContainText("时薪 $18 低于新西兰最低工资 $23.95");
   await expect(lastAssistant(page)).toContainText("时薪改成多少");
-  await expect(page.getByRole("region", { name: /职位卡/ })).toContainText("还差");
+  await expect(page.getByRole("region", { name: /职位卡/ })).toContainText("3 个问题要处理");
   await sayInChat(page, "24");
 
   await expect(lastAssistant(page)).toContainText("含有「押金」");

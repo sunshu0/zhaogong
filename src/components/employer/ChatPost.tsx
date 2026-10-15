@@ -78,12 +78,13 @@ export function ChatPost({
   return (
     <div className={WIDE_ON_DESKTOP}>
       <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section aria-labelledby="chat-heading" className="flex min-h-[60vh] flex-col">
+        <section aria-labelledby="chat-heading" className="flex flex-col">
           <h1 id="chat-heading" ref={headingRef} tabIndex={-1} className="mb-3 text-lg font-semibold outline-none">
             和发帖助手一起写招聘
           </h1>
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
-          <div role="log" aria-live="polite" aria-label="和发帖助手的对话" className="flex-1">
+          {/* As tall as the conversation: no empty block before the first answers. */}
+          <div role="log" aria-live="polite" aria-label="和发帖助手的对话">
             <ol className="space-y-3">
               {chat.messages.map((m, i) => (
                 <li
@@ -169,10 +170,25 @@ export function ChatPost({
 
         <aside className="mt-6 lg:mt-0">
           <div className="lg:sticky lg:top-18">
-            <DraftCard draft={chat.draft} country={country} />
+            <DraftCard
+              draft={chat.draft}
+              country={country}
+              employer={chat.employer}
+              canAsk={(item) => !pending && canAskAbout(chat.asking, item.ask)}
+              onAsk={send}
+            />
           </div>
         </aside>
       </div>
     </div>
   );
+}
+
+/**
+ * A card item sends 「改一下…」, which the chat takes anywhere except while it reads a whole post or a
+ * rewrite; 公开联系方式 is an answer to the review question only.
+ */
+function canAskAbout(asking: ChatState["asking"], ask: string): boolean {
+  if (asking === "description" || asking === "rewrite" || asking === "fix") return false;
+  return ask !== "公开联系方式" || asking === "review";
 }

@@ -1,72 +1,102 @@
-import { COUNTRIES, regionById } from "@/config/countries";
-import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
-import { formatEmploymentTypes } from "@/lib/employment-types";
-import { missingFields } from "@/lib/ai-post";
-import { checkJob, publishDecision, type JobDraft } from "@/lib/compliance";
+"use client";
+import { useId, useState } from "react";
+import { checkJob, publishDecision, type JobDraft, type PostingEmployer } from "@/lib/compliance";
 import type { CountryCode } from "@/lib/types";
+import { draftChecklist, type ChecklistItem } from "@/components/employer/draft-checklist";
 
-const money = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
-const range = (r: { min: number; max?: number }, f: (n: number) => string = String) =>
-  r.max != null && r.max !== r.min ? `${f(r.min)}–${f(r.max)}` : f(r.min);
-
-function Row({ label, value }: { label: string; value?: string | false | 0 }) {
-  return (
-    <div className="flex gap-3 py-1.5">
-      <dt className="w-16 shrink-0 text-muted">{label}</dt>
-      <dd className={value ? "" : "text-warn"}>{value || "待填"}</dd>
-    </div>
-  );
-}
-
-/** The job as the conversation has filled it so far. Not a live region: the chat already speaks. */
-export function DraftCard({ draft, country }: { draft: JobDraft; country: CountryCode }) {
-  const findings = checkJob(draft, country);
-  const missing = missingFields(draft);
-  const decision = publishDecision(findings);
-  const ready = decision.canPublish && missing.length === 0;
-  const contact = [draft.contact?.phone && "电话", draft.contact?.wechat && "微信", draft.contact?.email && "邮箱"]
-    .filter(Boolean)
-    .join("、");
-  const perks = [draft.mealsIncluded && "包餐", draft.accommodationIncluded && "包住"].filter(Boolean).join("、");
-  const perksKnown = draft.mealsIncluded != null || draft.accommodationIncluded != null;
+/**
+ * The job as the conversation has filled it so far: what it is, then one progress line that opens into
+ * the list; tapping an item asks the chat about it again. Not a live region: the chat already speaks.
+ */
+export function DraftCard({
+  draft,
+  country,
+  employer,
+  canAsk,
+  onAsk,
+}: {
+  draft: JobDraft;
+  country: CountryCode;
+  employer?: PostingEmployer;
+  /** Whether the chat can take this item's question now. */
+  canAsk: (item: ChecklistItem) => boolean;
+  onAsk: (message: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const list = draftChecklist(draft, country, employer);
+  const reviewNeeded = publishDecision(checkJob(draft, country, employer)).status === "pending_review";
+  const summary = list.items
+    .filter((i) => ["时薪", "地区", "工作类型"].includes(i.label) && i.value)
+    .map((i) => i.value)
+    .join(" · ");
 
   return (
     <section aria-label="职位卡，随对话更新" className="rounded-xl border border-border bg-surface p-4 text-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold">{draft.titleZh ?? "职位名称待填"}</h2>
-          {draft.titleEn && (
-            <p lang="en" className="text-xs text-muted">
-              {draft.titleEn}
-            </p>
-          )}
-        </div>
-        <span
-          className={`shrink-0 rounded px-1.5 py-0.5 text-xs ${ready ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn"}`}
-        >
-          {ready ? "可以预览" : `还差 ${missing.length + findings.filter((f) => f.level !== "review").length} 项`}
+      <DraftTitle draft={draft} />
+      {summary && <p className="mt-1 text-muted">{summary}</p>}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((o) => !o)}
+        className="mt-3 block w-full text-left"
+      >
+        <span className="flex items-center justify-between gap-2 text-xs">
+          <span className={list.ready ? "text-ok" : "text-foreground"}>
+            {list.ready ? "可以预览" : `已填 ${list.done} / ${list.total} 项`}
+            {list.problems > 0 && <span className="text-danger"> · {list.problems} 个问题要处理</span>}
+          </span>
+          <span className="text-brand">{open ? "收起" : "查看各项"}</span>
         </span>
-      </div>
-      <dl className="mt-2 divide-y divide-border">
-        <Row label="时薪" value={draft.pay && `${COUNTRIES[country].currencySymbol}${range(draft.pay, money)}/小时`} />
-        <Row label="地区" value={draft.regionId && regionById(country, draft.regionId)?.nameZh} />
-        <Row label="类型" value={formatEmploymentTypes(draft.employmentType)} />
-        <Row label="工时" value={draft.hoursPerWeek ? `每周 ${range(draft.hoursPerWeek)} 小时` : "可不填"} />
-        <Row label="食宿" value={perksKnown ? perks || "不包吃住" : "可不填"} />
-        <Row
-          label="签证"
-          value={draft.visaAccepted?.length ? draft.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、") : undefined}
-        />
-        <Row
-          label="语言"
-          value={draft.languages?.length ? draft.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、") : "可不填"}
-        />
-        <Row
-          label="联系"
-          value={draft.contactPublic ? contact && `公开：${contact}（登录后可见）` : "不公开 · 聊天交换"}
-        />
-      </dl>
-      {decision.status === "pending_review" && <p className="mt-2 text-xs text-warn">这个职位发布后要人工审核。</p>}
+        <span aria-hidden="true" className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-background">
+          <span
+            className={`block h-full rounded-full ${list.ready ? "bg-ok" : "bg-brand"}`}
+            style={{ width: `${Math.round((list.done / list.total) * 100)}%` }}
+          />
+        </span>
+      </button>
+      {open && (
+        <ul id={listId} className="mt-2 divide-y divide-border">
+          {list.items.map((item) => (
+            <li key={item.label}>
+              <ChecklistRow item={item} enabled={canAsk(item)} onAsk={onAsk} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {reviewNeeded && <p className="mt-2 text-xs text-warn">这个职位发布后要人工审核。</p>}
     </section>
+  );
+}
+
+/** A placeholder is not a title: until there is one, say so in plain text. */
+function DraftTitle({ draft }: { draft: JobDraft }) {
+  if (!draft.titleZh) return <p className="text-muted">还没有职位名称</p>;
+  return (
+    <>
+      <h2 className="text-base font-semibold">{draft.titleZh}</h2>
+      {draft.titleEn && (
+        <p lang="en" className="text-xs text-muted">
+          {draft.titleEn}
+        </p>
+      )}
+    </>
+  );
+}
+
+function ChecklistRow({ item, enabled, onAsk }: { item: ChecklistItem; enabled: boolean; onAsk: (m: string) => void }) {
+  const tone = item.done ? "" : item.required ? "text-warn" : "text-muted";
+  return (
+    <button
+      type="button"
+      disabled={!enabled}
+      onClick={() => onAsk(item.ask)}
+      className="flex min-h-11 w-full items-center gap-3 py-1.5 text-left enabled:hover:bg-background disabled:cursor-default"
+    >
+      <span className="w-16 shrink-0 text-muted">{item.label}</span>
+      <span className={`min-w-0 flex-1 ${tone}`}>{item.value ?? (item.required ? "待填" : "可不填")}</span>
+      {enabled && <span className="shrink-0 text-xs text-brand">{item.done ? "改" : "去填"}</span>}
+    </button>
   );
 }
