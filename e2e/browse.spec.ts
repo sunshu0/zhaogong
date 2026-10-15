@@ -15,8 +15,11 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   expect(titles.indexOf("前厅服务员")).toBeLessThan(titles.indexOf("店长"));
 
   if (!desktop) await page.getByRole("button", { name: /^筛选/ }).click();
+  // Each group opens with a click (#63).
+  await page.getByRole("button", { name: "行业" }).click();
   await page.getByRole("group", { name: "行业" }).getByText("餐饮", { exact: true }).click();
   if (desktop) await expect(page).toHaveURL("/jobs?industry=hospitality");
+  await page.getByRole("button", { name: "食宿" }).click();
   await page.getByRole("group", { name: "食宿" }).getByText("包餐", { exact: true }).click();
   if (!desktop) await page.getByRole("button", { name: "查看职位" }).click();
 

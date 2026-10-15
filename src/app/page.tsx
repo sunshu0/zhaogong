@@ -249,7 +249,7 @@ async function FeaturedBand() {
             查看全部职位 →
           </Link>
         </div>
-        <ul className="mt-6 divide-y divide-border border-y border-border">
+        <ul className="mt-6 space-y-3">
           {jobs.map((job) => (
             <li key={job.id}>
               <JobCard job={job} employer={employers.get(job.employerId)} headingLevel={3} />

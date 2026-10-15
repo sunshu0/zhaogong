@@ -18,8 +18,14 @@ test("job rows: title, pay, employer, 地区 and 工时 and up to 3 tags, at lea
     await expect(cards.first()).toBeVisible();
     const first = await box(cards.nth(0));
     const second = await box(cards.nth(1));
-    expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+    // #63: each job is a block of its own, 12 px from the next, so where one ends is plain to see.
+    expect(second.y - (first.y + first.height)).toBeCloseTo(12, 0);
     expect(second.x).toBe(first.x);
+    const style = await cards.nth(0).evaluate((card) => {
+      const s = getComputedStyle(card);
+      return [s.backgroundColor, s.borderTopWidth, s.borderTopLeftRadius, s.boxShadow];
+    });
+    expect(style).toEqual(["rgb(255, 255, 255)", "1px", "6px", "none"]);
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
     // A21: at least three whole rows on a 375 × 812 phone, below the header, search and count. Measured on three
     // demo jobs: other specs publish jobs with long titles that come first while the suite runs.
@@ -131,19 +137,39 @@ test("job list below 1024 px: filters collapsed in one bar; Esc or a tap outside
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   expect((await box(panel)).y).toBeGreaterThan((await box(toggle)).y);
   await expect(page.getByRole("button", { name: "查看职位" })).toBeInViewport();
+  // #63: every group is one closed row naming what is chosen in it.
+  const regions = page.getByRole("button", { name: /^地区/ });
+  await expect(regions).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "行业 · 餐饮" })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("group", { name: "地区" }).getByText("Albany", { exact: true })).toBeHidden();
+  // Over the list: no 收藏 button under the panel shows through it.
+  const showThrough = await page.evaluate(() => {
+    const panelBox = document.getElementById("job-filters")!.getBoundingClientRect();
+    return [...document.querySelectorAll("main article button")].filter((button) => {
+      const r = button.getBoundingClientRect();
+      const [cx, cy] = [r.x + r.width / 2, r.y + r.height / 2];
+      if (cx < panelBox.left || cx > panelBox.right || cy < panelBox.top || cy > panelBox.bottom) return false;
+      return !document.elementFromPoint(cx, cy)?.closest("#job-filters");
+    }).length;
+  });
+  expect(showThrough).toBe(0);
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(toggle).toBeFocused();
 
   // A tap outside closes it and drops choices that were not applied.
   await toggle.click();
+  await regions.click();
+  await expect(regions).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("group", { name: "地区" }).getByText("Albany", { exact: true }).click();
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
+  await expect(page.getByRole("button", { name: "地区 · Albany" })).toBeVisible();
   await page.getByRole("heading", { name: "奥克兰中文工作" }).click();
   await expect(panel).toBeHidden();
   await expect(page).toHaveURL("/jobs?industry=hospitality");
   await toggle.click();
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).not.toBeChecked();
+  await expect(regions).toHaveAccessibleName("地区");
   await expect(page.getByRole("group", { name: "行业" }).getByLabel("餐饮")).toBeChecked();
 });
 
@@ -163,16 +189,41 @@ test("job list from 1024 px: the filters are a 240 px column left of the list, a
   expect(column.width).toBeCloseTo(240, 0);
   expect(column.x + column.width).toBeLessThan(rows.x);
   expect(rows.width).toBeLessThanOrEqual(720);
-  expect(Math.abs(column.y - (await box(page.getByRole("searchbox", { name: "搜索职位" }))).y)).toBeLessThan(4);
+  const search = await box(page.getByRole("searchbox", { name: "搜索职位" }));
+  expect(Math.abs(column.y - search.y)).toBeLessThan(4);
+  // The filter column's height does not push the list down from the search box.
+  expect(
+    (await box(page.getByText(/找到 \d+ 个职位/).filter({ visible: true }))).y - (search.y + search.height),
+  ).toBeLessThan(80);
   expect(await noSideScroll(page)).toBe(true);
 
-  // Plain checkboxes; ticking one applies it, keeping the others.
+  // #63: groups closed, each naming what is chosen; a click opens one.
+  const regions = page.getByRole("button", { name: /^地区/ });
+  await expect(regions).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("button", { name: "行业 · 餐饮" })).toBeVisible();
   const albany = page.getByRole("group", { name: "地区" }).getByLabel("Albany");
+  await expect(albany).toBeHidden();
+  await regions.click();
+  await expect(regions).toHaveAttribute("aria-expanded", "true");
+
+  // Plain checkboxes; ticking one applies it, keeping the others. The group stays open for the next choice.
   await albany.check();
   await expect(page).toHaveURL(/region=akl-albany/);
   await expect(page).toHaveURL(/industry=hospitality/);
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
   await expect(page.getByRole("link", { name: "去掉条件：Albany" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "地区 · Albany" })).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("group", { name: "地区" }).getByLabel("Takapuna").check();
+  await expect(page).toHaveURL(/region=akl-takapuna,akl-albany|region=akl-albany,akl-takapuna/);
+  await expect(page.getByRole("button", { name: "地区 · 已选 2" })).toBeVisible();
+
+  // The keyboard opens and closes a group too.
+  const industries = page.getByRole("button", { name: "行业 · 餐饮" });
+  await industries.focus();
+  await page.keyboard.press("Enter");
+  await expect(industries).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Space");
+  await expect(industries).toHaveAttribute("aria-expanded", "false");
 });
 
 test("job page: contact in a right column that stays in view on desktop, after the description on phones", async ({

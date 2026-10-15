@@ -63,7 +63,7 @@ export function SavedJobsPage() {
 
   if (!jobs || jobs.length === 0) {
     return (
-      <div className="border-y border-border px-4 py-10 text-center">
+      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
         <p className="font-medium">还没有收藏的职位</p>
         <p className="mt-1 text-body text-muted">
           在职位上点「收藏」，就会出现在这里，可以记下联系、面试到录用的进度。
@@ -87,9 +87,9 @@ export function SavedJobsPage() {
   return (
     <div>
       <p className="mb-2 text-body text-muted">只有你自己看得到，雇主看不到。</p>
-      <ul aria-label="收藏的职位" className="divide-y divide-border border-y border-border">
+      <ul aria-label="收藏的职位" className="space-y-3">
         {jobs.map((job) => (
-          <li key={job.jobId} className="py-4">
+          <li key={job.jobId} className="rounded-md border border-border bg-surface p-4 lg:p-5">
             <article aria-label={job.titleZh}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

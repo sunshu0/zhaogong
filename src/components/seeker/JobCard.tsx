@@ -13,7 +13,8 @@ import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 const CARD_TAGS = 3;
 
 /**
- * One job in a list (Round 13: a row between thin lines, no card): title (zh, en) with the pay on the right, then
+ * One job in a list, a block of its own (#63: rows between thin lines ran together, users could not tell where one
+ * job ended): title (zh, en) with the pay on the right, then
  * 地区 and 工时 with small grey labels and how the employer is reached, then the employer (avatar, name,
  * verification level), up to three tags and 收藏 (#52). Everything else (description, shifts, languages, visas) is on the job page. Only
  * the title is a link; it stretches over the whole row, so screen readers hear the title alone.
@@ -25,7 +26,7 @@ export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employe
   const tags = jobTags(job).slice(0, CARD_TAGS);
 
   return (
-    <article className="group relative py-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand">
+    <article className="group relative h-full rounded-md border border-border bg-surface p-4 hover:border-brand lg:p-5 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Heading className="break-words text-subtitle font-semibold group-hover:text-brand">
@@ -89,7 +90,7 @@ function Fact({ label, children }: { label: string; children: string }) {
   );
 }
 
-/** Loading placeholder with the row's height, so the list does not jump when it arrives. */
+/** Loading placeholder with the block's height, so the list does not jump when it arrives. */
 export function JobCardSkeleton() {
-  return <div className="h-28 animate-pulse border-b border-border" />;
+  return <div className="h-36 animate-pulse rounded-md border border-border bg-surface" />;
 }

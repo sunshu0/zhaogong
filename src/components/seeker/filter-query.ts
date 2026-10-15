@@ -120,6 +120,23 @@ export function filterChips(filter: JobFilter): FilterChip[] {
   return chips;
 }
 
+/** The filter panel's groups, each a row that opens to show its choices (#63). */
+export type FilterGroup = "region" | "industry" | "type" | "minPay" | "visa" | "food";
+
+/**
+ * What a closed group shows after its name: the one choice made in it (「Albany」「$30 起」), 「已选 N」 for several,
+ * or undefined when nothing in it is chosen.
+ */
+export function filterGroupSummary(filter: JobFilter, group: FilterGroup): string | undefined {
+  if (group === "minPay")
+    return filter.minPay == null ? undefined : `${COUNTRIES[filter.country].currencySymbol}${filter.minPay} 起`;
+  if (group === "visa") return filter.visa && VISA_LABELS[filter.visa].zh;
+  const ids = group === "food" ? ["meals", "housing"] : null;
+  const chips = filterChips(filter).filter((c) => (ids ? ids.includes(c.id) : c.id.startsWith(`${group}:`)));
+  if (chips.length === 0) return undefined;
+  return chips.length === 1 ? chips[0].label : `已选 ${chips.length}`;
+}
+
 export function isFiltered(filter: JobFilter): boolean {
   return filterChips(filter).length > 0;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   filterChips,
+  filterGroupSummary,
   filterToQuery,
   isFiltered,
   jobsHref,
@@ -117,6 +118,27 @@ describe("filterChips", () => {
     expect(filterChips({ country: "NZ" })).toEqual([]);
     expect(isFiltered({ country: "NZ" })).toBe(false);
     expect(isFiltered(parse("meals=1"))).toBe(true);
+  });
+});
+
+describe("filterGroupSummary", () => {
+  it("names a single choice and counts several", () => {
+    const filter = parse(
+      "region=akl-cbd,akl-albany&industry=retail&type=part_time&minPay=30&visa=student&meals=1&housing=1",
+    );
+    expect(filterGroupSummary(filter, "region")).toBe("已选 2");
+    expect(filterGroupSummary(filter, "industry")).toBe("零售");
+    expect(filterGroupSummary(filter, "type")).toBe("兼职");
+    expect(filterGroupSummary(filter, "minPay")).toBe("$30 起");
+    expect(filterGroupSummary(filter, "visa")).toBe("学签");
+    expect(filterGroupSummary(filter, "food")).toBe("已选 2");
+    expect(filterGroupSummary(parse("housing=1"), "food")).toBe("包住");
+  });
+
+  it("is empty for a group with nothing chosen, whatever the other groups hold", () => {
+    const filter = parse("region=akl-cbd&q=奶茶");
+    for (const group of ["industry", "type", "minPay", "visa", "food"] as const)
+      expect(filterGroupSummary(filter, group)).toBeUndefined();
   });
 });
 
