@@ -17,6 +17,7 @@ import {
   countContributors,
   daysBetween,
   isBusinessFile,
+  isDesignSource,
   isQualifiedMessage,
   isTestFile,
   scoreOf,
@@ -236,7 +237,7 @@ asset(
   "设计",
   ASSETS.design({
     spec: tree.has("docs/design-system.md"),
-    sources: paths.filter((p) => /\.(fig|sketch|xd|pen|penpot)$/i.test(p)).length,
+    sources: paths.filter(isDesignSource).length,
   }),
 );
 row(
@@ -272,6 +273,7 @@ const out = [
     "有效提交只去掉了合并提交，没有逐个判断提交内容；有效 PR 按已合并的计。",
     "业务代码不含测试、`src/mock` 演示数据、`drizzle/` 生成的迁移、`scripts/`、`e2e/` 和配置。",
     "CI 只有在 GitHub 上有成功的运行才算有效；workflow 文件本身不计分。",
+    "设计源文件：设计工具的文件（.fig、.sketch 等），以及 `docs/design/` 下用 HTML 或 SVG 做的样稿；截图和其他图片是导出物，不算。",
   ].map((l) => `- ${l}`),
 ];
 console.log(out.join("\n"));

@@ -8,6 +8,7 @@ import {
   countContributors,
   daysBetween,
   isBusinessFile,
+  isDesignSource,
   isQualifiedMessage,
   isTestFile,
   scoreOf,
@@ -113,6 +114,16 @@ describe("what counts", () => {
         { name: "B", email: "b@example.com" },
       ]),
     ).toBe(2);
+  });
+
+  it("design sources are design tool files, and HTML or SVG mockups under docs/design/ — not screenshots", () => {
+    expect(isDesignSource("docs/design/2026-10-window-notice/index.html")).toBe(true);
+    expect(isDesignSource("docs/design/icons/logo.svg")).toBe(true);
+    expect(isDesignSource("design/home.fig")).toBe(true);
+    expect(isDesignSource("docs/design/2026-10-window-notice/shot-m.png")).toBe(false);
+    expect(isDesignSource("docs/design/2026-10-window-notice/README.md")).toBe(false);
+    expect(isDesignSource("public/index.html")).toBe(false);
+    expect(isDesignSource("public/icons/icon.svg")).toBe(false);
   });
 
   it("compose services are the keys under services:", () => {

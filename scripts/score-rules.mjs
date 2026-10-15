@@ -232,6 +232,17 @@ export function apiInterfaceCount(markdown) {
   return markdown.split("\n").filter((line) => /^\| `[\w$]+\(.*\)` \|(.*\|){3}\s*$/.test(line)).length;
 }
 
+const DESIGN_TOOL = /\.(fig|sketch|xd|pen|penpot)$/i;
+
+/**
+ * A design source file: a design tool's file anywhere, or a mockup made as HTML or SVG under docs/design/ (the
+ * file the design was made in, which opens and can be edited). Screenshots and other images are exports of a
+ * design, not its source, and do not count.
+ */
+export function isDesignSource(path) {
+  return DESIGN_TOOL.test(path) || (path.startsWith("docs/design/") && /\.(html?|svg)$/i.test(path));
+}
+
 /** Asset levels (0–2) from what is in the repository; each returns { points, evidence }. */
 export const ASSETS = {
   /** Schema plus versioned migrations = 2; either = 1. */
