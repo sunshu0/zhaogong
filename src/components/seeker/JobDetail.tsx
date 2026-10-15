@@ -54,7 +54,7 @@ export function JobDetail({
       <header className="rounded-xl border border-border bg-surface p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="text-title font-semibold break-words">{job.titleZh}</h1>
+            <h1 className="text-[1.75rem] leading-tight font-black break-words">{job.titleZh}</h1>
             <p lang="en" className="font-latin text-body text-muted">
               {job.titleEn}
             </p>
