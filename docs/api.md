@@ -29,6 +29,15 @@
 | `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
 | `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
 
+## 数据与账号 — `src/app/account/actions.ts`
+
+账号一律取自会话（#54，ADR 0009）。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myServerData()` | | `{ ok: true, data: ServerAccountData }`：账号、审核员身份、企业和它的全部职位、各身份的聊天记录和已读通知、看过联系方式的职位、登录会话（只有身份和时间）。浏览器再加上本机的资料、举报和浏览记录，下载成 `zhaogong-my-data-日期.json` | `{ ok: false, error }`：「请先登录」「找不到这个账号」 |
+| `deleteMyAccount(email)` | 再输入一次登录邮箱（不分大小写、首尾空格） | `{ ok: true }`：删除账号、所有会话、验证码、聊天记录和审核员身份；企业的职位下架并清空联系方式；查看记录和「由谁添加」改成 `deleted-account`；删除这次的 cookie | `{ ok: false, error }`：「请先登录」「输入的邮箱和当前登录的邮箱不一致」「你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。」 |
+
 ## 职位（求职者）— `src/app/jobs/[id]/actions.ts`
 
 | 函数 | 参数 | 成功 | 失败 |

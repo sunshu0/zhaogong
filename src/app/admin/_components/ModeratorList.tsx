@@ -5,6 +5,13 @@ import type { Moderator } from "@/db/moderators";
 import { Empty } from "@/app/admin/_components/Empty";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+
+/** Who added a moderator: another moderator, the command line (null), or an account deleted since (#54). */
+function grantedByText(grantedBy: string | null): string {
+  if (!grantedBy) return "在服务器上添加";
+  return grantedBy === DELETED_ACCOUNT ? "由已删除的账号添加" : `由${grantedBy}添加`;
+}
 
 const day = new Intl.DateTimeFormat("zh-CN", { timeZone: "Pacific/Auckland", dateStyle: "medium" });
 
@@ -64,7 +71,7 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
                   {m.email === answer.me && <span className="ml-1.5 font-normal text-muted">（你）</span>}
                 </p>
                 <p className="text-meta text-muted">
-                  {day.format(new Date(m.grantedAt))} {m.grantedBy ? `由${m.grantedBy}添加` : "在服务器上添加"}
+                  {day.format(new Date(m.grantedAt))} {grantedByText(m.grantedBy)}
                 </p>
               </div>
               <Button

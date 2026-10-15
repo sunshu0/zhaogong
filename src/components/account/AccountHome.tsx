@@ -34,6 +34,7 @@ export function AccountHome() {
           { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
           { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
         ]),
+    { href: "/account/data", label: "数据与账号", detail: "导出我的数据、删除账号" },
   ];
 
   return (

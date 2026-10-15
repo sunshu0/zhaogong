@@ -1,0 +1,183 @@
+import { eq, getTableColumns, getTableName } from "drizzle-orm";
+import { SQLiteTable } from "drizzle-orm/sqlite-core";
+import { describe, expect, it } from "vitest";
+import { deleteAccount, exportAccountData } from "@/db/account-data";
+import { databaseAuthStore } from "@/db/auth-store";
+import { databaseChatStore } from "@/db/chat-store";
+import { grantModerator, isModerator, listModerators, revokeModerator } from "@/db/moderators";
+import { database } from "@/db/ready";
+import * as t from "@/db/schema";
+import { DEMO_MODERATOR } from "@/db/seed";
+import {
+  createEmployer,
+  createJob,
+  ensureAccount,
+  getAccount,
+  getJob,
+  listContactViews,
+  openEmployerIdentity,
+  recordContactView,
+} from "@/lib/data";
+import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+import type { Job } from "@/lib/types";
+import { MOCK_JOBS } from "@/mock/data";
+
+const scopeOf = (email: string, role: "seeker" | "employer", employerId: string | null = null) =>
+  JSON.stringify([email, role, employerId]);
+
+function jobFor(employerId: string): Omit<Job, "id"> {
+  const job: Partial<Job> = { ...MOCK_JOBS[0] };
+  delete job.id;
+  return {
+    ...(job as Omit<Job, "id">),
+    employerId,
+    titleZh: "删除账号测试职位",
+    contactPublic: true,
+    contact: { phone: "021 000 0000", email: "owner@example.com" },
+    status: "active",
+  };
+}
+
+/** An account with something in every table that holds its email. */
+async function fullAccount(email: string) {
+  await ensureAccount(email);
+  const business = await createEmployer({ name: `测试店 ${email}`, regionId: "akl-central" });
+  await openEmployerIdentity(email, business.id);
+  const job = await createJob(jobFor(business.id));
+  const auth = databaseAuthStore();
+  await auth.insertSession({
+    id: `session-${email}`,
+    email,
+    activeRole: "seeker",
+    createdAt: "2026-10-16T00:00:00.000Z",
+    expiresAt: "2026-11-16T00:00:00.000Z",
+  });
+  await auth.putCode({
+    email,
+    codeHash: "hash",
+    expiresAt: "2026-10-16T00:10:00.000Z",
+    attempts: 0,
+    createdAt: "2026-10-16T00:00:00.000Z",
+  });
+  const chats = databaseChatStore();
+  await chats.putNotificationReads(scopeOf(email, "seeker"), ["n1"]);
+  await chats.putNotificationReads(scopeOf(email, "employer", business.id), ["n2"]);
+  await recordContactView("j1", email);
+  return { business, job };
+}
+
+describe("exportAccountData (#54)", () => {
+  it("has the account, the business and its jobs, chats, contact views and sessions, nothing of others", async () => {
+    const email = "export.me@example.com";
+    const { business, job } = await fullAccount(email);
+    await fullAccount("someone.else@example.com");
+    const data = await exportAccountData(" Export.Me@Example.com ");
+    expect(data?.account).toMatchObject({ email, lastRole: "seeker" });
+    expect(data?.moderator).toBeNull();
+    expect(data?.employer?.business).toMatchObject({ id: business.id, name: business.name });
+    expect(data?.employer?.jobs.map((j) => j.id)).toEqual([job.id]);
+    expect(data?.chats.map((c) => c.identity).sort()).toEqual(
+      [scopeOf(email, "employer", business.id), scopeOf(email, "seeker")].sort(),
+    );
+    expect(data?.chats.find((c) => c.identity === scopeOf(email, "seeker"))?.notificationsRead).toEqual(["n1"]);
+    expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
+    expect(data?.sessions).toEqual([
+      { activeRole: "seeker", createdAt: "2026-10-16T00:00:00.000Z", expiresAt: "2026-11-16T00:00:00.000Z" },
+    ]);
+    expect(JSON.stringify(data)).not.toContain("someone.else@example.com");
+    expect(JSON.stringify(data)).not.toContain("session-"); // the session id is never shown
+  });
+
+  it("is undefined for an email without an account", async () => {
+    expect(await exportAccountData("never.signed.up@example.com")).toBeUndefined();
+  });
+});
+
+describe("deleteAccount (#54)", () => {
+  it("deletes the account and what is only about it; the business's jobs come down without contact details", async () => {
+    const email = "delete.me@example.com";
+    const { business, job } = await fullAccount(email);
+    const other = await fullAccount("stays.here@example.com");
+    const viewsBefore = (await listContactViews("j1")).length;
+
+    expect(await deleteAccount("Delete.Me@example.com")).toBe("deleted");
+
+    expect(await getAccount(email)).toBeUndefined();
+    expect(await exportAccountData(email)).toBeUndefined();
+    const db = await database();
+    for (const [table, column] of [
+      [t.sessions, t.sessions.email],
+      [t.signInCodes, t.signInCodes.email],
+      [t.chatRecords, t.chatRecords.email],
+      [t.contactViews, t.contactViews.viewerEmail],
+    ] as const) {
+      expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
+    }
+    // The view still counts for the job, without the viewer.
+    const views = await listContactViews("j1");
+    expect(views).toHaveLength(viewsBefore);
+    expect(views.filter((v) => v.viewerEmail === DELETED_ACCOUNT).length).toBeGreaterThan(0);
+
+    const removed = await getJob(job.id);
+    expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
+    const [stillThere] = await db.select().from(t.employers).where(eq(t.employers.id, business.id));
+    expect(stillThere?.name).toBe(business.name);
+
+    // Someone else's data is untouched.
+    expect(await getAccount("stays.here@example.com")).toBeDefined();
+    expect(await getJob(other.job.id)).toMatchObject({ status: "active", contactPublic: true });
+  });
+
+  it("lets the same email sign up again as a new account", async () => {
+    const email = "comes.back@example.com";
+    await fullAccount(email);
+    expect(await deleteAccount(email)).toBe("deleted");
+    const again = await ensureAccount(email);
+    expect(again.employerId).toBeUndefined();
+    expect((await exportAccountData(email))?.employer).toBeNull();
+  });
+
+  it("is no_account for an email without an account", async () => {
+    expect(await deleteAccount("nobody.here@example.com")).toBe("no_account");
+  });
+
+  it("never deletes the last moderator; another moderator goes, and who they added no longer names them", async () => {
+    const first = "mod.one@example.com";
+    const second = "mod.two@example.com";
+    await ensureAccount(first);
+    await ensureAccount(second);
+    await grantModerator(first, null);
+    await grantModerator(second, first);
+
+    expect(await deleteAccount(first)).toBe("deleted");
+    expect(await isModerator(first)).toBe(false);
+    expect((await listModerators()).find((m) => m.email === second)?.grantedBy).toBe(DELETED_ACCOUNT);
+
+    // Leave `second` as the only moderator.
+    for (const m of await listModerators()) if (m.email !== second) await revokeModerator(m.email);
+    expect(await deleteAccount(second)).toBe("last_moderator");
+    expect(await getAccount(second)).toBeDefined();
+    expect(await isModerator(second)).toBe(true);
+    await grantModerator(DEMO_MODERATOR, null);
+  });
+
+  it("covers every column that holds an email: a new one must be added to the export and the deletion", () => {
+    const handled = new Set([
+      "accounts.email",
+      "sessions.email",
+      "sign_in_codes.email",
+      "chat_records.email",
+      "contact_views.viewer_email",
+      "moderators.email",
+      "conversations.seeker_email",
+    ]);
+    const found = Object.values(t as Record<string, unknown>)
+      .filter((value): value is SQLiteTable => value instanceof SQLiteTable)
+      .flatMap((table) =>
+        Object.values(getTableColumns(table))
+          .filter((column) => column.name.includes("email"))
+          .map((column) => `${getTableName(table)}.${column.name}`),
+      );
+    expect(new Set(found)).toEqual(handled);
+  });
+});
