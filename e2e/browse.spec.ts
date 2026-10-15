@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { siteNav } from "./helpers";
 
-test("list → filter → detail → back to the filtered list", async ({ page }) => {
+test("list → filter → detail → back to the filtered list", async ({ page }, testInfo) => {
+  // From 1024 px the filters are a column where each change applies at once; below, a panel behind 筛选.
+  const desktop = testInfo.project.name === "desktop";
   await page.goto("/jobs");
   await expect(page.getByRole("heading", { name: "奥克兰中文工作" })).toBeVisible();
   await expect(page.getByText(/共 \d+ 个职位，最新发布在前/).filter({ visible: true })).toBeVisible();
@@ -12,15 +14,20 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   expect(titles.indexOf("超市理货员")).toBeLessThan(titles.indexOf("前厅服务员"));
   expect(titles.indexOf("前厅服务员")).toBeLessThan(titles.indexOf("店长"));
 
-  await page.getByRole("button", { name: /^筛选/ }).click();
+  if (!desktop) await page.getByRole("button", { name: /^筛选/ }).click();
   await page.getByRole("group", { name: "行业" }).getByText("餐饮", { exact: true }).click();
+  if (desktop) await expect(page).toHaveURL("/jobs?industry=hospitality");
   await page.getByRole("group", { name: "食宿" }).getByText("包餐", { exact: true }).click();
-  await page.getByRole("button", { name: "查看职位" }).click();
+  if (!desktop) await page.getByRole("button", { name: "查看职位" }).click();
 
   await expect(page).toHaveURL("/jobs?industry=hospitality&meals=1");
   await expect(page.getByText(/找到 \d+ 个职位/).filter({ visible: true })).toBeVisible();
-  await expect(page.locator("#job-filters")).toBeHidden(); // 查看职位 closes the panel
-  await expect(page.getByRole("button", { name: "筛选 · 2" })).toBeVisible();
+  if (desktop) {
+    await expect(page.getByRole("group", { name: "食宿" }).getByLabel("包餐")).toBeChecked();
+  } else {
+    await expect(page.locator("#job-filters")).toBeHidden(); // 查看职位 closes the panel
+    await expect(page.getByRole("button", { name: "筛选 · 2" })).toBeVisible();
+  }
   await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
   await expect(page.getByRole("link", { name: /超市理货员/ })).toHaveCount(0); // retail, no meals
 
@@ -73,5 +80,10 @@ test("a job near the minimum wage says so, and an unknown job is not found", asy
 test("links shared before the move to /jobs still open the same filtered list", async ({ page }) => {
   await page.goto("/?industry=retail&meals=1&q=%E6%94%B6%E9%93%B6");
   await expect(page).toHaveURL("/jobs?industry=retail&meals=1&q=%E6%94%B6%E9%93%B6");
-  await expect(siteNav(page).getByRole("link", { name: /^(找工作|职位)$/ })).toHaveAttribute("href", "/jobs");
+  // .first(): right after the redirect the stylesheet may not have hidden the other navigation yet; both link here.
+  await expect(
+    siteNav(page)
+      .getByRole("link", { name: /^(找工作|职位)$/ })
+      .first(),
+  ).toHaveAttribute("href", "/jobs");
 });

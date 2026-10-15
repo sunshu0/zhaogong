@@ -5,7 +5,7 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
-test("compact job cards: title, pay, employer, region · type · hours and up to 3 tags, at least 3 per phone screen", async ({
+test("job rows: title, pay, employer, 地区 and 工时 and up to 3 tags, at least 3 per phone screen", async ({
   page,
 }, testInfo) => {
   const widths = testInfo.project.name === "desktop" ? [1280, 1440, 1920] : [375];
@@ -45,7 +45,6 @@ test("compact job cards: title, pay, employer, region · type · hours and up to
     await expect(retail).not.toContainText("021 555");
     for (let i = 0; i < (await cards.count()); i += 1)
       expect(await cards.nth(i).locator("li").count()).toBeLessThanOrEqual(3);
-    // Pay is the biggest text on the card.
     const sizes = await retail.evaluate((card) =>
       [...card.querySelectorAll("*")].map(
         (el) => [el.textContent?.trim(), parseFloat(getComputedStyle(el).fontSize)] as const,
@@ -94,9 +93,11 @@ test("mobile header and bottom bar actions have touch-sized targets", async ({ p
   }
 });
 
-test("job list: filters collapsed in one bar at every width; Esc or a tap outside closes them unapplied", async ({
+test("job list below 1024 px: filters collapsed in one bar; Esc or a tap outside closes them unapplied", async ({
   page,
-}) => {
+}, testInfo) => {
+  // Phones, and tablets in the desktop project; from 1024 px the filters are a column (next test).
+  if (testInfo.project.name === "desktop") await page.setViewportSize({ width: 900, height: 900 });
   await page.goto("/jobs?industry=hospitality");
   const panel = page.locator("#job-filters");
   const toggle = page.getByRole("button", { name: "筛选 · 1" });
@@ -139,6 +140,34 @@ test("job list: filters collapsed in one bar at every width; Esc or a tap outsid
   await toggle.click();
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).not.toBeChecked();
   await expect(page.getByRole("group", { name: "行业" }).getByLabel("餐饮")).toBeChecked();
+});
+
+test("job list from 1024 px: the filters are a 240 px column left of the list, and a change applies at once", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The filter column is a desktop layout");
+  await page.goto("/jobs?industry=hospitality");
+  const panel = page.locator("#job-filters");
+  const list = page.getByRole("region", { name: "职位列表" });
+  await expect(list.getByRole("listitem").first()).toBeVisible();
+  await expect(panel).toBeVisible();
+  await expect(page.getByRole("button", { name: /^筛选/ })).toBeHidden();
+  await expect(page.getByRole("button", { name: "查看职位" })).toBeHidden();
+
+  const [column, rows] = [await box(panel), await box(list)];
+  expect(column.width).toBeCloseTo(240, 0);
+  expect(column.x + column.width).toBeLessThan(rows.x);
+  expect(rows.width).toBeLessThanOrEqual(720);
+  expect(Math.abs(column.y - (await box(page.getByRole("searchbox", { name: "搜索职位" }))).y)).toBeLessThan(4);
+  expect(await noSideScroll(page)).toBe(true);
+
+  // Plain checkboxes; ticking one applies it, keeping the others.
+  const albany = page.getByRole("group", { name: "地区" }).getByLabel("Albany");
+  await albany.check();
+  await expect(page).toHaveURL(/region=akl-albany/);
+  await expect(page).toHaveURL(/industry=hospitality/);
+  await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
+  await expect(page.getByRole("link", { name: "去掉条件：Albany" })).toBeVisible();
 });
 
 test("job page: contact in a right column that stays in view on desktop, after the description on phones", async ({

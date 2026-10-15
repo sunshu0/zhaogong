@@ -14,7 +14,7 @@ export function JobList({
 }) {
   if (jobs.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-10 text-center">
+      <div className="border-y border-border px-4 py-10 text-center">
         <p className="font-medium">暂时没有符合条件的职位</p>
         <p className="mt-1 text-sm text-muted">换个条件试试，或者过几天再来看看。</p>
         {empty && <div className="mt-4">{empty}</div>}
@@ -22,8 +22,9 @@ export function JobList({
     );
   }
 
+  // Rows between thin lines (Round 13), no cards.
   return (
-    <ul className="grid grid-cols-1 gap-3">
+    <ul className="divide-y divide-border border-b border-border">
       {jobs.map((job) => (
         <li key={job.id}>
           <JobCard job={job} employer={employers.get(job.employerId)} />
@@ -35,7 +36,7 @@ export function JobList({
 
 export function JobListSkeleton() {
   return (
-    <ul data-nojs-hide="" className="grid grid-cols-1 gap-3" aria-hidden="true">
+    <ul data-nojs-hide="" aria-hidden="true">
       {[0, 1, 2, 3].map((i) => (
         <li key={i}>
           <JobCardSkeleton />

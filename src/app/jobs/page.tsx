@@ -35,13 +35,15 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
   const filtered = isFiltered(filter);
   const query = filterToQuery(filter);
 
+  // From 1024 px: the filters in a 240 px column on the left, the search box and the list (at most 720 px) on the
+  // right. The form spans both columns (display: contents), so it stays one GET form.
   return (
-    <>
+    <div className="lg:grid lg:grid-cols-[15rem_minmax(0,45rem)] lg:items-start lg:gap-x-10">
       <RememberListQuery query={query} />
       <FilterForm key={query} filter={filter} />
-      <section aria-label="职位列表">
+      <section aria-label="职位列表" className="lg:col-start-2">
         <ActiveFilters filter={filter} />
-        <p className="mb-3 text-sm text-muted">
+        <p className="border-b-2 border-brand pb-2 text-body text-muted">
           {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}
         </p>
         <JobList
@@ -59,6 +61,6 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
           }
         />
       </section>
-    </>
+    </div>
   );
 }

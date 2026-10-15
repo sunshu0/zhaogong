@@ -8,12 +8,15 @@ import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
 import { filterChips, filterToQuery, jobsHref, parseFilter, toParams } from "@/components/seeker/filter-query";
 
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
+/** Where the panel becomes the page's left column (Tailwind's lg). */
+const DESKTOP = "(min-width: 1024px)";
 
 /**
- * One bar above the list at every width: keyword box + 筛选 · N. The panel drops down under the bar, closed by
- * default; 查看职位 applies it, Esc or a tap outside closes it without applying. Submitting writes the filter into
- * the URL; without JavaScript the form still works as a plain GET. Give it `key={query}` so it resets (and closes)
- * when the URL changes.
+ * On phones and tablets one bar above the list: keyword box + 筛选 · N. The panel drops down under the bar, closed
+ * by default; 查看职位 applies it, Esc or a tap outside closes it without applying. From 1024 px (Round 13) the
+ * panel is the left column of the page instead: always shown, plain checkboxes, each change applied at once.
+ * Submitting writes the filter into the URL; without JavaScript the form still works as a plain GET. Give it
+ * `key={query}` so it resets (and closes) when the URL changes.
  */
 export function FilterForm({ filter }: { filter: JobFilter }) {
   const router = useRouter();
@@ -49,6 +52,13 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
     };
   }, [open, close]);
 
+  // The desktop column has no 查看职位: a change there applies at once.
+  function applyOnDesktop(e: FormEvent<HTMLFormElement>) {
+    const target = e.target as HTMLInputElement;
+    if (target.name === "q" || !window.matchMedia(DESKTOP).matches) return;
+    e.currentTarget.requestSubmit();
+  }
+
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const query = filterToQuery(parseFilter(toParams(new FormData(e.currentTarget)), filter.country));
@@ -56,8 +66,15 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
   }
 
   return (
-    <form ref={formRef} action={jobsHref("")} onSubmit={submit} role="search" className="relative mb-3">
-      <div className="flex gap-2">
+    <form
+      ref={formRef}
+      action={jobsHref("")}
+      onSubmit={submit}
+      onChange={applyOnDesktop}
+      role="search"
+      className="relative mb-3 lg:contents"
+    >
+      <div className="flex gap-2 lg:col-start-2 lg:row-start-1 lg:mb-3">
         <input
           type="search"
           name="q"
@@ -74,7 +91,7 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
           onClick={() => (open ? close(false) : setOpen(true))}
           aria-expanded={open}
           aria-controls="job-filters"
-          className={`shrink-0 rounded-lg border px-3 py-2 text-sm ${
+          className={`shrink-0 rounded-lg border px-3 py-2 text-sm lg:hidden ${
             open || active ? "border-brand bg-brand-soft text-brand" : "border-border bg-surface"
           }`}
         >
@@ -84,9 +101,8 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
 
       <div
         id="job-filters"
-        className={`absolute inset-x-0 top-full z-10 mt-2 max-h-[min(75vh,40rem)] space-y-4 overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-lg ${
-          // Two columns of groups from 1024 px; only while open, since lg:grid would override hidden.
-          open ? "lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-4 lg:space-y-0" : "hidden"
+        className={`absolute inset-x-0 top-full z-10 mt-2 max-h-[min(75vh,40rem)] space-y-4 overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-lg lg:static lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:block lg:max-h-none lg:space-y-6 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none ${
+          open ? "" : "hidden"
         }`}
       >
         <Group title="地区">
@@ -141,7 +157,7 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
         </Group>
 
         {/* Stays at the bottom of the panel while the groups scroll, so 查看职位 is always in reach. */}
-        <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2 border-t border-border bg-surface px-4 py-3 lg:col-span-2">
+        <div className="sticky bottom-0 -mx-4 -mb-4 flex gap-2 border-t border-border bg-surface px-4 py-3 lg:hidden">
           <button
             type="button"
             className="flex-1 rounded-lg border border-border px-3 py-2.5 text-sm"
@@ -172,8 +188,8 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium">{title}</legend>
-      <div className="flex flex-wrap gap-2">{children}</div>
+      <legend className="mb-2 text-sm font-medium lg:text-meta lg:text-muted">{title}</legend>
+      <div className="flex flex-wrap gap-2 lg:flex-col lg:gap-1">{children}</div>
     </fieldset>
   );
 }
@@ -192,9 +208,16 @@ function Chip({
   children: ReactNode;
 }) {
   return (
-    <label className="cursor-pointer">
-      <input type={type} name={name} value={value} defaultChecked={checked} className="peer sr-only" />
-      <span className="inline-block rounded-full border border-border px-3 py-1.5 text-sm peer-checked:border-brand peer-checked:bg-brand-soft peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+    // A pill on phones; a plain checkbox or radio with its label in the desktop column.
+    <label className="cursor-pointer lg:flex lg:min-h-8 lg:items-center lg:gap-2">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        defaultChecked={checked}
+        className="peer sr-only lg:not-sr-only lg:size-4 lg:accent-brand"
+      />
+      <span className="inline-block rounded-full border border-border px-3 py-1.5 text-sm peer-checked:border-brand peer-checked:bg-brand-soft peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand lg:rounded-none lg:border-0 lg:p-0 lg:text-body lg:peer-checked:bg-transparent lg:peer-checked:text-foreground lg:peer-focus-visible:outline-0">
         {children}
       </span>
     </label>
