@@ -4,6 +4,7 @@ import { setAuthStoreForTests } from "@/lib/auth/store";
 import { createEmployer, ensureAccount, openEmployerIdentity } from "@/lib/data";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { databaseChatStore } from "@/db/chat-store";
+import { jobNumbers } from "@/db/job-stats";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { EMPTY_CHAT, addSentMessage, chatView } from "@/components/seeker/chat-store";
 
@@ -198,6 +199,17 @@ describe("chat on the server (#10)", () => {
     const opened = await change({ type: "open", conversation: { kind: "employer", jobId: "j1" } });
     expect(opened?.extra[0]).toMatchObject({ id: "employer:e1:j1", person: "川味小馆", job: "j1", employerId: "e1" });
     expect(await change({ type: "open", conversation: { kind: "employer", jobId: "j17" } })).toEqual(opened); // expired
+  });
+
+  it("counts a job seeker's first message about a job on the employer's numbers, once (#55)", async () => {
+    const before = (await jobNumbers(["j2"])).j2.chats;
+    await signedIn("counted.asker@example.com");
+    await change({ type: "open", conversation: { kind: "employer", jobId: "j2" } });
+    expect((await jobNumbers(["j2"])).j2.chats).toBe(before); // opening alone is not a chat yet
+    const id = (await my())!.extra.find((c) => c.job === "j2")!.id;
+    await change({ type: "send", conversationId: id, text: "你好" });
+    await change({ type: "send", conversationId: id, text: "还在招吗" });
+    expect((await jobNumbers(["j2"])).j2.chats).toBe(before + 1);
   });
 
   it("takes the browser's older records once, when the server has none for that identity", async () => {

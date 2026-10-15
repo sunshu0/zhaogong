@@ -1,5 +1,6 @@
 // What a card on 职位管理 shows: the same numbers on every card, one main button and the rest under 更多.
 import type { Job } from "@/lib/types";
+import type { JobNumbers } from "@/db/job-stats";
 import { canClose, effectiveStatus, refreshState } from "@/components/employer/job-status";
 
 /** Which question is open on the card: ending the job, or recording hires. */
@@ -12,20 +13,16 @@ export interface CardActions {
   more: { key: CardActionKey; label: string; disabled?: boolean; danger?: boolean }[];
 }
 
-/** People who chatted about each job, from the employer's conversations. */
-export function chatPeopleByJob(conversations: { job: string | null }[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const { job } of conversations) if (job) counts[job] = (counts[job] ?? 0) + 1;
-  return counts;
-}
-
-/** Chats, then contact views (public details) or how details are swapped (private). */
-export function cardNumbers(job: Pick<Job, "contactPublic">, chats: number, views: number): string[] {
+/** Page views, chats, then contact views (public details) or how details are swapped (private), from the server (#55). */
+export function cardNumbers(job: Pick<Job, "contactPublic">, numbers: JobNumbers): string[] {
   return [
-    chats > 0 ? `${chats} 人聊过` : "还没有人聊过",
-    job.contactPublic ? `${views} 人查看了联系方式` : "不公开 · 聊天交换",
+    `${numbers.views} 次浏览`,
+    numbers.chats > 0 ? `${numbers.chats} 人聊过` : "还没有人聊过",
+    job.contactPublic ? `${numbers.contactViews} 次查看联系方式` : "不公开 · 聊天交换",
   ];
 }
+
+export const NO_NUMBERS: JobNumbers = { views: 0, chats: 0, contactViews: 0 };
 
 type CardJob = Pick<Job, "id" | "status" | "postedAt" | "expiresAt" | "hiresConfirmed">;
 

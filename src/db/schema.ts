@@ -238,3 +238,39 @@ export const savedJobs = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.email, t.jobId] })],
 );
+
+// ---- job numbers for the employer (#55) ----
+
+/**
+ * One row per job, day and browser that opened the job page, so a browser counts once a day. `visitor` is the
+ * SHA-256 of a random id in an httpOnly cookie: no IP, no account, nothing that leads back to a person.
+ */
+export const jobViews = sqliteTable(
+  "job_views",
+  {
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    /** The day in New Zealand, YYYY-MM-DD. */
+    day: text("day").notNull(),
+    visitor: text("visitor").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.jobId, t.day, t.visitor] })],
+);
+
+/**
+ * A job seeker's first message about a job: one row per person and job (checked in code, since a deleted account's
+ * rows all become deleted-account and still count).
+ */
+export const jobChatStarts = sqliteTable(
+  "job_chat_starts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    seekerEmail: text("seeker_email").notNull(),
+    startedAt: text("started_at").notNull(),
+  },
+  (t) => [index("job_chat_starts_job_idx").on(t.jobId)],
+);

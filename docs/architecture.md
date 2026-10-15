@@ -25,7 +25,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 两层：服务器上的数据库是准的，浏览器只做缓存和还没上服务器的部分。
 
-**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上用哪种数据库待用户决定（#15，ADR 0006）。
+**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上用哪种数据库待用户决定（#15，ADR 0006）。
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
 

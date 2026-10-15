@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession, SESSION_COOKIE, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { startChat } from "@/lib/ai-post";
+import { recordChatStart, recordJobView } from "@/db/job-stats";
 import {
   banEmployer,
   ensureAccount,
@@ -26,7 +27,8 @@ const {
   closeMyJob,
   confirmHires,
   editMyJob,
-  getContactViewCounts,
+  getMyJobDays,
+  getMyJobNumbers,
   getMyEmployer,
   getMyJob,
   getMyJobs,
@@ -162,12 +164,20 @@ describe("managing published jobs", () => {
     expect(edited.ok && edited.job.shiftsZh).toBeUndefined();
   });
 
-  it("counts contact reveals per job without saying who", async () => {
+  it("gives each job's views, chats started and contact reveals without saying who (#55)", async () => {
     await recordContactView("j4", "a@example.com");
     await recordContactView("j4", "b@example.com");
-    const counts = await as(E.e2, () => getContactViewCounts());
-    expect(counts.j4).toBe(2);
+    await recordChatStart("j4", "a@example.com");
+    await recordJobView("j4", "some-browser");
+    const counts = await as(E.e2, () => getMyJobNumbers());
+    expect(counts.j4).toEqual({ views: 1, chats: 1, contactViews: 2 });
     expect(JSON.stringify(counts)).not.toContain("@");
+
+    const days = await as(E.e2, () => getMyJobDays("j4"));
+    expect(days?.job.id).toBe("j4");
+    expect(days?.days).toHaveLength(14);
+    expect(days?.days.at(-1)).toMatchObject({ views: 1, chats: 1, contactViews: 2 });
+    expect(JSON.stringify(days?.days)).not.toContain("@");
   });
 
   it("stops a banned employer from posting or editing", async () => {
@@ -281,7 +291,8 @@ describe("employer identity, checked on the server", () => {
   it("gives an account without a business nothing to read and nothing to change", async () => {
     const seeker = "just.looking@example.com";
     expect(await as(seeker, () => getMyJobs())).toEqual([]);
-    expect(await as(seeker, () => getContactViewCounts())).toEqual({});
+    expect(await as(seeker, () => getMyJobNumbers())).toEqual({});
+    expect(await as(seeker, () => getMyJobDays("j5"))).toBeNull();
     expect(await as(seeker, () => getMyEmployer())).toBeNull();
     expect(await as(seeker, () => closeMyJob("j5"))).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
     const { draft } = await parseDraft(MESSAGE);
@@ -313,7 +324,8 @@ describe("refused without the right session (#19)", () => {
     const { draft } = await parseDraft(MESSAGE);
     return {
       jobs: await getMyJobs(),
-      views: await getContactViewCounts(),
+      views: await getMyJobNumbers(),
+      days: await getMyJobDays(job),
       profile: await getMyEmployer(),
       job: await getMyJob(job),
       publish: await publishJob(draft),
@@ -335,7 +347,7 @@ describe("refused without the right session (#19)", () => {
       cookies.clear();
       if (cookie) cookies.set(SESSION_COOKIE, cookie);
       const r = await everything();
-      expect(r).toMatchObject({ jobs: [], views: {}, profile: null, job: null });
+      expect(r).toMatchObject({ jobs: [], views: {}, days: null, profile: null, job: null });
       expect(r.publish).toMatchObject({ ok: false, reason: "signed_out" });
       for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
         expect(change).toEqual({ ok: false, error_zh: "请先登录。" });
@@ -346,7 +358,7 @@ describe("refused without the right session (#19)", () => {
 
   it("refuses a signed-in account that has no business", async () => {
     const r = await as("seeker.only@example.com", everything);
-    expect(r).toMatchObject({ jobs: [], views: {}, profile: null, job: null });
+    expect(r).toMatchObject({ jobs: [], views: {}, days: null, profile: null, job: null });
     expect(r.publish).toMatchObject({ ok: false, reason: "no_identity" });
     for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
       expect(change).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
@@ -357,6 +369,8 @@ describe("refused without the right session (#19)", () => {
   it("refuses another business's job, even when the browser names it", async () => {
     const r = await as(E.e1, everything);
     expect(r.job).toBeNull();
+    expect(r.days).toBeNull();
+    expect(Object.keys(r.views)).not.toContain(job);
     for (const change of [r.close, r.hires, r.refresh, r.edit]) {
       expect(change).toEqual({ ok: false, error_zh: "找不到这个职位。" });
     }

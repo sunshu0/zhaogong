@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
 import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
+import { countChatStart } from "@/db/job-stats";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { parsePayload, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
 import {
@@ -121,6 +122,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!known || !text || text.length > MESSAGE_MAX) return record;
+      // A job seeker's message about a job counts as starting a chat on the employer's numbers (#55).
+      if (!me.isEmployer) await countChatStart(change.conversationId, me.session.email);
       return addSentMessage(record, change.conversationId, text, now);
     }
     case "request": {

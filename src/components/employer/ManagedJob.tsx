@@ -8,6 +8,8 @@ import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
 import { HiresQuestion } from "@/components/employer/HiresQuestion";
 import { ACTION_BUTTON, JobActions, type Asking, type Run } from "@/components/employer/ManagedJobActions";
 import { ShareTexts } from "@/components/employer/ShareTexts";
+import Link from "next/link";
+import type { JobNumbers } from "@/db/job-stats";
 import { cardNumbers } from "@/components/employer/job-card";
 import { Figures, StatusTag } from "@/components/employer/StatusTag";
 import { Pay } from "@/components/ui/Pay";
@@ -22,16 +24,14 @@ export type JobChangeDone = (result: ChangeResult, okText: string) => void;
 export function ManagedJob({
   job,
   employer,
-  views,
-  chats,
+  numbers,
   now,
   onDone,
 }: {
   job: Job;
   employer?: Employer;
-  views: number;
-  /** People who chatted about this job. */
-  chats: number;
+  /** Views, chats and contact views from the server (#55). */
+  numbers: JobNumbers;
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -48,7 +48,7 @@ export function ManagedJob({
 
   return (
     <article className="py-4">
-      <JobSummary job={job} status={status} views={views} chats={chats} now={now} />
+      <JobSummary job={job} status={status} numbers={numbers} now={now} />
       <StatusNote status={status} />
       {canEdit(job) && (
         <JobActions
@@ -80,14 +80,12 @@ export function ManagedJob({
 function JobSummary({
   job,
   status,
-  views,
-  chats,
+  numbers,
   now,
 }: {
   job: Job;
   status: ShownStatus;
-  views: number;
-  chats: number;
+  numbers: JobNumbers;
   now: number;
 }) {
   const hires = hiresLabelZh(job);
@@ -114,11 +112,14 @@ function JobSummary({
         <span>
           <Figures>{expiryLabelZh(job, now)}</Figures>
         </span>
-        {cardNumbers(job, chats, views).map((n) => (
+        {cardNumbers(job, numbers).map((n) => (
           <span key={n}>
             <Figures>{n}</Figures>
           </span>
         ))}
+        <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
+          近 14 天
+        </Link>
         {hires && <span className="font-medium text-ok">{hires}</span>}
       </p>
     </>

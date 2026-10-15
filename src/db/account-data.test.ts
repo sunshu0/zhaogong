@@ -7,6 +7,7 @@ import { databaseChatStore } from "@/db/chat-store";
 import { grantModerator, isModerator, listModerators, revokeModerator } from "@/db/moderators";
 import { database } from "@/db/ready";
 import { saveJob } from "@/db/saved-jobs";
+import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
 import { DEMO_MODERATOR } from "@/db/seed";
 import {
@@ -65,6 +66,7 @@ async function fullAccount(email: string) {
   await chats.putNotificationReads(scopeOf(email, "employer", business.id), ["n2"]);
   await recordContactView("j1", email);
   await saveJob(email, "j1");
+  await recordChatStart("j1", email);
   return { business, job };
 }
 
@@ -83,6 +85,7 @@ describe("exportAccountData (#54)", () => {
     );
     expect(data?.chats.find((c) => c.identity === scopeOf(email, "seeker"))?.notificationsRead).toEqual(["n1"]);
     expect(data?.savedJobs).toEqual([{ jobId: "j1", savedAt: expect.any(String), stage: null, stageSetAt: null }]);
+    expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
     expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
     expect(data?.sessions).toEqual([
       { activeRole: "seeker", createdAt: "2026-10-16T00:00:00.000Z", expiresAt: "2026-11-16T00:00:00.000Z" },
@@ -102,6 +105,7 @@ describe("deleteAccount (#54)", () => {
     const { business, job } = await fullAccount(email);
     const other = await fullAccount("stays.here@example.com");
     const viewsBefore = (await listContactViews("j1")).length;
+    const chatsBefore = (await jobNumbers(["j1"])).j1.chats;
 
     expect(await deleteAccount("Delete.Me@example.com")).toBe("deleted");
 
@@ -121,6 +125,9 @@ describe("deleteAccount (#54)", () => {
     const views = await listContactViews("j1");
     expect(views).toHaveLength(viewsBefore);
     expect(views.filter((v) => v.viewerEmail === DELETED_ACCOUNT).length).toBeGreaterThan(0);
+    // So does the chat the person started.
+    expect((await jobNumbers(["j1"])).j1.chats).toBe(chatsBefore);
+    expect(await db.select().from(t.jobChatStarts).where(eq(t.jobChatStarts.seekerEmail, email))).toEqual([]);
 
     const removed = await getJob(job.id);
     expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
@@ -173,6 +180,7 @@ describe("deleteAccount (#54)", () => {
       "chat_records.email",
       "contact_views.viewer_email",
       "saved_jobs.email",
+      "job_chat_starts.seeker_email",
       "moderators.email",
       "conversations.seeker_email",
     ]);

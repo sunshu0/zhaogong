@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardActions, cardNumbers, chatPeopleByJob } from "@/components/employer/job-card";
+import { cardActions, cardNumbers } from "@/components/employer/job-card";
 import { MOCK_JOBS } from "@/mock/data";
 
 const NOW = Date.UTC(2026, 9, 15);
@@ -11,22 +11,21 @@ const job = {
   expiresAt: new Date(NOW + 27 * day).toISOString(),
 };
 
-describe("chatPeopleByJob", () => {
-  it("counts the conversations started from each job", () => {
-    expect(chatPeopleByJob([{ job: "j1" }, { job: "j1" }, { job: "j2" }, { job: null }, { job: "j1" }])).toEqual({
-      j1: 3,
-      j2: 1,
-    });
-  });
-});
-
 describe("cardNumbers", () => {
-  it("shows chats, and contact views when the details are public", () => {
-    expect(cardNumbers({ ...job, contactPublic: true }, 2, 5)).toEqual(["2 人聊过", "5 人查看了联系方式"]);
+  it("shows views, chats, and contact views when the details are public", () => {
+    expect(cardNumbers({ ...job, contactPublic: true }, { views: 12, chats: 2, contactViews: 5 })).toEqual([
+      "12 次浏览",
+      "2 人聊过",
+      "5 次查看联系方式",
+    ]);
   });
 
   it("says details are swapped in chat when they are private", () => {
-    expect(cardNumbers({ ...job, contactPublic: false }, 0, 5)).toEqual(["还没有人聊过", "不公开 · 聊天交换"]);
+    expect(cardNumbers({ ...job, contactPublic: false }, { views: 0, chats: 0, contactViews: 5 })).toEqual([
+      "0 次浏览",
+      "还没有人聊过",
+      "不公开 · 聊天交换",
+    ]);
   });
 });
 

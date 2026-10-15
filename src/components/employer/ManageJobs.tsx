@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, type RefObject } from "react";
+import { useState, type RefObject } from "react";
 import type { Employer, Job } from "@/lib/types";
 import type { ChangeResult } from "@/app/employer/actions";
 import { effectiveStatus, type ShownStatus } from "@/components/employer/job-status";
@@ -9,8 +9,7 @@ import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/em
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
-import { chatPeopleByJob } from "@/components/employer/job-card";
-import { useChat } from "@/components/seeker/chat-client";
+import { NO_NUMBERS } from "@/components/employer/job-card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
@@ -136,9 +135,6 @@ function JobsInTab({
   employer?: Employer;
   onDone: JobChangeDone;
 }) {
-  // Chats live in this browser (demo); a conversation started from a job keeps the job's id.
-  const { conversations } = useChat();
-  const chats = useMemo(() => chatPeopleByJob(conversations), [conversations]);
   if (!ready)
     return (
       <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
@@ -163,8 +159,7 @@ function JobsInTab({
             <ManagedJob
               job={job}
               employer={employer}
-              views={ready.views[job.id] ?? 0}
-              chats={chats[job.id] ?? 0}
+              numbers={ready.numbers[job.id] ?? NO_NUMBERS}
               now={ready.now}
               onDone={onDone}
             />

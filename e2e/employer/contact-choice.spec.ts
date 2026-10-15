@@ -33,5 +33,5 @@ test("contact details are private by default; an edit can make them public", asy
   await expect(page.getByText("已保存").filter({ visible: true })).toBeVisible();
 
   await page.goto("/employer/jobs");
-  await expect(card).toContainText("0 人查看了联系方式");
+  await expect(card).toContainText("0 次查看联系方式");
 });

@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@/lib/types";
-import { getContactViewCounts, getMyJobs } from "@/app/employer/actions";
+import { getMyJobNumbers, getMyJobs } from "@/app/employer/actions";
+import type { JobNumbers } from "@/db/job-stats";
 
-type Loaded = { email: string; jobs: Job[]; views: Record<string, number>; now: number };
+type Loaded = { email: string; jobs: Job[]; numbers: Record<string, JobNumbers>; now: number };
 
-/** The account's jobs and contact-view counts from the server, with the time they were read; `reload` after a change. */
+/** The account's jobs and their numbers (#55) from the server, with the time they were read; `reload` after a change. */
 export function useMyJobs(email: string | undefined) {
   const [loaded, setLoaded] = useState<Loaded>();
   const [version, setVersion] = useState(0);
@@ -13,8 +14,8 @@ export function useMyJobs(email: string | undefined) {
   useEffect(() => {
     if (!email) return;
     let live = true;
-    Promise.all([getMyJobs(), getContactViewCounts()]).then(([jobs, views]) => {
-      if (live) setLoaded({ email, jobs, views, now: Date.now() });
+    Promise.all([getMyJobs(), getMyJobNumbers()]).then(([jobs, numbers]) => {
+      if (live) setLoaded({ email, jobs, numbers, now: Date.now() });
     });
     return () => {
       live = false;

@@ -54,7 +54,8 @@
 | --- | --- | --- | --- |
 | `getMyJobs()` | | 本企业所有职位，按发布时间从新到旧，任何状态 | `[]` |
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
-| `getContactViewCounts()` | | `{ [jobId]: 查看联系方式的人数 }`，只有人数，不给是谁 | `{}` |
+| `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
+| `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0 | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
 | `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿） | — |
 | `publishJob(input)` | 职位草稿，服务器重新清洗和检查 | `{ ok: true, job }`，状态是 `active`，命中需人工审核的规则时是 `pending_review` | `{ ok: false, reason, findings, missing }`：`signed_out`、`no_identity`、`banned`、`not_ready`（有拦截或必须改写的问题，或必填项没填） |
@@ -67,6 +68,12 @@
 | `verifyBusiness(nzbn)` | NZBN | `{ ok: true, employer }`，显示「已验证企业」，认证雇主保持原级别 | `{ ok: false, error_zh }`：「企业登记里没有这个 NZBN。」「这家公司在企业登记里已注销，不能用来验证。」「这个 NZBN 已经被其他店铺验证。…」「账号已被停用，不能验证。」 |
 
 `findings` 的每一项：`{ level: "block" | "rewrite" | "review", field, message_zh, rule, matches }`（`src/lib/compliance/`）。
+
+## 职位浏览计数 — `src/app/employer/count-view.ts`
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `countJobView(jobId)` | 职位编号；职位页每次加载调用一次 | 给浏览器一个随机编号（httpOnly cookie `zg_visitor`，一年），存它的 SHA-256；同一浏览器同一职位同一新西兰日只记一次。不存 IP，不关联账号。企业看自己的职位不算 | 职位不存在、待审核或已下架时什么都不做 |
 
 ## 聊天、交换和通知 — `src/app/messages/actions.ts`
 
@@ -87,7 +94,7 @@
 | `type` | 其余字段 | 规则 |
 | --- | --- | --- |
 | `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找候选人只能用自己企业的职位，演示候选人的名字以服务器为准，名字最多 40 字 |
-| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字 |
+| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
 | `read` | `conversationId` | 把这个对话标为已读 |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |

@@ -19,6 +19,8 @@ export interface ServerAccountData {
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /** Saved jobs and how far the application got (#52). */
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
+  /** Jobs this account started a chat about (counted for the employer, #55). */
+  chatStarts: { jobId: string; startedAt: string }[];
   /** Jobs whose public contact details this account looked at. */
   contactViews: { jobId: string; viewedAt: string }[];
   /** Signed-in sessions. The cookie token is never stored, so there is nothing more to show. */
@@ -47,6 +49,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.savedJobs)
     .where(eq(t.savedJobs.email, address))
     .orderBy(asc(t.savedJobs.savedAt));
+  const starts = await db
+    .select()
+    .from(t.jobChatStarts)
+    .where(eq(t.jobChatStarts.seekerEmail, address))
+    .orderBy(asc(t.jobChatStarts.startedAt));
   const views = await db
     .select()
     .from(t.contactViews)
@@ -69,6 +76,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       updatedAt: row.updatedAt,
     })),
     savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
+    chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
     contactViews: views.map((v) => ({ jobId: v.jobId, viewedAt: v.viewedAt })),
     sessions: sessions.map((s) => ({ activeRole: s.activeRole, createdAt: s.createdAt, expiresAt: s.expiresAt })),
   };
@@ -103,6 +111,10 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
       .where(eq(t.contactViews.viewerEmail, address));
+    await tx
+      .update(t.jobChatStarts)
+      .set({ seekerEmail: DELETED_ACCOUNT })
+      .where(eq(t.jobChatStarts.seekerEmail, address));
 
     // The shared chat tables are not written yet (A12-2 keeps chats per identity in chat_records), but they hold
     // the seeker's email, so a conversation goes with its messages and exchanges.

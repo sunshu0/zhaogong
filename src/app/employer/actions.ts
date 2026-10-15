@@ -14,13 +14,13 @@ import {
   type RequiredField,
 } from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
+import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
 import {
   createJob,
   getAccount,
   getAccountEmployer,
   getEmployer,
   getJob,
-  listContactViews,
   listEmployers,
   listJobsByEmployer,
   setEmployerVerification,
@@ -65,13 +65,23 @@ export async function getMyJobs(): Promise<Job[]> {
   return [...jobs].sort((a, b) => b.postedAt.localeCompare(a.postedAt));
 }
 
-/** How many signed-in seekers revealed each job's contact details. Counts only, never who. */
-export async function getContactViewCounts(): Promise<Record<string, number>> {
+/**
+ * Each of the account's jobs' numbers (#55): page views (a browser once a day), job seekers who started a chat, and
+ * contact views. Counts only, never who.
+ */
+export async function getMyJobNumbers(): Promise<Record<string, JobNumbers>> {
   const employer = await postingEmployer();
   if (typeof employer === "string") return {};
-  const jobs = await listJobsByEmployer(employer.id);
-  const counts = await Promise.all(jobs.map(async (j) => [j.id, (await listContactViews(j.id)).length] as const));
-  return Object.fromEntries(counts);
+  return jobNumbers((await listJobsByEmployer(employer.id)).map((j) => j.id));
+}
+
+/** One of the account's jobs with its numbers for each of the last 14 New Zealand days; null for anyone else's. */
+export async function getMyJobDays(jobId: string): Promise<{ job: Job; days: JobDay[] } | null> {
+  const employer = await postingEmployer();
+  if (typeof employer === "string" || typeof jobId !== "string") return null;
+  const job = await getJob(jobId);
+  if (!job || job.employerId !== employer.id) return null;
+  return { job, days: await jobDays(job.id) };
 }
 
 /** Runs on the server so a real model call can replace the stub without exposing a key. */
