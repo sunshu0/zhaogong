@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chatMenuItem } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -47,7 +48,7 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
   await page.getByRole("button", { name: "发送", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("log")).toContainText("我想应聘前厅服务员");
-  await page.getByRole("link", { name: "雇主主页", exact: true }).click();
+  await (await chatMenuItem(page, "雇主主页")).click();
   await expect(page).toHaveURL("/employers/e1");
   await jobs.getByRole("button", { name: "立即沟通", exact: true }).first().click();
   await expect(page.getByRole("log")).toContainText("我想应聘前厅服务员");

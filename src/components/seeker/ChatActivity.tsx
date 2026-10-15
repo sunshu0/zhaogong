@@ -40,7 +40,7 @@ export function ChatActivity({
   return (
     <div
       aria-label="沟通状态"
-      className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-border bg-background/60 px-4 py-2 text-xs text-muted"
+      className="flex shrink-0 items-center gap-x-3 overflow-hidden px-4 py-1 text-meta whitespace-nowrap text-muted lg:px-6"
     >
       <span>对方{now ? lastActiveLabel(activity?.lastActiveAt, now) : "最近上线时间加载中"}</span>
       <span>

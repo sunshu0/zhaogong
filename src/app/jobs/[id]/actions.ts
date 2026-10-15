@@ -2,7 +2,8 @@
 
 import { getJob, listContactViews, recordContactView, submitReport } from "@/lib/data";
 import type { Job } from "@/lib/types";
-import { isPublic } from "@/components/seeker/job-facts";
+import { isExpired, isPublic } from "@/components/seeker/job-facts";
+import { formatPay } from "@/components/seeker/format";
 import { parseReport } from "@/components/seeker/report";
 import { isValidEmail, normalizeEmail } from "@/components/seeker/session";
 
@@ -40,4 +41,19 @@ export async function reportJob(jobId: string, reason: string, note?: string): P
   if (!job || !isPublic(job)) return { ok: false, error: "找不到这个职位，可能已经下架" };
   const report = await submitReport(job.id, parsed.reason, parsed.note);
   return { ok: true, reportId: report.id };
+}
+
+export type JobSummary = { id: string; title: string; pay: string; open: boolean };
+
+/** The job a chat is about, for the strip above the conversation: title, pay, and whether it still recruits. */
+export async function jobSummary(jobId: string): Promise<JobSummary | null> {
+  if (typeof jobId !== "string") return null;
+  const job = await getJob(jobId);
+  if (!job || !isPublic(job)) return null;
+  return {
+    id: job.id,
+    title: job.titleZh,
+    pay: formatPay(job.pay, job.country),
+    open: job.status === "active" && !isExpired(job, Date.now()),
+  };
 }

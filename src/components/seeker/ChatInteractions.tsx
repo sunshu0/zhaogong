@@ -1,4 +1,4 @@
 "use client";
 
-export { ChatExchangeList, ChatExchangeTools } from "@/components/seeker/ChatExchanges";
+export { ChatExchangeList, ChatExchangeMenu } from "@/components/seeker/ChatExchanges";
 export { ChatReportButton } from "@/components/seeker/ChatReportButton";

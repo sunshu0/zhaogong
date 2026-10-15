@@ -39,3 +39,19 @@ export async function openWorkspacePage(page: Page, label: string) {
     .getByRole("link", { name: new RegExp(`^${label}`) })
     .click();
 }
+
+/** An item of the open chat's 更多 menu (雇主主页 / 求职者主页, 查看职位, 举报), opened the way a user would. */
+export async function chatMenuItem(page: Page, name: string) {
+  await page
+    .getByRole("button", { name: /^更多：/ })
+    .filter({ visible: true })
+    .click();
+  return page.getByRole("menuitem", { name, exact: true });
+}
+
+/** A tool behind ＋ beside the message input (交换资料, 交换联系方式). */
+export async function exchangeTool(page: Page, name: string) {
+  const plus = page.getByRole("button", { name: "交换资料或联系方式" });
+  if ((await plus.getAttribute("aria-expanded")) !== "true") await plus.click();
+  return page.getByRole("group", { name: "沟通工具" }).getByRole("button", { name, exact: true });
+}

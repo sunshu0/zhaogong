@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { signIn } from "./helpers";
+import { chatMenuItem, exchangeTool, signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
 
 test("the side that asks offers first: the other side sees its details at once, and gives its own only by agreeing", async ({
@@ -35,7 +35,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   await expect(page.getByRole("button", { name: "交换地址" })).toHaveCount(0);
 
   // I ask for the résumé / business details: mine go with the request, theirs come only if they agree.
-  await page.getByRole("button", { name: "交换资料", exact: true }).click();
+  await (await exchangeTool(page, "交换资料")).click();
   await expect(dialog).toContainText("发出请求时给对方的资料");
   await dialog.getByRole("button", { name: "发送交换请求", exact: true }).click();
   const outgoing = page.getByRole("region", { name: "简历与企业资料交换请求", exact: true });
@@ -62,7 +62,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
   await page.goto("/messages?conversation=clean-home");
-  await page.getByRole("button", { name: "举报聊天", exact: true }).click();
+  await (await chatMenuItem(page, "举报")).click();
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("请选择举报原因");
   await dialog.getByLabel("举报原因", { exact: true }).selectOption("privacy");
@@ -71,7 +71,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   await expect(dialog).toContainText("举报已记录");
   await dialog.getByRole("button", { name: "关闭", exact: true }).click();
   await page.reload();
-  await page.getByRole("button", { name: "举报聊天", exact: true }).click();
+  await (await chatMenuItem(page, "举报")).click();
   await expect(dialog).toContainText("本机举报记录（1）");
   await dialog.getByRole("button", { name: "关闭弹窗", exact: true }).click();
 });
@@ -82,7 +82,7 @@ test("asking first needs your own details: without them the request cannot be se
     "/messages?conversation=clean-home",
     `consent.empty.${testInfo.project.name}.${Date.now()}@example.com`,
   );
-  await page.getByRole("button", { name: "交换联系方式", exact: true }).click();
+  await (await exchangeTool(page, "交换联系方式")).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("你还没有填写联系方式。先填好自己的，才能发起交换。");
   await expect(dialog.getByRole("button", { name: "发送交换请求", exact: true })).toBeDisabled();
@@ -107,7 +107,7 @@ test("employers can report seekers and accepted private data stays out of public
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "同意并交换双方资料", exact: true }).click();
   await expect(contact).toContainText("021 555 8802");
-  await page.getByRole("button", { name: "举报聊天", exact: true }).click();
+  await (await chatMenuItem(page, "举报")).click();
   await expect(dialog).toContainText("林晓 · 求职者");
   await dialog.getByLabel("举报原因", { exact: true }).selectOption("other");
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();

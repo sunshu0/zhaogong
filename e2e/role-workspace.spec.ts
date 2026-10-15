@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { chatEntry } from "./helpers";
+import { chatEntry, exchangeTool } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -38,7 +38,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   const contacts = page.getByRole("complementary", { name: "聊天列表" });
   await expect(contacts).not.toContainText("北岸早茶酒家");
   await contacts.getByRole("button", { name: /林晓/ }).click();
-  await expect(page.getByRole("button", { name: "交换资料", exact: true })).toBeVisible();
+  await expect(await exchangeTool(page, "交换资料")).toBeVisible();
   await page.getByLabel("输入消息").fill("雇主专属消息：周五来面试。");
   await page.getByRole("button", { name: "发送", exact: true }).click();
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");

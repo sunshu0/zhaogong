@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reportJob, revealContact } from "@/app/jobs/[id]/actions";
+import { jobSummary, reportJob, revealContact } from "@/app/jobs/[id]/actions";
 import { listContactViews, listReports } from "@/lib/data";
 
 afterEach(() => {
@@ -57,5 +57,13 @@ describe("reportJob", () => {
     expect(await reportJob("j7", "spam")).toEqual({ ok: false, error: "请选择举报原因" });
     expect((await reportJob("nope", "fake_job")).ok).toBe(false);
     expect((await listReports()).length).toBe(before);
+  });
+});
+
+describe("jobSummary", () => {
+  it("gives the chat the job's title and pay, and nothing for an unknown job", async () => {
+    expect(await jobSummary("j1")).toEqual({ id: "j1", title: "前厅服务员", pay: "$25–27/小时", open: true });
+    expect(await jobSummary("nope")).toBeNull();
+    expect(await jobSummary(1 as unknown as string)).toBeNull();
   });
 });

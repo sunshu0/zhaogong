@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import type { FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { conversationProfileHref, useChat, type Conversation } from "@/components/seeker/chat-client";
 import { ChatActivity } from "@/components/seeker/ChatActivity";
-import { ChatExchangeTools, ChatReportButton } from "@/components/seeker/ChatInteractions";
+import { ChatExchangeMenu } from "@/components/seeker/ChatInteractions";
+import { ChatReportDialog } from "@/components/seeker/ChatReportButton";
+import { ConversationJob } from "@/components/seeker/ConversationJob";
+import { MoreMenu, type MoreMenuItem } from "@/components/ui/MoreMenu";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { outgoingWarning } from "@/components/seeker/chat-warnings";
@@ -36,6 +39,7 @@ export function ChatThread({
   return (
     <section className="flex min-h-0 min-w-0 flex-col" aria-label={`与${conversation.person}的聊天`}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
+      {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
 
       <ChatActivity
         conversation={conversation}
@@ -47,8 +51,12 @@ export function ChatThread({
       <MessageLog conversationId={conversation.id} thread={messages[conversation.id]} />
 
       <div className="shrink-0 border-t border-border px-4 py-3 lg:px-6 lg:py-4">
-        <ChatExchangeTools key={conversation.id} conversationId={conversation.id} />
-        <MessageComposer draft={draft} onDraftChange={onDraftChange} onSubmit={submit} />
+        <MessageComposer
+          draft={draft}
+          onDraftChange={onDraftChange}
+          onSubmit={submit}
+          tools={<ChatExchangeMenu key={conversation.id} conversationId={conversation.id} />}
+        />
       </div>
     </section>
   );
@@ -63,7 +71,14 @@ function ThreadHeader({
   isEmployer: boolean;
   onBack: () => void;
 }) {
-  const showEmployerLink = !isEmployer && typeof conversation.employerId === "string";
+  const [reporting, setReporting] = useState(false);
+  const profileHref = conversationProfileHref(conversation, isEmployer);
+  // 更多: their page, the job, 举报 — so the header keeps only back, who, and this one button.
+  const more: MoreMenuItem[] = [
+    ...(profileHref ? [{ label: isEmployer ? "求职者主页" : "雇主主页", href: profileHref }] : []),
+    ...(conversation.job ? [{ label: "查看职位", href: `/jobs/${conversation.job}` }] : []),
+    { label: "举报", danger: true, onSelect: () => setReporting(true) },
+  ];
   return (
     <div className="flex items-center gap-3 border-b border-border px-4 py-3">
       <button
@@ -76,22 +91,10 @@ function ThreadHeader({
         <ArrowLeft aria-hidden="true" className="size-5" />
       </button>
       <Counterpart conversation={conversation} isEmployer={isEmployer} />
-      <div className="ml-auto flex shrink-0 flex-col gap-1 text-right sm:flex-row sm:gap-3">
-        {showEmployerLink && (
-          <Link
-            href={`/employers/${conversation.employerId}`}
-            className="text-sm text-brand underline underline-offset-2"
-          >
-            雇主主页
-          </Link>
-        )}
-        {conversation.job && (
-          <Link href={`/jobs/${conversation.job}`} className="text-sm text-brand underline underline-offset-2">
-            查看职位
-          </Link>
-        )}
-      </div>
-      <ChatReportButton key={conversation.id} conversation={conversation} />
+      <MoreMenu items={more} label={`更多：${conversation.person}`} />
+      {reporting && (
+        <ChatReportDialog key={conversation.id} conversation={conversation} onClose={() => setReporting(false)} />
+      )}
     </div>
   );
 }
@@ -137,15 +140,19 @@ function MessageComposer({
   draft,
   onDraftChange,
   onSubmit,
+  tools,
 }: {
   draft: string;
   onDraftChange: (draft: string) => void;
   onSubmit: (event: FormEvent) => void;
+  /** The ＋ menu (exchanges) beside the input. */
+  tools?: ReactNode;
 }) {
   // A reminder while writing; the message can still be sent.
   const warning = outgoingWarning(draft);
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
+      {tools}
       <label className="sr-only" htmlFor="message-draft">
         输入消息
       </label>

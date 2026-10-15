@@ -1,6 +1,7 @@
 "use client";
 
-import { Contact, FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Contact, FileText, Plus } from "lucide-react";
 import { useChat } from "@/components/seeker/chat-client";
 import { EXCHANGE_LABELS, visibleExchange, type Exchange } from "@/lib/chat-consent";
 import { CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
@@ -12,20 +13,68 @@ const TOOLS = [
   { kind: "contact" as const, label: "交换联系方式", icon: Contact },
 ];
 
-export function ChatExchangeTools({ conversationId }: { conversationId: string }) {
+/**
+ * ＋ beside the message input: 交换资料 and 交换联系方式. The panel stays open while one of its dialogs is open (the
+ * dialog lives inside it); a tap outside or Escape closes it otherwise.
+ */
+export function ChatExchangeMenu({ conversationId }: { conversationId: string }) {
   const { exchanges } = useChat();
   const items = exchanges[conversationId] ?? [];
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const dialogOpen = () => Boolean(root.current?.querySelector("dialog[open]"));
+    const onPointerDown = (e: PointerEvent) => {
+      if (!dialogOpen() && !root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !dialogOpen()) {
+        setOpen(false);
+        button.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="mb-3 flex flex-wrap gap-2" aria-label="沟通工具">
-      {TOOLS.map((tool) => {
-        const { kind } = tool;
-        const current = items.find((item) => item.kind === kind && ["pending", "accepted"].includes(item.status));
-        return (
-          <span key={kind}>
-            <ExchangeTool conversationId={conversationId} tool={tool} current={current} />
-          </span>
-        );
-      })}
+    <div ref={root} className="relative">
+      <button
+        ref={button}
+        type="button"
+        aria-label="交换资料或联系方式"
+        aria-expanded={open}
+        aria-controls={`exchange-tools-${conversationId}`}
+        title="交换资料或联系方式"
+        onClick={() => setOpen((value) => !value)}
+        className="flex size-11 items-center justify-center rounded-lg border border-border hover:border-brand aria-expanded:border-brand aria-expanded:text-brand"
+      >
+        <Plus aria-hidden="true" className="size-5" />
+      </button>
+      <div
+        id={`exchange-tools-${conversationId}`}
+        hidden={!open}
+        role="group"
+        aria-label="沟通工具"
+        className="absolute bottom-full left-0 z-10 mb-2 w-max space-y-1 rounded-lg border border-border bg-surface p-2 shadow-lg"
+      >
+        {TOOLS.map((tool) => {
+          const { kind } = tool;
+          const current = items.find((item) => item.kind === kind && ["pending", "accepted"].includes(item.status));
+          return (
+            <div key={kind} className="*:w-full *:justify-start">
+              <ExchangeTool conversationId={conversationId} tool={tool} current={current} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
