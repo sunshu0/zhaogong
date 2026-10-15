@@ -3,6 +3,7 @@ import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { createEmployer, ensureAccount, openEmployerIdentity } from "@/lib/data";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
+import { databaseChatStore } from "@/db/chat-store";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { EMPTY_CHAT, addSentMessage, chatView } from "@/components/seeker/chat-store";
 
@@ -58,6 +59,16 @@ describe("changes from the browser's outbox (a ticket)", () => {
     // A new ticket is a new change.
     await changeMyChat(send, { ...ticket, id: "1b9c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b" });
     expect((await my())?.added["north-tea"]).toHaveLength(2);
+  });
+
+  it("are applied once with the database store too (#42), even by a new server", async () => {
+    setChatServerStoreForTests(databaseChatStore());
+    await signedIn("twice.db@example.com");
+    const ticket = { id: "3b9c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b", scope: seekerScope("twice.db@example.com") };
+    await changeMyChat(send, ticket);
+    setChatServerStoreForTests(databaseChatStore()); // the server restarted; the browser sends its outbox again
+    await changeMyChat(send, ticket);
+    expect((await my())?.added["north-tea"]).toHaveLength(1);
   });
 
   it("wait while the session is another identity, and refuse a bad id", async () => {

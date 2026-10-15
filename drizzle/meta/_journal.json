@@ -15,6 +15,13 @@
       "when": 1792054448785,
       "tag": "0001_round12",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792078629021,
+      "tag": "0002_chat_records",
+      "breakpoints": true
     }
   ]
 }

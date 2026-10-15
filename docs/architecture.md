@@ -22,7 +22,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 ## 数据放在哪里
 
-**服务器（`src/lib/data.ts`）：** 职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录。现在是进程内存里的数组，启动时从 `src/mock` 复制；服务器重启就回到演示数据。函数都是 `async`，签名按数据库的样子设计，阶段三只换函数体（ADR 0001）。
+**服务器（数据库，ADR 0005）：** `src/lib/data.ts` 读写职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录（#8、#11）；`src/lib/auth` 的验证码和会话（#9）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已处理的变更编号（#10，`chat_records` 表，#42）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢；空库时载入 `src/mock` 的演示数据。函数签名沿用阶段一（ADR 0001），只换了函数体。
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
 

@@ -1,6 +1,7 @@
-// Where each identity's chat records and read notifications are kept on the server (#10). One interface, so the
-// database (line B) can take over from the in-memory store without touching the Server Functions. Server only.
+// Where each identity's chat records and read notifications are kept on the server (#10). One interface: the
+// database (src/db/chat-store.ts, #42) by default, the in-memory store for tests. Server only.
 import type { ChatRecord } from "@/components/seeker/chat-store";
+import { databaseChatStore } from "@/db/chat-store";
 
 export interface ChatServerStore {
   /** The identity's own chat records (see chat-store.ts), keyed by identityScope(). */
@@ -14,7 +15,7 @@ export interface ChatServerStore {
   putAppliedChanges(scope: string, ids: string[]): Promise<void>;
 }
 
-/** Kept in the server's memory, like the rest of the demo data until the database arrives. */
+/** Kept in the server's memory: gone on restart. For tests. */
 export function memoryChatStore(): ChatServerStore & { chats: Map<string, ChatRecord>; reads: Map<string, string[]> } {
   const chats = new Map<string, ChatRecord>();
   const reads = new Map<string, string[]>();
@@ -52,7 +53,7 @@ export function memoryChatStore(): ChatServerStore & { chats: Map<string, ChatRe
 const holder = globalThis as typeof globalThis & { __zhaogongChatServerStore?: ChatServerStore };
 
 export function chatServerStore(): ChatServerStore {
-  return (holder.__zhaogongChatServerStore ??= memoryChatStore());
+  return (holder.__zhaogongChatServerStore ??= databaseChatStore());
 }
 
 /** Tests: start from an empty store (or a given one). */

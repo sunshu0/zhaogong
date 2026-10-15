@@ -178,3 +178,27 @@ export const exchanges = sqliteTable("exchanges", {
   createdAt: text("created_at").notNull(),
   respondedAt: text("responded_at"),
 });
+
+// ---- each identity's own chat records on the server (A12-2 / #10, stored by #42) ----
+
+/**
+ * One row per identity (identityScope: email, role and business). #10 keeps every identity's own copy of its chats,
+ * so this holds JSON: the ChatRecord, the notifications read, and the newest change tickets applied. The
+ * conversations, messages and exchanges tables above stay for a later chat both sides share.
+ */
+export const chatRecords = sqliteTable(
+  "chat_records",
+  {
+    scope: text("scope").primaryKey(),
+    /** The account the identity belongs to, so its records can go with it. */
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    /** A ChatRecord; checked with parseChatRecord when read. */
+    record: text("record", { mode: "json" }).$type<unknown>(),
+    notificationReads: text("notification_reads", { mode: "json" }).$type<string[]>(),
+    appliedChanges: text("applied_changes", { mode: "json" }).$type<string[]>(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [index("chat_records_email_idx").on(table.email)],
+);
