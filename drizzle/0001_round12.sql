@@ -35,5 +35,6 @@ CREATE TABLE `messages` (
 --> statement-breakpoint
 ALTER TABLE `accounts` ADD `last_role` text DEFAULT 'seeker' NOT NULL;--> statement-breakpoint
 ALTER TABLE `jobs` ADD `contact_public` integer DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE INDEX `sessions_email_idx` ON `sessions` (`email`);--> statement-breakpoint
 -- Jobs written before Round 10 kept one employment type as plain text; every job now has a JSON list (B20).
 UPDATE `jobs` SET `employment_type` = json_array(`employment_type`) WHERE json_valid(`employment_type`) = 0;

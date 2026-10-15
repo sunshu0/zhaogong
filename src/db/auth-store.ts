@@ -1,0 +1,51 @@
+// Sign-in codes and sessions in the database: the database version of A12-1's AuthStore
+// (src/lib/auth/store.ts on a/A12-1-auth), same methods and row shapes, so codes.ts and sessions.ts do not
+// change when A switches authStore() over to it. Server only.
+import { eq } from "drizzle-orm";
+import { database } from "@/db/ready";
+import { sessions, signInCodes } from "@/db/schema";
+import type { AccountRole } from "@/lib/types";
+
+export type SignInCodeRow = typeof signInCodes.$inferSelect;
+export type SessionRow = typeof sessions.$inferSelect;
+
+export function databaseAuthStore() {
+  return {
+    async getCode(email: string): Promise<SignInCodeRow | undefined> {
+      const db = await database();
+      const [row] = await db.select().from(signInCodes).where(eq(signInCodes.email, email));
+      return row;
+    },
+    /** Inserts or replaces the email's code. */
+    async putCode(row: SignInCodeRow): Promise<void> {
+      const db = await database();
+      await db.insert(signInCodes).values(row).onConflictDoUpdate({ target: signInCodes.email, set: row });
+    },
+    async setCodeAttempts(email: string, attempts: number): Promise<void> {
+      const db = await database();
+      await db.update(signInCodes).set({ attempts }).where(eq(signInCodes.email, email));
+    },
+    async deleteCode(email: string): Promise<void> {
+      const db = await database();
+      await db.delete(signInCodes).where(eq(signInCodes.email, email));
+    },
+    async getSession(id: string): Promise<SessionRow | undefined> {
+      const db = await database();
+      const [row] = await db.select().from(sessions).where(eq(sessions.id, id));
+      return row;
+    },
+    /** The account must exist (sessions.email references accounts.email): sign-in creates it first. */
+    async insertSession(row: SessionRow): Promise<void> {
+      const db = await database();
+      await db.insert(sessions).values(row);
+    },
+    async setSessionRole(id: string, activeRole: AccountRole): Promise<void> {
+      const db = await database();
+      await db.update(sessions).set({ activeRole }).where(eq(sessions.id, id));
+    },
+    async deleteSession(id: string): Promise<void> {
+      const db = await database();
+      await db.delete(sessions).where(eq(sessions.id, id));
+    },
+  };
+}

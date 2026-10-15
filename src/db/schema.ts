@@ -1,7 +1,7 @@
 // Database tables. Shapes follow src/lib/types.ts; lists and small objects are stored as JSON, pay in cents.
 // The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
 // sign-in and sessions come with A12-1, chats and exchanges with A12-2.
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type {
   AccountRole,
   EmployerVerification,
@@ -112,20 +112,29 @@ export const signInCodes = sqliteTable("sign_in_codes", {
   email: text("email").primaryKey(),
   codeHash: text("code_hash").notNull(),
   expiresAt: text("expires_at").notNull(),
-  attempts: integer("attempts").notNull(),
+  attempts: integer("attempts")
+    .notNull()
+    .$default(() => 0),
   createdAt: text("created_at").notNull(),
 });
 
-/** Server sessions behind an httpOnly cookie. The cookie holds the random token; the id is its hash. */
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  email: text("email")
-    .notNull()
-    .references(() => accounts.email),
-  activeRole: text("active_role").$type<AccountRole>().notNull(),
-  createdAt: text("created_at").notNull(),
-  expiresAt: text("expires_at").notNull(),
-});
+/**
+ * Server sessions behind an httpOnly cookie. The cookie holds the random token; the id is its SHA-256, so the
+ * token itself is never stored. The employer identity is not kept here: it is read from accounts.employer_id.
+ */
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    activeRole: text("active_role").$type<AccountRole>().notNull(),
+    createdAt: text("created_at").notNull(),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (table) => [index("sessions_email_idx").on(table.email)],
+);
 
 // ---- reserved: chats and exchanges on the server (A12-2) ----
 

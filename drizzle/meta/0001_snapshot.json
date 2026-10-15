@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "891fed0f-9d80-4adb-b57b-b30176790ed2",
+  "id": "ed2526ea-41ea-4a59-b491-6010659368dc",
   "prevId": "178d3aae-cc9a-403e-9e86-c7a467972d00",
   "tables": {
     "accounts": {
@@ -834,7 +834,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "sessions_email_idx": {
+          "name": "sessions_email_idx",
+          "columns": [
+            "email"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "sessions_email_accounts_email_fk": {
           "name": "sessions_email_accounts_email_fk",
