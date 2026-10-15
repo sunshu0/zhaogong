@@ -18,4 +18,4 @@ for (const f of [file, `${file}-wal`, `${file}-shm`, `${file}-journal`]) {
     process.exit(1);
   }
 }
-console.log(`Deleted ${file}. The next start migrates a fresh database.`);
+console.log(`Deleted ${file}. npm run db:seed (or the next dev server start) makes a fresh one with the demo data.`);

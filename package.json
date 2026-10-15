@@ -19,7 +19,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,mts,mjs}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,mts,mjs}\"",
     "db:generate": "drizzle-kit generate",
-    "db:reset": "node scripts/db-reset.mjs"
+    "db:reset": "node scripts/db-reset.mjs",
+    "db:migrate": "tsx src/db/cli.ts migrate",
+    "db:seed": "tsx src/db/cli.ts seed"
   },
   "engines": {
     "node": ">=24 <25"
@@ -50,6 +52,7 @@
     "eslint-config-next": "16.3.8",
     "prettier": "3.9.10",
     "tailwindcss": "^4",
+    "tsx": "4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.3",
     "wrangler": "4.150.0"
