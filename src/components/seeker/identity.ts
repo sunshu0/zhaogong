@@ -129,7 +129,11 @@ export function applyServerSession(
   now = new Date(),
 ): DemoSession | null {
   const current = readSession(storage);
-  const unchanged = current?.email === requested?.email && current?.signedInAt === requested?.signedInAt;
+  const unchanged =
+    current?.email === requested?.email &&
+    current?.signedInAt === requested?.signedInAt &&
+    current?.activeRole === requested?.activeRole &&
+    current?.employerId === requested?.employerId;
   if (!unchanged) return current;
   if (!server) {
     clearSession(storage);

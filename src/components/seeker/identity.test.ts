@@ -13,7 +13,14 @@ import {
   syncSessionIdentity,
   unconfirmedSwitch,
 } from "@/components/seeker/identity";
-import { clearSession, readSession, updateIdentity, writeSession, type DemoSession } from "@/components/seeker/session";
+import {
+  clearSession,
+  readSession,
+  requestIdentity,
+  updateIdentity,
+  writeSession,
+  type DemoSession,
+} from "@/components/seeker/session";
 
 const seeker: DemoSession = { email: "a@example.com", signedInAt: "2026-10-12T00:00:00Z", activeRole: "seeker" };
 const both: DemoSession = { ...seeker, employerId: "e4", employerName: "悦美发型工作室" };
@@ -240,6 +247,15 @@ describe("applyServerSession (A12-1: the server's session is the truth, the brow
     expect(applyServerSession(storage, other, { email: "a@example.com", activeRole: "seeker" }, t1)?.email).toBe(
       "a@example.com",
     );
+  });
+
+  it("ignores an answer to a request made before a switch of identity, keeping the switch to send", () => {
+    const storage = memory();
+    const before = writeSession(storage, "a@example.com", t0, { activeRole: "seeker", employer });
+    const switched = requestIdentity(storage, { activeRole: "employer", employer })!;
+    const late = { email: "a@example.com", activeRole: "seeker" as const, employer };
+    expect(applyServerSession(storage, before, late, t1)).toEqual(switched);
+    expect(readSession(storage)).toEqual(switched);
   });
 
   it("ignores an answer to a request made before the copy changed (a sign-in or sign-out in between)", () => {
