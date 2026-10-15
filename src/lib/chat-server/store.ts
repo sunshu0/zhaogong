@@ -36,14 +36,16 @@ export function memoryChatStore(): ChatServerStore & { chats: Map<string, ChatRe
   };
 }
 
-let current: ChatServerStore = memoryChatStore();
+// One store per server process. Next bundles route handlers (/api/dev/chat-reply) and Server Functions separately,
+// each with its own copy of this module, so the store hangs off globalThis instead of a module variable.
+const holder = globalThis as typeof globalThis & { __zhaogongChatServerStore?: ChatServerStore };
 
 export function chatServerStore(): ChatServerStore {
-  return current;
+  return (holder.__zhaogongChatServerStore ??= memoryChatStore());
 }
 
 /** Tests: start from an empty store (or a given one). */
 export function setChatServerStoreForTests(store: ChatServerStore = memoryChatStore()): ChatServerStore {
-  current = store;
+  holder.__zhaogongChatServerStore = store;
   return store;
 }
