@@ -1,7 +1,7 @@
 // Database tables. Shapes follow src/lib/types.ts; lists and small objects are stored as JSON, pay in cents.
 // The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
 // sign-in and sessions come with A12-1, chats and exchanges with A12-2.
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type {
   AccountRole,
   EmployerVerification,
@@ -13,6 +13,7 @@ import type {
   VisaAccepted,
 } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
+import type { SavedStage } from "@/components/seeker/saved-jobs";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -217,3 +218,23 @@ export const moderators = sqliteTable("moderators", {
   /** The moderator who added this one in /admin; null when granted from the command line (npm run admin:grant). */
   grantedBy: text("granted_by"),
 });
+
+/**
+ * 收藏和进度 (#52): jobs an account saved, with how far it got. Only the account itself reads it, never the
+ * employer. `stage` is null until the account picks one (then the chat decides between 已收藏 and 已联系).
+ */
+export const savedJobs = sqliteTable(
+  "saved_jobs",
+  {
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    savedAt: text("saved_at").notNull(),
+    stage: text("stage").$type<SavedStage>(),
+    stageSetAt: text("stage_set_at"),
+  },
+  (t) => [primaryKey({ columns: [t.email, t.jobId] })],
+);
