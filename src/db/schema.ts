@@ -19,6 +19,7 @@ import type { SavedStage } from "@/components/seeker/saved-jobs";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
 import type { InterviewMode, InterviewStatus } from "@/components/seeker/interviews";
+import type { Profile } from "@/components/seeker/hub-state";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
 import type {
@@ -570,4 +571,20 @@ export const interviews = sqliteTable("interviews", {
   invitedAt: text("invited_at").notNull(),
   respondedAt: text("responded_at"),
   createdAt: text("created_at").notNull(),
+});
+
+// ---- 求职者主页 on the server (#104) ----
+
+/**
+ * The job seeker's 我的主页, one per account (#104): what the person changed from the page they started with (`initialProfile`), as the browser
+ * keeps it (`parseProfilePatch`), so both read it the same way. The browser holds a copy for when the server cannot
+ * be reached. `updated_at` is the last save; a browser compares it with the copy it has to tell whether the account
+ * changed elsewhere since.
+ */
+export const seekerProfiles = sqliteTable("seeker_profiles", {
+  email: text("email")
+    .primaryKey()
+    .references(() => accounts.email),
+  profile: text("profile", { mode: "json" }).$type<Partial<Profile>>().notNull(),
+  updatedAt: text("updated_at").notNull(),
 });

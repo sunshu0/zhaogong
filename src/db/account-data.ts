@@ -54,6 +54,8 @@ export interface ServerAccountData {
   }[];
   /** The 中英文简历 share link (#86): its id and the page it shows. */
   resumeShare: { id: string; resume: unknown; createdAt: string; updatedAt: string } | null;
+  /** 我的主页 as the account keeps it (#104): what the person filled in, and when it was last saved. */
+  seekerProfile: { profile: unknown; updatedAt: string } | null;
   /**
    * The 企业验证 applications this account made (#78), with a moderator's reason when one was rejected. Which
    * moderator decided is left out: that is someone else's email.
@@ -129,6 +131,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
         .orderBy(asc(t.interviews.createdAt))
     : [];
   const [share] = await db.select().from(t.resumeShares).where(eq(t.resumeShares.email, address));
+  const [page] = await db.select().from(t.seekerProfiles).where(eq(t.seekerProfiles.email, address));
   const starts = await db
     .select()
     .from(t.jobChatStarts)
@@ -217,6 +220,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     resumeShare: share
       ? { id: share.id, resume: share.resume, createdAt: share.createdAt, updatedAt: share.updatedAt }
       : null,
+    seekerProfile: page ? { profile: page.profile, updatedAt: page.updatedAt } : null,
     verificationRequests: verifications.map((v) => ({
       kind: v.kind,
       nzbn: v.nzbn,
@@ -301,6 +305,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.jobApplications).where(eq(t.jobApplications.seekerEmail, address));
     // The share link closes with the account (#86).
     await tx.delete(t.resumeShares).where(eq(t.resumeShares.email, address));
+    await tx.delete(t.seekerProfiles).where(eq(t.seekerProfiles.email, address));
     await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
     await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
     // Invitations to this account go with it; ones it sent stay as the team's record, without its email (#87).

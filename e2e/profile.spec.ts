@@ -15,11 +15,11 @@ test("我的主页: preview first, completeness counts the key items, optional f
   await expect(preview.getByRole("definition").nth(2)).toHaveText("待补充"); // 期望时薪
   await expect(page.getByRole("heading", { name: "资料完成度 6/10" })).toBeVisible();
   await expect(page.getByRole("progressbar", { name: "资料完成度" })).toHaveAttribute("aria-valuenow", "6");
-  await expect(page.getByText("资料只保存在这台设备上，改动会自动保存。")).toBeVisible();
+  await expect(page.getByText("改动会自动保存到你的账号。")).toBeVisible();
   await expect(page.getByRole("button", { name: "保存资料" })).toHaveCount(0);
 
   await page.getByLabel("期望时薪（NZ$ / 小时起）").fill("26");
-  await expect(page.getByText("已自动保存到本机")).toBeVisible();
+  await expect(page.getByText("已保存到你的账号")).toBeVisible();
   await expect(preview).toContainText("$26 起");
   await expect(page.getByRole("heading", { name: "资料完成度 7/10" })).toBeVisible();
 
@@ -44,5 +44,5 @@ test("a save the browser refuses says so instead of 已保存", async ({ page })
   });
   await page.getByLabel("可上班时间").fill("周末");
   await expect(page.getByText(/没有保存：这个浏览器不让本站保存资料/)).toBeVisible();
-  await expect(page.getByText("已自动保存到本机")).toHaveCount(0);
+  await expect(page.getByText("已保存到你的账号")).toHaveCount(0);
 });

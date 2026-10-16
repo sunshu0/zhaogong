@@ -35,7 +35,8 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `zhaogong:chat-demo` | 聊天记录的缓存（每个身份一份，只存用户自己产生的部分，演示对话读取时合并），跟着服务器的回答更新 |
 | `zhaogong:chat-outbox` | 待发送队列：页面已经显示、服务器还没确认的聊天改动。每项带编号，离开页面后下次加载再发，服务器按编号只应用一次（`chat-outbox.ts`） |
 | `zhaogong:notifications-by-identity` | 通知已读的缓存，跟着服务器更新 |
-| `zhaogong:profiles-by-identity` | 每个身份的主页资料改动（还只在浏览器） |
+| `zhaogong:profiles-by-identity` | 每个身份的主页资料改动。求职者的是账号上 `seeker_profiles` 的副本（#104），企业主页还只在浏览器 |
+| `zhaogong:profile-sync` | 每个求职者身份：本机副本上次和账号对上的保存时间，有没有还没送到的改动（`profile-sync.ts`） |
 | `zhaogong:viewed-jobs`、`zhaogong:reports-sent` | 浏览和举报记录（只在浏览器） |
 
 这些数据带版本号，读取时迁移老格式（A23）。身份之间互不可见：键里按「邮箱 + 身份 + 企业」分区（`identity-scope.ts`），服务器上的聊天也用同一个键。

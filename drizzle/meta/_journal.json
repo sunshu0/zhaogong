@@ -127,6 +127,13 @@
       "when": 1792164959574,
       "tag": "0018_external_company_blocks",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792169333156,
+      "tag": "0019_seeker_profiles",
+      "breakpoints": true
     }
   ]
 }

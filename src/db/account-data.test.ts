@@ -11,6 +11,7 @@ import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
 import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
+import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { inviteToInterview } from "@/db/interviews";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
@@ -95,6 +96,7 @@ async function fullAccount(email: string) {
   if (application !== "already")
     await inviteToInterview("e1", application.id, INVITE, new Date("2026-10-17T00:00:00.000Z"));
   await saveResumeShare(email, RESUME, new Date("2026-10-17T00:00:00.000Z"));
+  await saveSeekerProfile(email, { name: "王芳", bio: "会做咖啡" }, new Date("2026-10-17T00:00:00.000Z"));
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
@@ -147,6 +149,10 @@ describe("exportAccountData (#54)", () => {
       createdAt: "2026-10-17T00:00:00.000Z",
       updatedAt: "2026-10-17T00:00:00.000Z",
     });
+    expect(data?.seekerProfile).toEqual({
+      profile: { name: "王芳", bio: "会做咖啡" },
+      updatedAt: "2026-10-17T00:00:00.000Z",
+    });
     expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
     expect(data?.jobAlerts).toEqual([
       { name: "全部新职位", query: "", paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
@@ -186,6 +192,7 @@ describe("deleteAccount (#54)", () => {
       [t.savedJobs, t.savedJobs.email],
       [t.jobApplications, t.jobApplications.seekerEmail],
       [t.resumeShares, t.resumeShares.email],
+      [t.seekerProfiles, t.seekerProfiles.email],
       [t.jobAlerts, t.jobAlerts.email],
       [t.jobAlertHits, t.jobAlertHits.email],
     ] as const) {
@@ -264,6 +271,7 @@ describe("deleteAccount (#54)", () => {
       "saved_jobs.email",
       "job_applications.seeker_email",
       "resume_shares.email",
+      "seeker_profiles.email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",

@@ -168,6 +168,17 @@
 | --- | --- | --- | --- |
 | `payReferenceFor(industry, regionId, exclude?)` | 行业；地区（可不填）；不计入的职位编号（编辑中的职位） | `{ reference, at }`：`reference` 是 `{ scope, place, min, median, max, count }` 或 `{ scope: "none", count }`；`at` 是计算时间 | 行业不认识时 `null` |
 
+## 我的主页 — `src/app/profile/actions.ts`
+
+#104（PRD 第 17 轮）。求职者主页存在 `seeker_profiles`（迁移 0019）：账号是主键，`profile` 是用户改过的内容（和浏览器存的一样，`parseProfilePatch` 的形状），`updated_at` 是最后一次保存。账号取自会话，只有求职者身份能读写；企业主页还在浏览器里。浏览器怎么和它同步见 `src/components/seeker/profile-client.ts` 和 ADR 0017。
+
+`ProfileSnapshot`：`{ scope, profile, updatedAt }`，`scope` 是回答对应的身份（浏览器只在当前身份相同时才用），账号还没存过时 `profile`、`updatedAt` 是 `null`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myProfile()` | | 账号上的主页 `ProfileSnapshot` | 未登录或雇主身份时 `null` |
+| `saveMyProfile(profile)` | 浏览器里的整份主页 | 存下后的 `ProfileSnapshot`（只留服务器读得懂的字段，头像最多 180 kB） | 未登录、雇主身份、不是主页或超过 250 kB 时 `null` |
+
 ## 中英文简历的分享链接 — `src/app/profile/resume/actions.ts`
 
 #86（PRD R-37）。简历本身在浏览器里生成（`resumeDocFrom`，`src/components/seeker/resume-doc.ts`），打印不经过服务器。分享时存在 `resume_shares`：账号是主键（每个账号最多一条），`id` 是链接里的随机编号（18 个随机字节，base64url），`resume` 是分享时的简历（`ResumeDoc`：中文和英文各一份文字、简历要点、签证、勾选的电话和微信）。服务器用 `parseResumeDoc` 重新检查和截断，丢掉邮箱。账号取自会话，只有求职者身份能分享。

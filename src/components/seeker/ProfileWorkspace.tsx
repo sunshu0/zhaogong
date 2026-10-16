@@ -6,6 +6,7 @@ import { Check, ExternalLink, FileText } from "lucide-react";
 import { profileChecklist, profileProgress } from "@/components/account/profile-checklist";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useProfile } from "@/components/seeker/hub-client";
+import { ProfileChoice, ProfileSaveNote } from "@/components/seeker/ProfileSaveNote";
 import type { Profile } from "@/components/seeker/hub-state";
 import { AvatarImage, ProfileAvatarEditor } from "@/components/seeker/ProfileAvatar";
 import {
@@ -28,23 +29,21 @@ import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { candidateFacts, EMPTY_RESUME, type Candidate } from "@/lib/candidate-matching";
 import type { EmployerVerification } from "@/lib/types";
 
-type SaveState = "idle" | "saved" | "failed";
-
 /**
  * /profile (我的主页 / 企业主页): what the other side sees at the top, how complete it is, then the required
- * fields; optional ones are folded away. Every change is saved in this browser as you type (C5): there is no
- * save button, and a failed save says so instead of pretending.
+ * fields; optional ones are folded away. Every change is saved as you type (C5), in this browser and, for a job
+ * seeker, to the account (#104): there is no save button, and a failed save says so instead of pretending.
  */
 export function ProfileWorkspace() {
   const { profile, update: updateProfile } = useProfile();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const verification = useEmployerProfile(isEmployer ? session.email : undefined).profile?.verification;
-  const [save, setSave] = useState<SaveState>("idle");
+  const [localSave, setLocalSave] = useState<boolean | null>(null);
 
   const update: UpdateProfileField = (field, value) => {
     const saved = updateProfile({ [field]: value }) === true;
-    setSave(saved ? "saved" : "failed");
+    setLocalSave(saved);
     return saved || undefined;
   };
 
@@ -56,8 +55,12 @@ export function ProfileWorkspace() {
     <div className="space-y-section">
       <header>
         <h1 className="text-title font-semibold">{isEmployer ? "企业主页" : "我的求职主页"}</h1>
-        <p className="mt-0.5 text-meta text-muted">改动会自动保存在这台设备上。</p>
+        <p className="mt-0.5 text-meta text-muted">
+          {isEmployer ? "改动会自动保存在这台设备上。" : "改动会自动保存到你的账号，换一台设备登录也能看到。"}
+        </p>
       </header>
+
+      <ProfileChoice />
 
       <Section
         id="profile-preview"
@@ -199,26 +202,12 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <SaveStatus state={save} />
+      {/* Stays in view at the bottom while the form scrolls, above the phone's bottom bar. */}
+      <ProfileSaveNote
+        localSave={localSave}
+        className="sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface px-4 py-2 sm:mx-0 sm:rounded-md sm:border"
+      />
     </div>
-  );
-}
-
-/** Stays in view at the bottom while the form scrolls, above the phone's bottom bar. */
-function SaveStatus({ state }: { state: SaveState }) {
-  return (
-    <p
-      role="status"
-      className={`sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface px-4 py-2 text-meta sm:mx-0 sm:rounded-md sm:border ${
-        state === "failed" ? "text-danger" : "text-muted"
-      }`}
-    >
-      {state === "failed"
-        ? "没有保存：这个浏览器不让本站保存资料（可能是无痕模式或存储空间已满），刷新后改动会丢失。"
-        : state === "saved"
-          ? "已自动保存到本机"
-          : "资料只保存在这台设备上，改动会自动保存。"}
-    </p>
   );
 }
 

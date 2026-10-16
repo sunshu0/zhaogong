@@ -78,9 +78,9 @@ export async function openOptionalProfile(page: Page) {
   if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) await details.locator("summary").click();
 }
 
-/** Profile edits save as you type; the page says so. */
+/** Profile edits save as you type: to the account for a job seeker (#104), in this browser for a 企业主页. */
 export async function expectProfileSaved(page: Page) {
-  await expect(page.getByText("已自动保存到本机")).toBeVisible();
+  await expect(page.getByText(/^(已保存到你的账号|已自动保存到本机)/)).toBeVisible();
 }
 
 /**

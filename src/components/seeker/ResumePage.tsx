@@ -11,6 +11,7 @@ import {
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { PrintButton } from "@/components/seeker/PrintButton";
 import { useProfile } from "@/components/seeker/hub-client";
+import { ProfileChoice, ProfileSaveNote } from "@/components/seeker/ProfileSaveNote";
 import type { Profile } from "@/components/seeker/hub-state";
 import {
   HELD_VISA_LABELS,
@@ -38,7 +39,7 @@ const sharedForm = (doc: ResumeDoc) => JSON.stringify(parseResumeDoc(shareCopy(d
 
 /**
  * /profile/resume (中英文简历, #86): the sheet as it prints, what is missing in English, and the few things only the
- * resume needs. Everything is kept in this browser with the rest of the page; only 分享链接 sends a copy.
+ * resume needs. Everything is saved with the rest of the page (on the account since #104); 分享链接 keeps its own copy.
  */
 export function ResumePage() {
   const session = useSession();
@@ -55,6 +56,7 @@ export function ResumePage() {
   return (
     <div className="space-y-section">
       <ResumePrintStyle />
+      <ProfileChoice />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/profile" className="text-meta text-brand underline-offset-4 hover:underline">
@@ -122,13 +124,7 @@ export function ResumePage() {
 
       <ShareSection doc={doc} />
 
-      <p role="status" className={`text-meta ${saved === false ? "text-danger" : "text-muted"}`}>
-        {saved === false
-          ? "没有保存：这个浏览器不让本站保存资料，刷新后改动会丢失。"
-          : saved
-            ? "已自动保存到本机"
-            : "改动会自动保存在这台设备上。"}
-      </p>
+      <ProfileSaveNote localSave={saved} />
     </div>
   );
 }
