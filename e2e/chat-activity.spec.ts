@@ -6,7 +6,7 @@ import { signUpEmployer } from "./employer/helpers";
 test("seeker sees employer activity and receipts only change when the counterpart reads", async ({
   page,
 }, testInfo) => {
-  await signIn(page, "/messages?conversation=north-tea", freshEmail("activity-seeker"));
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.activity-seeker"));
   const activity = page.getByLabel("沟通状态", { exact: true });
   await expect(activity).toContainText(/对方约 \d+ 分钟前在线/);
   await expect(activity).toContainText(/雇主今日已回复 \d+ 位求职者/);
@@ -36,7 +36,7 @@ test("seeker sees employer activity and receipts only change when the counterpar
 test("employer sees candidate activity and counts distinct daily replies rather than messages or invitations", async ({
   page,
 }, testInfo) => {
-  await signUpEmployer(page, testInfo, "/messages?conversation=candidate-lin");
+  await signUpEmployer(page, testInfo, "/messages?conversation=candidate-lin", { demo: true });
   const activity = page.getByLabel("沟通状态", { exact: true });
   await expect(activity).toContainText(/对方约 \d+ 分钟前在线/);
   await expect(activity).toContainText("你今日已回复 0 位求职者");

@@ -1,8 +1,9 @@
 import type { ChatDemo, Conversation, Message } from "@/components/seeker/chat-store";
 import { demoExchangeRequests } from "@/mock/chat-exchanges";
 
-// The demo conversations each identity starts with. Only what the user does is stored (chat-store.ts); these
-// are merged in when the chat is read, so changing them never wipes a user's own messages.
+// The demo conversations a demo account's identities start with (only demo accounts, #110). Only what the user does
+// is stored (chat-store.ts); these are merged in when the chat is read, so changing them never wipes a user's own
+// messages.
 
 export const CONVERSATIONS: Conversation[] = [
   {
@@ -72,6 +73,10 @@ const EMPLOYER_DEMO: ChatDemo = {
   exchanges: demoExchangeRequests(true),
 };
 
-export function chatDemo(isEmployer: boolean): ChatDemo {
+const NO_DEMO: ChatDemo = { conversations: [], messages: {}, unread: {}, exchanges: {} };
+
+/** The demo an identity sees: the made-up conversations for a demo account (isDemoAccount, #110), none otherwise. */
+export function chatDemo(isEmployer: boolean, demoAccount: boolean): ChatDemo {
+  if (!demoAccount) return NO_DEMO;
   return isEmployer ? EMPLOYER_DEMO : SEEKER_DEMO;
 }

@@ -4,6 +4,7 @@ import { getAccount } from "@/lib/data";
 import { chatServerStore } from "@/lib/chat-server/store";
 import type { ChatRecord } from "@/components/seeker/chat-store";
 import { chatDemo } from "@/components/seeker/chat-demo";
+import { isDemoAccount } from "@/lib/demo-accounts";
 import { identityScope } from "@/components/seeker/identity-scope";
 
 export type ChatIdentity = {
@@ -26,8 +27,9 @@ export async function currentChatIdentity(): Promise<ChatIdentity | null> {
   if (!session) return null;
   const isEmployer = session.activeRole === "employer";
   const scope = scopeOf(session);
+  const demoAccount = isDemoAccount(session.email);
   if (!isEmployer || !session.employer)
-    return { session, isEmployer, scope, recordScope: scope, demo: chatDemo(false) };
+    return { session, isEmployer, scope, recordScope: scope, demo: chatDemo(false, demoAccount) };
   const by = (await getAccount(session.email))?.teamName;
   return {
     session,
@@ -35,7 +37,7 @@ export async function currentChatIdentity(): Promise<ChatIdentity | null> {
     scope,
     recordScope: teamChatScope(session.employer.id),
     ...(by ? { by } : {}),
-    demo: chatDemo(true),
+    demo: chatDemo(true, demoAccount),
   };
 }
 

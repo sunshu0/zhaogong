@@ -16,8 +16,10 @@ import { LOCAL_DATA_VERSION, stringifyStoredIdentities } from "@/components/seek
 
 const seekerScope = JSON.stringify(["owner@example.com", "seeker", null]);
 const employerScope = JSON.stringify(["owner@example.com", "employer", "e1"]);
-const seekerDemo = chatDemo(false);
-const employerDemo = chatDemo(true);
+const seekerDemo = chatDemo(false, true);
+const employerDemo = chatDemo(true, true);
+// Data from before versioning holds the whole demo, so it is read against the demo accounts' one.
+const fullDemo = (isEmployer: boolean) => chatDemo(isEmployer, true);
 const at = "2026-10-15T01:00:00.000Z";
 const offered = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
 const report = {
@@ -47,7 +49,7 @@ describe("stored chats", () => {
     const raw = stringifyStoredIdentities({ [seekerScope]: record });
     expect(JSON.parse(raw)).toEqual({ version: LOCAL_DATA_VERSION, identities: { [seekerScope]: record } });
     expect(raw).not.toContain(seekerDemo.messages["north-tea"][0].text);
-    expect(parseChats(raw, chatDemo)[seekerScope]).toEqual(record);
+    expect(parseChats(raw, fullDemo)[seekerScope]).toEqual(record);
   });
 
   it("show the demo merged with the user's records", () => {
@@ -107,7 +109,7 @@ describe("stored chats", () => {
         },
       },
     });
-    expect(parseChats(raw, chatDemo)[seekerScope]).toEqual({
+    expect(parseChats(raw, fullDemo)[seekerScope]).toEqual({
       added: { "north-tea": [{ from: "me", text: "留下", time: "刚刚" }] },
       readAt: { "north-tea": at },
       extra: [employerChat],
@@ -115,7 +117,7 @@ describe("stored chats", () => {
       reports: [report],
     });
     const partial = JSON.stringify({ version: LOCAL_DATA_VERSION, identities: { [seekerScope]: { readAt: {} } } });
-    expect(parseChats(partial, chatDemo)[seekerScope]).toEqual(EMPTY_CHAT);
+    expect(parseChats(partial, fullDemo)[seekerScope]).toEqual(EMPTY_CHAT);
   });
 
   it("read as empty when written by a newer version, or not readable at all", () => {
@@ -125,7 +127,7 @@ describe("stored chats", () => {
       "[]",
       "null",
     ])
-      expect(parseChats(raw, chatDemo)).toEqual({});
+      expect(parseChats(raw, fullDemo)).toEqual({});
   });
 });
 
@@ -154,7 +156,7 @@ describe("chats from before versioning", () => {
   };
 
   it("keep what the user did: own messages, reads, opened chats, answered exchanges and reports", () => {
-    const record = parseChats(JSON.stringify({ [seekerScope]: legacySeeker }), chatDemo)[seekerScope];
+    const record = parseChats(JSON.stringify({ [seekerScope]: legacySeeker }), fullDemo)[seekerScope];
     expect(record).toEqual({
       added: {
         "north-tea": [{ from: "me", text: "我下午有空", time: "刚刚", sentAt: at }],
@@ -175,9 +177,9 @@ describe("chats from before versioning", () => {
 
   it("move a bare-email record to the account's job-seeker identity, unless that identity has its own", () => {
     const raw = JSON.stringify({ "Owner@Example.com": legacySeeker });
-    expect(Object.keys(parseChats(raw, chatDemo))).toEqual([seekerScope]);
+    expect(Object.keys(parseChats(raw, fullDemo))).toEqual([seekerScope]);
     const both = JSON.stringify({ "owner@example.com": legacySeeker, [seekerScope]: { messages: {}, unread: {} } });
-    expect(parseChats(both, chatDemo)[seekerScope]).toEqual(EMPTY_CHAT);
+    expect(parseChats(both, fullDemo)[seekerScope]).toEqual(EMPTY_CHAT);
   });
 
   it("use the employer demo for an employer identity", () => {
@@ -188,7 +190,7 @@ describe("chats from before versioning", () => {
       },
       unread: { "candidate-lin": 1, "candidate-chen": 0, "candidate-wang": 0 },
     };
-    const record = parseChats(JSON.stringify({ [employerScope]: legacy }), chatDemo)[employerScope];
+    const record = parseChats(JSON.stringify({ [employerScope]: legacy }), fullDemo)[employerScope];
     expect(record.added).toEqual({ "candidate-lin": [{ from: "me", text: "明天见", time: "刚刚" }] });
     expect(record.readAt).toEqual({ "candidate-chen": LEGACY_READ_AT });
   });
@@ -203,7 +205,7 @@ describe("chats from before versioning", () => {
       },
       unread: { "north-tea": 2 },
     };
-    expect(parseChats(JSON.stringify({ [seekerScope]: legacy }), chatDemo)[seekerScope].added).toEqual({
+    expect(parseChats(JSON.stringify({ [seekerScope]: legacy }), fullDemo)[seekerScope].added).toEqual({
       "north-tea": [{ from: "me", text: "在", time: "刚刚" }],
     });
   });

@@ -8,7 +8,7 @@ import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 async function secondPerson(browser: Browser, testInfo: TestInfo): Promise<{ page: Page; email: string }> {
   const context = await browser.newContext({ ...testInfo.project.use });
   const page = await context.newPage();
-  const email = await signIn(page, "/account", freshEmail("e2e.team"));
+  const email = await signIn(page, "/account", freshEmail("demo.e2e.team"));
   return { page, email };
 }
 
@@ -77,7 +77,7 @@ test("an admin invites a teammate, who accepts on 我的 and posts for the busin
 });
 
 test("the team shares the business's chats, and each message says who sent it", async ({ page, browser }, testInfo) => {
-  const shop = await signUpEmployer(page, testInfo, "/employer/team");
+  const shop = await signUpEmployer(page, testInfo, "/employer/team", { demo: true });
   await saveName(page, "王老板");
   const staff = await secondPerson(browser, testInfo);
   await invitedAndJoined(page, staff, shop);

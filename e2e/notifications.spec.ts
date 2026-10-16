@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
 test("seeker notifications open related threads and persist both read states", async ({ page }, testInfo) => {
-  await signIn(page, "/notifications", freshEmail("notifications"));
+  await signIn(page, "/notifications", freshEmail("demo.notifications"));
   const list = page.getByRole("region", { name: "通知列表" });
   await expect(list).toContainText("2 条未读");
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
@@ -32,7 +32,7 @@ test("seeker notifications open related threads and persist both read states", a
 test("legacy employer notifications open the right candidate, while bulk read stays on the list", async ({
   page,
 }, testInfo) => {
-  await signUpEmployer(page, testInfo, "/notifications");
+  await signUpEmployer(page, testInfo, "/notifications", { demo: true });
   const list = page.getByRole("region", { name: "通知列表" });
   await expect(list).toContainText("2 条未读");
   await list.getByRole("link", { name: /林晓回复了你的面试邀请/ }).click();
@@ -75,4 +75,28 @@ test("legacy employer notifications open the right candidate, while bulk read st
   await expect(page).toHaveURL("/messages?conversation=north-tea");
   await expect(page.getByRole("region", { name: "与北岸早茶酒家的聊天" })).toBeVisible();
   await expect(page.getByRole("log")).not.toContainText("面试邀请");
+});
+
+test("an account that is not a demo one starts with no demo notifications or chats (#110)", async ({
+  page,
+}, testInfo) => {
+  await signIn(page, "/notifications", freshEmail("e2e.new.seeker"));
+  const list = page.getByRole("region", { name: "通知列表" });
+  await expect(list).toContainText("还没有通知。");
+  await expect(list).not.toContainText("北岸早茶酒家");
+  await page.goto("/messages");
+  const contacts = page.getByRole("complementary", { name: "聊天列表" });
+  await expect(contacts).toContainText("还没有聊天。在职位详情里点「立即沟通」");
+  await expect(contacts.getByRole("button")).toHaveCount(0);
+  await expect(chatEntry(page)).toHaveAttribute("title", "聊天");
+  await expect(page.getByText("演示数据")).toHaveCount(0);
+
+  await page.context().clearCookies();
+  await page.evaluate(() => localStorage.clear());
+  await signUpEmployer(page, testInfo, "/notifications");
+  await expect(list).toContainText("还没有通知。");
+  await expect(list).not.toContainText("林晓");
+  await page.goto("/messages");
+  await expect(contacts).toContainText("还没有聊天。在申请人列表或推荐人才里点「发起聊天」");
+  await expect(contacts.getByRole("button")).toHaveCount(0);
 });

@@ -11,7 +11,9 @@ const DAY = 86_400_000;
 const HOUR = 3_600_000;
 
 /** The demo job seeker: sign in with this address to see 收藏 and 职位提醒 already in use. */
-export const DEMO_SEEKER = "seeker@example.com";
+import { DEMO_SEEKER } from "@/lib/demo-accounts";
+
+export { DEMO_SEEKER };
 
 export interface Showcase {
   jobs: Job[];

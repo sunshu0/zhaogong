@@ -133,7 +133,9 @@ export type Notification = {
   unread: boolean;
   target?: NotificationTarget;
 };
+/** The demo notifications: only a demo account has them (isDemoAccount, #110); everyone else starts with none. */
 export function initialNotifications(session: DemoSession | null): Notification[] {
+  if (!isDemoAccount(session?.email)) return [];
   return session?.activeRole === "employer"
     ? [
         {

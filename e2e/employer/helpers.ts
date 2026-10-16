@@ -34,13 +34,19 @@ export function findingsPanel(page: Page) {
 /**
  * Signs up as an employer through line A's sign-up (/login?role=employer): a fresh email and a new
  * business each time, because a business belongs to one account only and the specs run side by side.
- * Ends on `next`. Returns the business name.
+ * Ends on `next`. Returns the business name. `demo` signs up a demo account, which has the demo chats and notifications
+ * (#110).
  */
-export async function signUpEmployer(page: Page, testInfo: TestInfo, next = "/employer/post"): Promise<string> {
+export async function signUpEmployer(
+  page: Page,
+  testInfo: TestInfo,
+  next = "/employer/post",
+  { demo = false }: { demo?: boolean } = {},
+): Promise<string> {
   const run = `${testInfo.project.name === "mobile" ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
   const shop = `测试店${run}`;
   await page.goto(`/login?role=employer&next=${encodeURIComponent(next)}`);
-  await page.getByLabel("邮箱", { exact: true }).fill(`e2e.b.${run}@example.com`);
+  await page.getByLabel("邮箱", { exact: true }).fill(`${demo ? "demo." : ""}e2e.b.${run}@example.com`);
   await page.getByRole("button", { name: "获取验证码" }).click();
   await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();

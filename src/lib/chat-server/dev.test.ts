@@ -23,7 +23,9 @@ describe("the demo counterpart (development and browser tests only)", () => {
       { from: "me", text: "在吗", time: "刚刚", sentAt: at, readAt: later },
       { from: "them", text: "在的", time: "刚刚", sentAt: later },
     ]);
-    expect(chatView(next, chatDemo(false)).unread["north-tea"]).toBe(chatDemo(false).unread["north-tea"] + 1);
+    expect(chatView(next, chatDemo(false, true)).unread["north-tea"]).toBe(
+      chatDemo(false, true).unread["north-tea"] + 1,
+    );
     expect(counterpartActs(sent, "north-tea", { reply: "  " }, later)).toEqual(sent);
   });
 });

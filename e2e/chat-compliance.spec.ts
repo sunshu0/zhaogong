@@ -6,7 +6,7 @@ import AxeBuilder from "@axe-core/playwright";
 test("a received message asking for a deposit gets a reminder and a report link; my own draft gets a hint", async ({
   page,
 }, testInfo) => {
-  await signIn(page, "/messages?conversation=north-tea", freshEmail("compliance"));
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.compliance"));
   const log = page.getByRole("log");
   await expect(log.getByRole("note", { name: "合规提醒" })).toHaveCount(0); // the demo messages are fine
 

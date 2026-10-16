@@ -3,7 +3,7 @@ import { freshEmail, signIn } from "./helpers";
 
 // #10: a message is kept even when the page is left before its request reaches the server, and only once.
 test("a message sent just before leaving the page reaches the server on the next load, once", async ({ page }) => {
-  await signIn(page, "/messages?conversation=north-tea", freshEmail("outbox"));
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.outbox"));
   const log = page.getByRole("log");
   await expect(log).toBeVisible();
   // One message the server has, so the next load reads the server's records (a browser with records the server

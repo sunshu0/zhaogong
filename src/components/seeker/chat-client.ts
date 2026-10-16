@@ -10,6 +10,7 @@ import type { Employer, Job } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { chatDemo } from "@/components/seeker/chat-demo";
+import { isDemoAccount } from "@/lib/demo-accounts";
 import { applicantConversationId } from "@/components/seeker/applications";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
 import {
@@ -40,7 +41,8 @@ export function conversationProfileHref(conversation: Conversation, isEmployer: 
 
 export const CHAT_KEY = "zhaogong:chat-demo";
 export function parseChats(raw: string | null): Record<string, ChatRecord> {
-  return parseStoredChats(raw, chatDemo);
+  // Data from before versioning was stored with the whole demo in it; telling it apart needs the full demo.
+  return parseStoredChats(raw, (isEmployer) => chatDemo(isEmployer, true));
 }
 const store = createLocalStore(CHAT_KEY, parseChats);
 
@@ -112,7 +114,7 @@ export function useChat() {
   const accounts = store.useValue();
   const scope = identityScope(session);
   const isEmployer = session?.activeRole === "employer";
-  const demo = chatDemo(isEmployer);
+  const demo = chatDemo(isEmployer, isDemoAccount(session?.email));
   const record = accounts[scope] ?? EMPTY_CHAT;
   // Memoized: pages keep `messages` and the like in effect dependencies.
   const view = useMemo(() => chatView(record, demo), [record, demo]);

@@ -19,7 +19,7 @@ import {
 import type { DemoSession, StorageLike } from "@/components/seeker/session";
 
 const seeker: DemoSession = {
-  email: "person@example.com",
+  email: "demo.person@example.com",
   activeRole: "seeker",
   signedInAt: "2026-10-13",
   employerId: "e1",
@@ -42,7 +42,7 @@ function memoryStorage(): StorageLike {
 describe("identity-specific workspace state", () => {
   it("distinguishes identities, accounts and businesses while normalizing email", () => {
     expect(identityScope(seeker)).not.toBe(identityScope(employer));
-    expect(identityScope(seeker)).toBe(identityScope({ ...seeker, email: " Person@Example.com " }));
+    expect(identityScope(seeker)).toBe(identityScope({ ...seeker, email: " Demo.Person@Example.com " }));
     expect(identityScope(employer)).not.toBe(identityScope({ ...employer, employerId: "e2" }));
     expect(identityScope(seeker)).not.toBe(identityScope({ ...seeker, email: "another@example.com" }));
   });

@@ -36,6 +36,7 @@ export function NotificationWorkspace() {
           <h2 className="font-medium">全部通知</h2>
           <span className="text-xs text-muted">{unread ? `${unread} 条未读` : "已全部读完"}</span>
         </div>
+        {items.length === 0 && <p className="px-4 py-6 text-sm text-muted">还没有通知。</p>}
         <ul className="divide-y divide-border">
           {items.map((item) => (
             <li key={item.id}>

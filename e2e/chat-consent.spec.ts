@@ -6,7 +6,7 @@ import { signUpEmployer } from "./employer/helpers";
 test("the side that asks offers first: the other side sees its details at once, and gives its own only by agreeing", async ({
   page,
 }, testInfo) => {
-  // A demo account: it starts from 林晓's demo page (#125).
+  // A demo account: it starts from 林晓's demo page (#125) and has the demo chats (#110).
   await signIn(page, "/profile", `demo.consent.${testInfo.project.name}.${Date.now()}@example.com`);
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8801");
   await page.getByLabel("交换用微信", { exact: true }).fill("private_seeker_wechat");
@@ -81,7 +81,7 @@ test("asking first needs your own details: without them the request cannot be se
   await signIn(
     page,
     "/messages?conversation=clean-home",
-    `consent.empty.${testInfo.project.name}.${Date.now()}@example.com`,
+    `demo.consent.empty.${testInfo.project.name}.${Date.now()}@example.com`,
   );
   await (await exchangeTool(page, "交换联系方式")).click();
   const dialog = page.getByRole("dialog");
@@ -96,7 +96,7 @@ test("asking first needs your own details: without them the request cannot be se
 test("employers can report seekers and accepted private data stays out of public pages and the other identity", async ({
   page,
 }, testInfo) => {
-  const shop = await signUpEmployer(page, testInfo, "/profile");
+  const shop = await signUpEmployer(page, testInfo, "/profile", { demo: true });
   await page.getByLabel("企业介绍", { exact: true }).fill("餐饮企业的公开招聘介绍");
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8802");
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();

@@ -18,7 +18,7 @@ async function switchRole(page: Page, name: string) {
 test("one account keeps separate employer and seeker homes, messages, notifications and records", async ({
   page,
 }, testInfo) => {
-  const shop = await signUpEmployer(page, testInfo);
+  const shop = await signUpEmployer(page, testInfo, undefined, { demo: true });
   const title = uniqueTitle("招聘记录服务员", testInfo);
   await publishJob(page, title);
   const entry = chatEntry(page);
@@ -120,7 +120,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   // Someone else signs in on this browser (A12-1: a real sign-in; the server's session decides who it is).
   await page.context().clearCookies();
   await page.evaluate(() => localStorage.removeItem("zhaogong:session"));
-  await signIn(page, "/profile", freshEmail("different-workspace"));
+  await signIn(page, "/profile", freshEmail("demo.different-workspace"));
   await expect(page.getByLabel("称呼", { exact: true })).not.toHaveValue("求职者小林");
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await page.goto("/me");
@@ -130,7 +130,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
 });
 
 test("changing identity in another tab clears the open thread and unsent draft", async ({ page }, testInfo) => {
-  await signUpEmployer(page, testInfo, "/messages");
+  await signUpEmployer(page, testInfo, "/messages", { demo: true });
   const contacts = page.getByRole("complementary", { name: "聊天列表" });
   await contacts.getByRole("button", { name: /林晓/ }).click();
   await page.getByLabel("输入消息").fill("不可带到求职身份的草稿");

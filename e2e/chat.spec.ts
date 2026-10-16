@@ -3,7 +3,7 @@ import { chatEntry, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
 test("chat is prominent, unread counts sync and the composer stays visible", async ({ page }, testInfo) => {
-  await signIn(page, "/jobs", freshEmail("chat"));
+  await signIn(page, "/jobs", freshEmail("demo.chat"));
   const entry = chatEntry(page);
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await entry.click();

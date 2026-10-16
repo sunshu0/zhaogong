@@ -86,7 +86,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await rows.first().getByRole("button", { name: "发起聊天" }).click();
   if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "返回会话列表", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ })).toHaveCount(
-    2,
+    1,
   );
   await page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ }).first().click();
   await expect(log).toContainText("方便聊聊吗");

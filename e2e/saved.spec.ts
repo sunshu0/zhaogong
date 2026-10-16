@@ -45,7 +45,7 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
 });
 
 test("a job whose chat swapped contact details shows 已联系; other accounts see none of it", async ({ page }) => {
-  const email = await signIn(page, "/profile", freshEmail("saved.chat"));
+  const email = await signIn(page, "/profile", freshEmail("demo.saved.chat"));
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8802");
   await page.goto("/jobs/j3");
   await saveButton(page, "点心师傅").click();

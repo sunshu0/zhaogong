@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
 test("chat header avatar and employer name both open the company home", async ({ page }, testInfo) => {
-  await signIn(page, "/messages?conversation=north-tea", freshEmail("chat-profile"));
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.chat-profile"));
   const header = page.getByRole("region", { name: "与北岸早茶酒家的聊天" });
   const profile = header.getByRole("link", { name: "查看北岸早茶酒家的主页", exact: true });
   await expect(profile).toHaveAttribute("href", "/employers/e2");
@@ -54,7 +54,7 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
 
   // A chat that only this browser had from before #10 is handed to the server on the first sync, when the server
   // has nothing for the employer yet; so it comes first, before anything else is sent.
-  await signUpEmployer(page, testInfo, "/profile");
+  await signUpEmployer(page, testInfo, "/profile", { demo: true });
   await expect
     .poll(() =>
       page.evaluate(() => {

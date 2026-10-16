@@ -9,6 +9,7 @@ import { listSavedJobs, saveJob, setSavedStage, unsaveJob } from "@/db/saved-job
 import { chatServerStore } from "@/lib/chat-server/store";
 import type { CountryCode, PayRange } from "@/lib/types";
 import { chatDemo } from "@/components/seeker/chat-demo";
+import { isDemoAccount } from "@/lib/demo-accounts";
 import { EMPTY_CHAT, chatView } from "@/components/seeker/chat-store";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { isExpired } from "@/components/seeker/job-facts";
@@ -45,7 +46,7 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
   // The job seeker identity's chats say which jobs swapped contact details.
   const scope = identityScope({ email: session.email, signedInAt: "", activeRole: "seeker" });
   const record = (await chatServerStore().getChat(scope)) ?? EMPTY_CHAT;
-  const contacted = jobsContactedInChat(chatView(record, chatDemo(false)));
+  const contacted = jobsContactedInChat(chatView(record, chatDemo(false, isDemoAccount(session.email))));
   const now = Date.now();
   const views = await Promise.all(
     rows.map(async (row): Promise<SavedJobView | null> => {

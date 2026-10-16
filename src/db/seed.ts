@@ -3,6 +3,7 @@
 import { count } from "drizzle-orm";
 import { getDb, type Db } from "@/db/client";
 import { DEMO_SEEKER, demoShowcase } from "@/db/demo-showcase";
+import { DEMO_MODERATOR } from "@/lib/demo-accounts";
 import { fromEmployer, fromJob } from "@/db/rows";
 import * as schema from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
@@ -15,7 +16,7 @@ import { demoExternalJobs } from "@/mock/external-jobs";
  * in with this address; outside production the sign-in page shows the code. A real database starts with no
  * moderator: npm run admin:grant makes the first one.
  */
-export const DEMO_MODERATOR = "moderator@example.com";
+export { DEMO_MODERATOR };
 
 /** True when no business has been written yet: neither the demo data nor anything else. */
 export async function isDatabaseEmpty(db: Db = getDb()): Promise<boolean> {

@@ -7,11 +7,14 @@ import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { useSession } from "@/components/seeker/session-client";
+import { isDemoAccount } from "@/lib/demo-accounts";
 
 export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   const [selectedId, setSelectedId] = useState<string | null>(initialId);
   const { messages, unread, totalUnread, conversations, markRead } = useChat();
-  const isEmployer = useSession()?.activeRole === "employer";
+  const session = useSession();
+  const isEmployer = session?.activeRole === "employer";
+  const demoAccount = isDemoAccount(session?.email);
   const [draft, setDraft] = useState("");
   const selected = conversations.find((item) => item.id === selectedId);
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
@@ -28,7 +31,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
         <h1 className="text-2xl font-semibold">{isEmployer ? "招聘聊天" : "求职聊天"}</h1>
         <p role="status" className="text-sm text-muted">
           {totalUnread ? `${totalUnread} 条未读消息` : "消息已全部读完"}
-          <span className="ml-2 text-xs">演示数据</span>
+          {demoAccount && <span className="ml-2 text-xs">演示数据</span>}
         </p>
       </header>
 
@@ -56,7 +59,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
           <NoConversationSelected totalUnread={totalUnread} />
         )}
       </div>
-      <p className="text-xs text-muted">演示版：消息与已读状态保存在这台设备上。</p>
+      {demoAccount && <p className="text-xs text-muted">演示账号：这里的联系人和他们的回复都是演示内容。</p>}
     </div>
   );
 }
@@ -98,6 +101,14 @@ function ConversationList({
         <h2 className="font-medium">最近联系</h2>
         <span className="text-xs text-muted">{conversations.length} 个会话</span>
       </div>
+      {conversations.length === 0 && (
+        <p className="px-4 py-6 text-sm text-muted">
+          还没有聊天。
+          {isEmployer
+            ? "在申请人列表或推荐人才里点「发起聊天」，就会出现在这里。"
+            : "在职位详情里点「立即沟通」，就会出现在这里。"}
+        </p>
+      )}
       <ul className="divide-y divide-border">
         {conversations.map((conversation) => (
           <li key={conversation.id}>

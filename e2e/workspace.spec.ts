@@ -46,7 +46,7 @@ test("signed-out workspace sign-in returns to the selected page", async ({ page 
 });
 
 test("总览 lists what needs doing, most urgent first, and each item opens the right page", async ({ page }) => {
-  await signIn(page, "/workspace", freshEmail("todos"));
+  await signIn(page, "/workspace", freshEmail("demo.todos"));
   const todos = page.getByRole("region", { name: "待办" });
   const items = todos.getByRole("listitem");
   // Requests waiting for consent come before unread chats, and the profile comes last.

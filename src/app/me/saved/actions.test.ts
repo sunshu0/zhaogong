@@ -69,9 +69,9 @@ describe("收藏和进度 on the server (#52)", () => {
   });
 
   it("marks a job 已联系 once its chat swapped contact details; a stage the user picks wins", async () => {
-    await signedIn("chen@example.com");
+    await signedIn("demo.chen@example.com");
     await saveMyJob("j3"); // north-tea is the demo chat about j3
-    const scope = identityScope({ email: "chen@example.com", signedInAt: "", activeRole: "seeker" });
+    const scope = identityScope({ email: "demo.chen@example.com", signedInAt: "", activeRole: "seeker" });
     await chats.putChat(scope, {
       ...EMPTY_CHAT,
       exchanges: {
