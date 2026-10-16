@@ -81,8 +81,8 @@ export function AccountHome() {
           <button
             type="button"
             className="min-h-11 w-full text-body text-danger"
-            onClick={() => {
-              signOut();
+            onClick={async () => {
+              await signOut();
               router.push("/jobs");
             }}
           >

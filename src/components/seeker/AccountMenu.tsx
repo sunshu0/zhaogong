@@ -141,9 +141,9 @@ export function AccountMenu() {
             <button
               type="button"
               className={pageItem}
-              onClick={() => {
-                signOut();
+              onClick={async () => {
                 close();
+                await signOut();
                 router.push("/jobs");
               }}
             >
