@@ -38,20 +38,23 @@ export function SkeletonList({ count = 4, label = "正在加载" }: { count?: nu
   );
 }
 
-/** A list page on its way (loading.tsx of the job lists): the title line, then cards. */
+/**
+ * A list page on its way (loading.tsx of the job lists): the title line, then cards. `data-nojs-hide`: without
+ * JavaScript nothing replaces it, so NoScriptStreams hides it and shows the streamed page instead (#13).
+ */
 export function ListPageSkeleton({ label = "正在加载职位" }: { label?: string }) {
   return (
-    <div className="space-y-4">
+    <div data-nojs-hide="" className="space-y-4">
       <Skeleton className="h-7 w-32" />
       <SkeletonList label={label} />
     </div>
   );
 }
 
-/** A detail page on its way (loading.tsx of a job page): title, pay, facts. */
+/** A detail page on its way (loading.tsx of a job page): title, pay, facts. Hidden without JavaScript, as above. */
 export function DetailPageSkeleton({ label = "正在加载职位" }: { label?: string }) {
   return (
-    <div aria-busy="true" className="space-y-4 lg:max-w-3xl">
+    <div data-nojs-hide="" aria-busy="true" className="space-y-4 lg:max-w-3xl">
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-3 rounded-card bg-surface p-4 shadow-card lg:p-5">
         <Skeleton className="h-4 w-24" />
