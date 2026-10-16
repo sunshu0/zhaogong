@@ -43,6 +43,46 @@ test("a seeker's view and first message show on the employer's numbers, once eac
   await expect(table.getByRole("row").nth(1).getByRole("cell")).toHaveText([/^1/, "1", "—"]);
 });
 
+test("a reload right after the first view counts once, even when the first count's answer never arrives (#79)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  const title = uniqueTitle("刷新服务员", testInfo);
+  const jobId = await publishJob(page, title);
+  expect(jobId).toMatch(/^j\d+$/);
+
+  // A new browser opens the job, and leaves (here: reloads) before the answer to its view count comes back. The
+  // count reaches the server; whatever that answer would have set in the browser never arrives.
+  const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  const isCount = (request: { method(): string; postData(): string | null }) =>
+    request.method() === "POST" && request.postData() === JSON.stringify([jobId]);
+  let firstCount!: () => void;
+  const counted = new Promise<void>((resolve) => (firstCount = resolve));
+  await seeker.route(`**/jobs/${jobId}`, async (route) => {
+    if (!isCount(route.request())) return route.continue();
+    const context = seeker.context();
+    const kept = (await context.cookies()).filter((c) => c.name === "zg_visitor");
+    await route.fetch(); // the server records the view
+    await route.abort(); // the browser never sees the answer
+    // route.fetch() stores the answer's cookies in the context; put back what the browser had before.
+    await context.clearCookies({ name: "zg_visitor" });
+    await context.addCookies(kept);
+    firstCount();
+  });
+  await seeker.goto(`/jobs/${jobId}`);
+  await counted;
+  await seeker.unrouteAll({ behavior: "ignoreErrors" });
+  const second = seeker.waitForResponse((response) => isCount(response.request()));
+  await seeker.reload();
+  await second;
+  await seeker.context().close();
+
+  await page.goto("/employer/jobs");
+  const row = page.locator("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await expect(row).toContainText("1 次浏览");
+});
+
 test("another business's job has no numbers to show", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo);
   await page.goto("/employer/jobs/j1/stats");

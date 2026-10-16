@@ -1,16 +1,15 @@
 "use server";
 
 // Counts a job page view for the employer's numbers (#55). Called once per page load by the job page
-// (RecordView). The browser is known only by a random id in an httpOnly cookie, stored hashed: no IP, no account.
-import { createHash, randomBytes } from "node:crypto";
+// (RecordView). The browser is known only by a random id in an httpOnly cookie, stored hashed: no IP, no account
+// (src/lib/visitor.ts). The job page hands the id out (src/proxy.ts, #79); this sets one only if it is missing.
+import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { recordJobView } from "@/db/job-stats";
 import { getCurrentSession } from "@/lib/auth";
 import { isProduction } from "@/lib/auth/config";
 import { getJob } from "@/lib/data";
-
-const VISITOR_COOKIE = "zg_visitor";
-const YEAR_SECONDS = 365 * 24 * 3600;
+import { VISITOR_COOKIE, isVisitorId, newVisitorId, visitorCookieOptions } from "@/lib/visitor";
 
 export async function countJobView(jobId: string): Promise<void> {
   if (typeof jobId !== "string") return;
@@ -21,15 +20,9 @@ export async function countJobView(jobId: string): Promise<void> {
 
   const jar = await cookies();
   let visitor = jar.get(VISITOR_COOKIE)?.value;
-  if (!visitor || !/^[A-Za-z0-9_-]{22}$/.test(visitor)) {
-    visitor = randomBytes(16).toString("base64url");
-    jar.set(VISITOR_COOKIE, visitor, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProduction(),
-      path: "/",
-      maxAge: YEAR_SECONDS,
-    });
+  if (!isVisitorId(visitor)) {
+    visitor = newVisitorId();
+    jar.set(VISITOR_COOKIE, visitor, visitorCookieOptions(isProduction()));
   }
   await recordJobView(job.id, createHash("sha256").update(visitor).digest("hex"));
 }

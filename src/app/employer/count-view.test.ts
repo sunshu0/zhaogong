@@ -14,6 +14,8 @@ const jar: CookieJar = {
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { countJobView } = await import("@/app/employer/count-view");
+const { proxy } = await import("@/proxy");
+const { NextRequest } = await import("next/server");
 const views = async (job: string) => (await jobNumbers([job]))[job].views;
 
 beforeEach(() => {
@@ -34,6 +36,22 @@ describe("countJobView (#55)", () => {
     cookies.clear(); // another browser
     await countJobView("j2");
     expect(await views("j2")).toBe(before + 2);
+  });
+
+  it("counts a reload right after the first view once, even when the first count's answer is lost (#79)", async () => {
+    const before = await views("j2");
+    // The job page's own answer gives the browser its id.
+    const page = proxy(new NextRequest("http://localhost/jobs/j2"));
+    const id = page.cookies.get("zg_visitor")?.value;
+    expect(id).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    cookies.set("zg_visitor", id!);
+
+    await countJobView("j2");
+    // Whatever the count's answer would set never arrives: the browser keeps only what the page gave it.
+    cookies.clear();
+    cookies.set("zg_visitor", id!);
+    await countJobView("j2"); // the reload
+    expect(await views("j2")).toBe(before + 1);
   });
 
   it("does not count the business looking at its own job, or a job seekers cannot see", async () => {
