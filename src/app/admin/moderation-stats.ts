@@ -2,14 +2,25 @@
 // decisions. Pure, so the numbers are tested without a database; stats-actions.ts feeds it on the server. The data
 // is small, so it is worked out from whole tables on each request (ADR 0010 says what to do when it is not).
 import type { Job, ModerationLogEntry, Report } from "@/lib/types";
+import type { AiUsageResult } from "@/lib/ai-post/model/limits";
 
 export const WEEKS = 8;
+/** AI 发帖用量 covers the last seven New Zealand days, today included. */
+export const AI_DAYS = 7;
 const DAY_MS = 86_400_000;
 const nzDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Pacific/Auckland" });
 
 /** The day in New Zealand, YYYY-MM-DD. */
 export function nzDay(at: number): string {
   return nzDate.format(at);
+}
+
+/** The last `n` New Zealand days up to `now`, today first. */
+export function lastDays(now: number, n = AI_DAYS): string[] {
+  const days = new Set<string>();
+  // Step back in hours rather than days, so a daylight-saving change cannot skip or repeat a day.
+  for (let h = 0; days.size < n; h += 1) days.add(nzDay(now - h * 3_600_000));
+  return [...days];
 }
 
 /** The Monday of a day's week (weeks run Monday to Sunday, in New Zealand). */
@@ -62,6 +73,30 @@ export type ModeratorStats = {
   total: number;
 };
 
+/** One New Zealand day of calls to the AI 发帖 model (#102). */
+export type AiDayStats = {
+  /** YYYY-MM-DD in New Zealand; "total" for the seven days together. */
+  day: string;
+  /** Calls made to the model, failed ones included. */
+  calls: number;
+  /** Input, output and cache tokens together. */
+  tokens: number;
+  /** Calls that gave no usable answer: an error, a refusal or an answer that could not be read. */
+  failed: number;
+  /** Calls the limits turned away (not made, not in `calls`). */
+  limited: number;
+};
+
+/** What the AI 发帖 model is asked, as ai_usage keeps it (src/db/ai-usage.ts). */
+export type AiUsageEntry = {
+  at: string;
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  result: AiUsageResult;
+};
+
 export type ModerationStats = {
   /** When these numbers were worked out (the server's clock), to say how long the oldest items have waited. */
   at: number;
@@ -82,6 +117,8 @@ export type ModerationStats = {
   byModerator: ModeratorStats[];
   /** Closed reports without a closing time: closed before closing times were kept (migration 0008). */
   untimed: number;
+  /** AI 发帖用量 (#102): the last seven days, today first, and the seven together. */
+  aiPosting: { days: AiDayStats[]; total: AiDayStats };
 };
 
 /** The column a log entry counts under in 按审核员. */
@@ -103,6 +140,7 @@ export function moderationStats(
     log,
     verifications = [],
     externalPending = [],
+    aiUsage = [],
   }: {
     jobs: readonly Job[];
     reports: readonly Report[];
@@ -111,6 +149,8 @@ export function moderationStats(
     verifications?: readonly { submittedAt: string }[];
     /** The external jobs waiting for review (#112). */
     externalPending?: readonly { firstSeenAt: string }[];
+    /** Calls to the AI 发帖 model (#102); older than seven days are left out here. */
+    aiUsage?: readonly AiUsageEntry[];
   },
   now: number,
 ): ModerationStats {
@@ -185,7 +225,28 @@ export function moderationStats(
         (a.moderator ?? "").localeCompare(b.moderator ?? ""),
     ),
     untimed,
+    aiPosting: aiPostingStats(aiUsage, now),
   };
+}
+
+function aiPostingStats(entries: readonly AiUsageEntry[], now: number): ModerationStats["aiPosting"] {
+  const empty = (day: string): AiDayStats => ({ day, calls: 0, tokens: 0, failed: 0, limited: 0 });
+  const days = new Map(lastDays(now).map((day) => [day, empty(day)]));
+  const total = empty("total");
+  for (const entry of entries) {
+    const day = days.get(nzDay(Date.parse(entry.at)));
+    if (!day) continue;
+    for (const row of [day, total]) {
+      if (entry.result === "limited") {
+        row.limited += 1;
+        continue;
+      }
+      row.calls += 1;
+      row.tokens += entry.input + entry.output + entry.cacheRead + entry.cacheWrite;
+      if (entry.result !== "ok") row.failed += 1;
+    }
+  }
+  return { days: [...days.values()], total };
 }
 
 /** A wait in words: 刚刚, 25 分钟, 3 小时, 2 天 5 小时. */

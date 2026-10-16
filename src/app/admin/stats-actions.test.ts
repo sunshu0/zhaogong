@@ -3,6 +3,7 @@ import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { ensureAccount, listReports, submitReport } from "@/lib/data";
 import { grantModerator } from "@/db/moderators";
+import { recordAiUsage } from "@/db/ai-usage";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -66,5 +67,20 @@ describe("审核数据 (#70)", () => {
     expect(after.weeks[0].handled).toBe(before.weeks[0].handled + closed.length);
     expect(after.weeks[0].takenDown).toBe(before.weeks[0].takenDown + 1);
     expect(after.weeks[0].medianHandleMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("adds up today's calls to the AI 发帖 model (#102), without saying whose", async () => {
+    await signIn(MODERATOR);
+    const before = await getModerationStats();
+    if ("refused" in before) throw new Error(before.error_zh);
+    const tokens = { input: 500, output: 100, cacheRead: 0, cacheWrite: 0 };
+    await recordAiUsage("poster@example.com", { model: "fake", usage: tokens, result: "ok" });
+    await recordAiUsage("poster@example.com", { model: "fake", result: "limited" });
+    const after = await getModerationStats();
+    if ("refused" in after) throw new Error(after.error_zh);
+    expect(after.aiPosting.days[0].calls).toBe(before.aiPosting.days[0].calls + 1);
+    expect(after.aiPosting.days[0].tokens).toBe(before.aiPosting.days[0].tokens + 600);
+    expect(after.aiPosting.total.limited).toBe(before.aiPosting.total.limited + 1);
+    expect(JSON.stringify(after)).not.toContain("poster@example.com");
   });
 });

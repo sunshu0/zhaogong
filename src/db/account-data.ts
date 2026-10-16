@@ -2,6 +2,7 @@
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
 import { and, asc, count, eq, inArray, ne, or } from "drizzle-orm";
+import { listAiUsageOf, type AiUsageRow } from "@/db/ai-usage";
 import { listRenewals, type JobRenewal } from "@/db/job-renewals";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
@@ -81,6 +82,8 @@ export interface ServerAccountData {
   jobAlertHits: { jobId: string; alertName: string; createdAt: string }[];
   /** Jobs whose public contact details this account looked at. */
   contactViews: { jobId: string; viewedAt: string }[];
+  /** Each call to the AI 发帖 model (#102): when, which model, its tokens and how it ended. */
+  aiUsage: AiUsageRow[];
   /** Signed-in sessions. The cookie token is never stored, so there is nothing more to show. */
   sessions: { activeRole: AccountRole; createdAt: string; expiresAt: string }[];
 }
@@ -239,6 +242,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
     jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
     contactViews: views.map((v) => ({ jobId: v.jobId, viewedAt: v.viewedAt })),
+    aiUsage: await listAiUsageOf(address),
     sessions: sessions.map((s) => ({ activeRole: s.activeRole, createdAt: s.createdAt, expiresAt: s.expiresAt })),
   };
 }
@@ -318,6 +322,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
       .where(eq(t.contactViews.viewerEmail, address));
+    // The calls to the AI 发帖 model stay in 审核数据's totals, without the email (#102).
+    await tx.update(t.aiUsage).set({ email: DELETED_ACCOUNT }).where(eq(t.aiUsage.email, address));
     await tx
       .update(t.jobChatStarts)
       .set({ seekerEmail: DELETED_ACCOUNT })

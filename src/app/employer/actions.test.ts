@@ -15,6 +15,7 @@ import {
   updateJob,
 } from "@/lib/data";
 import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
+import { countAiCalls, listAiUsageOf } from "@/db/ai-usage";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -394,6 +395,50 @@ describe("chatTurn", () => {
     expect(next.draft).not.toHaveProperty("employerId");
     expect(next.ready).toBe(false);
     expect(next.messages.at(-2)).toMatchObject({ from: "employer", text: "25" });
+  });
+
+  // #102: with a model (the fake here), each call is recorded and the account's limits hold.
+  const withFake = <T>(call: () => Promise<T>) => {
+    cookies.set("zg_ai_fake", "1");
+    return call();
+  };
+
+  it("records each call to the model with its tokens and how it ended; the script is not counted", async () => {
+    const email = "ai.counted@example.com";
+    await as(email, () => chatTurn(undefined, "招洗碗工"));
+    expect(await listAiUsageOf(email)).toEqual([]);
+
+    const first = await as(email, () => withFake(() => chatTurn(undefined, "招洗碗工，时薪 25")));
+    expect(first.unavailable).toBe(false);
+    await as(email, () => withFake(() => chatTurn(first, "招服务员【测试：出错】")));
+    const rows = await listAiUsageOf(email);
+    expect(rows.map((r) => [r.model, r.result])).toEqual([
+      ["fake", "ok"],
+      ["fake", "error"],
+    ]);
+    expect(rows[0].input).toBeGreaterThan(0);
+  });
+
+  it("stops at 6 calls a minute without calling the model, and says so with the form offered", async () => {
+    const email = "ai.limited@example.com";
+    let chat = await as(email, () => withFake(() => chatTurn(undefined, "招洗碗工")));
+    for (let i = 0; i < 5; i += 1) chat = await as(email, () => withFake(() => chatTurn(chat, "时薪 25")));
+    expect(await countAiCalls(email)).toMatchObject({ lastMinute: 6 });
+
+    const turned = await as(email, () => withFake(() => chatTurn(chat, "在 Mt Eden")));
+    expect(turned.unavailable).toBe(true);
+    expect(turned.messages.at(-1)?.text).toContain("一分钟最多回答 6 句");
+    expect(turned.draft).toEqual(chat.draft);
+    expect((await listAiUsageOf(email)).map((r) => r.result).slice(-2)).toEqual(["ok", "limited"]);
+    // A call turned away is not counted against the limit itself.
+    expect(await countAiCalls(email)).toMatchObject({ lastMinute: 6 });
+  });
+
+  it("asks to sign in before the model is called, and records nothing", async () => {
+    const said = await withFake(() => chatTurn(undefined, "招洗碗工"));
+    expect(said.unavailable).toBe(true);
+    expect(said.messages.at(-1)?.text).toContain("登录后才能用 AI 发帖助手");
+    expect(said.draft.titleZh).toBeUndefined();
   });
 });
 

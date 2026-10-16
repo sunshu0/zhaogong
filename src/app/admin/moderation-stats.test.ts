@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { lastWeeks, median, moderationStats, nzDay, waitZh, weekOf } from "@/app/admin/moderation-stats";
+import {
+  AI_DAYS,
+  lastDays,
+  lastWeeks,
+  median,
+  moderationStats,
+  nzDay,
+  waitZh,
+  weekOf,
+  type AiUsageEntry,
+} from "@/app/admin/moderation-stats";
 import type { Job, ModerationLogEntry, Report } from "@/lib/types";
 import { MOCK_JOBS } from "@/mock/data";
 
@@ -144,5 +154,56 @@ describe("moderationStats (#70)", () => {
     expect(stats.byModerator).toEqual([
       { moderator: "a@example.com", approve: 0, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 2, total: 2 },
     ]);
+  });
+});
+
+describe("AI 发帖用量 (#102)", () => {
+  const call = (at: string, result: AiUsageEntry["result"] = "ok"): AiUsageEntry => ({
+    at,
+    input: 1000,
+    output: 200,
+    cacheRead: result === "ok" ? 800 : 0,
+    cacheWrite: 0,
+    result,
+  });
+
+  it("lists the last seven New Zealand days, today first", () => {
+    expect(lastDays(NOW)).toEqual([
+      "2026-10-16",
+      "2026-10-15",
+      "2026-10-14",
+      "2026-10-13",
+      "2026-10-12",
+      "2026-10-11",
+      "2026-10-10",
+    ]);
+  });
+
+  it("counts calls, tokens and failures per day; turned-away calls apart; older days left out", () => {
+    const { aiPosting } = moderationStats(
+      {
+        jobs: [],
+        reports: [],
+        log: [],
+        aiUsage: [
+          call("2026-10-15T20:00:00.000Z"), // 16 October, 09:00 in Auckland
+          call("2026-10-15T20:30:00.000Z", "error"),
+          call("2026-10-15T20:40:00.000Z", "limited"),
+          call("2026-10-15T10:00:00.000Z", "refused"), // 15 October, 23:00
+          call("2026-10-09T08:00:00.000Z"), // 9 October: eight days back
+        ],
+      },
+      NOW,
+    );
+    expect(aiPosting.days).toHaveLength(AI_DAYS);
+    expect(aiPosting.days[0]).toEqual({ day: "2026-10-16", calls: 2, tokens: 3200, failed: 1, limited: 1 });
+    expect(aiPosting.days[1]).toEqual({ day: "2026-10-15", calls: 1, tokens: 1200, failed: 1, limited: 0 });
+    expect(aiPosting.days.slice(2).every((d) => d.calls === 0 && d.limited === 0)).toBe(true);
+    expect(aiPosting.total).toEqual({ day: "total", calls: 3, tokens: 4400, failed: 2, limited: 1 });
+  });
+
+  it("is all zeros without any calls", () => {
+    const { aiPosting } = moderationStats({ jobs: [], reports: [], log: [] }, NOW);
+    expect(aiPosting.total).toEqual({ day: "total", calls: 0, tokens: 0, failed: 0, limited: 0 });
   });
 });

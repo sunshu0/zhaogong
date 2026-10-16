@@ -20,6 +20,8 @@ export interface ModelDeps {
   model: string;
   /** sanitizeDraft for the country: the model's fields are browser-grade input. */
   sanitize: (draft: unknown) => JobDraft;
+  /** Checked just before the call (limits.ts): the words to say instead when the account may not call now. */
+  limit?: () => Promise<string | undefined>;
 }
 
 export interface TokenUsage {
@@ -34,7 +36,7 @@ export interface ModelTurn {
   /** What the call cost, when one was made. */
   usage?: TokenUsage;
   /** Why there is no answer from the model this turn. */
-  failed?: "error" | "refused" | "unreadable";
+  failed?: "error" | "refused" | "unreadable" | "limited";
 }
 
 export const PREVIEW = "预览并发布";
@@ -57,6 +59,9 @@ export async function modelTurn(state: ChatState, message: string, deps: ModelDe
 
   if (text === PREVIEW && canPreview(s.draft, before))
     return { state: { ...withMessage(s, "assistant", "好，先看看预览。"), ready: true } };
+
+  const limited = await deps.limit?.();
+  if (limited) return { state: fail(s, limited), failed: "limited" };
 
   let response: Message;
   try {

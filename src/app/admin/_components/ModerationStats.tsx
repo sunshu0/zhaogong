@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Refused } from "@/app/admin/actions";
-import { WEEKS, waitZh, type ModerationStats } from "@/app/admin/moderation-stats";
+import { AI_DAYS, WEEKS, waitZh, type ModerationStats } from "@/app/admin/moderation-stats";
 import { moderatorLabel } from "@/app/admin/moderation";
 import { getModerationStats } from "@/app/admin/stats-actions";
 import { Section } from "@/components/ui/Section";
@@ -13,6 +13,9 @@ const weekLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "lo
 function weekStart(day: string): string {
   return weekLabel.format(new Date(`${day}T00:00:00Z`));
 }
+
+const dayLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "long", day: "numeric", weekday: "short" });
+const figure = new Intl.NumberFormat("zh-CN");
 
 /** 审核数据 (#70), asked for again whenever `version` changes (after each decision in the queue). */
 export function useModerationStats(version: number): ModerationStats | Refused | undefined {
@@ -189,6 +192,59 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
           </table>
         </div>
       )}
+    </Section>
+  );
+}
+
+/** AI 发帖用量 (#102): calls to the posting model over the last seven days, today first, and the seven together. */
+export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
+  const { days, total } = stats.aiPosting;
+  const rows = [
+    ...days.map((d, i) => ({ ...d, label: i === 0 ? "今天" : dayLabel.format(new Date(`${d.day}T00:00:00Z`)) })),
+    { ...total, label: `${AI_DAYS} 天合计` },
+  ];
+  return (
+    <Section
+      title="AI 发帖用量"
+      description={`最近 ${AI_DAYS} 天对话发布调用模型的次数，按新西兰时间。token 含输入、输出和缓存；失败是出错、被拒或读不出答案；超限是每个账号每分钟 6 次、每天 100 次的上限挡下的，没有调用模型。`}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-body">
+          <caption className="sr-only">最近 {AI_DAYS} 天每天调用 AI 发帖模型的次数、token、失败和超限次数</caption>
+          <thead>
+            <tr className="border-b border-border text-left text-meta text-muted">
+              <th scope="col" className="py-2 pr-2 font-normal">
+                日期
+              </th>
+              <th scope="col" className="py-2 pr-2 text-right font-normal">
+                调用
+              </th>
+              <th scope="col" className="py-2 pr-2 text-right font-normal">
+                token
+              </th>
+              <th scope="col" className="py-2 pr-2 text-right font-normal">
+                失败
+              </th>
+              <th scope="col" className="py-2 text-right font-normal">
+                超限
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {rows.map((d) => (
+              <tr key={d.day} className={d.day === "total" ? "font-medium" : undefined}>
+                <th scope="row" className="py-2 pr-2 text-left font-normal whitespace-nowrap">
+                  {d.label}
+                </th>
+                <td className="py-2 pr-2 text-right font-figure">{d.calls}</td>
+                <td className="py-2 pr-2 text-right font-figure">{figure.format(d.tokens)}</td>
+                <td className="py-2 pr-2 text-right font-figure">{d.failed}</td>
+                <td className="py-2 text-right font-figure">{d.limited}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Section>
   );
 }

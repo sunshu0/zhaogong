@@ -58,7 +58,7 @@
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
 | `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0 | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
-| `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿）。生产环境由 Claude 回答（#102，`src/lib/ai-post/model/`）：模型用结构化输出交回下一句话、快捷回复和草稿字段，服务器再用 `sanitizeDraft` 清洗、跑合规规则。没配 key、超时或出错时 `unavailable: true`，对话里说明「暂时不可用」 | — |
+| `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿）。生产环境由 Claude 回答（#102，`src/lib/ai-post/model/`）：模型用结构化输出交回下一句话、快捷回复和草稿字段，服务器再用 `sanitizeDraft` 清洗、跑合规规则。没配 key、超时或出错时 `unavailable: true`，对话里说明「暂时不可用」。调用模型（`claude`、`fake`）要登录，没登录时 `unavailable: true`，说「登录后才能用 AI 发帖助手」。**限额**：每个账号最近 60 秒 6 次、最近 24 小时 100 次，超了不调用模型，`unavailable: true`，说明稍后再试或明天再继续。每次调用在 `ai_usage` 记一行（模型、四种 token、结果 `ok` / `error` / `refused` / `unreadable`，被限额挡下的记 `limited`）；脚本不计数，也不记 | — |
 | `chatAssistantKind()` | — | 谁在回答：`claude`、`unavailable`（生产环境没配 key）、`script`（开发环境的规则脚本，页面标明不是 AI）、`fake`（开发和测试用的固定回答模型，浏览器带 `zg_ai_fake=1` cookie 时） | — |
 | `publishJob(input)` | 职位草稿，服务器重新清洗和检查 | `{ ok: true, job }`，状态是 `active`，命中需人工审核的规则时是 `pending_review` | `{ ok: false, reason, findings, missing }`：`signed_out`、`no_identity`、`banned`、`not_ready`（有拦截或必须改写的问题，或必填项没填） |
 | `editMyJob(jobId, input)` | 修改后的草稿 | `{ ok: true, job }`；在线的职位改出需审核的内容会回到审核 | `{ ok: false, error_zh, findings? }`：「这个职位已被下架，不能修改。」「还有问题没处理或必填项没填。」 |
@@ -300,7 +300,7 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, pendingVerifications, oldestPendingVerificationAt?, weeks, untimed }`（`pendingVerifications`：待审的企业验证，#78）。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, verify, total }`（`verify`：通过或驳回的企业验证，#78），多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数 | `{ refused, error_zh }` |
+| `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, pendingVerifications, oldestPendingVerificationAt?, weeks, untimed }`（`pendingVerifications`：待审的企业验证，#78）。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, verify, total }`（`verify`：通过或驳回的企业验证，#78），多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数；`aiPosting` 是 AI 发帖用量（#102）：`{ days, total }`，`days` 是最近 7 个新西兰日，今天在前，每天 `{ day, calls, tokens, failed, limited }`（`calls` 是调用模型的次数，含失败的；`tokens` 是输入、输出和缓存合计；`failed` 是出错、被拒或读不出答案的；`limited` 是被限额挡下、没有调用的），`total` 是 7 天合计（`day: "total"`），不含是谁调用的 | `{ refused, error_zh }` |
 
 举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
 

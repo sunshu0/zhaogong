@@ -13,6 +13,7 @@ import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { inviteToInterview } from "@/db/interviews";
+import { listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
@@ -101,10 +102,16 @@ async function fullAccount(email: string) {
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
   await renewJob(job.id, { expiresAt: "2026-12-01T00:00:00.000Z", status: "active", days: 30 });
+  await recordAiUsage(
+    email,
+    { model: "claude-sonnet-5-5", usage: AI_TOKENS, result: "ok" },
+    new Date("2026-10-17T00:00:00.000Z"),
+  );
   return { business, job };
 }
 
 const INVITE = { slots: ["2099-01-05T01:00:00.000Z"], callFirst: false, mode: null, place: "", note: "" };
+const AI_TOKENS = { input: 1200, output: 300, cacheRead: 900, cacheWrite: 0 };
 const RESUME = parseResumeDoc({ zh: { name: "林晓" } })!;
 
 describe("exportAccountData (#54)", () => {
@@ -159,6 +166,9 @@ describe("exportAccountData (#54)", () => {
     ]);
     expect(data?.jobAlertHits).toEqual([{ jobId: "j2", alertName: "全部新职位", createdAt: expect.any(String) }]);
     expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
+    expect(data?.aiUsage).toEqual([
+      { at: "2026-10-17T00:00:00.000Z", model: "claude-sonnet-5-5", ...AI_TOKENS, result: "ok" },
+    ]);
     expect(data?.sessions).toEqual([
       { activeRole: "seeker", createdAt: "2026-10-16T00:00:00.000Z", expiresAt: "2026-11-16T00:00:00.000Z" },
     ]);
@@ -195,6 +205,7 @@ describe("deleteAccount (#54)", () => {
       [t.seekerProfiles, t.seekerProfiles.email],
       [t.jobAlerts, t.jobAlerts.email],
       [t.jobAlertHits, t.jobAlertHits.email],
+      [t.aiUsage, t.aiUsage.email],
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
     }
@@ -209,6 +220,11 @@ describe("deleteAccount (#54)", () => {
     // So does the chat the person started.
     expect((await jobNumbers(["j1"])).j1.chats).toBe(chatsBefore);
     expect(await db.select().from(t.jobChatStarts).where(eq(t.jobChatStarts.seekerEmail, email))).toEqual([]);
+    // The calls to the AI 发帖 model still count in 审核数据, without the email (#102).
+    expect(await db.select().from(t.aiUsage).where(eq(t.aiUsage.email, DELETED_ACCOUNT))).not.toEqual([]);
+    expect(await listAiUsageSince(new Date("2026-10-16T00:00:00.000Z"))).toContainEqual(
+      expect.objectContaining({ input: 1200, result: "ok" }),
+    );
 
     const removed = await getJob(job.id);
     expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
@@ -282,6 +298,7 @@ describe("deleteAccount (#54)", () => {
       "verification_requests.decided_by_email",
       "team_invites.email",
       "team_invites.invited_by_email",
+      "ai_usage.email",
     ]);
     const found = Object.values(t as Record<string, unknown>)
       .filter((value): value is SQLiteTable => value instanceof SQLiteTable)

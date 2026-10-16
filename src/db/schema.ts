@@ -34,6 +34,7 @@ import type {
   VisaFact,
 } from "@/lib/external-jobs/types";
 import type { ExternalBlockKind, ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
+import type { AiUsageResult } from "@/lib/ai-post/model/limits";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -588,3 +589,26 @@ export const seekerProfiles = sqliteTable("seeker_profiles", {
   profile: text("profile", { mode: "json" }).$type<Partial<Profile>>().notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+// ---- AI 发帖用量 (#102) ----
+
+/**
+ * One row for each call to the posting model (#102, ADR 0018), and for each call the limits turned away (`limited`,
+ * no tokens). The limits count an account's calls here; 审核数据 adds up the last seven days. Times are ISO strings.
+ * When the account is deleted its rows stay without the email, like the moderation log.
+ */
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    email: text("email").notNull(),
+    at: text("at").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    cacheReadTokens: integer("cache_read_tokens").notNull(),
+    cacheWriteTokens: integer("cache_write_tokens").notNull(),
+    result: text("result").$type<AiUsageResult>().notNull(),
+  },
+  (table) => [index("ai_usage_email_at_idx").on(table.email, table.at), index("ai_usage_at_idx").on(table.at)],
+);

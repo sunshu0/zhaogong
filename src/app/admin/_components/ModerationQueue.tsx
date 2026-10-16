@@ -20,6 +20,7 @@ import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { useVerificationQueue, VerificationQueue } from "@/app/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/admin/_components/ExternalReview";
 import {
+  AiPostingUsage,
   ModerationSummary,
   ModerationWeeks,
   ModeratorWeeks,
@@ -136,6 +137,7 @@ export function ModerationQueue() {
             <div className="space-y-section">
               <ModerationWeeks stats={stats} />
               <ModeratorWeeks stats={stats} />
+              <AiPostingUsage stats={stats} />
             </div>
           ) : (
             <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />

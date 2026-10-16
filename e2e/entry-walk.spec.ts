@@ -5,8 +5,12 @@ import {
   CLEAN_MESSAGE,
   moderatorPage,
   openReportForm,
+  lastAssistant,
   openTheForm,
+  publishFromPreview,
+  sayInChat,
   setJobClosing,
+  uniqueCjkTitle,
   uniqueTitle,
 } from "./employer/helpers";
 
@@ -128,8 +132,8 @@ test("导出数据和删除账号: home → 数据与账号 → download, then d
   await expect(page.getByText("账号已删除")).toBeVisible();
 });
 
-/** From the home page: 发布招聘 → sign up → open a new business → publish a job titled `title`. Ends on 已发布. */
-async function openShopAndPublish(page: Page, testInfo: TestInfo, title: string): Promise<string> {
+/** From the home page: 发布招聘 → sign up → open a new business. Ends on 发布招聘, the chat in view. */
+async function openShop(page: Page, testInfo: TestInfo) {
   const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
   await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
   await page.getByLabel("邮箱", { exact: true }).fill(`walk.boss.${run}@example.com`);
@@ -141,7 +145,11 @@ async function openShopAndPublish(page: Page, testInfo: TestInfo, title: string)
   await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
+}
 
+/** From the home page: 发布招聘 → sign up → open a new business → publish a job titled `title`. Ends on 已发布. */
+async function openShopAndPublish(page: Page, testInfo: TestInfo, title: string): Promise<string> {
+  await openShop(page, testInfo);
   await openTheForm(page);
   await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
   await page.getByRole("button", { name: "整理成职位" }).click();
@@ -171,6 +179,28 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   else await page.getByRole("button", { name: /^账号菜单/ }).click();
   await page.getByRole("link", { name: /^数据与账号/ }).click();
   await expect(page).toHaveURL("/account/data");
+});
+
+test("AI 发帖: home → 发布招聘 → 对话发布 with the model → 预览并发布 (#102)", async ({ page, baseURL }, testInfo) => {
+  // The shared dev server has no key: this browser talks to the fixed-answer fake model (outside production only).
+  await page.context().addCookies([{ name: "zg_ai_fake", value: "1", url: baseURL! }]);
+  await openShop(page, testInfo);
+  await expect(page.getByRole("heading", { name: "和发帖助手一起写招聘" })).toBeVisible();
+  await expect(page.getByText("开发环境：脚本助手，不是 AI。")).toHaveCount(0);
+
+  const title = uniqueCjkTitle("服务员", testInfo);
+  await sayInChat(page, `Mt Eden 川菜馆招${title}，时薪 26，兼职，学签可做，需会普通话`);
+  await expect(lastAssistant(page)).toContainText("英文怎么说");
+  await sayInChat(page, "Waiter");
+  await expect(lastAssistant(page)).toContainText("联系方式要公开吗");
+  await page.getByRole("button", { name: "不公开，聊天交换" }).click();
+  await expect(lastAssistant(page)).toContainText("都齐了");
+  await page.getByRole("button", { name: "预览并发布" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+  await publishFromPreview(page);
+  await page.getByRole("link", { name: "看看职位页面" }).click();
+  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+  await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 });
 
 /**
@@ -425,6 +455,9 @@ test("审核后台和审核数据: a moderator signs in → 审核后台 → 审
   await expect(page).toHaveURL("/admin");
   await page.getByRole("tab", { name: "审核数据" }).click();
   await expect(page.getByLabel("审核数据：现在")).toBeVisible();
+  // AI 发帖用量 (#102), below the weeks and the moderators.
+  await expect(page.getByRole("heading", { name: "AI 发帖用量" })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "7 天合计" })).toBeVisible();
 });
 
 test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通过 / 不显示 (#112)", async ({ browser }, testInfo) => {

@@ -34,6 +34,8 @@ export interface TurnDeps {
   /** The Anthropic client's send; only called for "claude". */
   claude: SendMessage;
   sanitize: (draft: unknown) => JobDraft;
+  /** The account's limits (limits.ts), checked before each call to a model; the script has none. */
+  limit?: () => Promise<string | undefined>;
 }
 
 export async function postingTurn(state: ChatState, message: string, deps: TurnDeps): Promise<ModelTurn> {
@@ -47,9 +49,14 @@ export async function postingTurn(state: ChatState, message: string, deps: TurnD
       return { state: { ...withMessage(s, "assistant", UNAVAILABLE), unavailable: true }, failed: "error" };
     }
     case "fake":
-      return modelTurn(state, message, { send: fakeSend, model: "fake", sanitize: deps.sanitize });
+      return modelTurn(state, message, { send: fakeSend, model: "fake", sanitize: deps.sanitize, limit: deps.limit });
     case "claude":
-      return modelTurn(state, message, { send: deps.claude, model: deps.model, sanitize: deps.sanitize });
+      return modelTurn(state, message, {
+        send: deps.claude,
+        model: deps.model,
+        sanitize: deps.sanitize,
+        limit: deps.limit,
+      });
   }
 }
 

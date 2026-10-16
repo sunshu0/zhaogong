@@ -16,6 +16,8 @@ import {
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import { claudeSend } from "@/lib/ai-post/model/client";
 import { assistantKind, FAKE_COOKIE, postingModel, postingTurn, type AssistantKind } from "@/lib/ai-post/model";
+import { LIMITED_ZH, overLimit } from "@/lib/ai-post/model/limits";
+import { countAiCalls, recordAiUsage } from "@/db/ai-usage";
 import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
 import {
   createJob,
@@ -109,21 +111,36 @@ export async function parseDraft(text: string): Promise<ParsedPost> {
   return parsePost(String(text).slice(0, 5000), DEFAULT_COUNTRY);
 }
 
-/** One turn of the posting chat. On the server for the same reason; the state from the browser is rebuilt first. */
+/**
+ * One turn of the posting chat. On the server for the same reason; the state from the browser is rebuilt first.
+ * A call to a model needs a signed-in account, keeps to its limits and is recorded in ai_usage (#102).
+ */
 export async function chatTurn(state: unknown, message: string): Promise<ChatState> {
+  const session = await getCurrentSession();
   const employer = await postingEmployer();
   const restored = restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY));
+  const kind = await chatAssistantKind();
+  const model = kind === "fake" ? "fake" : postingModel(process.env);
   // #102: Claude in production; the script (or the fake model) only outside it.
   const turn = await postingTurn(
     { ...restored, ...(typeof employer !== "string" && { employer: { verification: employer.verification } }) },
     String(message ?? ""),
     {
-      kind: await chatAssistantKind(),
-      model: postingModel(process.env),
+      kind,
+      model,
       claude: claudeSend,
       sanitize: (d) => sanitizeDraft(d, DEFAULT_COUNTRY),
+      limit: async () => {
+        if (!session) return LIMITED_ZH.signedOut;
+        const over = overLimit(await countAiCalls(session.email));
+        if (over) await recordAiUsage(session.email, { model, result: "limited" });
+        return over && LIMITED_ZH[over];
+      },
     },
   );
+  const called = kind === "claude" || kind === "fake";
+  if (session && called && (turn.usage || (turn.failed && turn.failed !== "limited")))
+    await recordAiUsage(session.email, { model, usage: turn.usage, result: turn.failed ?? "ok" });
   return turn.state;
 }
 
