@@ -14,7 +14,7 @@ import { payReference } from "@/lib/pay-reference";
 import { ReportJob } from "@/components/seeker/ReportJob";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
-import { buttonClass } from "@/components/ui/Button";
+import { Phone } from "lucide-react";
 import { formatPay } from "@/components/seeker/format";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
@@ -36,9 +36,10 @@ export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Pro
   return { title, description, openGraph: { title, description, type: "website", locale: "zh_CN" } };
 }
 
+// Round 19 sample (操作质感): with the job list, the first page in the new type (`type-app`) and cards.
 export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
   return (
-    <div className={WIDE_ON_DESKTOP}>
+    <div className={`${WIDE_ON_DESKTOP} type-app`}>
       <div className="mb-2">
         <BackLink />
       </div>
@@ -77,27 +78,39 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
             at={new Date(now).toISOString()}
             country={job.country}
             industry={job.industry}
+            look="card"
           />
         }
         share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
         actions={
           employer && !employer.bannedAt ? (
             <>
-              <StartEmployerChat
-                employer={{ id: employer.id, name: employer.name }}
-                job={{
-                  id: job.id,
-                  employerId: job.employerId,
-                  titleZh: job.titleZh,
-                  status: job.status,
-                  expiresAt: job.expiresAt,
-                }}
-                closed={isExpired(job, now)}
-              />
-              {!isExpired(job, now) && <ApplyJob jobId={job.id} jobTitle={job.titleZh} employerId={job.employerId} />}
+              {/* The main action takes the room that is left; its label never wraps. */}
+              <div className="min-w-0 flex-1 md:flex-none [&_a]:w-full [&_button]:w-full">
+                <StartEmployerChat
+                  size="lg"
+                  employer={{ id: employer.id, name: employer.name }}
+                  job={{
+                    id: job.id,
+                    employerId: job.employerId,
+                    titleZh: job.titleZh,
+                    status: job.status,
+                    expiresAt: job.expiresAt,
+                  }}
+                  closed={isExpired(job, now)}
+                />
+              </div>
+              {!isExpired(job, now) && (
+                <ApplyJob size="lg" jobId={job.id} jobTitle={job.titleZh} employerId={job.employerId} />
+              )}
               {job.contactPublic && (
-                <a href="#contact" className={buttonClass("secondary")}>
-                  查看联系方式
+                <a
+                  href="#contact"
+                  aria-label="查看联系方式"
+                  title="查看联系方式"
+                  className="pressable flex size-12 shrink-0 items-center justify-center rounded-control border border-brand/40 bg-surface text-brand hover:bg-brand-soft"
+                >
+                  <Phone aria-hidden="true" className="size-5" />
                 </a>
               )}
             </>
@@ -111,7 +124,7 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
               ) : (
                 <section
                   aria-labelledby="contact-heading"
-                  className="space-y-3 rounded-lg border border-border bg-surface p-4"
+                  className="space-y-3 rounded-card bg-surface p-4 shadow-card lg:p-5"
                 >
                   <h2 id="contact-heading" className="font-medium">
                     联系方式

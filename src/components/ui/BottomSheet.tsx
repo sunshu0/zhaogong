@@ -8,18 +8,20 @@ import { shouldDismiss } from "@/components/ui/sheet-drag";
  * A bottom sheet (Round 19, an app's feel): on a phone a panel slides up from the bottom; from 768 px it is a centred
  * panel. A modal <dialog>, so focus stays inside and the page behind is inert. Closes on the 关闭 button, Esc, a
  * tap on the dimmed page, or by dragging the handle down. Shown while `open`; the parent owns that state and closes
- * it in `onClose`.
+ * it in `onClose`. A `footer` (the sheet's buttons) stays below the scrolling content, never over it.
  */
 export function BottomSheet({
   open,
   onClose,
   title,
   children,
+  footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useId();
@@ -101,6 +103,7 @@ export function BottomSheet({
           </div>
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-2 pb-3">{children}</div>
+        {footer && <div className="shrink-0 border-t border-border px-4 py-3">{footer}</div>}
       </div>
     </dialog>
   );

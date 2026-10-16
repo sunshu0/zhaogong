@@ -14,7 +14,7 @@ export function ActiveFilters({ filter }: { filter: JobFilter }) {
           key={chip.id}
           href={jobsHref(chip.query)}
           aria-label={`去掉条件：${chip.label}`}
-          className="inline-flex items-center gap-1 rounded-full bg-brand-soft py-1 pr-2 pl-3 text-sm text-brand"
+          className="pressable inline-flex min-h-9 items-center gap-1 rounded-full bg-brand-soft pr-2.5 pl-3 text-body text-brand"
         >
           {chip.label}
           <span aria-hidden="true" className="text-base leading-none">
@@ -23,7 +23,7 @@ export function ActiveFilters({ filter }: { filter: JobFilter }) {
         </Link>
       ))}
       {chips.length > 1 && (
-        <Link href={jobsHref("")} className="px-1 text-sm text-muted underline underline-offset-2">
+        <Link href={jobsHref("")} className="px-1 text-body text-muted underline underline-offset-2">
           全部清除
         </Link>
       )}

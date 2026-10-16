@@ -14,7 +14,8 @@ const updated = new Intl.DateTimeFormat("zh-CN", {
 /**
  * 时薪参考 (#85, R-36): lowest, median and highest pay of open jobs in the same industry, with the sample size, where
  * it comes from and when it was worked out. With `rate` (the employer's own pay), a hint below the median. Shared by
- * job pages and the post form; no hooks, so it renders on the server too.
+ * job pages and the post form; no hooks, so it renders on the server too. `look="card"` is the job page's (Round 19):
+ * a card like the page's other blocks, the three figures side by side; the post form keeps the plain box.
  */
 export function PayReferenceBox({
   reference,
@@ -22,6 +23,7 @@ export function PayReferenceBox({
   country,
   industry,
   rate,
+  look = "box",
 }: {
   reference: PayReference;
   /** When the reference was worked out (ISO). */
@@ -29,26 +31,35 @@ export function PayReferenceBox({
   country: CountryCode;
   industry: Industry;
   rate?: number;
+  look?: "box" | "card";
 }) {
   const symbol = COUNTRIES[country].currencySymbol;
   const money = (n: number) => `${symbol}${Number.isInteger(n) ? n : n.toFixed(2)}`;
   const label = INDUSTRY_LABELS[industry].zh;
   const hint = belowMedianHint(rate, reference);
+  const card = look === "card";
   return (
-    <section aria-label="同类职位时薪" className="rounded-md border border-border bg-background px-3 py-2 text-body">
+    <section
+      aria-label="同类职位时薪"
+      className={
+        card
+          ? "rounded-card bg-surface p-4 text-body shadow-card lg:p-6"
+          : "rounded-md border border-border bg-background px-3 py-2 text-body"
+      }
+    >
       {reference.scope === "none" ? (
         <p className="text-muted">
           同类职位时薪：样本太少（平台上{label}在招职位只有 {reference.count} 个，少于 {MIN_SAMPLE} 个），暂不显示。
         </p>
       ) : (
         <>
-          <p className="font-medium">
+          <p className={card ? "font-semibold" : "font-medium"}>
             同类职位时薪{" "}
             <span className="font-normal text-muted">
               · {reference.place} · {label}
             </span>
           </p>
-          <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+          <dl className={card ? "mt-3 grid grid-cols-3 gap-x-4" : "mt-1 flex flex-wrap gap-x-4 gap-y-0.5"}>
             {(
               [
                 ["最低", reference.min],
@@ -56,9 +67,9 @@ export function PayReferenceBox({
                 ["最高", reference.max],
               ] as const
             ).map(([term, n]) => (
-              <div key={term} className="flex gap-1.5">
-                <dt className="text-muted">{term}</dt>
-                <dd className="font-figure">{money(n)}</dd>
+              <div key={term} className={card ? "min-w-0" : "flex gap-1.5"}>
+                <dt className={card ? "text-meta text-muted" : "text-muted"}>{term}</dt>
+                <dd className={card ? "mt-0.5 font-figure text-subtitle font-semibold" : "font-figure"}>{money(n)}</dd>
               </div>
             ))}
           </dl>
@@ -69,7 +80,7 @@ export function PayReferenceBox({
           )}
         </>
       )}
-      <p className="mt-1 text-meta text-muted">
+      <p className={card ? "mt-3 text-meta text-muted" : "mt-1 text-meta text-muted"}>
         根据平台上 {reference.count} 个在招的{label}职位计算（职位时薪取范围中间值），不含外部数据，
         {updated.format(new Date(at))}更新。
       </p>

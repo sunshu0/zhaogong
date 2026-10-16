@@ -35,7 +35,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
   const current = session && loaded?.jobId === jobId && loaded.email === session.email ? loaded : null;
 
   return (
-    <section aria-labelledby="contact-heading" className="rounded-xl border border-border bg-surface p-4">
+    <section aria-labelledby="contact-heading" className="rounded-card bg-surface p-4 shadow-card lg:p-5">
       <h2 id="contact-heading" className="font-medium">
         联系方式
       </h2>

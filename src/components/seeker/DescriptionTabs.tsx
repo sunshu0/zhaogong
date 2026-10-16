@@ -23,7 +23,7 @@ export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="rounded-xl border border-border bg-surface p-4">
+    <section aria-labelledby={`${id}-heading`} className="rounded-card bg-surface p-4 shadow-card lg:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id={`${id}-heading`} className="text-subtitle font-semibold">
           职位描述

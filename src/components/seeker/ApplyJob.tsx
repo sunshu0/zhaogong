@@ -20,7 +20,7 @@ import {
 } from "@/components/seeker/applications";
 import { useProfile } from "@/components/seeker/hub-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
-import { buttonClass } from "@/components/ui/Button";
+import { buttonClass, type ButtonSize } from "@/components/ui/Button";
 import { candidateFacts } from "@/lib/candidate-matching";
 
 /**
@@ -29,7 +29,19 @@ import { candidateFacts } from "@/lib/candidate-matching";
  * applied it shows how far the application got, and can be withdrawn. Not shown on closed jobs, to employers or
  * for the account's own business.
  */
-export function ApplyJob({ jobId, jobTitle, employerId }: { jobId: string; jobTitle: string; employerId: string }) {
+export function ApplyJob({
+  jobId,
+  jobTitle,
+  employerId,
+  size = "md",
+}: {
+  jobId: string;
+  jobTitle: string;
+  employerId: string;
+  /** "lg" in the job page's action bar (Round 19), where 申请 is the secondary action. */
+  size?: ButtonSize;
+}) {
+  const applyButton = `${buttonClass("secondary", { size })} rounded-control whitespace-nowrap`;
   const hydrated = useHydrated();
   const session = useSession();
   const router = useRouter();
@@ -59,7 +71,7 @@ export function ApplyJob({ jobId, jobTitle, employerId }: { jobId: string; jobTi
 
   if (!hydrated || !session)
     return (
-      <Link href={applyAfterSignInHref(jobId)} className={buttonClass("secondary")}>
+      <Link href={applyAfterSignInHref(jobId)} className={applyButton}>
         <Send aria-hidden="true" className="size-4" />
         申请
       </Link>
@@ -73,7 +85,7 @@ export function ApplyJob({ jobId, jobTitle, employerId }: { jobId: string; jobTi
         disabled={mine === undefined}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className={buttonClass("secondary")}
+        className={applyButton}
       >
         <Send aria-hidden="true" className="size-4" />
         {mine ? `已申请 · ${mine.status}` : "申请"}

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
+import { StickyHeader } from "@/components/ui/StickyHeader";
 import { Toaster } from "@/components/ui/Toast";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
@@ -38,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-border bg-surface">
+        <StickyHeader>
           <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
             <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold text-brand">
               {PRODUCT_NAME}
@@ -52,7 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <HeaderPostJob />
             </div>
           </div>
-        </header>
+        </StickyHeader>
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
         <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
           所有职位须符合当地法律：不低于最低工资，不收取任何费用，不以种族或国籍招人。

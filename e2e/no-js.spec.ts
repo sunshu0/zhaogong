@@ -18,7 +18,7 @@ test("the job list shows its jobs, not placeholders", async ({ page }) => {
 test("a job page shows the job and its facts", async ({ page }) => {
   await page.goto("/jobs/j1");
   await expect(page.getByRole("heading", { level: 1, name: "前厅服务员" })).toBeVisible();
-  await expect(page.locator("article header dl dt").first()).toHaveText("薪资");
+  await expect(page.getByRole("region", { name: "职位信息" }).locator("dt").first()).toHaveText("地区");
   await expect(page.getByRole("heading", { name: "职位描述" })).toBeVisible();
   await expect(page.locator("[data-nojs-hide]:visible")).toHaveCount(0);
 });

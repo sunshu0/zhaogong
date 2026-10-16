@@ -5,7 +5,7 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
-test("job rows: title, pay, employer, 地区 and 工时 and up to 3 tags, at least 3 per phone screen", async ({
+test("job cards: title, pay, one line of points, one status and two tags, employer; 3 per phone screen", async ({
   page,
 }, testInfo) => {
   const widths = testInfo.project.name === "desktop" ? [1280, 1440, 1920] : [375];
@@ -21,11 +21,12 @@ test("job rows: title, pay, employer, 地区 and 工时 and up to 3 tags, at lea
     // #63: each job is a block of its own, 12 px from the next, so where one ends is plain to see.
     expect(second.y - (first.y + first.height)).toBeCloseTo(12, 0);
     expect(second.x).toBe(first.x);
+    // Round 19 (#141): white cards with 16px corners and a soft shadow, no border.
     const style = await cards.nth(0).evaluate((card) => {
       const s = getComputedStyle(card);
-      return [s.backgroundColor, s.borderTopWidth, s.borderTopLeftRadius, s.boxShadow];
+      return [s.backgroundColor, s.borderTopWidth, s.borderTopLeftRadius, s.boxShadow === "none"];
     });
-    expect(style).toEqual(["rgb(255, 255, 255)", "1px", "6px", "none"]);
+    expect(style).toEqual(["rgb(255, 255, 255)", "0px", "16px", false]);
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
     // A21: at least three whole rows on a 375 × 812 phone, below the header, search and count. Measured on three
     // demo jobs: other specs publish jobs with long titles that come first while the suite runs.
@@ -45,13 +46,23 @@ test("job rows: title, pay, employer, 地区 and 工时 and up to 3 tags, at lea
       "Supermarket shelf stacker",
       "$24/小时",
       "东区亚洲超市",
-      "已验证企业",
+      "急招", // the one status: 急招 comes before 已验证企业
       "聊天交换联系方式", // A25: j5 keeps contact details private
       "每周 20–30 小时",
+      "早班 7:00", // shifts join the points line (#141)
     ])
       await expect(retail).toContainText(text);
-    // The rest is on the job page: summary, shifts, languages, visas, "未注明", employer id, activity.
-    for (const text of ["上货、整理货架", "早班 7:00", "工作语言", "雇主接受的签证", "未注明", "雇主ID", "今日已回复"])
+    // No labels on the points; the rest is on the job page: summary, languages, visas, "未注明", employer id, activity.
+    for (const text of [
+      "地区",
+      "工时",
+      "已验证企业",
+      "上货、整理货架",
+      "工作语言",
+      "雇主接受的签证",
+      "未注明",
+      "雇主ID",
+    ])
       await expect(retail).not.toContainText(text);
     await expect(retail).not.toContainText("021 555");
     for (let i = 0; i < (await cards.count()); i += 1)
@@ -104,7 +115,7 @@ test("mobile header and bottom bar actions have touch-sized targets", async ({ p
   }
 });
 
-test("job list below 1024 px: filters collapsed in one bar; Esc or a tap outside closes them unapplied", async ({
+test("job list below 1024 px: filters in a bottom sheet; Esc or a tap outside closes it unapplied", async ({
   page,
 }, testInfo) => {
   // Phones, and tablets in the desktop project; from 1024 px the filters are a column (next test).
@@ -131,28 +142,27 @@ test("job list below 1024 px: filters collapsed in one bar; Esc or a tap outside
   expect(second.y).toBeGreaterThan(first.y);
   expect(second.x).toBe(first.x);
 
-  // Opens as a drop-down over the list; Esc closes it and puts focus back on 筛选.
+  // Comes up from the bottom as a sheet (Round 19, #141); Esc closes it and puts focus back on 筛选.
   await toggle.click();
+  const sheet = page.getByRole("dialog", { name: "筛选" });
+  await expect(sheet).toBeVisible();
   await expect(panel).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  expect((await box(panel)).y).toBeGreaterThan((await box(toggle)).y);
+  const viewport = page.viewportSize()!;
+  if (viewport.width < 768) {
+    await expect.poll(async () => Math.round((await box(sheet)).y + (await box(sheet)).height)).toBe(viewport.height);
+  } else {
+    // From 768 px (a tablet here) the sheet is a panel in the middle of the window.
+    await expect
+      .poll(async () => Math.abs((await box(sheet)).y + (await box(sheet)).height / 2 - viewport.height / 2))
+      .toBeLessThan(2);
+  }
   await expect(page.getByRole("button", { name: "查看职位" })).toBeInViewport();
   // #63: every group is one closed row naming what is chosen in it.
   const regions = page.getByRole("button", { name: /^地区/ });
   await expect(regions).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("button", { name: "行业 · 餐饮" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("group", { name: "地区" }).getByText("Albany", { exact: true })).toBeHidden();
-  // Over the list: no 收藏 button under the panel shows through it.
-  const showThrough = await page.evaluate(() => {
-    const panelBox = document.getElementById("job-filters")!.getBoundingClientRect();
-    return [...document.querySelectorAll("main article button")].filter((button) => {
-      const r = button.getBoundingClientRect();
-      const [cx, cy] = [r.x + r.width / 2, r.y + r.height / 2];
-      if (cx < panelBox.left || cx > panelBox.right || cy < panelBox.top || cy > panelBox.bottom) return false;
-      return !document.elementFromPoint(cx, cy)?.closest("#job-filters");
-    }).length;
-  });
-  expect(showThrough).toBe(0);
   await page.keyboard.press("Escape");
   await expect(panel).toBeHidden();
   await expect(toggle).toBeFocused();
@@ -164,7 +174,7 @@ test("job list below 1024 px: filters collapsed in one bar; Esc or a tap outside
   await page.getByRole("group", { name: "地区" }).getByText("Albany", { exact: true }).click();
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
   await expect(page.getByRole("button", { name: "地区 · Albany" })).toBeVisible();
-  await page.getByRole("heading", { name: "奥克兰中文工作" }).click();
+  await page.mouse.click(viewport.width / 2, 8); // the dimmed page above the sheet
   await expect(panel).toBeHidden();
   await expect(page).toHaveURL("/jobs?industry=hospitality");
   await toggle.click();
@@ -186,9 +196,9 @@ test("job list from 1024 px: the filters are a 240 px column left of the list, a
   await expect(page.getByRole("button", { name: "查看职位" })).toBeHidden();
 
   const [column, rows] = [await box(panel), await box(list)];
-  expect(column.width).toBeCloseTo(240, 0);
+  expect(column.width).toBeCloseTo(256, 0); // 16rem from Round 19 (#141)
   expect(column.x + column.width).toBeLessThan(rows.x);
-  expect(rows.width).toBeLessThanOrEqual(720);
+  expect(rows.width).toBeLessThanOrEqual(768);
   const search = await box(page.getByRole("searchbox", { name: "搜索职位" }));
   expect(Math.abs(column.y - search.y)).toBeLessThan(4);
   // The filter column's height does not push the list down from the search box.
@@ -206,7 +216,8 @@ test("job list from 1024 px: the filters are a 240 px column left of the list, a
   await regions.click();
   await expect(regions).toHaveAttribute("aria-expanded", "true");
 
-  // Plain checkboxes; ticking one applies it, keeping the others. The group stays open for the next choice.
+  // Checkboxes (Round 19: drawn in the app's style); ticking one applies it, keeping the others. The group stays
+  // open for the next choice.
   await albany.check();
   await expect(page).toHaveURL(/region=akl-albany/);
   await expect(page).toHaveURL(/industry=hospitality/);
@@ -253,12 +264,16 @@ test("job page: contact in a right column that stays in view on desktop, after t
   expect((await box(contact)).y).toBeLessThan(viewport.height);
 });
 
-test("job page facts first: pay, region, hours, type, meals, visas; share is a button; actions sit above the bottom bar", async ({
+test("job page: title and pay first, then the facts; share is a button; one main action above the bottom bar", async ({
   page,
 }, testInfo) => {
   await page.goto("/jobs/j1"); // contact details public
-  const facts = page.locator("article header dl").filter({ visible: true });
-  await expect(facts.locator("dt")).toHaveText(["薪资", "地区", "工时和班次", "用工形式", "食宿", "接受的签证"]);
+  // Round 19 (#141): the pay is under the title in the header; the facts are a card of their own.
+  await expect(
+    page.locator("article header").getByText("$25–27", { exact: true }).filter({ visible: true }),
+  ).toBeVisible();
+  const facts = page.getByRole("region", { name: "职位信息" }).locator("dl").filter({ visible: true });
+  await expect(facts.locator("dt")).toHaveText(["地区", "工时和班次", "用工形式", "食宿", "接受的签证"]);
   // Facts in the first row share its top edge (the computed grid template can still read "repeat(2, …)").
   const columns = await facts.evaluate((dl) => {
     const tops = [...dl.querySelectorAll("dt")].map((dt) => Math.round(dt.getBoundingClientRect().top));
@@ -271,9 +286,12 @@ test("job page facts first: pay, region, hours, type, meals, visas; share is a b
   await page.keyboard.press("Escape");
 
   const chat = page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true });
+  // 查看联系方式 is an icon beside 立即沟通 and 申请; no label in the bar wraps onto a second line.
   const contactLink = page.getByRole("link", { name: "查看联系方式", exact: true });
   await expect(chat).toBeVisible();
   await expect(contactLink).toBeVisible();
+  for (const action of [chat, page.getByRole("main").getByRole("link", { name: "申请", exact: true })])
+    expect((await box(action)).height).toBeLessThanOrEqual(52);
   if (testInfo.project.name === "mobile") {
     // Fixed above the bottom navigation, and the end of the page can scroll clear of it.
     const nav = await box(page.getByRole("navigation", { name: "底部导航" }));

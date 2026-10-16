@@ -14,28 +14,30 @@ import { RememberListQuery } from "@/components/seeker/last-list";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { buttonClass } from "@/components/ui/Button";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
 
+// Round 19 sample (操作质感): this page and the job page wear the new type (`type-app`) and cards first; the other
+// pages follow once the user has seen it.
 export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
-    <div className={WIDE_ON_DESKTOP}>
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4">
-        <h1 className="text-lg font-semibold">奥克兰中文工作</h1>
+    <div className={`${WIDE_ON_DESKTOP} type-app`}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h1 className="text-title font-semibold">奥克兰中文工作</h1>
         {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
-        <p className="text-body">
-          <Link href="/internships" className="text-brand underline underline-offset-2">
+        <nav aria-label="外部职位分区" className="flex gap-2">
+          <Link href="/internships" className={`${buttonClass("secondary")} min-h-9 rounded-full px-3.5`}>
             实习
           </Link>
-          {" · "}
-          <Link href="/professional" className="text-brand underline underline-offset-2">
+          <Link href="/professional" className={`${buttonClass("secondary")} min-h-9 rounded-full px-3.5`}>
             专业职位
           </Link>
-        </p>
+        </nav>
       </div>
       <NoScriptStreams />
       <FinishSaveAfterSignIn />
-      <Suspense fallback={<JobListSkeleton />}>
+      <Suspense fallback={<JobListSkeleton look="app" />}>
         <Results searchParams={searchParams} />
       </Suspense>
     </div>
@@ -54,27 +56,25 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
   // right. The form spans both columns (display: contents), so it stays one GET form. The second row takes what
   // the filter column needs beyond the first, so the search box keeps its own height above the list.
   return (
-    <div className="lg:grid lg:grid-cols-[15rem_minmax(0,45rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
+    <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
       <RememberListQuery query={query} />
       <FilterForm filter={filter} />
       <section aria-label="职位列表" className="lg:col-start-2">
         <ActiveFilters filter={filter} />
         {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
-        <div className="mb-3 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
+        <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
           <p className="text-body text-muted">
             {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}
           </p>
           <SaveAlert key={query} query={query} />
         </div>
         <JobList
+          look="app"
           jobs={jobs}
           employers={employers}
           empty={
             filtered && (
-              <Link
-                href={jobsHref("")}
-                className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white"
-              >
+              <Link href={jobsHref("")} className={`${buttonClass("primary")} rounded-control`}>
                 清除筛选，看全部职位
               </Link>
             )

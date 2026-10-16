@@ -42,7 +42,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
     <nav
       id="bottom-nav"
       aria-label="底部导航"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-border/70 bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md backdrop-saturate-150 md:hidden"
     >
       <ul className="flex h-14">
         {bottomNavItems(role).map((item) => {
@@ -53,7 +53,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                 <Link
                   href={item.href}
                   aria-current={current ? "page" : undefined}
-                  className="-mt-4 flex flex-col items-center gap-0.5 text-meta font-medium text-brand"
+                  className="pressable -mt-4 flex flex-col items-center gap-0.5 text-meta font-medium text-brand"
                 >
                   <span className="flex size-11 items-center justify-center rounded-full bg-brand text-white ring-4 ring-surface">
                     <Plus aria-hidden="true" className="size-6" />
@@ -71,12 +71,18 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                 href={item.href}
                 aria-current={current ? "page" : undefined}
                 title={item.key === "chat" && role !== "out" ? chatTitle(unread) : undefined}
-                className={`flex h-full flex-col items-center justify-center gap-0.5 text-meta ${
+                className={`pressable flex h-full flex-col items-center justify-center gap-0.5 text-meta ${
                   current ? "font-semibold text-brand" : "text-muted"
                 }`}
               >
                 <span className="relative">
-                  <Icon aria-hidden="true" className="size-6" strokeWidth={current ? 2.25 : 1.75} />
+                  {/* Round 19: the current item's icon turns solid and grows a little. */}
+                  <Icon
+                    aria-hidden="true"
+                    className={`size-6 transition-transform duration-(--duration-ui) ease-(--ease-app) ${current ? "scale-110" : ""}`}
+                    strokeWidth={current ? 2 : 1.75}
+                    fill={current ? "currentColor" : "none"}
+                  />
                   {unread > 0 && (
                     <span className="absolute -top-1.5 left-4">
                       <UnreadBadge count={unread} />

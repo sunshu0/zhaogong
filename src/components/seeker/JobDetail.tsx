@@ -13,6 +13,10 @@ import { DescriptionTabs } from "@/components/seeker/DescriptionTabs";
 import { STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
+import { DetailPageSkeleton } from "@/components/ui/Skeleton";
+
+/** Round 19 (操作质感): the page's blocks are cards, 16px corners and a soft shadow, no border. */
+const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
 
 const NOTE_STYLES = {
   below: "bg-danger-soft text-danger",
@@ -35,7 +39,10 @@ export function JobDetail({
   now: number;
   /** Blocks for a right-hand column that stays in view from 1024 px (contact); on phones they follow the description. */
   aside?: ReactNode;
-  /** 立即沟通 and the like: a bar fixed above the bottom navigation on phones, under the facts from 768 px. */
+  /**
+   * 立即沟通, 申请 and an icon for the contact details: a bar fixed above the bottom navigation on phones, at the
+   * foot of the header from 768 px. The page sizes them: one main action, one secondary, the rest icons.
+   */
   actions?: ReactNode;
   /** The share button, top right of the header. */
   share?: ReactNode;
@@ -52,37 +59,49 @@ export function JobDetail({
   const details = (
     <>
       {isExpired(job, now) && (
-        <p className="rounded-lg bg-warn-soft px-3 py-2 text-sm text-warn">这个职位已截止，可能已经招满。</p>
+        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">这个职位已截止，可能已经招满。</p>
       )}
 
-      <header className="rounded-xl border border-border bg-surface p-4">
+      {/* The title and the pay lead (Round 19); the facts follow in a card of their own. */}
+      <header className={CARD}>
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="text-[1.75rem] leading-tight font-black break-words">{job.titleZh}</h1>
-            <p lang="en" className="font-latin text-body text-muted">
-              {job.titleEn}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
+          {tags.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5" aria-label="标签">
+              {tags.map((tag) => (
+                <li key={tag}>
+                  <Tag>{tag}</Tag>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span />
+          )}
+          <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
             <SaveJobButton jobId={job.id} title={job.titleZh} />
             {share}
           </div>
         </div>
-        {tags.length > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="标签">
-            {tags.map((tag) => (
-              <li key={tag}>
-                <Tag>{tag}</Tag>
-              </li>
-            ))}
-          </ul>
+        <h1 className="mt-1 text-[1.75rem] leading-tight font-black break-words lg:text-[2.125rem]">{job.titleZh}</h1>
+        <p lang="en" className="font-latin text-body text-muted">
+          {job.titleEn}
+        </p>
+        <p className="mt-3">
+          <Pay pay={job.pay} country={job.country} size="detail" />
+        </p>
+        {payNote && (
+          <p className={`mt-3 rounded-control px-3 py-2 text-body ${NOTE_STYLES[payNote.level]}`}>{payNote.text}</p>
         )}
 
+        {actions && (
+          <div className="fixed inset-x-0 bottom-above-nav z-10 flex items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
+            {actions}
+          </div>
+        )}
+      </header>
+
+      <section aria-label="职位信息" className={CARD}>
         {/* The facts both sides need first (A29): 2 columns on phones, 3 from 1024 px. */}
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 lg:grid-cols-3">
-          <Fact term="薪资">
-            <Pay pay={job.pay} country={job.country} size="detail" />
-          </Fact>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
           <Fact term="地区">
             {region?.nameZh}
             {job.address && <span className="block text-meta text-muted">{job.address}</span>}
@@ -99,8 +118,7 @@ export function JobDetail({
             {job.visaAccepted.length ? job.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、") : "未注明"}
           </Fact>
         </dl>
-        {payNote && <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${NOTE_STYLES[payNote.level]}`}>{payNote.text}</p>}
-        <p className="mt-3 text-meta text-muted">
+        <p className="mt-4 border-t border-border pt-3 text-meta text-muted">
           工作语言：{job.languages.length ? job.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、") : "未注明"}
           。签证一项是雇主提供的信息，不构成签证或移民建议。
         </p>
@@ -108,18 +126,12 @@ export function JobDetail({
           {formatDateZh(job.postedAt, job.country)}发布（{postedAgoZh(job.postedAt, now)}）·{" "}
           {expiryZh(job.expiresAt, now, job.country)}
         </p>
-
-        {actions && (
-          <div className="fixed inset-x-0 bottom-above-nav z-10 flex items-center gap-2 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur *:flex-1 md:static md:z-auto md:mt-4 md:flex-none md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none md:*:flex-none">
-            {actions}
-          </div>
-        )}
-      </header>
+      </section>
 
       {payReference}
 
       {employer && (
-        <section aria-label="雇主" className="rounded-xl border border-border bg-surface p-4">
+        <section aria-label="雇主" className={CARD}>
           <p className="flex min-w-0 items-center gap-2 font-medium">
             <EmployerAvatar employerId={employer.id} fallback={employer.name} />
             <span className="break-words">{employer.name}</span>
@@ -129,7 +141,7 @@ export function JobDetail({
           </div>
           <Link
             href={`/employers/${employer.id}`}
-            className="mt-1 inline-flex min-h-11 items-center text-sm font-medium text-brand"
+            className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
           >
             查看雇主主页 →
           </Link>
@@ -141,7 +153,7 @@ export function JobDetail({
   );
 
   // On phones the action bar is fixed above the bottom navigation; leave room for it at the end of the page.
-  const room = actions ? "pb-20 md:pb-0" : "";
+  const room = actions ? "pb-24 md:pb-0" : "";
   if (!aside) {
     return (
       <article className={`space-y-3 ${room}`}>
@@ -168,17 +180,15 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
       <dt className="text-meta text-muted">{term}</dt>
-      <dd className="mt-0.5 text-body break-words">{children}</dd>
+      <dd className="mt-0.5 text-body font-medium break-words">{children}</dd>
     </div>
   );
 }
 
 export function JobDetailSkeleton() {
   return (
-    <div data-nojs-hide="" className="space-y-3" aria-hidden="true">
-      <div className="h-44 animate-pulse rounded-xl border border-border bg-surface" />
-      <div className="h-20 animate-pulse rounded-xl border border-border bg-surface" />
-      <div className="h-56 animate-pulse rounded-xl border border-border bg-surface" />
+    <div data-nojs-hide="">
+      <DetailPageSkeleton />
     </div>
   );
 }
