@@ -120,9 +120,29 @@ describe("moderationStats (#70)", () => {
     expect(untimed).toBe(1);
     // Per moderator over the eight weeks (#60): most first, the unnamed old entries last.
     expect(byModerator).toEqual([
-      { moderator: "a@example.com", approve: 0, takeDown: 1, dismiss: 1, ban: 0, verify: 2, total: 4 },
-      { moderator: "b@example.com", approve: 0, takeDown: 1, dismiss: 0, ban: 1, verify: 0, total: 2 },
-      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, verify: 0, total: 1 },
+      { moderator: "a@example.com", approve: 0, takeDown: 1, dismiss: 1, ban: 0, verify: 2, external: 0, total: 4 },
+      { moderator: "b@example.com", approve: 0, takeDown: 1, dismiss: 0, ban: 1, verify: 0, external: 0, total: 2 },
+      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 0, total: 1 },
+    ]);
+  });
+
+  it("counts external jobs waiting and moderators' external decisions (#112)", () => {
+    const log: ModerationLogEntry[] = [
+      { id: "x1", at: "2026-10-15T01:00:00.000Z", action: "external_approve", moderator: "a@example.com" },
+      { id: "x2", at: "2026-10-15T02:00:00.000Z", action: "external_stop", moderator: "a@example.com" },
+    ];
+    const stats = moderationStats(
+      {
+        jobs: [],
+        reports: [],
+        log,
+        externalPending: [{ firstSeenAt: "2026-10-14T00:00:00.000Z" }, { firstSeenAt: "2026-10-13T00:00:00.000Z" }],
+      },
+      NOW,
+    );
+    expect(stats).toMatchObject({ pendingExternal: 2, oldestPendingExternalAt: "2026-10-13T00:00:00.000Z" });
+    expect(stats.byModerator).toEqual([
+      { moderator: "a@example.com", approve: 0, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 2, total: 2 },
     ]);
   });
 });

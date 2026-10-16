@@ -57,6 +57,8 @@ export type ModeratorStats = {
   ban: number;
   /** 企业验证 decisions, approved or rejected (#78). */
   verify: number;
+  /** External jobs shown or hidden, and companies stopped, resumed or removed (#112). */
+  external: number;
   total: number;
 };
 
@@ -71,6 +73,9 @@ export type ModerationStats = {
   /** 企业验证 applications waiting (#78), and when the oldest was made. */
   pendingVerifications: number;
   oldestPendingVerificationAt?: string;
+  /** External jobs waiting for review (#112), and when the oldest was first imported. */
+  pendingExternal: number;
+  oldestPendingExternalAt?: string;
   /** This week first. */
   weeks: WeekStats[];
   /** Decisions per moderator over the same eight weeks, most first. */
@@ -80,10 +85,13 @@ export type ModerationStats = {
 };
 
 /** The column a log entry counts under in 按审核员. */
-function decisionKey(action: ModerationLogEntry["action"]): "approve" | "takeDown" | "dismiss" | "ban" | "verify" {
+function decisionKey(
+  action: ModerationLogEntry["action"],
+): "approve" | "takeDown" | "dismiss" | "ban" | "verify" | "external" {
   if (action === "take_down") return "takeDown";
   if (action === "verify_approve" || action === "verify_reject") return "verify";
-  return action;
+  if (action.startsWith("external_")) return "external";
+  return action as "approve" | "dismiss" | "ban";
 }
 
 const oldest = (dates: string[]) => (dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : undefined);
@@ -94,12 +102,15 @@ export function moderationStats(
     reports,
     log,
     verifications = [],
+    externalPending = [],
   }: {
     jobs: readonly Job[];
     reports: readonly Report[];
     log: readonly ModerationLogEntry[];
     /** The 企业验证 applications waiting (#78). */
     verifications?: readonly { submittedAt: string }[];
+    /** The external jobs waiting for review (#112). */
+    externalPending?: readonly { firstSeenAt: string }[];
   },
   now: number,
 ): ModerationStats {
@@ -137,6 +148,7 @@ export function moderationStats(
       dismiss: 0,
       ban: 0,
       verify: 0,
+      external: 0,
       total: 0,
     };
     moderators.set(entry.moderator, who);
@@ -159,6 +171,8 @@ export function moderationStats(
     oldestOpenReportAt: oldest(open.map((report) => report.createdAt)),
     pendingVerifications: verifications.length,
     oldestPendingVerificationAt: oldest(verifications.map((v) => v.submittedAt)),
+    pendingExternal: externalPending.length,
+    oldestPendingExternalAt: oldest(externalPending.map((j) => j.firstSeenAt)),
     weeks: weeks.map((week) => {
       const { times, ...stats } = rows.get(week)!;
       return { ...stats, medianHandleMs: median(times) };

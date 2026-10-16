@@ -33,3 +33,6 @@ export function isShown(job: ShownCheck, now: number): boolean {
 export function sectionOf(kind: string | null): "internship" | "professional" {
   return kind === "internship" || kind === "graduate" ? "internship" : "professional";
 }
+
+/** Why a company is not imported (#112): a moderator stopped it, or the company asked to be removed. */
+export type ExternalBlockKind = "stopped" | "takedown";

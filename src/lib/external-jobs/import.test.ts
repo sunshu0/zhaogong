@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { EXTERNAL_COMPANIES, importAllowed, type ExternalCompany } from "@/config/external-companies";
-import { getExternalJob, listExternalJobs, setExternalReview } from "@/db/external-jobs";
+import { getExternalJob, listExternalJobs as listAll, setExternalReview } from "@/db/external-jobs";
 import { database } from "@/db/ready";
 import { importExternalJobs } from "@/lib/external-jobs/import";
 import { parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
@@ -37,6 +37,10 @@ const TUI: ExternalCompany = {
   careersUrl: "https://tui.example.com/careers",
   terms: checked,
 };
+
+/** The jobs of this file's companies, leaving out the demo data (src/mock/external-jobs.ts). */
+const listExternalJobs = async (options?: Parameters<typeof listAll>[0]) =>
+  (await listAll(options)).filter((job) => !job.companyId.startsWith("demo-"));
 
 const T0 = new Date("2026-10-17T01:00:00.000Z");
 const days = (n: number) => new Date(T0.getTime() + n * 86_400_000);

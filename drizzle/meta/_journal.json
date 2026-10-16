@@ -113,6 +113,13 @@
       "when": 1792161387505,
       "tag": "0016_external_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1792164959574,
+      "tag": "0018_external_company_blocks",
+      "breakpoints": true
     }
   ]
 }

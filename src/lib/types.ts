@@ -131,7 +131,19 @@ export interface ContactView {
   viewedAt: string;
 }
 
-export type ModerationAction = "approve" | "take_down" | "dismiss" | "ban" | "verify_approve" | "verify_reject";
+export type ModerationAction =
+  | "approve"
+  | "take_down"
+  | "dismiss"
+  | "ban"
+  | "verify_approve"
+  | "verify_reject"
+  // External jobs (#112, ADR 0014): a job shown or hidden, a company stopped, resumed or removed at its request.
+  | "external_approve"
+  | "external_hide"
+  | "external_stop"
+  | "external_resume"
+  | "external_takedown";
 
 /** One moderation decision, kept for complaints and audits. */
 export interface ModerationLogEntry {

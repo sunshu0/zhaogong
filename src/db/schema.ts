@@ -31,7 +31,7 @@ import type {
   ExternalSource,
   VisaFact,
 } from "@/lib/external-jobs/types";
-import type { ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
+import type { ExternalBlockKind, ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -531,3 +531,17 @@ export const externalJobs = sqliteTable(
     index("external_jobs_review_idx").on(table.review),
   ],
 );
+
+/**
+ * Companies a moderator stopped (#112): `stopped` by a moderator's decision, or `takedown` when the company asked
+ * to be removed. While a row is here the importer does not read the company and none of its jobs show; the
+ * moderation log keeps who did it and when.
+ */
+export const externalCompanyBlocks = sqliteTable("external_company_blocks", {
+  companyId: text("company_id").primaryKey(),
+  kind: text("kind").$type<ExternalBlockKind>().notNull(),
+  /** For a takedown: who asked, as the company wrote (a company address or role, not a private person). */
+  requester: text("requester"),
+  note: text("note").notNull(),
+  createdAt: text("created_at").notNull(),
+});

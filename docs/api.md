@@ -216,6 +216,19 @@
 - **数据函数（`src/db/external-jobs.ts`，只在服务器上用）：** `saveCompanyFeed(company, facts, now)` 存一次导入的结果（新职位待审；已有的更新事实和取到时间；接口里没有了或过了截止日的下架；已通过的职位名、链接或标记变了回到待审），`takeDownCompany(id)`，`listExternalJobs({ shownAt?, companyId? })`（带 `shownAt` 只返回那时可以显示的），`getExternalJob(id)`，`setExternalReview(id, review)`（审核后台的入口在 #112）。
 - **能不能显示** 在读取时判断：`isShown()`（`src/lib/external-jobs/visibility.ts`）= 审核通过、没下架、2 天内刷新到过、截止日当天没过。`sectionOf(kind)`：实习和毕业生项目进「实习」，其余进「专业职位」。
 
+## 审核后台「外部职位」— `src/app/admin/external-actions.ts`
+
+#112（PRD R-39，ADR 0014）。都只给审核员（`requireModerator`），每个操作写一条审核记录，`moderator` 是操作的审核员。
+
+| 函数 | 作用 |
+| --- | --- |
+| `getExternalReview()` | `{ at, companies, pending, approved }`：待审（没下架的，带标记的在前）、已通过（`shown` 表示现在是否显示），以及名单上的公司和数据里出现的公司（条款核对情况、是否停用、待审和正在显示的数量）。 |
+| `approveExternalJob(id, flagsChecked)` | 通过。带标记的职位 `flagsChecked` 要为 `true`；已下架的不能通过。 |
+| `hideExternalJob(id, reason, note)` | 不显示（已通过的也可以撤下）。`reason` 是 `requirement` / `wrong_field` / `wrong_facts` / `other`，`other` 要写 `note`。 |
+| `stopExternalCompany(companyId, note)` | 停用：记进 `external_company_blocks`（迁移 0018），这家所有职位立即下架，导入器不再请求它。 |
+| `recordTakedownRequest(companyId, requester, note)` | 公司要求删除：记下谁提出（公司邮箱或部门）和内容，效果同停用。 |
+| `resumeExternalCompany(companyId, note)` | 恢复导入：删掉停用记录，这家的职位回到待审，下一次导入重新读。 |
+
 ## 审核后台 — `src/app/admin/actions.ts`
 
 只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/admin/moderator.ts`，#50）：

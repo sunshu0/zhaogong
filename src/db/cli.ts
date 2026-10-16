@@ -53,7 +53,11 @@ async function importExternal(args: string[]): Promise<number> {
   const companies = ids.length > 0 ? EXTERNAL_COMPANIES.filter((c) => ids.includes(c.id)) : EXTERNAL_COMPANIES;
   const reports = await importExternalJobs({ companies, getJson: politeFetcher({ fetch }), dryRun });
   for (const r of reports) {
-    if (r.status === "terms_not_checked") {
+    if (r.status === "stopped") {
+      console.log(
+        `${r.company}: ${r.kind === "takedown" ? "removed at the company's request" : "stopped by a moderator"}, not read`,
+      );
+    } else if (r.status === "terms_not_checked") {
       console.log(`${r.company}: terms not checked, not read${r.takenDown ? `; took down ${r.takenDown}` : ""}`);
     } else if (r.status === "failed") {
       console.log(`${r.company}: could not read the feed (${r.error}); its jobs stay as they were`);

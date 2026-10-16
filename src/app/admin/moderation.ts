@@ -64,5 +64,15 @@ export function describeAction(entry: ModerationLogEntry): string {
       return `通过企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
     case "verify_reject":
       return `驳回企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+    case "external_approve":
+      return `通过外部职位${job}`;
+    case "external_hide":
+      return `不显示外部职位${job}${entry.note ? ` · ${entry.note}` : ""}`;
+    case "external_stop":
+      return `停用外部公司「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位${entry.note ? ` · ${entry.note}` : ""}`;
+    case "external_resume":
+      return `恢复导入外部公司「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+    case "external_takedown":
+      return `公司要求删除「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位${entry.note ? ` · ${entry.note}` : ""}`;
   }
 }

@@ -40,7 +40,7 @@ export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
   const waited = (since?: string) => (since ? `最早的等了 ${waitZh(stats.at - Date.parse(since))}` : "没有在等的");
   return (
     <Section>
-      <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group sm:grid-cols-3">
+      <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group sm:grid-cols-4">
         <div>
           <dt className="text-meta text-muted">待审核的职位</dt>
           <dd className="font-figure text-title">{stats.pendingJobs}</dd>
@@ -55,6 +55,11 @@ export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
           <dt className="text-meta text-muted">待审核的企业验证</dt>
           <dd className="font-figure text-title">{stats.pendingVerifications}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestPendingVerificationAt)}</dd>
+        </div>
+        <div>
+          <dt className="text-meta text-muted">待审核的外部职位</dt>
+          <dd className="font-figure text-title">{stats.pendingExternal}</dd>
+          <dd className="text-meta text-muted">{waited(stats.oldestPendingExternalAt)}</dd>
         </div>
       </dl>
     </Section>
@@ -138,6 +143,7 @@ const DECISIONS = [
   ["dismiss", "驳回"],
   ["ban", "封禁"],
   ["verify", "企业验证"],
+  ["external", "外部职位"],
 ] as const;
 
 /** Decisions per moderator over the same eight weeks (#60 names who acted), most first. */

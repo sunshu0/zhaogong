@@ -8,6 +8,7 @@ import * as schema from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import { suggestJobRoles } from "@/lib/job-roles";
 import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
+import { demoExternalJobs } from "@/mock/external-jobs";
 
 /**
  * The demo moderator (#50): in the demo data only, so a developer (and the browser tests) can open /admin by signing
@@ -57,6 +58,7 @@ export async function seedDemoData(
     await tx.insert(schema.jobAlerts).values(showcase.alert);
     await tx.insert(schema.jobAlertHits).values(showcase.alertHit);
     await tx.insert(schema.verificationRequests).values(showcase.verifications);
+    await tx.insert(schema.externalJobs).values(demoExternalJobs(now)); // #112, #113
   });
   return {
     employers: MOCK_EMPLOYERS.length,

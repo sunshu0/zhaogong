@@ -417,6 +417,51 @@ test("审核后台和审核数据: a moderator signs in → 审核后台 → 审
   await expect(page.getByLabel("审核数据：现在")).toBeVisible();
 });
 
+test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通过 / 不显示 (#112)", async ({ browser }, testInfo) => {
+  const admin = await moderatorPage(browser, testInfo);
+  await admin.goto("/");
+  if (isPhone(testInfo)) {
+    const mine = siteNav(admin).getByRole("link", { name: "我的", exact: true });
+    await expect(mine).toHaveAttribute("href", "/account");
+    await mine.click();
+    await admin
+      .getByRole("main")
+      .getByRole("link", { name: /^审核后台/ })
+      .click();
+  } else {
+    await admin
+      .getByRole("banner")
+      .getByRole("button", { name: /^账号菜单/ })
+      .click();
+    await admin.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
+  }
+  await expect(admin).toHaveURL("/admin");
+  await admin.getByRole("tab", { name: /^外部职位/ }).click();
+  await expect(admin.getByRole("heading", { name: /^待审核/ })).toBeVisible();
+
+  // The demo data has two jobs waiting; each project takes its own, as both run on one server.
+  const title = isPhone(testInfo) ? "Senior Electronics Engineer" : "Software Engineering Intern";
+  const card = admin.getByRole("article", { name: `外部职位：${title}` });
+  test.skip((await card.count()) === 0, "the demo job was already decided on this server (a second run)");
+  await expect(card.getByRole("link", { name: "看官网原文" })).toHaveAttribute("target", "_blank");
+  if (isPhone(testInfo)) {
+    // Flagged (U.S. person): 通过 waits for the tick; this walk hides it instead, with a reason.
+    await expect(card.getByRole("alert")).toContainText("U.S. person");
+    await expect(card.getByRole("button", { name: "通过" })).toBeDisabled();
+    await card.getByRole("button", { name: "不显示" }).click();
+    await card.getByRole("radio", { name: "有按国籍、种族招人的要求" }).check();
+    await card.getByRole("button", { name: "确定不显示" }).click();
+    await expect(admin.getByRole("status")).toContainText(`不显示外部职位「${title}」`);
+  } else {
+    await card.getByRole("button", { name: "通过" }).click();
+    await expect(admin.getByRole("status")).toHaveText(`已处理：通过外部职位「${title}」（Tūī Software）`);
+    await expect(
+      admin.getByRole("article", { name: `外部职位：${title}` }).getByText("正在显示", { exact: true }),
+    ).toBeVisible();
+  }
+  await admin.context().close();
+});
+
 test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存为 PDF and 生成分享链接 (#86)", async ({ page }, testInfo) => {
   await signInByClicks(page, testInfo);
   await openMine(page, testInfo, "我的主页");

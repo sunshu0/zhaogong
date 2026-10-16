@@ -126,3 +126,60 @@ export async function setExternalReview(id: string, review: ExternalReview, now 
     .returning({ id: t.externalJobs.id });
   return done.length > 0;
 }
+
+// ---- companies a moderator stopped (#112) ----
+
+export type CompanyBlock = typeof t.externalCompanyBlocks.$inferSelect;
+
+export async function listCompanyBlocks(): Promise<CompanyBlock[]> {
+  const db = await database();
+  return db.select().from(t.externalCompanyBlocks).orderBy(asc(t.externalCompanyBlocks.companyId));
+}
+
+/**
+ * Stops importing a company and takes all its jobs down at once, in one transaction. A company already stopped
+ * keeps its first record, except that a takedown request replaces a plain stop (it is the stronger reason).
+ * Returns how many jobs came down, or "already".
+ */
+export async function blockCompany(
+  companyId: string,
+  block: { kind: CompanyBlock["kind"]; note: string; requester?: string },
+  now = new Date(),
+): Promise<{ takenDown: number } | "already"> {
+  const db = await database();
+  const at = now.toISOString();
+  return db.transaction(async (tx) => {
+    const [before] = await tx
+      .select()
+      .from(t.externalCompanyBlocks)
+      .where(eq(t.externalCompanyBlocks.companyId, companyId));
+    if (before && (before.kind === "takedown" || block.kind === "stopped")) return "already";
+    const row = { companyId, kind: block.kind, note: block.note, requester: block.requester ?? null, createdAt: at };
+    if (before)
+      await tx.update(t.externalCompanyBlocks).set(row).where(eq(t.externalCompanyBlocks.companyId, companyId));
+    else await tx.insert(t.externalCompanyBlocks).values(row);
+    const up = await tx
+      .update(t.externalJobs)
+      .set({ removedAt: at, removedReason: "company_off" })
+      .where(and(eq(t.externalJobs.companyId, companyId), isNull(t.externalJobs.removedAt)))
+      .returning({ id: t.externalJobs.id });
+    return { takenDown: up.length };
+  });
+}
+
+/** Lets a stopped company be imported again; its jobs return with the next import, each still needing review. */
+export async function unblockCompany(companyId: string): Promise<boolean> {
+  const db = await database();
+  return db.transaction(async (tx) => {
+    const done = await tx
+      .delete(t.externalCompanyBlocks)
+      .where(eq(t.externalCompanyBlocks.companyId, companyId))
+      .returning({ id: t.externalCompanyBlocks.companyId });
+    if (done.length === 0) return false;
+    await tx
+      .update(t.externalJobs)
+      .set({ review: "pending", reviewedAt: null })
+      .where(eq(t.externalJobs.companyId, companyId));
+    return true;
+  });
+}

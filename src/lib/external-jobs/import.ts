@@ -3,13 +3,14 @@
 // checked is not read at all, and anything it had comes down. A feed that cannot be read leaves the company's jobs
 // as they were; they stop showing on their own once their last refresh is 2 days old. Server only.
 import { importAllowed, type ExternalCompany } from "@/config/external-companies";
-import { saveCompanyFeed, takeDownCompany, type FeedResult } from "@/db/external-jobs";
+import { listCompanyBlocks, saveCompanyFeed, takeDownCompany, type FeedResult } from "@/db/external-jobs";
 import { factsOf } from "@/lib/external-jobs/facts";
 import { parsePostings, postingsUrl } from "@/lib/external-jobs/sources";
 import type { ExternalFacts } from "@/lib/external-jobs/types";
 
 export type CompanyReport =
   | { company: string; status: "terms_not_checked"; takenDown: number }
+  | { company: string; status: "stopped"; kind: "stopped" | "takedown" }
   | { company: string; status: "failed"; error: string }
   | ({ company: string; status: "imported"; inFeed: number; kept: number } & FeedResult)
   | { company: string; status: "dry_run"; inFeed: number; jobs: ExternalFacts[] };
@@ -30,7 +31,14 @@ export async function importExternalJobs({
   dryRun = false,
 }: ImportOptions): Promise<CompanyReport[]> {
   const reports: CompanyReport[] = [];
+  const blocks = new Map((await listCompanyBlocks()).map((b) => [b.companyId, b.kind]));
   for (const company of companies) {
+    // Stopped by a moderator or at the company's request (#112): never read, not even for a dry run.
+    const blocked = blocks.get(company.id);
+    if (blocked) {
+      reports.push({ company: company.id, status: "stopped", kind: blocked });
+      continue;
+    }
     if (!importAllowed(company) && !dryRun) {
       reports.push({ company: company.id, status: "terms_not_checked", takenDown: await takeDownCompany(company.id) });
       continue;
