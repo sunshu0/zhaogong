@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openOptionalProfile } from "../helpers";
+import { expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "../helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("recommends by selected job, explains matches and opens a persistent role-specific chat", async ({
   page,
+  browser,
 }, testInfo) => {
   const shop = await signUpEmployer(page, testInfo, "/employer/candidates");
   await expect(page.getByRole("heading", { name: "暂无招聘中的职位" })).toBeVisible();
@@ -25,7 +26,11 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   ).toBeVisible();
   await page.goto("/employer/candidates");
   await page.getByLabel("招聘职位").selectOption(id!);
-  const rows = page.getByRole("article");
+  // Since #104 the job seekers who allowed it are listed from their accounts, and other tests make some side by
+  // side: the counts here are of the six demo candidates only.
+  const rows = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: /^(林晓|陈雨|王宁|赵晨|李悦|苏禾)$/ }) });
   await expect(rows.first().getByRole("heading", { name: "林晓" })).toBeVisible();
   // Five facts on every card, in the order of the candidate page (C6).
   await expect(rows.first().locator("dt")).toHaveText(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
@@ -34,7 +39,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   // industry counts half for 岗位 (#96).
   await expect(rows).toHaveCount(4);
   await expect(rows.nth(3).getByRole("heading", { name: "王宁" })).toBeVisible();
-  const low = page.getByRole("button", { name: "另外 2 位匹配度较低" });
+  const low = page.getByRole("button", { name: /^另外 \d+ 位匹配度较低/ });
   await expect(low).toHaveAttribute("aria-expanded", "false");
   await low.click();
   await expect(rows).toHaveCount(6);
@@ -103,6 +108,9 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await openOptionalProfile(page);
   await expect(page.getByLabel("最少小时", { exact: true })).toHaveValue("15");
   await page.screenshot({ path: testInfo.outputPath("resume-editor.png"), fullPage: true });
+  // The page is on the account (#104), so every other business would list it: withdraw it before going on.
+  await page.getByLabel("允许向雇主推荐我的求职主页").uncheck();
+  await expectProfileSaved(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })
@@ -110,40 +118,23 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.getByRole("button", { name: `切换为雇主（${shop}）`, exact: true }).click();
   await page.goto("/employer/candidates");
   await expect(page.getByText("公开主页", { exact: true })).toHaveCount(0);
-  await page.evaluate(() => {
-    const key = "zhaogong:profiles-by-identity";
-    const stored = JSON.parse(localStorage.getItem(key) ?? "{}");
-    const profiles = stored.identities ?? stored; // versioned since A23
-    profiles[JSON.stringify(["public-candidate@example.com", "seeker", null])] = {
-      name: "公开候选人",
-      contactName: "",
-      headline: "前厅服务",
-      location: "Mt Eden",
-      languages: "普通话",
-      availability: "周末",
-      bio: "有点餐收银经验",
-      resume: {
-        candidateId: "public-demo",
-        discoverable: true,
-        skills: "点餐、收银",
-        employmentTypes: ["part_time"],
-        regionIds: ["akl-mt-eden"],
-      },
-    };
-    localStorage.setItem(key, JSON.stringify(stored));
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  });
+  // Another job seeker, in another browser, allows 推荐人才 (#104: the page is on their account).
+  const name = `公开候选人${Date.now() % 1_000_000}`;
+  const seeker = await (await browser.newContext({ viewport: page.viewportSize() ?? undefined })).newPage();
+  await signIn(seeker, "/profile", freshEmail("public.candidate"));
+  await seeker.getByLabel("称呼", { exact: true }).fill(name);
+  await openOptionalProfile(seeker);
+  const allow = seeker.getByLabel("允许向雇主推荐我的求职主页");
+  await allow.check();
+  await expectProfileSaved(seeker);
+  await page.reload();
   // Half a profile scores low, so it is folded at the bottom (not hidden): open the fold to see it.
   await page.getByRole("button", { name: /^另外 \d+ 位匹配度较低/ }).click();
-  await expect(page.getByRole("heading", { name: "公开候选人", exact: true })).toBeVisible();
-  await page.evaluate(() => {
-    const key = "zhaogong:profiles-by-identity";
-    const stored = JSON.parse(localStorage.getItem(key)!);
-    (stored.identities ?? stored)[
-      JSON.stringify(["public-candidate@example.com", "seeker", null])
-    ].resume.discoverable = false;
-    localStorage.setItem(key, JSON.stringify(stored));
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  });
-  await expect(page.getByRole("heading", { name: "公开候选人", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("public.candidate");
+  await allow.uncheck();
+  await expectProfileSaved(seeker);
+  await seeker.context().close();
+  await page.reload();
+  await expect(page.getByRole("heading", { name, exact: true })).toHaveCount(0);
 });

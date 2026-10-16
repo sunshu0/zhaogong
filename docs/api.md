@@ -177,6 +177,7 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `myProfile()` | | 账号上的主页 `ProfileSnapshot` | 未登录或雇主身份时 `null` |
+| `recommendedCandidates()`（`src/app/profile/candidate-actions.ts`） | | 雇主身份：`{ scope, candidates }`，账号上允许推荐、填了称呼的求职者主页，只有公开字段（`recommendableCandidates`），不含自己的求职主页 | 未登录或求职者身份时 `null` |
 | `saveMyProfile(profile)` | 浏览器里的整份主页 | 存下后的 `ProfileSnapshot`（只留服务器读得懂的字段，头像最多 180 kB） | 未登录、雇主身份、不是主页或超过 250 kB 时 `null` |
 
 ## 中英文简历的分享链接 — `src/app/profile/resume/actions.ts`

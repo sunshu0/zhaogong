@@ -18,8 +18,9 @@ const LINE_MAX = 80;
 const BIO_MAX = 600;
 
 /**
- * The job seeker's page as the employer sees it (R-18), copied when they apply: the profile lives in their own
- * browser, so the employer reads this copy. No contact details (they follow the job's two rules, ADR 0002).
+ * The job seeker's page as the employer sees it (R-18), copied when they apply: the account's page since #104 (before
+ * that the page lived only in their browser), so later edits do not change what they applied with. No contact
+ * details (they follow the job's two rules, ADR 0002).
  */
 export type ApplicationProfile = {
   name: string;

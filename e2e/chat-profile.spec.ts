@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { freshEmail, signIn } from "./helpers";
+import { expectProfileSaved, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
@@ -21,7 +21,37 @@ test("chat header avatar and employer name both open the company home", async ({
 
 test("employer opens candidate home, including legacy local chats and withdrawn public profiles", async ({
   page,
+  browser,
 }, testInfo) => {
+  // A job seeker who allows 推荐人才, in another browser (#104: the page is on their account). The page is put into
+  // that browser first, as one filled in before signing in would be, and goes to the account on the first visit.
+  const candidateId = `public-demo-${Date.now() % 1_000_000}`;
+  const seeker = await (await browser.newContext({ viewport: page.viewportSize() ?? undefined })).newPage();
+  const seekerEmail = await signIn(seeker, "/", freshEmail("public.profile"));
+  await seeker.evaluate(
+    ([email, candidateId]) => {
+      const scope = JSON.stringify([email, "seeker", null]);
+      const page = {
+        name: "公开求职者",
+        contactName: "",
+        headline: "前厅服务",
+        location: "奥克兰",
+        languages: "普通话",
+        availability: "周末",
+        bio: "公开个人介绍",
+        privateDetails: { phone: "PRIVATE-PHONE", wechat: "PRIVATE-WECHAT", email: "PRIVATE-EMAIL" },
+        resume: { candidateId, discoverable: true, skills: "收银", employmentTypes: ["part_time"], regionIds: [] },
+      };
+      localStorage.setItem(
+        "zhaogong:profiles-by-identity",
+        JSON.stringify({ version: 2, identities: { [scope]: page } }),
+      );
+    },
+    [seekerEmail, candidateId] as const,
+  );
+  await seeker.goto("/profile");
+  await expectProfileSaved(seeker);
+
   // A chat that only this browser had from before #10 is handed to the server on the first sync, when the server
   // has nothing for the employer yet; so it comes first, before anything else is sent.
   await signUpEmployer(page, testInfo, "/profile");
@@ -34,59 +64,28 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
       }),
     )
     .toBe(true);
-  await page.evaluate(() => {
+  await page.evaluate((candidateId) => {
     const session = JSON.parse(localStorage.getItem("zhaogong:session")!);
     const scope = JSON.stringify([session.email, "employer", session.employerId]);
     const key = "zhaogong:chat-demo";
     const stored = JSON.parse(localStorage.getItem(key) ?? '{"version":2,"identities":{}}');
-    const id = "recommend:local-public-demo:j1";
+    const id = `recommend:local-${candidateId}:j1`;
     stored.identities[scope] ??= { added: {}, readAt: {}, extra: [], exchanges: {}, reports: [] };
     stored.identities[scope].extra = [
       { id, person: "公开求职者", title: "服务员", avatar: "公", time: "刚刚", job: "j1" },
     ];
     localStorage.setItem(key, JSON.stringify(stored));
-    const profileScope = JSON.stringify(["public-profile@example.com", "seeker", null]);
-    localStorage.setItem(
-      "zhaogong:profiles-by-identity",
-      JSON.stringify({
-        [profileScope]: {
-          name: "公开求职者",
-          contactName: "",
-          headline: "前厅服务",
-          location: "奥克兰",
-          languages: "普通话",
-          availability: "周末",
-          bio: "公开个人介绍",
-          privateDetails: {
-            phone: "PRIVATE-PHONE",
-            wechat: "PRIVATE-WECHAT",
-            email: "PRIVATE-EMAIL",
-            address: "PRIVATE-ADDRESS",
-          },
-          resume: {
-            candidateId: "public-demo",
-            discoverable: true,
-            skills: "收银",
-            employmentTypes: ["part_time"],
-            regionIds: [],
-          },
-        },
-      }),
-    );
-  });
-  await page.goto("/messages?conversation=recommend%3Alocal-public-demo%3Aj1");
+  }, candidateId);
+  await page.goto(`/messages?conversation=${encodeURIComponent(`recommend:local-${candidateId}:j1`)}`);
   await page.getByRole("link", { name: "查看公开求职者的主页", exact: true }).click();
-  await expect(page).toHaveURL("/candidates/local-public-demo");
+  await expect(page).toHaveURL(`/candidates/local-${candidateId}`);
   await expect(page.getByRole("heading", { name: "公开求职者", exact: true })).toBeVisible();
   await expect(page.getByRole("main")).not.toContainText("PRIVATE-");
-  await page.evaluate(() => {
-    const key = "zhaogong:profiles-by-identity";
-    const stored = JSON.parse(localStorage.getItem(key)!);
-    for (const item of Object.values(stored.identities ?? stored) as { resume: { discoverable: boolean } }[])
-      item.resume.discoverable = false;
-    localStorage.setItem(key, JSON.stringify(stored));
-    window.dispatchEvent(new StorageEvent("storage", { key }));
-  });
+  // The job seeker withdraws it; the employer's next visit no longer shows it.
+  await seeker.getByLabel("允许向雇主推荐我的求职主页").uncheck();
+  await expectProfileSaved(seeker);
+  await seeker.context().close();
+  await page.reload();
   await expect(page.getByRole("heading", { name: "求职主页暂不可查看", exact: true })).toBeVisible();
   await expect(page.getByRole("main")).not.toContainText("公开个人介绍");
   await page.goto("/candidates/missing");

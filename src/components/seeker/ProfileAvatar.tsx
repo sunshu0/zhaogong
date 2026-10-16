@@ -50,7 +50,7 @@ export function EmployerAvatar({
 }
 
 export function CounterpartAvatar({ conversation, isEmployer }: { conversation: Conversation; isEmployer: boolean }) {
-  const candidates = useCandidateDirectory();
+  const { candidates } = useCandidateDirectory();
   const employer = usePublicEmployerProfile(conversation.employerId ?? "");
   const candidateId =
     conversation.candidateId ??

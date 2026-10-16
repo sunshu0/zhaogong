@@ -1,7 +1,8 @@
 "use server";
 
-// 一键申请, the job seeker's side (#84, PRD R-35). The account is the one in this browser's session cookie; the page
-// sends only the job, the note and the job seeker's own page (their profile lives in their browser).
+// 一键申请, the job seeker's side (#84, PRD R-35). The account is the one in this browser's session cookie. The page
+// the employer gets is the account's own (#104); the page the browser sends is used only when the account never
+// saved one.
 import { regionById } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { getEmployer, getJob } from "@/lib/data";
@@ -16,6 +17,8 @@ import {
 } from "@/components/seeker/applications";
 import { isExpired } from "@/components/seeker/job-facts";
 import { interviewsFor, interviewView } from "@/db/interviews";
+import { getSeekerProfile } from "@/db/seeker-profiles";
+import { initialProfile } from "@/components/seeker/hub-state";
 import type { InterviewView } from "@/components/seeker/interviews";
 
 /** The account's application for one job, as the job seeker sees it. */
@@ -80,7 +83,9 @@ export async function applyForJob(jobId: string, note: unknown, profile: unknown
   if (session.employer?.id === employer.id) return refuse("own_job");
   const parsedNote = parseApplicationNote(note);
   if (!parsedNote.ok) return refuse("note_too_long");
-  const page = parseApplicationProfile(profile);
+  const own = await getSeekerProfile(session.email);
+  const seeker = { email: session.email, signedInAt: "", activeRole: "seeker" as const };
+  const page = parseApplicationProfile(own ? { ...initialProfile(seeker), ...own.profile } : profile);
   if (!page) return refuse("no_profile");
 
   const row = await addApplication({

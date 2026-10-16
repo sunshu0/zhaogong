@@ -3,7 +3,12 @@ import type { DemoSession } from "@/components/seeker/session";
 import type { Profile } from "@/components/seeker/hub-state";
 import type { Candidate } from "@/lib/candidate-matching";
 
-export function localCandidates(profiles: Record<string, Profile>, session: DemoSession | null): Candidate[] {
+/**
+ * The job seekers an employer identity may be recommended: pages whose owner turned on 允许向雇主推荐 and gave a
+ * name, never the employer's own job seeker page. `profiles` are keyed by identity scope; since #104 they come from
+ * the accounts on the server (`recommendedCandidates`), before that from this browser.
+ */
+export function recommendableCandidates(profiles: Record<string, Profile>, session: DemoSession | null): Candidate[] {
   if (!session || session.activeRole !== "employer") return [];
   const ownSeeker = identityScope({ ...session, activeRole: "seeker" });
   return Object.entries(profiles).flatMap(([scope, profile]) => {

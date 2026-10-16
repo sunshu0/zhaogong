@@ -14,7 +14,8 @@ import {
   type Notification,
 } from "@/components/seeker/hub-state";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
-import { localCandidates } from "@/lib/candidate-directory";
+import { recommendedCandidates } from "@/app/profile/candidate-actions";
+import type { Candidate } from "@/lib/candidate-matching";
 import { employerPublicProfile } from "@/lib/employer-public-profile";
 
 const NOTIFICATIONS_KEY = "zhaogong:notifications-by-identity";
@@ -22,7 +23,7 @@ const NOTIFICATIONS_KEY = "zhaogong:notifications-by-identity";
 // The profile store and its sync with the account moved to profile-client.ts (#104); importers keep this path.
 export { useProfile, useProfileSave } from "@/components/seeker/profile-client";
 
-/** Every stored identity's profile with defaults filled in (other people's, for public pages in this browser). */
+/** Every stored identity's profile with defaults filled in: 企业主页 for their public pages (only in this browser). */
 function useAllProfiles() {
   const stored = profileChanges.useValue();
   return useMemo(() => resolveProfiles(stored), [stored]);
@@ -33,10 +34,47 @@ export function usePublicEmployerProfile(employerId: string) {
   return employerPublicProfile(useAllProfiles(), employerId);
 }
 
-export function useCandidateDirectory() {
-  const accounts = useAllProfiles();
+// 推荐人才 (#104): the job seekers who allowed it come from their accounts, fetched once per employer identity per
+// page load. The demo candidates are always there.
+type Directory = { scope: string; candidates: readonly Candidate[] };
+let directory: Directory | null = null;
+const directoryListeners = new Set<() => void>();
+const directoryScopes = new Set<string>();
+
+function loadDirectory(scope: string) {
+  if (directoryScopes.has(scope)) return;
+  directoryScopes.add(scope);
+  recommendedCandidates()
+    .then((answer) => {
+      if (!answer || answer.scope !== scope) return directoryScopes.delete(scope);
+      directory = answer;
+      for (const listener of directoryListeners) listener();
+    })
+    .catch(() => directoryScopes.delete(scope));
+}
+
+function useDirectory(): Directory | null {
+  return useSyncExternalStore(
+    (listener) => {
+      directoryListeners.add(listener);
+      return () => directoryListeners.delete(listener);
+    },
+    () => directory,
+    () => null,
+  );
+}
+
+/** The candidates 推荐人才 can show, and whether the accounts' ones have arrived (always true off employer). */
+export function useCandidateDirectory(): { candidates: Candidate[]; loaded: boolean } {
   const session = useSession();
-  return [...MOCK_CANDIDATES, ...localCandidates(accounts, session)];
+  const scope = identityScope(session);
+  const isEmployer = session?.activeRole === "employer";
+  const answer = useDirectory();
+  useEffect(() => {
+    if (isEmployer) loadDirectory(scope);
+  }, [isEmployer, scope]);
+  const mine = isEmployer && answer?.scope === scope ? answer.candidates : null;
+  return { candidates: [...MOCK_CANDIDATES, ...(mine ?? [])], loaded: !isEmployer || mine !== null };
 }
 
 /** Keeps the server's answer as the copy of the identity it is for (see chat-client.ts). */

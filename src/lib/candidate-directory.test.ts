@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localCandidates } from "@/lib/candidate-directory";
+import { recommendableCandidates } from "@/lib/candidate-directory";
 import { initialProfile, parseProfiles } from "@/components/seeker/hub-state";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { EMPTY_RESUME } from "@/lib/candidate-matching";
@@ -30,20 +30,20 @@ describe("candidate directory", () => {
         resume: { ...profile.resume, discoverable: false },
       },
     };
-    const result = localCandidates(accounts, employer);
+    const result = recommendableCandidates(accounts, employer);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("local-abc-123");
     expect(result[0]).not.toHaveProperty("contactName");
     expect(JSON.stringify(result)).not.toContain("@example.com");
-    expect(localCandidates(accounts, other)).toEqual([]);
-    expect(localCandidates(accounts, null)).toEqual([]);
+    expect(recommendableCandidates(accounts, other)).toEqual([]);
+    expect(recommendableCandidates(accounts, null)).toEqual([]);
   });
   it("withdraws a profile immediately and keeps old profiles private", () => {
     const scope = identityScope(other);
-    expect(localCandidates({ [scope]: initialProfile(other) }, employer)).toEqual([]);
+    expect(recommendableCandidates({ [scope]: initialProfile(other) }, employer)).toEqual([]);
     const profiles = parseProfiles(JSON.stringify({ [scope]: profile }));
-    expect(localCandidates(profiles, employer)).toHaveLength(1);
+    expect(recommendableCandidates(profiles, employer)).toHaveLength(1);
     profiles[scope].resume!.discoverable = false;
-    expect(localCandidates(profiles, employer)).toEqual([]);
+    expect(recommendableCandidates(profiles, employer)).toEqual([]);
   });
 });

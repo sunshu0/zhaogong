@@ -27,7 +27,7 @@ export function CandidatePublicPage() {
   const jobParam = useSearchParams().get("job");
   const hydrated = useHydrated();
   const session = useSession();
-  const candidates = useCandidateDirectory();
+  const { candidates, loaded } = useCandidateDirectory();
   const { conversations } = useChat();
   const candidate = candidates.find((item) => item.id === id && item.resume.discoverable);
   const isEmployer = session?.activeRole === "employer";
@@ -37,7 +37,7 @@ export function CandidatePublicPage() {
     ? `/messages?conversation=${encodeURIComponent(context.conversationId)}`
     : "/messages";
 
-  if (!hydrated)
+  if (!hydrated || (!candidate && !loaded))
     return (
       <p role="status" className="py-8 text-body text-muted">
         正在加载主页…

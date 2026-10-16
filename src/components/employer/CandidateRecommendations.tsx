@@ -39,7 +39,7 @@ export function CandidateRecommendations() {
 
 function Recommendations({ me }: { me: EmployerIdentity }) {
   const { ready } = useMyJobs(me.email);
-  const candidates = useCandidateDirectory();
+  const { candidates } = useCandidateDirectory();
   const [jobId, setJobId] = useState("");
   const [query, setQuery] = useState("");
   const [minimum, setMinimum] = useState("0");

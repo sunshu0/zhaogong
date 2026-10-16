@@ -20,6 +20,7 @@ const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants, markMyApp
   await import("@/app/employer/applicant-actions");
 const { myAlertNotifications } = await import("@/app/me/alerts/actions");
 const { markMyNotificationsRead } = await import("@/app/messages/actions");
+const { saveMyProfile } = await import("@/app/profile/actions");
 
 const PAGE = {
   name: "林晓",
@@ -136,5 +137,18 @@ describe("the employer's applicant list (#84)", () => {
     // Not theirs: refused.
     await signedIn("apply.other@example.com", "employer");
     expect(await decideMyApplicant(applicant.id, "unfit")).toBe(false);
+  });
+});
+
+describe("the page an application carries (#104)", () => {
+  it("is the account's own page once it saved one, not what the browser sends", async () => {
+    await signedIn("apply.account@example.com");
+    await saveMyProfile({ name: "账号里的王芳", availability: "只有周末" });
+    expect(await applyForJob("j4", "", PAGE)).toMatchObject({ ok: true });
+
+    await openEmployerIdentity("apply.e2@example.com", "e2");
+    await signedIn("apply.e2@example.com", "employer");
+    const applicant = (await getMyJobApplicants("j4"))!.applicants.find((a) => a.profile.name === "账号里的王芳");
+    expect(applicant?.profile).toMatchObject({ name: "账号里的王芳", availability: "只有周末" });
   });
 });

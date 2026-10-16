@@ -14,6 +14,7 @@ const jar: CookieJar = {
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { myProfile, saveMyProfile } = await import("@/app/profile/actions");
+const { recommendedCandidates } = await import("@/app/profile/candidate-actions");
 
 async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
   cookies.clear();
@@ -77,5 +78,58 @@ describe("我的主页 on the account (#104)", () => {
     await saveMyProfile({ name: "甲" });
     await signedIn("page.b@example.com");
     expect((await myProfile())?.profile).toBeNull();
+  });
+});
+
+describe("推荐人才 from the accounts (#104)", () => {
+  let next = 0;
+  const ids = new Map<string, string>();
+  const idOf = (name: string) => ids.get(name) ?? (ids.set(name, `cand-${++next}`), ids.get(name)!);
+  const listed = (name: string, discoverable = true) => ({
+    name,
+    headline: "前厅服务",
+    privateDetails: { phone: "021 555 0199", wechat: "wx-private", email: "private@example.com" },
+    resume: { candidateId: idOf(name), discoverable, skills: "收银", employmentTypes: [], regionIds: [] },
+  });
+
+  it("shows an employer the job seekers who allowed it, public fields only", async () => {
+    await signedIn("listed.one@example.com");
+    await saveMyProfile(listed("公开的赵敏"));
+    await signedIn("listed.two@example.com");
+    await saveMyProfile(listed("不公开的钱多", false));
+
+    await ensureAccount("listed.boss@example.com");
+    await openEmployerIdentity("listed.boss@example.com", "e3");
+    await signedIn("listed.boss@example.com", "employer");
+    const answer = await recommendedCandidates();
+    const names = answer!.candidates.map((c) => c.name);
+    expect(names).toContain("公开的赵敏");
+    expect(names).not.toContain("不公开的钱多");
+    const one = answer!.candidates.find((c) => c.name === "公开的赵敏")!;
+    expect(one).toMatchObject({ id: `local-${idOf("公开的赵敏")}`, headline: "前厅服务" });
+    expect(JSON.stringify(answer)).not.toMatch(/listed\.one|021 555 0199|wx-private|private@example/);
+  });
+
+  it("leaves the employer's own job seeker page out, and stops showing a page once it is withdrawn", async () => {
+    await signedIn("listed.self@example.com");
+    await saveMyProfile(listed("老板自己"));
+    await openEmployerIdentity("listed.self@example.com", "e4");
+    await signedIn("listed.self@example.com", "employer");
+    expect((await recommendedCandidates())!.candidates.map((c) => c.name)).not.toContain("老板自己");
+
+    await signedIn("listed.three@example.com");
+    await saveMyProfile(listed("后来关掉的孙丽"));
+    await signedIn("listed.self@example.com", "employer");
+    expect((await recommendedCandidates())!.candidates.map((c) => c.name)).toContain("后来关掉的孙丽");
+    await signedIn("listed.three@example.com");
+    await saveMyProfile(listed("后来关掉的孙丽", false));
+    await signedIn("listed.self@example.com", "employer");
+    expect((await recommendedCandidates())!.candidates.map((c) => c.name)).not.toContain("后来关掉的孙丽");
+  });
+
+  it("gives nothing to a job seeker or someone signed out", async () => {
+    expect(await recommendedCandidates()).toBeNull();
+    await signedIn("listed.seeker@example.com");
+    expect(await recommendedCandidates()).toBeNull();
   });
 });

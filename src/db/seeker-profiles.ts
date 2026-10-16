@@ -1,6 +1,6 @@
 // 求职者主页 on the server (#104): one per account. Only the account's own Server Functions read and write it. Server
 // only.
-import { eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, seekerProfiles } from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -36,4 +36,14 @@ export async function saveSeekerProfile(
       .returning();
     return row;
   });
+}
+
+/** Pages whose owner allowed 推荐人才 (`resume.discoverable`); what an employer may see of them is decided later. */
+export async function listDiscoverableSeekerProfiles(): Promise<SeekerProfileRow[]> {
+  const db = await database();
+  return db
+    .select()
+    .from(seekerProfiles)
+    .where(sql`json_extract(${seekerProfiles.profile}, '$.resume.discoverable') = 1`)
+    .orderBy(desc(seekerProfiles.updatedAt));
 }
