@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { contactBlock, fillSignInCode, freshEmail } from "./helpers";
+import { contactBlock, fillSignInCode, freshEmail, signIn, siteNav } from "./helpers";
 
 test("public contact details: shown after sign-in, never in the page HTML; the chat stays available", async ({
   page,
@@ -65,4 +65,39 @@ test("sign-in never sends the user to another site", async ({ page }) => {
   await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/jobs");
+});
+
+// #109: a signed-in visit to /login?next=… goes straight on, so 我的 lands on /account whenever it is tapped.
+test("signed in, /login?next= goes straight on to a page on this site, and only on this site", async ({ page }) => {
+  await signIn(page, "/jobs");
+  await page.goto("/login?next=%2Faccount");
+  await expect(page).toHaveURL("/account");
+  await page.goto("/login?next=https%3A%2F%2Fevil.example");
+  await expect(page).toHaveURL(/\/login\?next=https/);
+  await expect(page.getByText("你已登录：")).toBeVisible();
+  await page.goto("/login");
+  await expect(page.getByText("你已登录：")).toBeVisible();
+});
+
+test("signed in, 我的 on the phone lands on /account before and after the page is ready", async ({
+  page,
+  browser,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "the bottom bar is the phone's");
+  await signIn(page, "/jobs");
+  await page.goto("/");
+  await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+  await expect(page).toHaveURL("/account");
+
+  // Before the page's script runs, 我的 still points at sign-in (the server cannot tell from the page alone).
+  const bare = await browser.newContext({
+    ...testInfo.project.use,
+    storageState: await page.context().storageState(),
+    javaScriptEnabled: false,
+  });
+  const early = await bare.newPage();
+  await early.goto("/");
+  await siteNav(early).getByRole("link", { name: "我的", exact: true }).click();
+  await expect(early).toHaveURL("/account");
+  await bare.close();
 });

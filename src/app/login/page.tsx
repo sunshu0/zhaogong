@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { getCurrentSession } from "@/lib/auth";
 import { regionById } from "@/config/countries";
 import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, type DemoBusiness } from "@/components/seeker/LoginForm";
+import { nextForSignedIn } from "@/components/seeker/session";
 
 export const metadata: Metadata = { title: "注册或登录", robots: { index: false } };
 
@@ -27,6 +30,10 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 
 async function Login({ searchParams }: Pick<PageProps<"/login">, "searchParams">) {
   const params = await searchParams;
+  // Already signed in (a tap on 我的 before the page knew it, an old link): straight on to where it was going (#109).
+  const session = await getCurrentSession();
+  const onward = session && nextForSignedIn(params.next, params.role, session.activeRole);
+  if (onward) redirect(onward);
   const next = Array.isArray(params.next) ? params.next[0] : params.next;
   const role = parseRole(params.role);
   // A different ?role= or ?next= is a different sign-in: start the form over.

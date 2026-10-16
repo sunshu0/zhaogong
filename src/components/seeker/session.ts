@@ -52,6 +52,21 @@ export function safeNext(next: string | string[] | undefined, fallback = "/jobs"
   return path;
 }
 
+/**
+ * Where a signed-in visit to /login?next=… goes straight on to (#109), or null to show the page: only a path on
+ * this site, and not while the address asks for the other identity (开通雇主身份, or 申请 as a job seeker while
+ * signed in as an employer), which the page itself handles.
+ */
+export function nextForSignedIn(
+  next: string | string[] | undefined,
+  role: string | string[] | undefined,
+  activeRole: ActiveRole,
+): string | null {
+  const wanted = Array.isArray(role) ? role[0] : role;
+  if (wanted === "employer" || (wanted !== undefined && wanted !== activeRole)) return null;
+  return safeNext(next, "") || null;
+}
+
 export function parseSession(raw: string | null): DemoSession | null {
   if (!raw) return null;
   try {

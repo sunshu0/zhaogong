@@ -3,6 +3,7 @@ import {
   clearSession,
   isValidCode,
   isValidEmail,
+  nextForSignedIn,
   normalizeEmail,
   readSession,
   requestIdentity,
@@ -36,6 +37,23 @@ describe("sign-in input", () => {
     expect(isValidCode("123456")).toBe(true);
     expect(isValidCode(" 000000 ")).toBe(true);
     for (const bad of ["", "12345", "1234567", "12345a", "１２３４５６"]) expect(isValidCode(bad)).toBe(false);
+  });
+});
+
+describe("nextForSignedIn (#109)", () => {
+  it("sends a signed-in visit to /login on to a page on this site", () => {
+    expect(nextForSignedIn("/account", undefined, "seeker")).toBe("/account");
+    expect(nextForSignedIn(["/me/saved", "/x"], undefined, "employer")).toBe("/me/saved");
+    expect(nextForSignedIn("/jobs/j1?apply=1", "seeker", "seeker")).toBe("/jobs/j1?apply=1");
+  });
+
+  it("stays on the page without a next, for one off the site, and when another identity is asked for", () => {
+    expect(nextForSignedIn(undefined, undefined, "seeker")).toBeNull();
+    for (const bad of ["https://evil.example", "//evil.example", "/\\evil.example", "/login?next=/account"])
+      expect(nextForSignedIn(bad, undefined, "seeker")).toBeNull();
+    expect(nextForSignedIn("/employer/post", "employer", "seeker")).toBeNull();
+    expect(nextForSignedIn("/employer/post", "employer", "employer")).toBeNull();
+    expect(nextForSignedIn("/jobs/j1?apply=1", "seeker", "employer")).toBeNull();
   });
 });
 
