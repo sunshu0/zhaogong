@@ -5,10 +5,12 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
 import { regionById } from "@/config/countries";
-import { getEmployer, getJob } from "@/lib/data";
+import { getEmployer, getJob, listJobs } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { RecordView } from "@/components/seeker/RecordView";
 import { ApplyJob } from "@/components/seeker/ApplyJob";
+import { PayReferenceBox } from "@/components/ui/PayReferenceBox";
+import { payReference } from "@/lib/pay-reference";
 import { ReportJob } from "@/components/seeker/ReportJob";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
@@ -51,7 +53,18 @@ export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
 async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   const job = await getJob((await params).id);
   if (!job || !isPublic(job)) notFound();
-  const [employer, now] = await Promise.all([getEmployer(job.employerId), requestTime()]);
+  const [employer, now, open] = await Promise.all([
+    getEmployer(job.employerId),
+    requestTime(),
+    listJobs({ country: job.country }),
+  ]);
+  // 时薪参考 (#85): the other open jobs of the industry, in the region or across its area.
+  const reference = payReference(open, {
+    country: job.country,
+    industry: job.industry,
+    regionId: job.regionId,
+    exclude: job.id,
+  });
 
   return (
     <>
@@ -60,6 +73,14 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
         job={job}
         employer={employer}
         now={now}
+        payReference={
+          <PayReferenceBox
+            reference={reference}
+            at={new Date(now).toISOString()}
+            country={job.country}
+            industry={job.industry}
+          />
+        }
         share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
         actions={
           employer && !employer.bannedAt ? (

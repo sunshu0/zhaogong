@@ -27,6 +27,7 @@ export function JobDetail({
   aside,
   actions,
   share,
+  payReference,
   children,
 }: {
   job: Job;
@@ -38,6 +39,8 @@ export function JobDetail({
   actions?: ReactNode;
   /** The share button, top right of the header. */
   share?: ReactNode;
+  /** 时薪参考 (#85), right under the facts. */
+  payReference?: ReactNode;
   /** Blocks shown after the description (and after `aside` on phones), e.g. report. */
   children?: ReactNode;
 }) {
@@ -112,6 +115,8 @@ export function JobDetail({
           </div>
         )}
       </header>
+
+      {payReference}
 
       {employer && (
         <section aria-label="雇主" className="rounded-xl border border-border bg-surface p-4">

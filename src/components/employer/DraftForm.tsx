@@ -16,6 +16,7 @@ import {
   type FieldKit,
 } from "@/components/employer/DraftFormParts";
 import { ContactSection, DescriptionSection, RequirementsSection } from "@/components/employer/DraftFormSections";
+import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
 
 type Props = {
   form: PostForm;
@@ -182,6 +183,12 @@ function PaySection({ kit }: { kit: FieldKit }) {
           className={box("pay")}
         />
       </Group>
+      <PayReferenceHint
+        country={config.code}
+        industry={form.industry}
+        regionId={form.regionId}
+        pay={{ min: form.payMin, max: form.payMax }}
+      />
       <div className="flex flex-wrap gap-2">
         <Chip type="checkbox" checked={form.mealsIncluded} onChange={() => set({ mealsIncluded: !form.mealsIncluded })}>
           包餐

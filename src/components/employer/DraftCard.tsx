@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { checkJob, publishDecision, type JobDraft, type PostingEmployer } from "@/lib/compliance";
 import type { CountryCode } from "@/lib/types";
 import { draftChecklist, type ChecklistItem } from "@/components/employer/draft-checklist";
+import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
 
 /**
  * The job as the conversation has filled it so far: what it is, then one progress line that opens into
@@ -35,6 +36,12 @@ export function DraftCard({
     <section aria-label="职位卡，随对话更新" className="rounded-md border border-border bg-surface p-4 text-body">
       <DraftTitle draft={draft} />
       {summary && <p className="mt-1 text-muted">{summary}</p>}
+      {/* #85: once the chat knows the pay and the industry, what the same industry pays on the platform. */}
+      {draft.industry && draft.pay?.min != null && (
+        <div className="mt-2">
+          <PayReferenceHint country={country} industry={draft.industry} regionId={draft.regionId} pay={draft.pay} />
+        </div>
+      )}
       <button
         type="button"
         aria-expanded={open}

@@ -212,6 +212,36 @@ test("一键申请: home → search → a job → 申请; the employer: 总览 �
   await expect(applicant.getByRole("button", { name: "合适", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("时薪参考: home → a job → 同类职位时薪; 发布招聘 → 直接填表 → beside 时薪 (#85)", async ({ page }, testInfo) => {
+  await toJobList(page);
+  await page
+    .getByRole("region", { name: "职位列表" })
+    .getByRole("article")
+    .first()
+    .getByRole("heading")
+    .getByRole("link")
+    .click();
+  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+  await expect(page.getByRole("region", { name: "同类职位时薪" })).toContainText("根据平台上");
+
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
+  await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
+  await page.getByLabel("邮箱", { exact: true }).fill(`walk.pay.${run}@example.com`);
+  await page.getByRole("button", { name: "获取验证码" }).click();
+  await fillSignInCode(page);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  await page.getByLabel("店名", { exact: true }).fill(`时薪走查店${run}`);
+  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(page).toHaveURL("/employer/post");
+  await openTheForm(page);
+  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await page.getByRole("button", { name: "整理成职位" }).click();
+  await expect(page.getByRole("region", { name: "同类职位时薪" })).toContainText("餐饮");
+});
+
 test("职位续期: 职位管理 → 快到期的职位 → 续期 (#69)", async () => {
   test.fixme(true, "#69 (职位快到期提醒、续期和重新发布) is not merged yet; walk it once it is.");
 });

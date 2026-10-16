@@ -143,6 +143,14 @@
 
 雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后开对话 `apply:<申请编号>`。
 
+## 时薪参考 — `src/app/jobs/pay-reference-actions.ts`
+
+#85（PRD R-36）。用平台上在招的职位（`listJobs`）现算，不存表；职位详情在服务器上直接算，发布表单调这个函数。计算在 `payReference()`（`src/lib/pay-reference.ts`）：同一行业，同一地区至少 5 个时用地区（`scope: "region"`），否则用同一大区（`"area"`，如「全奥克兰」），还不够时 `scope: "none"` 只给个数。`min`、`max` 是时薪范围的两端，`median` 是每个职位范围中间值的中位数。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `payReferenceFor(industry, regionId, exclude?)` | 行业；地区（可不填）；不计入的职位编号（编辑中的职位） | `{ reference, at }`：`reference` 是 `{ scope, place, min, median, max, count }` 或 `{ scope: "none", count }`；`at` 是计算时间 | 行业不认识时 `null` |
+
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 
 职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
