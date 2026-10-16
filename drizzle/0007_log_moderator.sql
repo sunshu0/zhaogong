@@ -1,0 +1,1 @@
+ALTER TABLE `moderation_log` ADD `moderator_email` text;

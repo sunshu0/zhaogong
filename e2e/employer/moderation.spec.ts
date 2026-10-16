@@ -40,7 +40,9 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await expect(card).toHaveCount(0);
 
   await admin.getByRole("tab", { name: /操作记录/ }).click();
-  await expect(admin.getByRole("listitem").filter({ hasText: done })).toBeVisible();
+  const entry = admin.getByRole("listitem").filter({ hasText: done });
+  await expect(entry).toBeVisible();
+  await expect(entry).toContainText(`操作人：${MODERATOR_EMAIL}`); // #60
   await admin.context().close();
 
   await searchJobList(page, title);

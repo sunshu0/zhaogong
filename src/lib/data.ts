@@ -217,8 +217,10 @@ export async function listContactViews(jobId: string): Promise<ContactView[]> {
   return rows.map(toContactView);
 }
 
-/** Record a moderation decision. */
-export async function addModerationLog(entry: Omit<ModerationLogEntry, "id" | "at">): Promise<ModerationLogEntry> {
+/** Record a moderation decision, with the moderator who made it (#60). */
+export async function addModerationLog(
+  entry: Omit<ModerationLogEntry, "id" | "at" | "moderator"> & { moderator: string },
+): Promise<ModerationLogEntry> {
   const db = await database();
   return db.transaction(async (tx) => {
     const full: ModerationLogEntry = {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { describeAction, groupOpenReports } from "@/app/admin/moderation";
+import { describeAction, groupOpenReports, moderatorLabel } from "@/app/admin/moderation";
+import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { ModerationLogEntry, Report } from "@/lib/types";
 
 const report = (
@@ -53,5 +54,13 @@ describe("describeAction", () => {
     expect(describeAction({ ...base, action: "ban", jobTitle: undefined, takenDown: 3 } as ModerationLogEntry)).toBe(
       "封禁雇主「川味小馆」，下架 3 个职位",
     );
+  });
+});
+
+describe("moderatorLabel (#60)", () => {
+  it("names the moderator, a deleted one without the email, and says when an older entry has none", () => {
+    expect(moderatorLabel("mod@example.com")).toBe("mod@example.com");
+    expect(moderatorLabel(DELETED_ACCOUNT)).toBe("已删除的审核员");
+    expect(moderatorLabel(undefined)).toBe("（较早的记录，未记审核员）");
   });
 });

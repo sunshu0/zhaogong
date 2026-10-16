@@ -142,6 +142,8 @@ export interface ModerationLogEntry {
   rules?: string[];
   /** Jobs a ban took down. */
   takenDown?: number;
+  /** The moderator's email (#60). Missing on entries from before #60; "deleted-account" once the account is deleted. */
+  moderator?: string;
 }
 
 /** Platform-wide counts for the landing page. Real counts only, never estimates. */

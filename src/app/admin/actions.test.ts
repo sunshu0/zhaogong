@@ -208,5 +208,7 @@ describe("moderation queue", () => {
     expect(reported.map((r) => r.job.id)).not.toContain("j11");
     expect(log[0].text).toBe("封禁雇主「快达物流」，下架 2 个职位");
     expect(log.map((e) => e.action)).toEqual(["ban", "dismiss", "take_down", "approve"]);
+    // Every decision names the moderator who made it (#60).
+    expect(log.map((e) => e.moderator)).toEqual([MODERATOR, MODERATOR, MODERATOR, MODERATOR]);
   });
 });

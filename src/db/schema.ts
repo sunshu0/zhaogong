@@ -93,6 +93,8 @@ export const moderationLog = sqliteTable("moderation_log", {
   reasons: text("reasons", { mode: "json" }).$type<ReportReason[]>(),
   rules: text("rules", { mode: "json" }).$type<string[]>(),
   takenDown: integer("taken_down"),
+  /** The moderator who acted (#60); null on entries from before #60, deleted-account once that account is gone. */
+  moderator: text("moderator_email"),
 });
 
 /** One person, one email; every account can look for work, and can open one employer identity. */

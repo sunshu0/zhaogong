@@ -13,6 +13,8 @@ import type { AccountRole, Employer, Job } from "@/lib/types";
 export interface ServerAccountData {
   account: { email: string; createdAt: string; lastRole: AccountRole };
   moderator: { grantedAt: string; grantedBy: string | null } | null;
+  /** The moderation decisions this account made as a moderator (#60). */
+  moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
   /** The business of the employer identity and every job it posted, whatever their status. */
   employer: { business: Employer; jobs: Job[] } | null;
   /** Each identity's chat records and the notifications it has read. */
@@ -36,6 +38,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
   const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
   if (!account) return undefined;
   const [moderator] = await db.select().from(t.moderators).where(eq(t.moderators.email, address));
+  const actions = await db
+    .select()
+    .from(t.moderationLog)
+    .where(eq(t.moderationLog.moderator, address))
+    .orderBy(asc(t.moderationLog.at));
   const [business] = account.employerId
     ? await db.select().from(t.employers).where(eq(t.employers.id, account.employerId))
     : [];
@@ -81,6 +88,13 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
   return {
     account: { email: account.email, createdAt: account.createdAt, lastRole: account.lastRole },
     moderator: moderator ? { grantedAt: moderator.grantedAt, grantedBy: moderator.grantedBy } : null,
+    moderationActions: actions.map((a) => ({
+      id: a.id,
+      at: a.at,
+      action: a.action,
+      jobId: a.jobId,
+      employerId: a.employerId,
+    })),
     employer: business ? { business: toEmployer(business), jobs: jobs.map(toJob) } : null,
     chats: chats.map((row) => ({
       identity: row.scope,
@@ -117,6 +131,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       await tx.delete(t.moderators).where(eq(t.moderators.email, address));
     }
     await tx.update(t.moderators).set({ grantedBy: DELETED_ACCOUNT }).where(eq(t.moderators.grantedBy, address));
+    // The decisions stay in the log (#60), without the moderator's email.
+    await tx.update(t.moderationLog).set({ moderator: DELETED_ACCOUNT }).where(eq(t.moderationLog.moderator, address));
 
     await tx.delete(t.sessions).where(eq(t.sessions.email, address));
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));

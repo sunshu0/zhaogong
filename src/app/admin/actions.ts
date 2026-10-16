@@ -63,10 +63,10 @@ export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
 
 export type AdminResult = { ok: true; text: string } | { ok: false; error_zh: string };
 
-/** The refusal as an AdminResult, or undefined for a moderator. */
-async function refusal(): Promise<AdminResult | undefined> {
+/** The signed-in moderator, who goes into the log (#60), or the refusal as an AdminResult. */
+async function acting(): Promise<{ email: string; refused?: never } | { refused: AdminResult }> {
   const me = await requireModerator();
-  return me.ok ? undefined : { ok: false, error_zh: REFUSED_ZH[me.reason] };
+  return me.ok ? { email: me.email } : { refused: { ok: false, error_zh: REFUSED_ZH[me.reason] } };
 }
 
 async function openReportsFor(jobId: string): Promise<Report[]> {
@@ -95,8 +95,8 @@ async function subject(jobId: unknown) {
 
 /** A job flagged at posting is fine: it goes live for 30 days from now. */
 export async function approveJob(jobId: string): Promise<AdminResult> {
-  const refused = await refusal();
-  if (refused) return refused;
+  const me = await acting();
+  if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: "这个职位不在待审核列表里。" };
   if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
@@ -104,14 +104,19 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
   const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
   if (approved) await matchJobAlerts(approved); // now live: tell job seekers whose alerts it matches (#53)
-  const entry = await addModerationLog({ action: "approve", ...s.names, rules: findings.map((f) => f.rule) });
+  const entry = await addModerationLog({
+    action: "approve",
+    ...s.names,
+    rules: findings.map((f) => f.rule),
+    moderator: me.email,
+  });
   return { ok: true, text: describeAction(entry) };
 }
 
 /** Takes a job down and closes its open reports as acted on. */
 export async function takeDownJob(jobId: string): Promise<AdminResult> {
-  const refused = await refusal();
-  if (refused) return refused;
+  const me = await acting();
+  if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s) return { ok: false, error_zh: "找不到这个职位。" };
   const reports = await openReportsFor(s.job.id);
@@ -124,27 +129,33 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
     ...s.names,
     reasons: reports.map((r) => r.reason),
     rules,
+    moderator: me.email,
   });
   return { ok: true, text: describeAction(entry) };
 }
 
 /** The reports on this job do not hold up; the job stays as it is. */
 export async function dismissReports(jobId: string): Promise<AdminResult> {
-  const refused = await refusal();
-  if (refused) return refused;
+  const me = await acting();
+  if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s) return { ok: false, error_zh: "找不到这个职位。" };
   const reports = await openReportsFor(s.job.id);
   if (!reports.length) return { ok: false, error_zh: "这个职位没有待处理的举报。" };
   await close(reports, "dismissed");
-  const entry = await addModerationLog({ action: "dismiss", ...s.names, reasons: reports.map((r) => r.reason) });
+  const entry = await addModerationLog({
+    action: "dismiss",
+    ...s.names,
+    reasons: reports.map((r) => r.reason),
+    moderator: me.email,
+  });
   return { ok: true, text: describeAction(entry) };
 }
 
 /** Bans the employer behind a job: all their jobs come down and reports on them are closed. */
 export async function banJobEmployer(jobId: string): Promise<AdminResult> {
-  const refused = await refusal();
-  if (refused) return refused;
+  const me = await acting();
+  if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s?.employer) return { ok: false, error_zh: "找不到这个雇主。" };
   if (s.employer.bannedAt) return { ok: false, error_zh: "这个雇主已经被封禁。" };
@@ -158,6 +169,7 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
     employerId: s.employer.id,
     employerName: s.employer.name,
     takenDown: takenDown.length,
+    moderator: me.email,
   });
   return { ok: true, text: describeAction(entry) };
 }

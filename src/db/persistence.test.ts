@@ -46,7 +46,13 @@ describe("kept across a restart", () => {
   });
 
   it("keeps moderation decisions and a ban, with the jobs it took down", async () => {
-    const entry = await addModerationLog({ action: "ban", employerId: "e4", employerName: "测试", takenDown: 1 });
+    const entry = await addModerationLog({
+      action: "ban",
+      employerId: "e4",
+      employerName: "测试",
+      takenDown: 1,
+      moderator: "m@example.com",
+    });
     const takenDown = await banEmployer("e4");
     restart();
     expect((await listModerationLog())[0]).toEqual(entry);

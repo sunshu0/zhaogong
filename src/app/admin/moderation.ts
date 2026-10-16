@@ -1,6 +1,7 @@
 // Moderation queue helpers: grouping reports and wording the log. The log itself is in data.ts.
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import type { RuleId } from "@/lib/compliance";
+import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { ModerationLogEntry, Report, ReportReason } from "@/lib/types";
 
 export const RULE_LABELS: Record<RuleId, string> = {
@@ -32,6 +33,12 @@ export function groupOpenReports(reports: Report[]): ReportGroup[] {
 const unique = <T>(list: T[] = []) => [...new Set(list)];
 /** Reasons always in the same order, so a log line does not depend on which report came first. */
 const REASON_ORDER = Object.keys(REPORT_REASON_LABELS) as ReportReason[];
+
+/** Who acted, for the log (#60). */
+export function moderatorLabel(moderator: string | undefined): string {
+  if (!moderator) return "（较早的记录，未记审核员）";
+  return moderator === DELETED_ACCOUNT ? "已删除的审核员" : moderator;
+}
 
 export function describeAction(entry: ModerationLogEntry): string {
   const job = `「${entry.jobTitle}」（${entry.employerName}）`;

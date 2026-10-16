@@ -149,7 +149,7 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getModerationQueue()` | | `{ flagged, reported, log }`：待审核的职位、有未处理举报的职位（只含职位举报）、操作日志 | `{ refused, error_zh }` |
+| `getModerationQueue()` | | `{ flagged, reported, log }`：待审核的职位、有未处理举报的职位（只含职位举报）、操作日志（每条带 `moderator`：操作的审核员邮箱；#60 之前的旧记录没有，删除账号后是 `deleted-account`） | `{ refused, error_zh }` |
 | `approveJob(jobId)` | | `{ ok: true, text }`，职位上线 30 天，记日志 | `{ ok: false, error_zh }`：「这个职位不在待审核列表里。」「雇主已被封禁，不能通过。」「这个职位仍有不能发布的问题，只能下架。」 |
 | `takeDownJob(jobId)` | | 下架，未处理的举报标为已处理，记日志 | 「找不到这个职位。」 |
 | `dismissReports(jobId)` | | 驳回这个职位的举报，职位不变，记日志 | 「找不到这个职位。」「这个职位没有待处理的举报。」 |

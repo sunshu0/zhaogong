@@ -12,6 +12,8 @@ import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
 import { DEMO_MODERATOR } from "@/db/seed";
 import {
+  addModerationLog,
+  listModerationLog,
   createEmployer,
   createJob,
   ensureAccount,
@@ -168,10 +170,18 @@ describe("deleteAccount (#54)", () => {
     await ensureAccount(second);
     await grantModerator(first, null);
     await grantModerator(second, first);
+    const decision = await addModerationLog({ action: "dismiss", jobId: "j2", moderator: first });
+    expect((await exportAccountData(first))?.moderationActions).toEqual([
+      { id: decision.id, at: decision.at, action: "dismiss", jobId: "j2", employerId: null },
+    ]);
 
     expect(await deleteAccount(first)).toBe("deleted");
     expect(await isModerator(first)).toBe(false);
     expect((await listModerators()).find((m) => m.email === second)?.grantedBy).toBe(DELETED_ACCOUNT);
+    // The decision stays, without the email (#60).
+    const kept = (await listModerationLog()).find((e) => e.id === decision.id);
+    expect(kept).toMatchObject({ action: "dismiss", moderator: DELETED_ACCOUNT });
+    expect(JSON.stringify(await listModerationLog())).not.toContain(first);
 
     // Leave `second` as the only moderator.
     for (const m of await listModerators()) if (m.email !== second) await revokeModerator(m.email);
@@ -192,6 +202,7 @@ describe("deleteAccount (#54)", () => {
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",
+      "moderation_log.moderator_email",
       "moderators.email",
       "conversations.seeker_email",
     ]);

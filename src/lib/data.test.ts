@@ -86,8 +86,8 @@ describe("employer and moderation data", () => {
 describe("moderation log", () => {
   it("keeps decisions newest first", async () => {
     const { addModerationLog, listModerationLog } = await import("@/lib/data");
-    await addModerationLog({ action: "take_down", jobId: "j2", reasons: ["charges_fee"] });
-    await addModerationLog({ action: "ban", employerId: "e6", takenDown: 1 });
+    await addModerationLog({ action: "take_down", jobId: "j2", reasons: ["charges_fee"], moderator: "m@example.com" });
+    await addModerationLog({ action: "ban", employerId: "e6", takenDown: 1, moderator: "m@example.com" });
     const log = await listModerationLog();
     expect(log.map((e) => e.action).slice(0, 2)).toEqual(["ban", "take_down"]);
     expect(log[0].id).not.toBe(log[1].id);
@@ -211,7 +211,9 @@ describe("on the database", () => {
     expect(Number(b.id.slice(1))).toBe(Number(a.id.slice(1)) + 1);
     const report = await submitReport(a.id, "other");
     expect(report.id).toMatch(/^r\d+$/);
-    expect((await addModerationLog({ action: "dismiss", jobId: a.id })).id).toMatch(/^a\d+$/);
+    expect((await addModerationLog({ action: "dismiss", jobId: a.id, moderator: "m@example.com" })).id).toMatch(
+      /^a\d+$/,
+    );
   });
 
   it("loads the demo data once, however often the database is asked for", async () => {

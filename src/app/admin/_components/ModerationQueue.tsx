@@ -14,6 +14,7 @@ import {
   type QueueItem,
   type Refused,
 } from "@/app/admin/actions";
+import { moderatorLabel } from "@/app/admin/moderation";
 import { Empty } from "@/app/admin/_components/Empty";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
@@ -116,7 +117,10 @@ export function ModerationQueue() {
                     <time dateTime={e.at} className="w-24 shrink-0 text-muted">
                       {time.format(new Date(e.at))}
                     </time>
-                    <span>{e.text}</span>
+                    <span className="min-w-0">
+                      {e.text}
+                      <span className="block text-meta text-muted">操作人：{moderatorLabel(e.moderator)}</span>
+                    </span>
                   </li>
                 ))}
               </ol>

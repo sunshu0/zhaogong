@@ -50,6 +50,13 @@
       "when": 1792113867055,
       "tag": "0006_job_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792131082910,
+      "tag": "0007_log_moderator",
+      "breakpoints": true
     }
   ]
 }
