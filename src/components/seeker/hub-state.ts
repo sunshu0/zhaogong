@@ -91,7 +91,11 @@ const SEEKER: DemoSession = { email: "", signedInAt: "", activeRole: "seeker" };
 const EMPLOYER: DemoSession = { ...SEEKER, activeRole: "employer" };
 
 type NotificationTarget =
-  { type: "conversation"; id: string } | { type: "profile" } | { type: "job"; id: string } | { type: "closing_jobs" };
+  | { type: "conversation"; id: string }
+  | { type: "profile" }
+  | { type: "job"; id: string }
+  | { type: "closing_jobs" }
+  | { type: "applicants"; jobId: string };
 export type Notification = {
   id: string;
   type: string;
@@ -199,5 +203,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
         ? "/profile"
         : target?.type === "closing_jobs"
           ? "/employer/jobs?tab=ending"
-          : undefined;
+          : target?.type === "applicants"
+            ? `/employer/jobs/${encodeURIComponent(target.jobId)}/applicants`
+            : undefined;
 }

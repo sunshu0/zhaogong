@@ -22,7 +22,8 @@ import { ShareTexts } from "@/components/employer/ShareTexts";
 import Link from "next/link";
 import type { JobNumbers } from "@/db/job-stats";
 import type { RenewalCounts } from "@/db/job-renewals";
-import { cardNumbers } from "@/components/employer/job-card";
+import type { ApplicationCount } from "@/db/job-applications";
+import { applicantsLabelZh, cardNumbers } from "@/components/employer/job-card";
 import { Figures, PhaseTag } from "@/components/employer/StatusTag";
 import { Pay } from "@/components/ui/Pay";
 
@@ -38,6 +39,7 @@ export function ManagedJob({
   employer,
   numbers,
   renewals,
+  applications,
   now,
   onDone,
 }: {
@@ -47,6 +49,8 @@ export function ManagedJob({
   numbers: JobNumbers;
   /** How often it was renewed (#69), when it was. */
   renewals?: RenewalCounts[string];
+  /** Applications (#84). */
+  applications?: ApplicationCount;
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -64,7 +68,7 @@ export function ManagedJob({
 
   return (
     <article className="py-4">
-      <JobSummary job={job} phase={phase} numbers={numbers} renewals={renewals} now={now} />
+      <JobSummary job={job} phase={phase} numbers={numbers} renewals={renewals} applications={applications} now={now} />
       <StatusNote
         job={job}
         phase={phase}
@@ -113,12 +117,14 @@ function JobSummary({
   phase,
   numbers,
   renewals,
+  applications,
   now,
 }: {
   job: Job;
   phase: Phase;
   numbers: JobNumbers;
   renewals?: RenewalCounts[string];
+  applications?: ApplicationCount;
   now: number;
 }) {
   const hires = hiresLabelZh(job);
@@ -152,6 +158,10 @@ function JobSummary({
         ))}
         <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
           近 14 天
+        </Link>
+        {/* #84: who applied; the list marks them seen. */}
+        <Link href={`/employer/jobs/${job.id}/applicants`} className="text-brand underline-offset-4 hover:underline">
+          <Figures>{applicantsLabelZh(applications)}</Figures>
         </Link>
         {renewals && (
           <span>

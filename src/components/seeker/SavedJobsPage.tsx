@@ -10,6 +10,7 @@ import { identityScope } from "@/components/seeker/identity-scope";
 import { formatDateZh } from "@/components/seeker/job-facts";
 import { Pay } from "@/components/ui/Pay";
 import { Tag } from "@/components/ui/Tag";
+import { useAppliedJobIds } from "@/components/seeker/applied-client";
 
 /**
  * 收藏和进度 (#52): the account's saved jobs, newest first, each with its stage. Jobs taken down or past their
@@ -19,6 +20,7 @@ export function SavedJobsPage() {
   const hydrated = useHydrated();
   const session = useSession();
   const signedIn = Boolean(session);
+  const applied = useAppliedJobIds();
   // undefined: loading.
   const [jobs, setJobs] = useState<SavedJobView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export function SavedJobsPage() {
                       </Link>
                     )}
                     {job.gone && <Tag kind="neutral">已下架</Tag>}
+                    {applied?.has(job.jobId) && <Tag kind="perk">已申请</Tag>}
                   </h2>
                   <p lang="en" className="truncate font-latin text-meta text-muted">
                     {job.titleEn}

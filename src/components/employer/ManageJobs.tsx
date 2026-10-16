@@ -171,6 +171,7 @@ function JobsInTab({
               employer={employer}
               numbers={ready.numbers[job.id] ?? NO_NUMBERS}
               renewals={ready.renewals[job.id]}
+              applications={ready.applications[job.id]}
               now={ready.now}
               onDone={onDone}
             />

@@ -18,6 +18,7 @@ import {
 import { scopeOf } from "@/lib/chat-server/identity";
 import { postedAgoZh } from "@/components/seeker/format";
 import { myClosingNotifications } from "@/app/employer/closing-notifications";
+import { myApplicationNotifications } from "@/app/employer/application-notifications";
 import type { Notification } from "@/components/seeker/hub-state";
 import {
   alertConditions,
@@ -84,8 +85,15 @@ export async function myAlertNotifications(): Promise<{ scope: string; items: No
   if (!session) return null;
   const scope = scopeOf(session);
   const now = Date.now();
-  // The employer identity's are its jobs closing soon (#69).
-  if (session.activeRole === "employer") return { scope, items: await myClosingNotifications(session.email, now) };
+  // The employer identity's are applications (#84) and its jobs closing soon (#69).
+  if (session.activeRole === "employer")
+    return {
+      scope,
+      items: [
+        ...(await myApplicationNotifications(session.email, now)),
+        ...(await myClosingNotifications(session.email, now)),
+      ],
+    };
   const items = await Promise.all(
     (await listJobAlertHits(session.email)).map(async (hit): Promise<Notification> => {
       const job = await getJob(hit.jobId);

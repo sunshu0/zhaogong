@@ -8,6 +8,7 @@ import { Pay } from "@/components/ui/Pay";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
+import { ApplyRowButton } from "@/components/seeker/ApplyJob";
 
 /** At most this many tags on a row; the job page shows everything. */
 const CARD_TAGS = 3;
@@ -16,7 +17,7 @@ const CARD_TAGS = 3;
  * One job in a list, a block of its own (#63: rows between thin lines ran together, users could not tell where one
  * job ended): title (zh, en) with the pay on the right, then
  * 地区 and 工时 with small grey labels and how the employer is reached, then the employer (avatar, name,
- * verification level), up to three tags and 收藏 (#52). Everything else (description, shifts, languages, visas) is on the job page. Only
+ * verification level), up to three tags, 收藏 (#52) and 申请 (#84). Everything else (description, shifts, languages, visas) is on the job page. Only
  * the title is a link; it stretches over the whole row, so screen readers hear the title alone.
  */
 export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employer?: Employer; headingLevel?: 2 | 3 }) {
@@ -74,6 +75,7 @@ export function JobCard({ job, employer, headingLevel = 2 }: { job: Job; employe
             </ul>
           )}
           <SaveJobButton jobId={job.id} title={job.titleZh} />
+          <ApplyRowButton jobId={job.id} title={job.titleZh} />
         </div>
       </div>
     </article>

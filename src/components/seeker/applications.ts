@@ -3,6 +3,14 @@
 import { parseResume, type Candidate, type Resume } from "@/lib/candidate-matching";
 import type { Profile } from "@/components/seeker/hub-state";
 
+/** In a job page's address after sign-in from 申请: open the form (ApplyJob). */
+export const APPLY_PARAM = "apply";
+
+/** Sign-in for 申请 while signed out, coming back to the job with the form open. */
+export function applyAfterSignInHref(jobId: string): string {
+  return `/login?role=seeker&next=${encodeURIComponent(`/jobs/${jobId}?${APPLY_PARAM}=1`)}`;
+}
+
 /** The note sent with an application. */
 export const NOTE_MAX = 200;
 const NAME_MAX = 40;
@@ -76,6 +84,16 @@ export function seekerStatus(application: { seenAt?: string | null; decision?: A
   if (application.decision === "fit") return "雇主觉得合适";
   if (application.seenAt || application.decision === "unfit") return "雇主已看过";
   return "已申请，等雇主查看";
+}
+
+/** The employer's notification about one application (#84). */
+export function applicationNotificationId(applicationId: string): string {
+  return `apply:${applicationId}`;
+}
+
+/** The employer's chat with someone who applied (#84). */
+export function applicantConversationId(applicationId: string): string {
+  return `apply:${applicationId}`;
 }
 
 /** Why an application cannot go through, as a sentence for the page. */

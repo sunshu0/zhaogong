@@ -86,6 +86,25 @@ describe("workspaceTodos", () => {
     ]);
   });
 
+  it("gives employers each job's new applications, before closing jobs (#84)", () => {
+    const job = (id: string, days = 20) => ({
+      id,
+      titleZh: id,
+      status: "active" as const,
+      expiresAt: new Date(NOW + days * DAY).toISOString(),
+    });
+    const todos = workspaceTodos({
+      ...base,
+      isEmployer: true,
+      jobs: [job("厨师", 1), job("服务员"), job("收银")],
+      unseenApplications: { 服务员: 2, 收银: 0 },
+    });
+    expect(todos.map((todo) => [todo.title, todo.detail, todo.href])).toEqual([
+      ["2 个新申请", "「服务员」", "/employer/jobs/%E6%9C%8D%E5%8A%A1%E5%91%98/applicants"],
+      ["「厨师」1 天后截止", expect.any(String), "/employer/jobs?tab=ending"],
+    ]);
+  });
+
   it("ignores jobs for job seekers", () => {
     const todos = workspaceTodos({
       ...base,

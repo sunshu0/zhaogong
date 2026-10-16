@@ -1,6 +1,6 @@
 // The workspace (/workspace) lists only what needs doing, most urgent first (Round 11, C3):
-// someone waiting for your consent, then unread chats, then jobs about to close (#69) or under review, then the
-// profile.
+// someone waiting for your consent, then unread chats, then new applications (#84), then jobs about to close (#69)
+// or under review, then the profile.
 import type { Exchange } from "@/lib/chat-consent";
 import { EXCHANGE_LABELS } from "@/lib/chat-consent";
 import type { Job } from "@/lib/types";
@@ -15,6 +15,8 @@ export type TodoInput = {
   exchanges: Record<string, Exchange[]>;
   /** The employer's own jobs, once loaded. */
   jobs?: Pick<Job, "id" | "titleZh" | "status" | "expiresAt">[];
+  /** Applications the business has not looked at yet, by job (#84), once loaded. */
+  unseenApplications?: Record<string, number>;
   now: number;
   profileMissing: { count: number; labels: string[] };
 };
@@ -48,6 +50,16 @@ export function workspaceTodos(input: TodoInput): Todo[] {
   }
 
   if (input.isEmployer && input.jobs) {
+    for (const job of input.jobs) {
+      const count = input.unseenApplications?.[job.id] ?? 0;
+      if (!count) continue;
+      todos.push({
+        id: `applications:${job.id}`,
+        title: `${count} 个新申请`,
+        detail: `「${job.titleZh}」`,
+        href: `/employer/jobs/${encodeURIComponent(job.id)}/applicants`,
+      });
+    }
     // The same reminders as 通知 has: from 3 days before closing, and while a job that ran out can be renewed.
     for (const reminder of closingReminders(input.jobs, input.now)) {
       todos.push({ id: reminder.id, title: reminder.title, detail: reminder.detail, href: CLOSING_HREF });

@@ -1,6 +1,7 @@
 // What a card on 职位管理 shows: the same numbers on every card, one main button and the rest under 更多.
 import type { Job } from "@/lib/types";
 import type { JobNumbers } from "@/db/job-stats";
+import type { ApplicationCount } from "@/db/job-applications";
 import { canClose, canRepublish, effectiveStatus, refreshState, renewState } from "@/components/employer/job-status";
 
 /** Which question is open on the card: ending the job, recording hires, or how long to renew it for. */
@@ -60,4 +61,10 @@ export function cardActions(
     more.push({ key: "hires", label: job.hiresConfirmed == null ? "记录招到几人" : "更正招到人数" });
 
   return { main: seekersCanOpen ? { label: "查看", href: `/jobs/${job.id}` } : edit, more };
+}
+
+/** 「3 个申请 · 1 个新」 on a job card; 「申请人 0」 before anyone applied. */
+export function applicantsLabelZh(count?: ApplicationCount): string {
+  if (!count?.total) return "申请人 0";
+  return count.unseen ? `${count.total} 个申请 · ${count.unseen} 个新` : `${count.total} 个申请`;
 }

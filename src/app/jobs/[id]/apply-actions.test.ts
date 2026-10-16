@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
+import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
+import { notificationHref } from "@/components/seeker/hub-state";
 import { banEmployer, ensureAccount, openEmployerIdentity, updateJob } from "@/lib/data";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
@@ -16,6 +18,8 @@ const { applyForJob, myAppliedJobIds, myApplicationViews, myJobApplication, with
   await import("@/app/jobs/[id]/apply-actions");
 const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants } =
   await import("@/app/employer/applicant-actions");
+const { myAlertNotifications } = await import("@/app/me/alerts/actions");
+const { markMyNotificationsRead } = await import("@/app/messages/actions");
 
 const PAGE = {
   name: "林晓",
@@ -36,6 +40,7 @@ async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
 
 beforeEach(() => {
   setAuthStoreForTests();
+  setChatServerStoreForTests(memoryChatStore());
   cookies.clear();
 });
 
@@ -98,6 +103,13 @@ describe("the employer's applicant list (#84)", () => {
     await openEmployerIdentity("apply.e2@example.com", "e2");
     await signedIn("apply.e2@example.com", "employer");
     expect((await getMyApplicationCounts()).j4).toEqual({ total: 1, unseen: 1 });
+    // 通知: one per application, read once the list was opened; the employer can mark it read too.
+    const notice = (await myAlertNotifications())!.items.find((n) => n.type === "申请")!;
+    expect(notice).toMatchObject({ title: "林晓申请了楼面服务员", detail: "附言：会做点心", unread: true });
+    expect(notificationHref(notice, { email: "apply.e2@example.com", signedInAt: "", activeRole: "employer" })).toBe(
+      "/employer/jobs/j4/applicants",
+    );
+    expect((await markMyNotificationsRead([notice.id]))!.ids).toContain(notice.id);
     const first = await getMyJobApplicants("j4");
     expect(first!.applicants).toHaveLength(1);
     const [applicant] = first!.applicants;

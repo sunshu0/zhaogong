@@ -10,6 +10,7 @@ import type { Employer, Job } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { chatDemo } from "@/components/seeker/chat-demo";
+import { applicantConversationId } from "@/components/seeker/applications";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
 import {
   EMPTY_CHAT,
@@ -200,6 +201,26 @@ export function useChat() {
       sendChange(scope, {
         type: "open",
         conversation: { kind: "candidate", jobId: job.id, candidateId: candidate.id, name: candidate.name },
+      });
+      return id;
+    },
+    /** #84: the business chats with someone who applied for one of its jobs. */
+    openApplicantChat(applicant: { id: string; name: string }, job: Pick<Job, "id" | "employerId" | "titleZh">) {
+      if (!session || !isEmployer || job.employerId !== session.employerId) return null;
+      const id = applicantConversationId(applicant.id);
+      change((current) =>
+        openConversation(current, {
+          id,
+          person: applicant.name,
+          title: job.titleZh,
+          time: "刚刚",
+          avatar: applicant.name.slice(0, 1),
+          job: job.id,
+        }),
+      );
+      sendChange(scope, {
+        type: "open",
+        conversation: { kind: "applicant", jobId: job.id, applicationId: applicant.id },
       });
       return id;
     },

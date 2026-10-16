@@ -4,17 +4,21 @@ import type { Job } from "@/lib/types";
 import { getMyJob, getMyJobNumbers, getMyJobRenewals, getMyJobs } from "@/app/employer/actions";
 import type { JobNumbers } from "@/db/job-stats";
 import type { RenewalCounts } from "@/db/job-renewals";
+import { getMyApplicationCounts } from "@/app/employer/applicant-actions";
+import type { ApplicationCount } from "@/db/job-applications";
 
 type Loaded = {
   email: string;
   jobs: Job[];
   numbers: Record<string, JobNumbers>;
   renewals: RenewalCounts;
+  /** Applications to each job (#84); jobs nobody applied to are left out. */
+  applications: Record<string, ApplicationCount>;
   now: number;
 };
 
 /**
- * The account's jobs, their numbers (#55) and renewals (#69) from the server, with the time they were read; `reload`
+ * The account's jobs, their numbers (#55), renewals (#69) and applications (#84) from the server, with the time they were read; `reload`
  * after a change.
  */
 export function useMyJobs(email: string | undefined) {
@@ -24,9 +28,11 @@ export function useMyJobs(email: string | undefined) {
   useEffect(() => {
     if (!email) return;
     let live = true;
-    Promise.all([getMyJobs(), getMyJobNumbers(), getMyJobRenewals()]).then(([jobs, numbers, renewals]) => {
-      if (live) setLoaded({ email, jobs, numbers, renewals, now: Date.now() });
-    });
+    Promise.all([getMyJobs(), getMyJobNumbers(), getMyJobRenewals(), getMyApplicationCounts()]).then(
+      ([jobs, numbers, renewals, applications]) => {
+        if (live) setLoaded({ email, jobs, numbers, renewals, applications, now: Date.now() });
+      },
+    );
     return () => {
       live = false;
     };

@@ -149,6 +149,17 @@ export async function unseenApplications(employerId: string): Promise<Applicatio
     .orderBy(desc(jobApplications.appliedAt));
 }
 
+/** The business's latest applications, newest first: for 通知. */
+export async function applicationsOfBusiness(employerId: string, limit = 30): Promise<ApplicationRow[]> {
+  const db = await database();
+  return db
+    .select()
+    .from(jobApplications)
+    .where(eq(jobApplications.employerId, employerId))
+    .orderBy(desc(jobApplications.appliedAt), desc(jobApplications.id))
+    .limit(limit);
+}
+
 function mine(email: string, jobId: string) {
   return and(eq(jobApplications.seekerEmail, email), eq(jobApplications.jobId, jobId));
 }

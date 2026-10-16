@@ -8,6 +8,7 @@ import { regionById } from "@/config/countries";
 import { getEmployer, getJob } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { RecordView } from "@/components/seeker/RecordView";
+import { ApplyJob } from "@/components/seeker/ApplyJob";
 import { ReportJob } from "@/components/seeker/ReportJob";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
@@ -74,6 +75,7 @@ async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
                 }}
                 closed={isExpired(job, now)}
               />
+              {!isExpired(job, now) && <ApplyJob jobId={job.id} jobTitle={job.titleZh} employerId={job.employerId} />}
               {job.contactPublic && (
                 <a href="#contact" className={buttonClass("secondary")}>
                   查看联系方式

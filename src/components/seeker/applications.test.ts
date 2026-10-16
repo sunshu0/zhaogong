@@ -3,6 +3,7 @@ import { candidateFacts } from "@/lib/candidate-matching";
 import {
   NOTE_MAX,
   applicantCandidate,
+  applyAfterSignInHref,
   applicationProfileFrom,
   parseApplicationNote,
   parseApplicationProfile,
@@ -74,6 +75,12 @@ describe("parseApplicationProfile", () => {
   it("gives the five facts employers check first", () => {
     const facts = candidateFacts(applicantCandidate("a1", parseApplicationProfile(page)!));
     expect(facts.map((f) => f.value)).toEqual(["周末", "市中心", "$25 起", "普通话、英语", "2 年"]);
+  });
+});
+
+describe("applyAfterSignInHref", () => {
+  it("signs in as a job seeker and comes back to the job with the form open", () => {
+    expect(applyAfterSignInHref("j3")).toBe("/login?role=seeker&next=%2Fjobs%2Fj3%3Fapply%3D1");
   });
 });
 

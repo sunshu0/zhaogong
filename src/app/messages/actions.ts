@@ -10,6 +10,8 @@ import { listJobAlertHits } from "@/db/job-alerts";
 import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
+import { applicationOf } from "@/db/job-applications";
+import { myApplicationNotificationIds } from "@/app/employer/application-notifications";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { parsePayload, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
 import {
@@ -27,6 +29,7 @@ import {
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { alertNotificationId } from "@/components/seeker/job-alerts";
 import { isExpired } from "@/components/seeker/job-facts";
+import { applicantConversationId } from "@/components/seeker/applications";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
 
 const MESSAGE_MAX = 2000;
@@ -50,7 +53,9 @@ export type ChatChange =
   | {
       type: "open";
       conversation:
-        { kind: "employer"; jobId: string } | { kind: "candidate"; jobId: string; candidateId: string; name: string };
+        | { kind: "employer"; jobId: string }
+        | { kind: "candidate"; jobId: string; candidateId: string; name: string }
+        | { kind: "applicant"; jobId: string; applicationId: string };
     };
 
 /** The signed-in identity's chat records; null when signed out. */
@@ -190,6 +195,22 @@ async function openFor(
     });
   }
 
+  // #84: someone who applied for one of the business's jobs; their name is the one on the page they applied with.
+  if (target.kind === "applicant" && me.isEmployer && job.employerId === me.session.employer?.id) {
+    if (typeof target.applicationId !== "string") return record;
+    const application = await applicationOf(job.employerId, target.applicationId);
+    if (!application || application.jobId !== job.id) return record;
+    const name = application.profile.name;
+    return openConversation(record, {
+      id: applicantConversationId(application.id),
+      person: name,
+      title: job.titleZh,
+      time: "刚刚",
+      avatar: name.slice(0, 1),
+      job: job.id,
+    });
+  }
+
   if (target.kind === "candidate" && me.isEmployer && job.employerId === me.session.employer?.id) {
     if (typeof target.candidateId !== "string" || !target.candidateId) return record;
     // Demo candidates are known here; candidates who made a page in their own browser are not (yet), so their
@@ -231,6 +252,7 @@ export async function markMyNotificationsRead(ids: string[] | "all"): Promise<Re
   }).map((n) => n.id);
   if (!me.isEmployer)
     mine.push(...(await listJobAlertHits(me.session.email)).map((hit) => alertNotificationId(hit.jobId)));
+  else mine.push(...(await myApplicationNotificationIds(me.session.email)));
   const asked = ids === "all" ? mine : Array.isArray(ids) ? ids.filter((id) => mine.includes(id)) : [];
   const read = [...new Set([...((await store.getNotificationReads(me.scope)) ?? []), ...asked])];
   await store.putNotificationReads(me.scope, read);

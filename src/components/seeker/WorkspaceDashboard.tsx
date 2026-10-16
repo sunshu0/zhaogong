@@ -31,6 +31,9 @@ export function WorkspaceDashboard() {
     unread,
     exchanges,
     jobs: jobs?.jobs,
+    unseenApplications: jobs
+      ? Object.fromEntries(Object.entries(jobs.applications).map(([id, count]) => [id, count.unseen]))
+      : undefined,
     now: jobs?.now ?? 0,
     profileMissing: { count: progress.missing.length, labels: progress.missing.map((item) => item.label) },
   });

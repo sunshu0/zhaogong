@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardActions, cardNumbers } from "@/components/employer/job-card";
+import { applicantsLabelZh, cardActions, cardNumbers } from "@/components/employer/job-card";
 import { MOCK_JOBS } from "@/mock/data";
 
 const NOW = Date.UTC(2026, 9, 15);
@@ -82,5 +82,14 @@ describe("cardActions", () => {
 
   it("hides 结束招聘 and the hires item while a question is already open", () => {
     expect(keys(cardActions(job, NOW, { asking: "close", sharing: false }))).not.toContain("close");
+  });
+});
+
+describe("applicantsLabelZh (#84)", () => {
+  it("counts applications and says how many are new", () => {
+    expect(applicantsLabelZh(undefined)).toBe("申请人 0");
+    expect(applicantsLabelZh({ total: 0, unseen: 0 })).toBe("申请人 0");
+    expect(applicantsLabelZh({ total: 3, unseen: 1 })).toBe("3 个申请 · 1 个新");
+    expect(applicantsLabelZh({ total: 2, unseen: 0 })).toBe("2 个申请");
   });
 });
