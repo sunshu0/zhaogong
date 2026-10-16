@@ -45,16 +45,20 @@ test.describe("at 1280 × 800", () => {
     test.setTimeout(90_000);
     await page.goto("/");
     await features(page).locator("[data-replay-log]").scrollIntoViewIfNeeded();
-    // Visible ones: before hydration the HTML holds all 13 (for no JavaScript), all but the first round hidden.
-    const shown = bubbles(page).filter({ visible: true });
-    await expect.poll(() => shown.count()).toBeGreaterThan(0);
-    expect(await shown.count()).toBeLessThan(13); // still playing
-    await expect(bubbles(page)).toHaveCount(13, { timeout: 40_000 });
+    // Before the page takes over, the HTML holds all 13 bubbles (for no JavaScript), all but the first round hidden,
+    // so counting 13 proves nothing yet (#66: the count passed on that HTML, then the replay started over). Once
+    // the replay runs it holds fewer, and 重新播放 shows only when it has played to the end.
+    await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
+    await expect(bubbles(page).filter({ visible: true }).first()).toBeVisible();
+    const again = features(page).getByRole("button", { name: "重新播放" });
+    await expect(again).toBeVisible({ timeout: 40_000 });
+    await expect(bubbles(page)).toHaveCount(13);
     await expect(bubbles(page).last()).toContainText("都齐了");
 
-    await features(page).getByRole("button", { name: "重新播放" }).click();
+    await again.click();
     await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
-    await expect(bubbles(page)).toHaveCount(13, { timeout: 40_000 });
+    await expect(again).toBeVisible({ timeout: 40_000 });
+    await expect(bubbles(page)).toHaveCount(13);
   });
 });
 

@@ -5,10 +5,15 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await page.goto("/me");
   await expect(page.getByText("登录后可以查看浏览记录和举报记录").filter({ visible: true })).toBeVisible();
 
+  // A view is written once the page has taken over (RecordView's effect); the heading is already in the server's
+  // HTML, so leaving as soon as it shows could skip the record (#66). 举报这个职位 is enabled from that point on.
+  const report = page.getByRole("button", { name: "举报这个职位" });
   await page.goto("/jobs/j3");
   await expect(page.getByRole("heading", { level: 1, name: "点心师傅" })).toBeVisible();
+  await expect(report).toBeEnabled();
   await page.goto("/jobs/j11");
   await expect(page.getByRole("heading", { level: 1, name: "仓库拣货员" })).toBeVisible();
+  await expect(report).toBeEnabled();
 
   await page.getByRole("button", { name: "举报这个职位" }).click();
   await page.getByRole("group", { name: "举报这个职位" }).getByLabel("虚假职位").check();

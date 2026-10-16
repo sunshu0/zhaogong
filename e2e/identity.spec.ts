@@ -109,6 +109,11 @@ test("demo businesses: the list, and each can belong to only one account", async
 test("a demo shop bound while the page is open: the refusal marks it and moves the choice on", async ({
   browser,
 }, testInfo) => {
+  // Demo shops are shared by every test on the server. 「demo businesses」 above claims 川味小馆, and this test runs
+  // in both projects; any of them can run at the same time on the other worker. Racing them for the same shop made
+  // `first` lose its claim now and then (#66), so each project uses a shop that no other test claims.
+  const shopName = testInfo.project.name === "mobile" ? "北岸早茶酒家" : "悦美发型工作室";
+  const shopRadio = (page: Page) => page.getByRole("radio", { name: new RegExp(shopName) });
   const first = await browser.newPage();
   const second = await browser.newPage();
   for (const [page, tag] of [
@@ -119,17 +124,16 @@ test("a demo shop bound while the page is open: the refusal marks it and moves t
     await emailAndCode(page, email(testInfo, tag));
     await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
   }
-  const freeShop = second.getByRole("radio", { checked: true });
-  const name = (await freeShop.getAttribute("value")) ?? "";
-  test.skip(name === "new", "every demo shop is bound on this server already");
+  test.skip(!(await shopRadio(second).isEnabled()), `${shopName} is bound on this server already`);
+  await shopRadio(second).check();
 
-  await first.locator(`input[name="business"][value="${name}"]`).check();
+  await shopRadio(first).check();
   await first.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(first).toHaveURL("/employer/post");
 
   await second.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(second.getByRole("main").getByRole("alert")).toContainText("已被其他账号绑定");
-  const refusedShop = second.locator(`input[name="business"][value="${name}"]`);
+  const refusedShop = shopRadio(second);
   await expect(refusedShop).toBeDisabled();
   await expect(refusedShop).not.toBeChecked();
   await expect(second.getByRole("radio", { checked: true })).toBeEnabled();
