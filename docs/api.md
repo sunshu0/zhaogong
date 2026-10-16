@@ -166,6 +166,12 @@
 
 举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
 
+审核后台的入口（#73）在 `src/app/admin/entry-actions.ts`：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `canModerate()` | | `true`：`ADMIN_ENABLED=1`，已登录，并且是审核员（和 `requireModerator()` 同一套判断）。账号菜单（768 px 起）和「我的」只在这时显示「审核后台」 | `false`：开关没开、没登录或不是审核员；开关没开时也不抛错 |
+
 ## 页面路由
 
 | 路由 | 内容 | 需要 |

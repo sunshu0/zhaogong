@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
+import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
 import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { navRole, showsPostJob } from "@/components/ui/nav";
@@ -21,6 +22,7 @@ export function AccountMenu() {
   const hydrated = useHydrated();
   const session = useSession();
   const [open, setOpen] = useState(false);
+  const moderator = useCanModerate(open);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const router = useRouter();
@@ -112,6 +114,11 @@ export function AccountMenu() {
             {!isEmployer && (
               <Link href="/me" className={pageItem} onClick={close}>
                 浏览与举报
+              </Link>
+            )}
+            {moderator && (
+              <Link href={ADMIN_ENTRY.href} className={pageItem} onClick={close}>
+                {ADMIN_ENTRY.label}
               </Link>
             )}
             {employer ? (

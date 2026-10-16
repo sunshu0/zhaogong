@@ -1,6 +1,6 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { fillSignInCode, freshEmail, siteNav } from "./helpers";
-import { CLEAN_MESSAGE, openReportForm, openTheForm, uniqueTitle } from "./employer/helpers";
+import { CLEAN_MESSAGE, moderatorPage, openReportForm, openTheForm, uniqueTitle } from "./employer/helpers";
 
 // 入口走查 (#75): every feature reached the way a person would — from the home page, by clicking. The only
 // page.goto in this file is the one to "/". Other specs open deep addresses directly, which is how /admin shipped
@@ -148,6 +148,35 @@ test("职位续期: 职位管理 → 快到期的职位 → 续期 (#69)", async
   test.fixme(true, "#69 (职位快到期提醒、续期和重新发布) is not merged yet; walk it once it is.");
 });
 
-test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async () => {
-  test.fixme(true, "#73: no link anywhere leads to /admin yet; walk it once A's #73 is merged.");
+test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async ({ page, browser }, testInfo) => {
+  // A fresh account, made a moderator by the demo one (its code can be asked for once a minute, so it is not
+  // signed in again here).
+  const email = await signInByClicks(page, testInfo);
+  const admin = await moderatorPage(browser, testInfo);
+  await admin.goto("/admin");
+  await admin.getByRole("tab", { name: "审核员" }).click();
+  await admin.getByLabel("邮箱").fill(email);
+  await admin.getByRole("button", { name: "添加", exact: true }).click();
+  await expect(admin.getByRole("status")).toHaveText(`已处理：添加审核员 ${email}`);
+  await admin.context().close();
+
+  // Home by the logo in the header (on 我的 another link's name also holds 找工).
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await expect(page).toHaveURL("/");
+  if (isPhone(testInfo)) {
+    await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /^审核后台/ })
+      .click();
+  } else {
+    await page
+      .getByRole("banner")
+      .getByRole("button", { name: /^账号菜单/ })
+      .click();
+    await page.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
+  }
+  await expect(page).toHaveURL("/admin");
+  await page.getByRole("tab", { name: "审核数据" }).click();
+  await expect(page.getByLabel("审核数据：现在")).toBeVisible();
 });

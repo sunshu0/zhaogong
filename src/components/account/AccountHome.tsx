@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
+import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
 import { useNotifications, useProfile } from "@/components/seeker/hub-client";
 import { employerSignUpHref } from "@/components/seeker/identity";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
@@ -19,6 +20,7 @@ export function AccountHome() {
   const { profile } = useProfile();
   const { unread } = useNotifications();
   const { employer, toEmployer, toSeeker, notice } = useIdentitySwitch();
+  const moderator = useCanModerate();
   if (!session) return null;
   const isEmployer = session.activeRole === "employer";
   const name = (isEmployer ? session.employerName : profile.name) || session.email;
@@ -36,6 +38,7 @@ export function AccountHome() {
           { href: ALERTS_PATH, label: "职位提醒", detail: "有符合条件的新职位时通知你" },
           { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
         ]),
+    ...(moderator ? [{ ...ADMIN_ENTRY, detail: "审核职位和举报（审核员）" }] : []),
     { href: "/account/data", label: "数据与账号", detail: "导出我的数据、删除账号" },
   ];
 
