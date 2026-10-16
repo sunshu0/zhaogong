@@ -21,13 +21,13 @@ test("a job closing in 3 days shows in 待办 and 通知, under 将截止, and r
   const list = page.getByRole("region", { name: "通知列表" });
   const notice = list.getByRole("link", { name: new RegExp(title) });
   await expect(notice).toHaveCount(1);
-  await expect(list).toContainText("3 条未读"); // the two demo ones and this
+  await expect(list).toContainText("1 条未读"); // only this: a new account has no demo notices (#110)
   await notice.click();
   await expect(page).toHaveURL("/employer/jobs?tab=ending");
   // Opening it marked it read on the server, so it stays read after a reload (#94).
   await page.goto("/notifications");
   await page.reload();
-  await expect(list).toContainText("2 条未读");
+  await expect(list).toContainText("已全部读完");
   await page.goto("/employer/jobs?tab=ending");
 
   await expect(page.getByRole("tab", { name: /^将截止/ })).toHaveAttribute("aria-selected", "true");

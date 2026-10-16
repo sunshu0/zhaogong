@@ -37,12 +37,12 @@ test("a saved search tells the job seeker about a new matching job, once", async
   const notifications = page.getByRole("region", { name: "通知列表" });
   const found = notifications.getByRole("link", { name: new RegExp(`有新职位符合提醒.*${title}`) });
   await expect(found).toHaveCount(1);
-  await expect(notifications).toContainText("3 条未读"); // the two demo ones and this
+  await expect(notifications).toContainText("1 条未读"); // only this: a new account has no demo notices (#110)
   await page.screenshot({ path: testInfo.outputPath("alert-notification.png"), fullPage: true });
   await found.click();
   await expect(page).toHaveURL(`/jobs/${jobId}`);
   await page.goto("/notifications");
-  await expect(notifications).toContainText("2 条未读");
+  await expect(notifications).toContainText("已全部读完");
 });
 
 test("alerts can be renamed, paused and deleted in 我的", async ({ page }, testInfo) => {

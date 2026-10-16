@@ -59,7 +59,11 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
     const key = "zhaogong:session";
     localStorage.setItem(
       key,
-      JSON.stringify({ email: "another@example.com", activeRole: "seeker", signedInAt: "2026-10-13T00:00:00.000Z" }),
+      JSON.stringify({
+        email: "demo.another@example.com",
+        activeRole: "seeker",
+        signedInAt: "2026-10-13T00:00:00.000Z",
+      }),
     );
     window.dispatchEvent(new StorageEvent("storage", { key }));
   });

@@ -52,6 +52,14 @@ describe("stored chats", () => {
     expect(parseChats(raw, fullDemo)[seekerScope]).toEqual(record);
   });
 
+  it("keep a business's chat with someone who applied (#84)", () => {
+    const applicant = { id: "apply:a1", person: "小王", title: "前厅服务员", time: "刚刚", avatar: "小", job: "j1" };
+    const record = openConversation(EMPTY_CHAT, applicant);
+    expect(parseChats(stringifyStoredIdentities({ [employerScope]: record }), fullDemo)[employerScope].extra).toEqual([
+      applicant,
+    ]);
+  });
+
   it("show the demo merged with the user's records", () => {
     const record = markConversationRead(addSentMessage(EMPTY_CHAT, "north-tea", "你好", at), "north-tea", at);
     const view = chatView(record, seekerDemo);

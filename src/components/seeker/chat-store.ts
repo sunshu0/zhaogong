@@ -239,7 +239,7 @@ function parseConversation(value: unknown): Conversation[] {
   const { id, person, title, time, avatar, job, employerId, candidateId } = c;
   if (
     typeof id !== "string" ||
-    !(id.startsWith("recommend:") || id.startsWith("employer:")) ||
+    !["recommend:", "employer:", "apply:"].some((prefix) => id.startsWith(prefix)) ||
     ![person, title, time, avatar, job].every((field) => typeof field === "string") ||
     (employerId !== undefined && typeof employerId !== "string") ||
     (candidateId !== undefined && typeof candidateId !== "string")
