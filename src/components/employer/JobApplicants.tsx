@@ -16,6 +16,8 @@ import { useChat } from "@/components/seeker/chat-client";
 import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { buttonClass } from "@/components/ui/Button";
+import { InterviewInvite } from "@/components/employer/InterviewInvite";
+import type { InterviewView } from "@/components/seeker/interviews";
 
 const appliedAt = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -27,7 +29,7 @@ const appliedAt = new Intl.DateTimeFormat("zh-CN", {
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
- * and 合适 / 不合适, and a chat with them. Once shown, everyone in it counts as seen. No contact details: those follow the
+ * and 合适 / 不合适, a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No contact details: those follow the
  * job's two rules (ADR 0002).
  */
 export function JobApplicants({ jobId }: { jobId: string }) {
@@ -67,6 +69,20 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   }
 
   const { job, applicants } = loaded.data;
+
+  function setInterview(id: string, interview: InterviewView) {
+    setLoaded((current) =>
+      current?.data
+        ? {
+            ...current,
+            data: {
+              ...current.data,
+              applicants: current.data.applicants.map((a) => (a.id === id ? { ...a, interview } : a)),
+            },
+          }
+        : current,
+    );
+  }
 
   async function decide(id: string, decision: ApplicationDecision | null) {
     setError("");
@@ -114,7 +130,12 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         <ul aria-label="申请人列表" className="space-y-3">
           {applicants.map((a) => (
             <li key={a.id}>
-              <ApplicantCard applicant={a} job={job} onDecide={(d) => void decide(a.id, d)} />
+              <ApplicantCard
+                applicant={a}
+                job={job}
+                onDecide={(d) => void decide(a.id, d)}
+                onInterview={(interview) => setInterview(a.id, interview)}
+              />
             </li>
           ))}
         </ul>
@@ -127,10 +148,12 @@ function ApplicantCard({
   applicant: a,
   job,
   onDecide,
+  onInterview,
 }: {
   applicant: Applicant;
   job: Job;
   onDecide: (decision: ApplicationDecision | null) => void;
+  onInterview: (interview: InterviewView) => void;
 }) {
   const router = useRouter();
   const { openApplicantChat } = useChat();
@@ -183,6 +206,7 @@ function ApplicantCard({
           ))}
         </div>
       </div>
+      <InterviewInvite applicationId={a.id} name={a.profile.name} interview={a.interview} onChange={onInterview} />
     </article>
   );
 }

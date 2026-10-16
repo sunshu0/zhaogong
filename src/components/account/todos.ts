@@ -1,5 +1,5 @@
 // The workspace (/workspace) lists only what needs doing, most urgent first (Round 11, C3):
-// someone waiting for your consent, then unread chats, then new applications (#84), then jobs about to close (#69)
+// someone waiting for your consent, then unread chats, then interviews (#103), then new applications (#84), then jobs about to close (#69)
 // or under review, then the profile.
 import type { Exchange } from "@/lib/chat-consent";
 import { EXCHANGE_LABELS } from "@/lib/chat-consent";
@@ -16,6 +16,8 @@ export type TodoInput = {
   exchanges: Record<string, Exchange[]>;
   /** The employer's own jobs, once loaded. */
   jobs?: Pick<Job, "id" | "titleZh" | "status" | "expiresAt">[];
+  /** 待确认的面试 and 今天 / 明天的面试 (#103), made on the server for either side, once loaded. */
+  interviews?: Todo[];
   /** Applications the business has not looked at yet, by job (#84), once loaded. */
   unseenApplications?: Record<string, number>;
   now: number;
@@ -51,6 +53,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       href: conversationHref(conversation.id),
     });
   }
+
+  todos.push(...(input.interviews ?? []));
 
   if (input.isEmployer && input.jobs) {
     for (const job of input.jobs) {

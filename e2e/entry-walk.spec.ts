@@ -1,5 +1,6 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { fillSignInCode, freshEmail, siteNav } from "./helpers";
+import { instantToAuckland } from "../src/components/seeker/interviews";
 import {
   CLEAN_MESSAGE,
   moderatorPage,
@@ -172,10 +173,11 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   await expect(page).toHaveURL("/account/data");
 });
 
-test("一键申请: home → search → a job → 申请; the employer: 总览 → 1 个新申请 → 合适 (#84)", async ({
-  page,
-  browser,
-}, testInfo) => {
+/**
+ * By clicks: an employer opens a shop and posts a job; a job seeker, in another browser, finds it from the home
+ * page and applies. The seeker's page stays open for the caller.
+ */
+async function postAndApplyByClicks(page: Page, browser: Browser, testInfo: TestInfo, base: string) {
   // The employer posts a job, by clicks from the home page.
   const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
   await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
@@ -188,7 +190,7 @@ test("一键申请: home → search → a job → 申请; the employer: 总览 �
   await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
-  const title = uniqueTitle("申请走查员", testInfo);
+  const title = uniqueTitle(base, testInfo);
   await openTheForm(page);
   await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
   await page.getByRole("button", { name: "整理成职位" }).click();
@@ -212,6 +214,14 @@ test("一键申请: home → search → a job → 申请; the employer: 总览 �
   await form.getByLabel("附言（选填）").fill("入口走查");
   await form.getByRole("button", { name: "提交申请" }).click();
   await expect(seeker.getByRole("dialog").getByRole("status")).toHaveText("已申请，等雇主查看");
+  return { title, seeker };
+}
+
+test("一键申请: home → search → a job → 申请; the employer: 总览 → 1 个新申请 → 合适 (#84)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const { seeker } = await postAndApplyByClicks(page, browser, testInfo, "申请走查员");
   await seeker.context().close();
 
   // The employer: home → 总览 → 「1 个新申请」 → 申请人 → 合适.
@@ -536,4 +546,37 @@ test("按岗位类别筛选: home → 查看全部职位 → 岗位类别 → �
   await expect(page).toHaveURL("/jobs?role=front_of_house");
   await expect(page.getByRole("link", { name: "去掉条件：前厅服务" })).toBeVisible();
   await expect(page.getByRole("link", { name: /^前厅服务员/ }).first()).toBeVisible();
+});
+
+test("约面试: the employer 总览 → 1 个新申请 → 约面试; the job seeker 收藏和进度 → 我的申请 → 确认 (#103)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  test.setTimeout(120_000); // two people, each from the home page
+  const { title, seeker } = await postAndApplyByClicks(page, browser, testInfo, "面试走查员");
+
+  // The employer: home → 总览 → 「1 个新申请」 → 申请人 → 约面试, two days ahead at 10:00 Auckland time.
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await openMine(page, testInfo, "总览");
+  await page.getByRole("link", { name: /1 个新申请/ }).click();
+  const applicant = page.getByRole("article", { name: /^申请人 / });
+  await applicant.getByRole("button", { name: "约面试" }).click();
+  const day = instantToAuckland(new Date(Date.now() + 2 * 86_400_000).toISOString()).slice(0, 10);
+  await applicant.getByLabel("时间 1", { exact: true }).fill(`${day}T10:00`);
+  await applicant.getByRole("button", { name: "发出邀约" }).click();
+  await expect(applicant.getByRole("status", { name: /的面试$/ })).toContainText("已发邀约，等对方确认");
+
+  // The job seeker: home → 收藏和进度 → 我的申请 → the time → 确认这个时间.
+  await seeker.getByRole("dialog").getByRole("button", { name: "好的" }).click();
+  await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await openMine(seeker, testInfo, "收藏和进度");
+  const invitation = seeker
+    .getByRole("list", { name: "申请过的职位" })
+    .getByRole("article", { name: title })
+    .getByRole("region", { name: "面试邀约" });
+  await invitation.getByRole("radio").first().check();
+  await invitation.getByRole("button", { name: "确认这个时间" }).click();
+  await expect(invitation).toContainText("面试已确认：");
+  await expect(invitation.getByRole("button", { name: "下载日历文件（.ics）" })).toBeVisible();
+  await seeker.context().close();
 });

@@ -180,6 +180,28 @@
 | `shareMyResume(resume)` | 浏览器生成的简历 | `{ ok: true, share }`；已经有链接时更新内容，链接不变 | `{ ok: false, error }`：未登录、雇主身份、没有称呼 |
 | `closeMyResumeShare()` | | `true`，链接从此打不开 | 没有链接或未登录时 `false` |
 
+## 约面试 — `src/app/employer/interview-actions.ts`、`src/app/me/interview-actions.ts`
+
+#103。存在 `interviews`（迁移 0015）：每个申请最多一条（`application_id` 唯一）。`InterviewView`：`{ status, slots, callFirst, mode, place, note, chosenSlot, reply, invitedAt, respondedAt }`；`status` 是 `proposed`（等求职者）、`confirmed`、`counter`（求职者说这些时间不行，`reply` 是他写的方便时间）、`declined`、`cancelled`（雇主取消）。`slots` 是 UTC 时刻，页面按奥克兰时间显示（`src/components/seeker/interviews.ts`）。邀约不带联系方式。
+
+雇主（只能操作自己企业的申请，按申请编号）：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `inviteMyApplicant(applicationId, invite)` | `{ slots, callFirst, mode, place, note }`：任意个时间（最多 20），或 `callFirst: true`（电话联系后再定，`slots` 忽略） | `{ ok: true, interview }`；已有邀约时替换，重新变成 `proposed`，清空之前的回复 | `{ ok: false, error }`：不是雇主身份、不是自己企业的申请、时间看不懂、已经过去、一个时间都没有又没选电话再定 |
+| `cancelMyApplicantInterview(applicationId)` | | `InterviewView`（`cancelled`） | 不是自己企业的申请时 `null` |
+
+`getMyJobApplicants` 的每个申请人多了 `interview`（没有时 `null`）。
+
+求职者：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `answerMyInterview(jobId, response)` | `{ kind: "confirm", slot }`（`slot` 必须是邀约里还没过去的时间；电话再定时不用）、`{ kind: "decline", reply? }`、`{ kind: "counter", reply }`（`reply` 必填） | `{ ok: true, interview }` | `{ ok: false, error }`：未登录或雇主身份、没有邀约、邀约已经不是 `proposed`、时间不在邀约里或已过去、没写方便的时间 |
+| `myInterviewTodos()` | | 当前身份的面试待办：求职者「待确认的面试」，雇主「待确认的面试」和「X 回了方便的时间」；双方「今天 / 明天的面试」 | 未登录时 `[]` |
+
+`myApplicationViews` 的每条多了 `interview`。通知（`serverNotifications`）：求职者的编号是 `interview:<id>:<invitedAt>`，雇主的是 `interview-reply:<id>:<respondedAt>`，有新改动就是新编号。
+
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 
 职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。

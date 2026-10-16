@@ -47,6 +47,20 @@ describe("workspaceTodos", () => {
     expect(todos[2]).toMatchObject({ href: "/profile", detail: "期望时薪、经验、头像 等" });
   });
 
+  it("puts interviews after unread chats and before the profile (#103)", () => {
+    const todos = workspaceTodos({
+      ...base,
+      unread: { "north-tea": 1 },
+      interviews: [{ id: "interview:i1", title: "明天的面试：川味小馆「前厅服务员」", detail: "", href: "/me/saved" }],
+      profileMissing: { count: 1, labels: ["经验"] },
+    });
+    expect(todos.map((todo) => todo.title)).toEqual([
+      "北岸早茶酒家发来 1 条新消息",
+      "明天的面试：川味小馆「前厅服务员」",
+      "资料还差 1 项",
+    ]);
+  });
+
   it("skips requests you sent and ones already answered", () => {
     const todos = workspaceTodos({
       ...base,

@@ -38,6 +38,20 @@ export interface ServerAccountData {
     seenAt: string | null;
     decision: string | null;
   }[];
+  /** Interviews on those applications (#103): the times offered and the answers. */
+  interviews: {
+    jobId: string;
+    status: string;
+    slots: string[];
+    callFirst: boolean;
+    mode: string | null;
+    place: string;
+    note: string;
+    chosenSlot: string | null;
+    reply: string;
+    invitedAt: string;
+    respondedAt: string | null;
+  }[];
   /** The 中英文简历 share link (#86): its id and the page it shows. */
   resumeShare: { id: string; resume: unknown; createdAt: string; updatedAt: string } | null;
   /**
@@ -102,6 +116,18 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobApplications)
     .where(eq(t.jobApplications.seekerEmail, address))
     .orderBy(asc(t.jobApplications.appliedAt));
+  const interviewRows = applications.length
+    ? await db
+        .select()
+        .from(t.interviews)
+        .where(
+          inArray(
+            t.interviews.applicationId,
+            applications.map((a) => a.id),
+          ),
+        )
+        .orderBy(asc(t.interviews.createdAt))
+    : [];
   const [share] = await db.select().from(t.resumeShares).where(eq(t.resumeShares.email, address));
   const starts = await db
     .select()
@@ -174,6 +200,19 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       profile: a.profile,
       seenAt: a.seenAt,
       decision: a.decision,
+    })),
+    interviews: interviewRows.map((row) => ({
+      jobId: applications.find((a) => a.id === row.applicationId)!.jobId,
+      status: row.status,
+      slots: row.slots,
+      callFirst: row.callFirst,
+      mode: row.mode,
+      place: row.place,
+      note: row.note,
+      chosenSlot: row.chosenSlot,
+      reply: row.reply,
+      invitedAt: row.invitedAt,
+      respondedAt: row.respondedAt,
     })),
     resumeShare: share
       ? { id: share.id, resume: share.resume, createdAt: share.createdAt, updatedAt: share.updatedAt }
@@ -250,7 +289,15 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
-    // Applications are the person's page and note: they go, and the employers' lists lose them (#84).
+    // Applications are the person's page and note: they go, and the employers' lists lose them (#84), with the
+    // interviews on them (#103).
+    const applicationIds = (
+      await tx
+        .select({ id: t.jobApplications.id })
+        .from(t.jobApplications)
+        .where(eq(t.jobApplications.seekerEmail, address))
+    ).map((row) => row.id);
+    if (applicationIds.length) await tx.delete(t.interviews).where(inArray(t.interviews.applicationId, applicationIds));
     await tx.delete(t.jobApplications).where(eq(t.jobApplications.seekerEmail, address));
     // The share link closes with the account (#86).
     await tx.delete(t.resumeShares).where(eq(t.resumeShares.email, address));

@@ -115,7 +115,8 @@ type NotificationTarget =
   | { type: "closing_jobs" }
   | { type: "applicants"; jobId: string }
   | { type: "verification" }
-  | { type: "team_invite" };
+  | { type: "team_invite" }
+  | { type: "applications" };
 export type Notification = {
   id: string;
   type: string;
@@ -229,5 +230,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
               ? "/employer/verify"
               : target?.type === "team_invite"
                 ? "/account#team-invites"
-                : undefined;
+                : target?.type === "applications"
+                  ? "/me/saved"
+                  : undefined;
 }

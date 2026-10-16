@@ -3,7 +3,7 @@
 import { randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { database } from "@/db/ready";
-import { jobApplications } from "@/db/schema";
+import { interviews, jobApplications } from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 
@@ -58,10 +58,18 @@ export async function addApplication(input: {
   });
 }
 
-/** Withdraws the account's application for a job (the employer no longer sees it). */
+/** Withdraws the account's application for a job (the employer no longer sees it, nor its interview, #103). */
 export async function withdrawApplication(email: string, jobId: string): Promise<void> {
   const db = await database();
-  await db.delete(jobApplications).where(mine(normalizeEmail(email), jobId));
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(jobApplications)
+      .where(mine(normalizeEmail(email), jobId));
+    if (!row) return;
+    await tx.delete(interviews).where(eq(interviews.applicationId, row.id));
+    await tx.delete(jobApplications).where(eq(jobApplications.id, row.id));
+  });
 }
 
 /** A job's applications for its business, oldest first. */

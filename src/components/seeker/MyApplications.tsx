@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { myApplicationViews, withdrawMyApplication, type MyApplicationView } from "@/app/jobs/[id]/apply-actions";
 import { refreshApplied } from "@/components/seeker/applied-client";
+import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import { formatDateZh } from "@/components/seeker/job-facts";
 import { useSession } from "@/components/seeker/session-client";
 import { Pay } from "@/components/ui/Pay";
@@ -11,7 +12,8 @@ import { Tag } from "@/components/ui/Tag";
 
 /**
  * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
- * 雇主觉得合适). Nothing while there are none. Withdrawing takes the application off the employer's list.
+ * 雇主觉得合适), and the employer's interview invitation to answer (#103). Nothing while there are none. Withdrawing
+ * takes the application off the employer's list.
  */
 export function MyApplications() {
   const signedIn = Boolean(useSession());
@@ -83,6 +85,16 @@ export function MyApplications() {
                   撤回申请
                 </button>
               </div>
+              {a.interview && (
+                <InterviewAnswer
+                  jobId={a.jobId}
+                  title={[a.titleZh, a.employerName].filter(Boolean).join("，")}
+                  interview={a.interview}
+                  onChange={(interview) =>
+                    setList((current) => current?.map((x) => (x.jobId === a.jobId ? { ...x, interview } : x)) ?? null)
+                  }
+                />
+              )}
             </article>
           </li>
         ))}

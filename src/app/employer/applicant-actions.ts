@@ -20,6 +20,8 @@ import {
   type ApplicationDecision,
   type ApplicationProfile,
 } from "@/components/seeker/applications";
+import { interviewsFor, interviewView } from "@/db/interviews";
+import type { InterviewView } from "@/components/seeker/interviews";
 
 export type Applicant = {
   id: string;
@@ -31,6 +33,8 @@ export type Applicant = {
   /** True when this visit is the first time the business sees it. */
   isNew: boolean;
   decision: ApplicationDecision | null;
+  /** The interview invitation, if the business sent one (#103). */
+  interview: InterviewView | null;
 };
 
 async function myBusiness(): Promise<Employer | null> {
@@ -54,6 +58,7 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
   const job = await getJob(jobId);
   if (!job || job.employerId !== employer.id) return null;
   const rows = await jobApplicationsFor(employer.id, job.id);
+  const interviews = await interviewsFor(rows.map((row) => row.id));
   return {
     job,
     applicants: rows.map((row) => ({
@@ -64,6 +69,7 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
       facts: candidateFacts(applicantCandidate(row.id, row.profile)),
       isNew: !row.seenAt,
       decision: row.decision,
+      interview: interviews.has(row.id) ? interviewView(interviews.get(row.id)!) : null,
     })),
   };
 }

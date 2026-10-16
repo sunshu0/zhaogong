@@ -1,6 +1,6 @@
 // Every notification the server makes for an identity, in one place (#94): the job seeker's are the jobs its alerts
 // found (#53) and team invitations (#87); the employer's are applications (#84), its jobs closing soon (#69) and 企业验证
-// decisions (#78). The notification list
+// decisions (#78); either side's, interviews (#103). The notification list
 // (myAlertNotifications) and the ids that may be marked read (markMyNotificationsRead) both come from here, so a new
 // kind of notification cannot be shown without also being markable as read. Not a Server Function: it takes the
 // email, so only server code that read the email from the session calls it. Server only.
@@ -9,6 +9,7 @@ import { isOpenJob } from "@/lib/job-expiry";
 import { listJobAlertHits } from "@/db/job-alerts";
 import { myApplicationNotifications } from "@/app/employer/application-notifications";
 import { myClosingNotifications } from "@/app/employer/closing-notifications";
+import { interviewNotifications } from "@/app/me/interview-notifications";
 import { myVerificationNotifications } from "@/app/employer/verification-notifications";
 import { myTeamInviteNotifications } from "@/app/employer/team-notifications";
 import { postedAgoZh } from "@/components/seeker/format";
@@ -19,8 +20,10 @@ export async function serverNotifications(
   identity: { email: string; isEmployer: boolean },
   now: number,
 ): Promise<Notification[]> {
+  const interviews = await interviewNotifications(identity, now);
   if (identity.isEmployer)
     return [
+      ...interviews,
       ...(await myApplicationNotifications(identity.email, now)),
       ...(await myClosingNotifications(identity.email, now)),
       ...(await myVerificationNotifications(identity.email, now)),
@@ -43,5 +46,5 @@ export async function serverNotifications(
       };
     }),
   );
-  return [...(await myTeamInviteNotifications(identity.email, now)), ...alerts];
+  return [...interviews, ...(await myTeamInviteNotifications(identity.email, now)), ...alerts];
 }

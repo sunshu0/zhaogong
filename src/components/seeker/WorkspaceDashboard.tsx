@@ -5,6 +5,7 @@ import { workspaceTodos } from "@/components/account/todos";
 import { useEmployerProfile, useMyVerification } from "@/components/employer/use-employer";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { useChat } from "@/components/seeker/chat-client";
+import { useInterviewTodos } from "@/components/seeker/interview-client";
 import { useProfile } from "@/components/seeker/hub-client";
 import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
@@ -22,8 +23,10 @@ export function WorkspaceDashboard() {
   const jobs = useMyJobs(employerEmail).ready;
   const employer = useEmployerProfile(employerEmail).profile;
   const verification = useMyVerification(employerEmail).request;
-  // An employer's jobs and verification come from the server; wait for them rather than list a stale to-do.
-  const loading = isEmployer && (!jobs || !employer || verification === undefined);
+  const interviews = useInterviewTodos(session);
+  // An employer's jobs and verification, and either side's interviews, come from the server; wait for them rather
+  // than list a stale to-do.
+  const loading = (isEmployer && (!jobs || !employer || verification === undefined)) || !interviews;
 
   const progress = profileProgress(profileChecklist(profile, isEmployer, employer?.verification));
   const todos = workspaceTodos({
@@ -31,6 +34,7 @@ export function WorkspaceDashboard() {
     conversations,
     unread,
     exchanges,
+    interviews,
     jobs: jobs?.jobs,
     unseenApplications: jobs
       ? Object.fromEntries(Object.entries(jobs.applications).map(([id, count]) => [id, count.unseen]))

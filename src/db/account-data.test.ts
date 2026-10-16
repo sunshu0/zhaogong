@@ -11,6 +11,7 @@ import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
 import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
+import { inviteToInterview } from "@/db/interviews";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
@@ -84,7 +85,15 @@ async function fullAccount(email: string) {
   await chats.putNotificationReads(scopeOf(email, "employer", business.id), ["n2"]);
   await recordContactView("j1", email);
   await saveJob(email, "j1");
-  await addApplication({ email, jobId: "j1", employerId: "e1", note: "周末可以", profile: APPLICATION_PAGE });
+  const application = await addApplication({
+    email,
+    jobId: "j1",
+    employerId: "e1",
+    note: "周末可以",
+    profile: APPLICATION_PAGE,
+  });
+  if (application !== "already")
+    await inviteToInterview("e1", application.id, INVITE, new Date("2026-10-17T00:00:00.000Z"));
   await saveResumeShare(email, RESUME, new Date("2026-10-17T00:00:00.000Z"));
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
@@ -93,6 +102,7 @@ async function fullAccount(email: string) {
   return { business, job };
 }
 
+const INVITE = { slots: ["2099-01-05T01:00:00.000Z"], callFirst: false, mode: null, place: "", note: "" };
 const RESUME = parseResumeDoc({ zh: { name: "林晓" } })!;
 
 describe("exportAccountData (#54)", () => {
@@ -122,6 +132,14 @@ describe("exportAccountData (#54)", () => {
         seenAt: null,
         decision: null,
       },
+    ]);
+    expect(data?.interviews).toEqual([
+      expect.objectContaining({
+        jobId: "j1",
+        status: "proposed",
+        slots: INVITE.slots,
+        invitedAt: "2026-10-17T00:00:00.000Z",
+      }),
     ]);
     expect(data?.resumeShare).toEqual({
       id: expect.any(String),
@@ -173,6 +191,10 @@ describe("deleteAccount (#54)", () => {
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
     }
+    // The interviews on the person's applications went with them (#103); the other account's stays.
+    expect(await db.select().from(t.interviews)).toHaveLength(
+      (await db.select().from(t.jobApplications)).filter((a) => a.jobId === "j1").length,
+    );
     // The view still counts for the job, without the viewer.
     const views = await listContactViews("j1");
     expect(views).toHaveLength(viewsBefore);

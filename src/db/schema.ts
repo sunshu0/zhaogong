@@ -18,6 +18,7 @@ import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
+import type { InterviewMode, InterviewStatus } from "@/components/seeker/interviews";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
 import type {
@@ -543,5 +544,30 @@ export const externalCompanyBlocks = sqliteTable("external_company_blocks", {
   /** For a takedown: who asked, as the company wrote (a company address or role, not a private person). */
   requester: text("requester"),
   note: text("note").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+/**
+ * 约面试 (#103): at most one per application, changed in place when the employer changes the times. `slots` are the
+ * instants the employer offered (empty with `call_first`, 电话联系后再定); `chosen_slot` the one confirmed; `reply`
+ * the job seeker's own words when declining or saying what suits. `invited_at` is the employer's last change (new
+ * times or cancelling), `responded_at` the job seeker's last answer; notifications are keyed by them.
+ */
+export const interviews = sqliteTable("interviews", {
+  id: text("id").primaryKey(),
+  applicationId: text("application_id")
+    .notNull()
+    .unique()
+    .references(() => jobApplications.id),
+  status: text("status").$type<InterviewStatus>().notNull(),
+  slots: text("slots", { mode: "json" }).$type<string[]>().notNull(),
+  callFirst: integer("call_first", { mode: "boolean" }).notNull(),
+  mode: text("mode").$type<InterviewMode>(),
+  place: text("place").notNull(),
+  note: text("note").notNull(),
+  chosenSlot: text("chosen_slot"),
+  reply: text("reply").notNull(),
+  invitedAt: text("invited_at").notNull(),
+  respondedAt: text("responded_at"),
   createdAt: text("created_at").notNull(),
 });

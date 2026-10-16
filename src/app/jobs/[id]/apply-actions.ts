@@ -15,6 +15,8 @@ import {
   type ApplyRefusal,
 } from "@/components/seeker/applications";
 import { isExpired } from "@/components/seeker/job-facts";
+import { interviewsFor, interviewView } from "@/db/interviews";
+import type { InterviewView } from "@/components/seeker/interviews";
 
 /** The account's application for one job, as the job seeker sees it. */
 export type MyApplication = { jobId: string; appliedAt: string; note: string; status: string };
@@ -29,6 +31,8 @@ export type MyApplicationView = MyApplication & {
   employerName?: string;
   /** Taken down or past its closing date. */
   gone: boolean;
+  /** The employer's interview invitation, if any (#103). */
+  interview: InterviewView | null;
 };
 
 export type ApplyResult = { ok: true; application: MyApplication } | { ok: false; reason: ApplyRefusal; error: string };
@@ -103,8 +107,10 @@ export async function myApplicationViews(): Promise<MyApplicationView[] | null> 
   const session = await getCurrentSession();
   if (!session) return null;
   const now = Date.now();
+  const rows = await myApplications(session.email);
+  const interviews = await interviewsFor(rows.map((row) => row.id));
   const views = await Promise.all(
-    (await myApplications(session.email)).map(async (row): Promise<MyApplicationView | null> => {
+    rows.map(async (row): Promise<MyApplicationView | null> => {
       const job = await getJob(row.jobId);
       if (!job) return null;
       const employer = await getEmployer(job.employerId);
@@ -117,6 +123,7 @@ export async function myApplicationViews(): Promise<MyApplicationView[] | null> 
         region: regionById(job.country, job.regionId)?.nameZh,
         employerName: employer?.name,
         gone: job.status !== "active" || isExpired(job, now) || !!employer?.bannedAt,
+        interview: interviews.has(row.id) ? interviewView(interviews.get(row.id)!) : null,
       };
     }),
   );
