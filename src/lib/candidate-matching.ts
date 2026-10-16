@@ -1,11 +1,15 @@
 import { COUNTRIES, regionById } from "@/config/countries";
-import { EMPLOYMENT_TYPE_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
+import { JOB_ROLE_IDS, JOB_ROLES, type JobRoleId } from "@/config/job-roles";
+import { jobRoles, parseJobRoles, roleFitsIndustry, roleNames } from "@/lib/job-roles";
+import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { EmploymentType, Job } from "@/lib/types";
 
 export type Resume = {
   candidateId?: string;
   discoverable: boolean;
+  /** 想做的岗位 (#96): categories ticked, any number. */
+  roles?: JobRoleId[];
   skills: string;
   experienceYears?: number;
   employmentTypes: EmploymentType[];
@@ -37,12 +41,14 @@ export function parseResume(value: unknown): Resume {
   const hours = input.hoursPerWeek as Record<string, unknown> | undefined;
   const min = hours && number(hours.min, 1, 80);
   const max = hours && number(hours.max, 1, 80);
+  const roles = parseJobRoles(input.roles, JOB_ROLE_IDS.length);
   return {
     candidateId:
       typeof input.candidateId === "string" && /^[a-zA-Z0-9-]{1,80}$/.test(input.candidateId)
         ? input.candidateId
         : undefined,
     discoverable: input.discoverable === true,
+    roles: roles.length ? roles : undefined,
     skills: typeof input.skills === "string" ? input.skills.slice(0, 1000) : "",
     experienceYears: number(input.experienceYears, 0, 60),
     employmentTypes: list(input.employmentTypes, Object.keys(EMPLOYMENT_TYPE_LABELS) as EmploymentType[]),
@@ -89,6 +95,22 @@ function positive(text: string, pattern: RegExp): boolean {
 }
 function skillsIn(text: string) {
   return SKILLS.filter(([, re]) => positive(text, re)).map(([name]) => name);
+}
+const ROLE_WORDS = JOB_ROLE_IDS.map(
+  (id) =>
+    [
+      id,
+      new RegExp(JOB_ROLES[id].aliases.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i"),
+    ] as const,
+);
+/**
+ * 想做的岗位: what the candidate ticked; a profile from before #96 that ticked none is read for the same words a
+ * job title is, so 「前厅服务员 · 点餐」 still counts as 前厅服务.
+ */
+function candidateRoles(candidate: Candidate): { roles: JobRoleId[]; ticked: boolean } {
+  if (candidate.resume.roles?.length) return { roles: candidate.resume.roles, ticked: true };
+  const text = `${candidate.headline} ${candidate.bio} ${candidate.resume.skills}`;
+  return { roles: ROLE_WORDS.filter(([, re]) => positive(text, re)).map(([id]) => id), ticked: false };
 }
 const LANGUAGE_WORDS = {
   mandarin: /普通话|国语|mandarin/i,
@@ -157,24 +179,33 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
     });
   }
   const resume = candidate.resume;
+  // 岗位 (#96, ADR 0013): the same category is a full match, another category of the job's industry half, and the
+  // skills named in both only explain it.
+  const roles = jobRoles(job);
+  const wanted = candidateRoles(candidate);
+  const sameRole = roles.filter((id) => wanted.roles.includes(id));
+  const sameIndustry = wanted.roles.filter((id) => roleFitsIndustry(id, job.industry) && job.industry !== "other");
   const requiredSkills = skillsIn(`${job.titleZh} ${job.titleEn} ${job.descriptionZh}`);
   const knownSkills = skillsIn(`${candidate.headline} ${candidate.bio} ${resume.skills}`);
   const matchedSkills = requiredSkills.filter((skill) => knownSkills.includes(skill));
+  const otherSkills = matchedSkills.filter((skill) => !roles.some((id) => JOB_ROLES[id].zh === skill));
+  const skillNote = otherSkills.length ? `；技能：${otherSkills.join("、")}` : "";
   add(
     "skills",
-    "岗位与技能",
+    "岗位",
     30,
-    !requiredSkills.length ? undefined : !knownSkills.length ? null : matchedSkills.length / requiredSkills.length,
-    requiredSkills.join("、") || "职位未列出可识别技能",
-    matchedSkills.length
-      ? `简历提到：${matchedSkills.join("、")}`
-      : knownSkills.length
-        ? `简历提到：${knownSkills.join("、")}`
-        : "简历未提供明确技能",
+    !roles.length ? undefined : !wanted.roles.length ? null : sameRole.length ? 1 : sameIndustry.length ? 0.5 : 0,
+    roles.length ? roleNames(roles) : "职位未选岗位类别",
+    !wanted.roles.length
+      ? "想做的岗位待补充"
+      : sameRole.length
+        ? `${wanted.ticked ? "都选了" : "资料提到"}${roleNames(sameRole)}${skillNote}`
+        : sameIndustry.length
+          ? `想做${roleNames(sameIndustry)}，同属${INDUSTRY_LABELS[job.industry].zh}${skillNote}`
+          : `想做${roleNames(wanted.roles)}${skillNote}`,
   );
   const years = requiredYears(job.descriptionZh);
-  const jobRole = skillsIn(job.titleZh);
-  const relevantExperience = jobRole.length > 0 && jobRole.some((skill) => knownSkills.includes(skill));
+  const relevantExperience = sameRole.length > 0;
   add(
     "experience",
     "相关经验",

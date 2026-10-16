@@ -31,6 +31,7 @@ export function fromJob(job: Job): JobRow {
   const { pay, hoursPerWeek, ...rest } = job;
   return {
     ...rest,
+    roles: job.roles ?? [],
     address: job.address ?? null,
     shiftsZh: job.shiftsZh ?? null,
     hiresConfirmed: job.hiresConfirmed ?? null,

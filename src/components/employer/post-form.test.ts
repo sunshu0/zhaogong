@@ -61,6 +61,14 @@ describe("form ⇄ draft", () => {
 });
 
 describe("completeJob", () => {
+  it("files the job under the employer's 岗位类别, else under what its title names (#96)", () => {
+    expect(completeJob(full, "e1", 0, "active")?.roles).toEqual(["front_of_house"]);
+    expect(completeJob({ ...full, roles: ["cashier"] }, "e1", 0, "active")?.roles).toEqual(["cashier"]);
+    expect(completeJob({ ...full, titleZh: "兼职", titleEn: "Part time" }, "e1", 0, "active")?.roles).toEqual([]);
+    expect(sanitizeDraft({ roles: ["cook", "nope", "dim_sum", "barista"] }, "NZ").roles).toEqual(["cook", "dim_sum"]);
+    expect(sanitizeDraft({ roles: [] }, "NZ").roles).toBeUndefined();
+  });
+
   it("keeps contact details private unless the employer chose otherwise", () => {
     expect(completeJob(full, "e1", 0, "active")?.contactPublic).toBe(false);
     expect(completeJob({ ...full, contactPublic: true }, "e1", 0, "active")?.contactPublic).toBe(true);

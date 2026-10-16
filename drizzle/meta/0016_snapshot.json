@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "955cd98c-6d59-4132-b252-a8305610780f",
-  "prevId": "b1652e46-ac80-445f-9b94-3a8e6977628e",
+  "prevId": "9adb75e8-a845-4626-bb6b-c6611599eaf9",
   "tables": {
     "accounts": {
       "name": "accounts",
@@ -1337,6 +1337,13 @@
         },
         "hires_confirmed_at": {
           "name": "hires_confirmed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "roles": {
+          "name": "roles",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

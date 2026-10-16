@@ -6,6 +6,7 @@ import { DEMO_SEEKER, demoShowcase } from "@/db/demo-showcase";
 import { fromEmployer, fromJob } from "@/db/rows";
 import * as schema from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
+import { suggestJobRoles } from "@/lib/job-roles";
 import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
 /**
@@ -38,6 +39,7 @@ export async function seedDemoData(
         fromJob({
           ...job,
           employmentType: normalizeEmploymentTypes(job.employmentType),
+          roles: job.roles ?? suggestJobRoles(job),
           contactPublic: !!job.contactPublic,
         }),
       ),

@@ -1,5 +1,7 @@
 // Shared domain types. Owned by the lead; lines A and B ask before changing them.
 
+import type { JobRoleId } from "@/config/job-roles";
+
 export type CountryCode = "NZ" | "AU";
 
 export type Industry =
@@ -56,6 +58,8 @@ export interface Job {
   titleZh: string;
   titleEn: string;
   industry: Industry;
+  /** 岗位类别 (#96), at most two; empty or missing is 待选 (a job from before #96 whose title named none). */
+  roles?: JobRoleId[];
   /** Every form of employment the job accepts, in the usual order (全职, 兼职, 临时工). */
   employmentType: EmploymentType[];
   regionId: string;

@@ -191,3 +191,52 @@ describe("splitLowMatches", () => {
     expect(low.map((m) => m.candidate.id)).toEqual(["c", "e"]);
   });
 });
+
+describe("岗位 by category (#96)", () => {
+  const role = (match: CandidateMatch) => match.factors.find((item) => item.key === "skills")!;
+  const frontDesk = { ...MOCK_JOBS[0], titleZh: "前台接待", titleEn: "Receptionist", roles: undefined };
+  const ticking = (roles: Candidate["resume"]["roles"]) => ({
+    ...candidate,
+    headline: "",
+    bio: "",
+    resume: { ...candidate.resume, skills: "", roles },
+  });
+
+  it("the category the candidate ticked, named any way in the job title, is a full match", () => {
+    const result = role(matchCandidate(ticking(["front_of_house"]), frontDesk));
+    expect(result.status).toBe("matched");
+    expect(result.earned).toBe(30);
+    expect(result.requirement).toBe("前厅服务");
+    expect(result.evidence).toBe("都选了前厅服务");
+  });
+
+  it("another category of the job's industry is half, another industry none", () => {
+    const kitchen = role(matchCandidate(ticking(["kitchen_hand"]), frontDesk));
+    expect(kitchen.earned).toBe(15);
+    expect(kitchen.evidence).toBe("想做后厨帮工，同属餐饮");
+    const cleaning = role(matchCandidate(ticking(["cleaner"]), frontDesk));
+    expect(cleaning.status).toBe("mismatch");
+    expect(cleaning.evidence).toBe("想做清洁");
+  });
+
+  it("nothing ticked and nothing in the profile is 待补充; an old profile is read for the same words", () => {
+    const empty = role(matchCandidate(ticking([]), frontDesk));
+    expect(empty.status).toBe("unknown");
+    expect(empty.evidence).toBe("想做的岗位待补充");
+    // 林晓's headline says 前厅服务员 and her bio 收银: the skill only explains.
+    const old = role(matchCandidate(candidate, { ...MOCK_JOBS[0], roles: ["front_of_house"] }));
+    expect(old.status).toBe("matched");
+    expect(old.evidence).toBe("资料提到前厅服务；技能：点餐、上菜、收银");
+  });
+
+  it("the employer's categories win over the title, and a job with none asks nothing", () => {
+    const cashier = role(matchCandidate(ticking(["cashier"]), { ...frontDesk, roles: ["cashier"] }));
+    expect(cashier.status).toBe("matched");
+    const unnamed = { ...frontDesk, titleZh: "兼职", titleEn: "Part time", roles: [] };
+    expect(role(matchCandidate(ticking(["cashier"]), unnamed)).status).toBe("not_required");
+  });
+
+  it("keeps ticked roles from storage, known ids only", () => {
+    expect(parseResume({ roles: ["cook", "nope", "cook", "cleaner"] }).roles).toEqual(["cook", "cleaner"]);
+  });
+});

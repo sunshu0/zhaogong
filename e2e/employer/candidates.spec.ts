@@ -30,9 +30,11 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   // Five facts on every card, in the order of the candidate page (C6).
   await expect(rows.first().locator("dt")).toHaveText(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
   await expect(rows.first()).toContainText("$25 起");
-  // Scores below 40 are folded at the bottom, not hidden.
-  await expect(rows).toHaveCount(3);
-  const low = page.getByRole("button", { name: "另外 3 位匹配度较低" });
+  // Scores below 40 are folded at the bottom, not hidden. 王宁 (厨房帮工) stays above: another category of the same
+  // industry counts half for 岗位 (#96).
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(3).getByRole("heading", { name: "王宁" })).toBeVisible();
+  const low = page.getByRole("button", { name: "另外 2 位匹配度较低" });
   await expect(low).toHaveAttribute("aria-expanded", "false");
   await low.click();
   await expect(rows).toHaveCount(6);

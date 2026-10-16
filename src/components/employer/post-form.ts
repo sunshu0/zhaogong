@@ -7,6 +7,7 @@ import type { CountryCode, Industry, Job, LanguageRequirement, VisaAccepted } fr
 import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { JOB_LIFETIME_DAYS } from "@/components/employer/job-status";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
+import { parseJobRoles, suggestJobRoles } from "@/lib/job-roles";
 
 /** What the form edits. Text is kept as typed; numbers are undefined while empty. */
 export interface PostForm {
@@ -138,6 +139,8 @@ export function completeJob(
     titleZh: draft.titleZh!,
     titleEn: draft.titleEn!,
     industry: draft.industry!,
+    // 岗位类别 (#96): the employer's choice, else what the title names; none is 待选.
+    roles: draft.roles?.length ? draft.roles : suggestJobRoles({ ...draft, industry: draft.industry! }),
     employmentType: draft.employmentType!,
     regionId: draft.regionId!,
     ...(draft.address && { address: draft.address }),
@@ -165,6 +168,7 @@ const EDITABLE_FIELDS = [
   "titleZh",
   "titleEn",
   "industry",
+  "roles",
   "employmentType",
   "regionId",
   "address",
@@ -220,6 +224,7 @@ export function sanitizeDraft(input: unknown, country: CountryCode): JobDraft {
     titleZh: str(input.titleZh, LIMITS.short),
     titleEn: str(input.titleEn, LIMITS.short),
     industry: oneOf(input.industry, INDUSTRIES),
+    roles: nonEmpty(parseJobRoles(input.roles)),
     employmentType: nonEmpty(normalizeEmploymentTypes(input.employmentType)),
     regionId: oneOf(input.regionId, regions),
     address: str(input.address, LIMITS.address),

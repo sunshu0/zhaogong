@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { getDb, projectRoot, resetDbForTests } from "@/db/client";
+import { demoShowcase } from "@/db/demo-showcase";
+import { suggestJobRoles } from "@/lib/job-roles";
+import { MOCK_JOBS } from "@/mock/data";
 
 /** A copy of drizzle/ that stops after the first `count` migrations, as a database made back then has. */
 function migrationsUpTo(count: number): string {
@@ -75,5 +78,44 @@ describe("versioned migrations", () => {
     // A second account can now work for the same business.
     await db.run(sql`insert into accounts (email, created_at, employer_id, team_role)
       values ('staff@example.com', '2026-10-01T00:00:00.000Z', 'e1', 'member')`);
+  });
+
+  it("0014 files the jobs it finds under the categories their titles name, as suggestJobRoles does (#96)", async () => {
+    resetDbForTests();
+    const before = migrationsUpTo(13); // up to 0013_team
+    made.push(before);
+    const db = getDb();
+    await migrate(db, { migrationsFolder: before });
+    await db.run(sql`insert into employers (id, name, verification, region_id, created_at)
+      values ('e1', '川味小馆', 'business_verified', 'akl-mt-eden', '2026-09-01')`);
+    const titles = [
+      ...[...MOCK_JOBS, ...demoShowcase(Date.now()).jobs].map((job) => [job.titleZh, job.titleEn, job.industry]),
+      ["前台", "Receptionist", "office"],
+      ["店长兼收银", "Manager", "retail"],
+      ["兼职", "Part time", "hospitality"],
+      ["司机", "Driver", "other"],
+    ];
+    for (const [i, [titleZh, titleEn, industry]] of titles.entries())
+      await db.run(sql`insert into jobs (id, country, employer_id, title_zh, title_en, industry, employment_type,
+        region_id, pay_min_cents, meals_included, accommodation_included, visa_accepted, languages, description_zh,
+        description_en, contact, status, posted_at, expires_at, urgent)
+        values (${`t${i}`}, 'NZ', 'e1', ${titleZh}, ${titleEn}, ${industry}, '["part_time"]', 'akl-mt-eden',
+        2500, 0, 0, '[]', '[]', '', '', '{}', 'active', '2026-10-10', '2026-11-09', 0)`);
+
+    await migrate(db, { migrationsFolder: path.join(projectRoot(), "drizzle") });
+
+    const rows = await db.all<{ id: string; title_zh: string; title_en: string; industry: string; roles: string }>(
+      sql`select id, title_zh, title_en, industry, roles from jobs order by rowid`,
+    );
+    expect(rows).toHaveLength(titles.length);
+    for (const row of rows)
+      expect(JSON.parse(row.roles), row.title_zh).toEqual(
+        suggestJobRoles({
+          titleZh: row.title_zh,
+          titleEn: row.title_en,
+          industry: row.industry as Parameters<typeof suggestJobRoles>[0]["industry"],
+        }),
+      );
+    expect(JSON.parse(rows.at(-2)!.roles)).toEqual([]); // 兼职: 待选
   });
 });
