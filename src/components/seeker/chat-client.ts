@@ -11,7 +11,6 @@ import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { isDemoAccount } from "@/lib/demo-accounts";
-import { applicantConversationId } from "@/components/seeker/applications";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
 import {
   EMPTY_CHAT,
@@ -33,9 +32,15 @@ export { CONVERSATIONS } from "@/components/seeker/chat-demo";
 export function conversationProfileHref(conversation: Conversation, isEmployer: boolean): string | undefined {
   if (!isEmployer)
     return conversation.employerId ? `/employers/${encodeURIComponent(conversation.employerId)}` : undefined;
+  // Demo conversations are named after the candidate; a shared one (chat:…) names its candidate only when the job
+  // seeker lets businesses find them.
   const candidateId =
     conversation.candidateId ??
-    (conversation.id.startsWith("recommend:") ? conversation.id.split(":")[1] : conversation.id);
+    (conversation.id.startsWith("recommend:")
+      ? conversation.id.split(":")[1]
+      : conversation.id.includes(":")
+        ? undefined
+        : conversation.id);
   return candidateId ? `/candidates/${encodeURIComponent(candidateId)}` : undefined;
 }
 
@@ -98,6 +103,50 @@ function sendChange(scope: string, change: ChatChange) {
  */
 export async function sendWaitingChanges(scope: string): Promise<void> {
   for (const item of outboxFor(localStorage, scope)) if (!(await deliver(item).catch(() => false))) break;
+}
+
+/**
+ * Reads the identity's chat again, for messages the other side sent since (#110: there is no push). What this
+ * browser has not sent yet goes first; an answer that comes back while more is waiting is not kept, so a message
+ * just shown does not blink away.
+ */
+async function refreshChat(scope: string): Promise<void> {
+  await sendWaitingChanges(scope);
+  const server = await myChat();
+  if (server?.scope === scope && !outboxFor(localStorage, scope).length) keep(server);
+}
+
+/** How often an open chat page reads again while it is in front. */
+export const CHAT_REFRESH_MS = 10_000;
+
+/** Keeps the signed-in identity's chat fresh while the page is in front, and when it comes back to it. */
+export function useChatRefresh(): void {
+  const session = useSession();
+  const scope = identityScope(session);
+  const signedIn = Boolean(session);
+  useEffect(() => {
+    if (!signedIn) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") refreshChat(scope).catch(() => {});
+    };
+    const timer = window.setInterval(refresh, CHAT_REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [signedIn, scope]);
+}
+
+/**
+ * Opens a chat on the server and keeps the answer; the id of the conversation to show, or null when it cannot be
+ * opened. A business's chat with an account gets its id from the server, so this one waits for it.
+ */
+async function openOnServer(scope: string, conversation: Extract<ChatChange, { type: "open" }>["conversation"]) {
+  const snapshot = await changeMyChat({ type: "open", conversation }).catch(() => null);
+  if (snapshot?.scope !== scope) return null;
+  keep(snapshot);
+  return snapshot.opened ?? null;
 }
 
 /** True once the server has the change for the identity it was made in; it then leaves the outbox. */
@@ -185,46 +234,21 @@ export function useChat() {
       if (saved) sendChange(scope, { type: "report", conversationId: id, reason, note, messageIndex });
       return saved;
     },
-    openCandidateChat(candidate: Candidate, job: Job) {
+    /** The business chats with a 推荐人才 candidate about one of its jobs; resolves to the conversation's id. */
+    async openCandidateChat(candidate: Candidate, job: Job): Promise<string | null> {
       if (!session || !isEmployer || job.employerId !== session.employerId || !candidate.resume.discoverable)
         return null;
-      const id = `recommend:${candidate.id}:${job.id}`;
-      change((current) =>
-        openConversation(current, {
-          id,
-          person: candidate.name,
-          title: job.titleZh,
-          time: "刚刚",
-          avatar: candidate.name.slice(0, 1),
-          job: job.id,
-          candidateId: candidate.id,
-        }),
-      );
-      sendChange(scope, {
-        type: "open",
-        conversation: { kind: "candidate", jobId: job.id, candidateId: candidate.id, name: candidate.name },
+      return openOnServer(scope, {
+        kind: "candidate",
+        jobId: job.id,
+        candidateId: candidate.id,
+        name: candidate.name,
       });
-      return id;
     },
-    /** #84: the business chats with someone who applied for one of its jobs. */
-    openApplicantChat(applicant: { id: string; name: string }, job: Pick<Job, "id" | "employerId" | "titleZh">) {
+    /** #84: the business chats with someone who applied for one of its jobs; resolves to the conversation's id. */
+    async openApplicantChat(applicant: { id: string }, job: Pick<Job, "id" | "employerId">): Promise<string | null> {
       if (!session || !isEmployer || job.employerId !== session.employerId) return null;
-      const id = applicantConversationId(applicant.id);
-      change((current) =>
-        openConversation(current, {
-          id,
-          person: applicant.name,
-          title: job.titleZh,
-          time: "刚刚",
-          avatar: applicant.name.slice(0, 1),
-          job: job.id,
-        }),
-      );
-      sendChange(scope, {
-        type: "open",
-        conversation: { kind: "applicant", jobId: job.id, applicationId: applicant.id },
-      });
-      return id;
+      return openOnServer(scope, { kind: "applicant", jobId: job.id, applicationId: applicant.id });
     },
     openEmployerChat(
       employer: Pick<Employer, "id" | "name">,

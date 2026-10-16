@@ -15,6 +15,8 @@ import {
 } from "@/db/saved-external-jobs";
 import { getExternalJob } from "@/db/external-jobs";
 import { chatServerStore } from "@/lib/chat-server/store";
+import { sharedPart, withShared } from "@/lib/chat-server/shared-view";
+import { listSharedConversations } from "@/db/conversations";
 import type { CountryCode, PayRange } from "@/lib/types";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { isDemoAccount } from "@/lib/demo-accounts";
@@ -68,9 +70,11 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
   const session = await getCurrentSession();
   if (!session) return null;
   const rows = await listSavedJobs(session.email);
-  // The job seeker identity's chats say which jobs swapped contact details.
+  // The job seeker identity's chats say which jobs swapped contact details: its own and those it shares (#110).
   const scope = identityScope({ email: session.email, signedInAt: "", activeRole: "seeker" });
-  const record = (await chatServerStore().getChat(scope)) ?? EMPTY_CHAT;
+  const own = (await chatServerStore().getChat(scope)) ?? EMPTY_CHAT;
+  const shared = await listSharedConversations({ side: "seeker", email: session.email });
+  const record = withShared(own, sharedPart(shared, "seeker", Date.now()));
   const contacted = jobsContactedInChat(chatView(record, chatDemo(false, isDemoAccount(session.email))));
   const now = Date.now();
   const external = await Promise.all(

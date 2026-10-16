@@ -58,9 +58,9 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
   await expect(mine).toContainText("雇主觉得合适");
   await expect(mine).toContainText("附言：周末都能上班");
 
-  // 发起聊天 opens a chat with them.
+  // 发起聊天 opens the chat the job seeker has too (#110).
   await applicant.getByRole("button", { name: "发起聊天" }).click();
-  await expect(page).toHaveURL(/\/messages\?conversation=apply%3A/);
+  await expect(page).toHaveURL(/\/messages\?conversation=chat%3A/);
   await expect(page.getByRole("main").getByText("林晓").filter({ visible: true }).first()).toBeVisible();
 
   // Withdrawn: gone from the employer's list.

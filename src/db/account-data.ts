@@ -3,12 +3,14 @@
 // Server only.
 import { and, asc, count, eq, inArray, ne, or } from "drizzle-orm";
 import { listAiUsageOf, type AiUsageRow } from "@/db/ai-usage";
+import { listSharedConversations } from "@/db/conversations";
 import { listRenewals, type JobRenewal } from "@/db/job-renewals";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
 import * as t from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+import type { SharedConversation } from "@/lib/chat-server/shared-view";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -28,6 +30,11 @@ export interface ServerAccountData {
   employer: { business: Employer; jobs: Job[]; renewals: JobRenewal[] } | null;
   /** Each identity's chat records and the notifications it has read. */
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
+  /**
+   * The job seeker's chats with businesses (#110), both sides' messages and exchanges. What the person wrote for a
+   * business is the business's chat, like its other chats (ADR 0012), so it is not here.
+   */
+  sharedChats: SharedConversation[];
   /** Saved jobs and how far the application got (#52). */
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
   /** Saved external jobs of 实习 and 专业职位 (#131). */
@@ -114,6 +121,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.chatRecords)
     .where(eq(t.chatRecords.email, address))
     .orderBy(asc(t.chatRecords.scope));
+  const sharedChats = await listSharedConversations({ side: "seeker", email: address });
   const saved = await db
     .select()
     .from(t.savedJobs)
@@ -211,6 +219,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       notificationsRead: row.notificationReads ?? [],
       updatedAt: row.updatedAt,
     })),
+    sharedChats,
     savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
     savedExternalJobs: savedExternal.map((s) => ({
       externalJobId: s.externalJobId,
@@ -361,12 +370,16 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .set({ seekerEmail: DELETED_ACCOUNT })
       .where(eq(t.jobChatStarts.seekerEmail, address));
 
-    // The shared chat tables are not written yet (A12-2 keeps chats per identity in chat_records), but they hold
-    // the seeker's email, so a conversation goes with its messages and exchanges.
+    // The job seeker's chats with businesses (#110) go with their messages and exchanges, both sides'. So do the
+    // business's, below, when nobody in its team carries on.
     const conversations = await tx
       .select({ id: t.conversations.id })
       .from(t.conversations)
-      .where(eq(t.conversations.seekerEmail, address));
+      .where(
+        account.employerId && !teammates.length
+          ? or(eq(t.conversations.seekerEmail, address), eq(t.conversations.employerId, account.employerId))
+          : eq(t.conversations.seekerEmail, address),
+      );
     if (conversations.length) {
       const ids = conversations.map((c) => c.id);
       await tx.delete(t.messages).where(inArray(t.messages.conversationId, ids));

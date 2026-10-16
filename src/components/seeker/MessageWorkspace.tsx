@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageSquare } from "lucide-react";
-import { useChat, type Conversation, type Message } from "@/components/seeker/chat-client";
+import { useChat, useChatRefresh, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
@@ -17,6 +17,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   const demoAccount = isDemoAccount(session?.email);
   const [draft, setDraft] = useState("");
   const selected = conversations.find((item) => item.id === selectedId);
+  useChatRefresh();
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
 
   function select(id: string) {
@@ -59,7 +60,11 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
           <NoConversationSelected totalUnread={totalUnread} />
         )}
       </div>
-      {demoAccount && <p className="text-xs text-muted">演示账号：这里的联系人和他们的回复都是演示内容。</p>}
+      <p className="text-xs text-muted">
+        {demoAccount
+          ? "演示账号：这里的联系人和他们的回复都是演示内容。"
+          : "消息保存在服务器上，双方都能看到；对方的新消息在这个页面上 10 秒内出现。"}
+      </p>
     </div>
   );
 }

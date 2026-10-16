@@ -99,7 +99,7 @@
 
 每个身份（邮箱 + 身份 + 企业，`identityScope`）有自己的一份聊天记录：会话里的消息、已读、交换请求和回应、聊天举报（`ChatRecord`，`src/components/seeker/chat-store.ts`），存在数据库的 `chat_records` 表（#42）。服务器上的这一份是准的；浏览器 `localStorage` 里的是缓存，跟着服务器的回答更新。每次回答都带 `scope`，浏览器只在对应的身份下采用。
 
-`ChatSnapshot`：`{ scope, record: ChatRecord }`。`ReadsSnapshot`：`{ scope, ids: string[] }`。
+`ChatSnapshot`：`{ scope, record: ChatRecord, opened? }`。`record` 是这个身份自己的记录加上它和对方共用的对话（#110，ADR 0015）；`opened` 只在 `open` 之后有，是要进的对话编号。`ReadsSnapshot`：`{ scope, ids: string[] }`。
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -113,9 +113,9 @@
 
 | `type` | 其余字段 | 规则 |
 | --- | --- | --- |
-| `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找候选人只能用自己企业的职位，演示候选人的名字以服务器为准，名字最多 40 字 |
+| `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里。回答的 `opened` 是要进的对话编号，打不开时没有 |
 | `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
-| `read` | `conversationId` | 把这个对话标为已读 |
+| `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
 | `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条 |
@@ -159,7 +159,7 @@
 | `markMyApplicantsSeen(jobId)` | 职位编号 | 列表显示出来后调用：这个职位的申请都标为看过，求职者看到「雇主已看过」 | 不是自己企业的职位时不改动 |
 | `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"`、`"hired"`（已录用，#105）或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
 
-雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后开对话 `apply:<申请编号>`。
+雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后，打开和这位求职者共用的对话（#110 之前是企业自己记录里的 `apply:<申请编号>`），回答里的 `opened` 是 `chat:<对话编号>`。
 
 ## 时薪参考 — `src/app/jobs/pay-reference-actions.ts`
 

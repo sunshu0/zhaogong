@@ -197,6 +197,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
   const { candidate, factors, score, coverage } = match;
   const [expanded, setExpanded] = useState(false);
   const { openCandidateChat } = useChat();
+  const [opening, setOpening] = useState(false);
   const router = useRouter();
   const concerns = keyConcerns(factors);
   return (
@@ -255,9 +256,12 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
           </button>
           <Button
             variant="secondary"
-            onClick={() => {
-              const id = openCandidateChat(candidate, job);
+            disabled={opening}
+            onClick={async () => {
+              setOpening(true);
+              const id = await openCandidateChat(candidate, job);
               if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
+              else setOpening(false);
             }}
           >
             <MessageSquare aria-hidden="true" className="size-4" />

@@ -16,6 +16,7 @@ import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { inviteToInterview } from "@/db/interviews";
+import { addSharedMessage, openSharedConversation } from "@/db/conversations";
 import { listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
@@ -330,5 +331,63 @@ describe("deleteAccount (#54)", () => {
           .map((column) => `${getTableName(table)}.${column.name}`),
       );
     expect(new Set(found)).toEqual(handled);
+  });
+});
+
+describe("chats both sides share (#110)", () => {
+  async function chat(seeker: string, employerId: string, jobId: string) {
+    await ensureAccount(seeker);
+    const row = await openSharedConversation({ seekerEmail: seeker, employerId, jobId, startedBy: "seeker" });
+    await addSharedMessage(row.id, "seeker", "你好", undefined);
+    await addSharedMessage(row.id, "employer", "你好，请问哪天有空？", "王经理");
+    return row;
+  }
+  const rows = async (id: string) => {
+    const db = await database();
+    return {
+      conversations: await db.select().from(t.conversations).where(eq(t.conversations.id, id)),
+      messages: await db.select().from(t.messages).where(eq(t.messages.conversationId, id)),
+    };
+  };
+
+  it("are in the job seeker's export with both sides' messages, and go when the job seeker goes", async () => {
+    const business = await createEmployer({ name: "导出聊天的店", regionId: "akl-cbd" });
+    const job = await createJob(jobFor(business.id));
+    const row = await chat("shared.export@example.com", business.id, job.id);
+
+    const data = await exportAccountData("shared.export@example.com");
+    expect(data?.sharedChats).toEqual([
+      expect.objectContaining({
+        employerName: "导出聊天的店",
+        messages: [
+          expect.objectContaining({ from: "seeker", text: "你好" }),
+          expect.objectContaining({ from: "employer", text: "你好，请问哪天有空？", byName: "王经理" }),
+        ],
+      }),
+    ]);
+
+    expect(await deleteAccount("shared.export@example.com")).toBe("deleted");
+    expect(await rows(row.id)).toEqual({ conversations: [], messages: [] });
+  });
+
+  it("go with the business when the last person in its team goes, not before", async () => {
+    const business = await createEmployer({ name: "最后一个人的店", regionId: "akl-cbd" });
+    const job = await createJob(jobFor(business.id));
+    await ensureAccount("last.boss@example.com");
+    await openEmployerIdentity("last.boss@example.com", business.id);
+    const row = await chat("talks.to.last@example.com", business.id, job.id);
+    const db = await database();
+    await db.insert(t.accounts).values({
+      email: "last.staff@example.com",
+      createdAt: "2026-10-17",
+      employerId: business.id,
+      teamRole: "member",
+    });
+
+    expect(await deleteAccount("last.staff@example.com")).toBe("deleted");
+    expect((await rows(row.id)).messages).toHaveLength(2);
+    expect(await deleteAccount("last.boss@example.com")).toBe("deleted");
+    expect(await rows(row.id)).toEqual({ conversations: [], messages: [] });
+    expect(await getAccount("talks.to.last@example.com")).toBeDefined();
   });
 });

@@ -125,6 +125,7 @@ function useOwnJob(jobId: string | null, email: string | undefined): Job | null 
 function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; chatHref: string | null }) {
   const router = useRouter();
   const { openCandidateChat } = useChat();
+  const [opening, setOpening] = useState(false);
   return (
     <Section>
       <div className="flex flex-wrap items-center justify-between gap-3 py-group">
@@ -141,9 +142,12 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
           <ButtonLink href={chatHref}>回到聊天</ButtonLink>
         ) : (
           <Button
-            onClick={() => {
-              const id = openCandidateChat(candidate, job);
+            disabled={opening}
+            onClick={async () => {
+              setOpening(true);
+              const id = await openCandidateChat(candidate, job);
               if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
+              else setOpening(false);
             }}
           >
             发起聊天

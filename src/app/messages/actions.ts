@@ -3,16 +3,37 @@
 // Chat, exchanges and read notifications on the server (#10), per identity of the signed-in account. The browser
 // keeps a copy in localStorage as a cache (chat-client.ts, hub-client.ts); these are the records that count.
 // Every change is checked and applied here with the same pure functions the browser uses (chat-store.ts), with
-// the server's clock and ids.
+// the server's clock and ids. A chat between a job seeker account and a business is one conversation both sides
+// read and write (#110, ADR 0015): the server puts it into each side's record as it answers, and writes changes to
+// it into the conversations tables; demo chats and reports stay in the identity's own record.
 import { randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
 import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
 import { applicationOf } from "@/db/job-applications";
+import { getSeekerProfile, listDiscoverableSeekerProfiles } from "@/db/seeker-profiles";
+import {
+  addSharedExchange,
+  addSharedMessage,
+  answerSharedExchange,
+  findSharedConversation,
+  listSharedConversations,
+  markSharedRead,
+  openSharedConversation,
+  type ConversationRow,
+  type SharedReader,
+} from "@/db/conversations";
+import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/messages/server-notifications";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
-import { parsePayload, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
+import {
+  parsePayload,
+  requestExchange,
+  respondExchange,
+  type ExchangeKind,
+  type ExchangePayload,
+} from "@/lib/chat-consent";
 import {
   EMPTY_CHAT,
   addExchangeRequest,
@@ -27,7 +48,7 @@ import {
 } from "@/components/seeker/chat-store";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
-import { applicantConversationId } from "@/components/seeker/applications";
+import { normalizeEmail } from "@/components/seeker/session";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
 
 const MESSAGE_MAX = 2000;
@@ -56,18 +77,36 @@ export type ChatChange =
         | { kind: "applicant"; jobId: string; applicationId: string };
     };
 
-/** The signed-in identity's chat records; null when signed out. */
 /**
  * What the server answers with: the records and the identity they belong to (the browser's copy may name another
- * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for).
+ * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for). After an
+ * `open`, `opened` is the id of the conversation to show.
  */
-export type ChatSnapshot = { scope: string; record: ChatRecord };
+export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string };
 export type ReadsSnapshot = { scope: string; ids: string[] };
 
+/** Whose shared conversations the identity sees: its own as a job seeker, its business's as an employer. */
+function readerOf(me: ChatIdentity): SharedReader | null {
+  if (!me.isEmployer) return { side: "seeker", email: me.session.email };
+  return me.session.employer ? { side: "employer", employerId: me.session.employer.id } : null;
+}
+
+/** The identity's own record with the conversations it shares in it. */
+async function withSharedOf(me: ChatIdentity, own: ChatRecord): Promise<ChatRecord> {
+  const reader = readerOf(me);
+  if (!reader) return own;
+  return withShared(own, sharedPart(await listSharedConversations(reader), reader.side, Date.now()));
+}
+
+async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string): Promise<ChatSnapshot> {
+  return { scope: me.scope, record: await withSharedOf(me, own), ...(opened ? { opened } : {}) };
+}
+
+/** The signed-in identity's chat records; null when signed out. */
 export async function myChat(): Promise<ChatSnapshot | null> {
   const me = await currentChatIdentity();
   if (!me) return null;
-  return { scope: me.scope, record: (await readChat(me)) ?? EMPTY_CHAT };
+  return snapshot(me, (await readChat(me)) ?? EMPTY_CHAT);
 }
 
 /** The browser's outbox entry for a change (chat-outbox.ts): its id, and the identity it was made in. */
@@ -83,19 +122,18 @@ export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): P
   if (!me) return null;
   const store = chatServerStore();
   const current = (await readChat(me)) ?? EMPTY_CHAT;
-  const unchanged = { scope: me.scope, record: current };
   let applied: string[] | undefined;
   if (ticket !== undefined) {
     if (!ticket || typeof ticket.id !== "string" || !TICKET_ID.test(ticket.id) || ticket.scope !== me.scope) {
-      return unchanged;
+      return snapshot(me, current);
     }
     applied = (await store.getAppliedChanges(me.scope)) ?? [];
-    if (applied.includes(ticket.id)) return unchanged;
+    if (applied.includes(ticket.id)) return snapshot(me, current);
   }
-  const next = await apply(current, change, me);
+  const { record: next, opened } = await apply(current, change, me);
   if (next !== current) await store.putChat(me.recordScope, next);
   if (applied && ticket) await store.putAppliedChanges(me.scope, [...applied, ticket.id].slice(-APPLIED_KEPT));
-  return { scope: me.scope, record: next };
+  return snapshot(me, next, opened);
 }
 
 /**
@@ -107,44 +145,131 @@ export async function importMyChat(record: unknown): Promise<ChatSnapshot | null
   if (!me) return null;
   const store = chatServerStore();
   const current = await readChat(me);
-  if (current) return { scope: me.scope, record: current };
+  if (current) return snapshot(me, current);
   const parsed = parseChatRecord(record);
-  if (!parsed) return { scope: me.scope, record: EMPTY_CHAT };
+  if (!parsed) return snapshot(me, EMPTY_CHAT);
   await store.putChat(me.recordScope, parsed);
-  return { scope: me.scope, record: parsed };
+  return snapshot(me, parsed);
 }
 
-async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): Promise<ChatRecord> {
-  if (!change || typeof change !== "object") return record;
-  const now = new Date().toISOString();
-  const view = chatView(record, me.demo);
-  const known =
-    "conversationId" in change && typeof change.conversationId === "string" && view.messages[change.conversationId];
+type Applied = { record: ChatRecord; opened?: string };
 
+async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): Promise<Applied> {
+  if (!change || typeof change !== "object") return { record };
+  if (change.type === "open") return openFor(record, change.conversation, me);
+  const reader = readerOf(me);
+  const view = chatView(await withSharedOf(me, record), me.demo);
+  const conversationId = "conversationId" in change ? change.conversationId : undefined;
+  if (typeof conversationId !== "string") return { record };
+  // Reports stay with the reporter, whatever the conversation.
+  const key = reader && parseSharedId(conversationId, reader.side);
+  if (reader && key && change.type !== "report") {
+    const shared = (await findSharedConversation(reader, key)) ?? (await sharedToStart(me, key, change));
+    if (shared) {
+      await applyShared(shared, change, me, reader.side, view);
+      return { record };
+    }
+  }
+  if (!view.messages[conversationId]) return { record };
+  return { record: applyOwn(record, change, me, view) };
+}
+
+/**
+ * A job seeker's message to a business they have no shared conversation with yet starts one, if they could open it
+ * now: a chat from before #110 (only in their own record), or a message that got here before its `open` (the
+ * browser sends both at once).
+ */
+async function sharedToStart(
+  me: ChatIdentity,
+  key: NonNullable<ReturnType<typeof parseSharedId>>,
+  change: ChatChange,
+): Promise<ConversationRow | undefined> {
+  if (me.isEmployer || change.type !== "send" || !("jobId" in key)) return undefined;
+  const opened = await openForSeeker(me, key.jobId);
+  return opened && opened.employerId === key.employerId ? opened : undefined;
+}
+
+/** A change to a conversation both sides share, written to its rows. */
+async function applyShared(
+  row: ConversationRow,
+  change: Exclude<ChatChange, { type: "open" } | { type: "report" }>,
+  me: ChatIdentity,
+  side: "seeker" | "employer",
+  view: ReturnType<typeof chatView>,
+): Promise<void> {
+  const id = change.conversationId;
   switch (change.type) {
     case "read":
-      return known ? markConversationRead(record, change.conversationId, now) : record;
+      return markSharedRead(row.id, side);
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
-      if (!known || !text || text.length > MESSAGE_MAX) return record;
-      // A job seeker's message about a job counts as starting a chat on the employer's numbers (#55).
-      if (!me.isEmployer) await countChatStart(change.conversationId, me.session.email);
+      if (!text || text.length > MESSAGE_MAX) return;
+      if (side === "seeker") await countChatStart(id, me.session.email);
+      return addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined);
+    }
+    case "request": {
+      const payload = parsePayload(change.payload);
+      if (!payload || !["contact", "resume"].includes(change.kind)) return;
+      const current = view.exchanges[id] ?? [];
+      const next = requestExchange(current, change.kind, payload, randomUUID());
+      if (next === current) return;
+      const created = next[next.length - 1];
+      return addSharedExchange(row.id, {
+        id: created.id,
+        kind: created.kind,
+        requestedBy: side,
+        offered: created.offered,
+        createdAt: created.createdAt,
+      });
+    }
+    case "answer": {
+      if (typeof change.exchangeId !== "string") return;
+      if (!["accepted", "rejected", "cancelled"].includes(change.status)) return;
+      const payload = change.status === "accepted" ? parsePayload(change.payload) : undefined;
+      if (change.status === "accepted" && !payload) return;
+      const item = view.exchanges[id]?.find((x) => x.id === change.exchangeId);
+      if (!item) return;
+      const answered = respondExchange(item, "me", change.status, payload);
+      if (answered === item) return;
+      return answerSharedExchange(row.id, item.id, {
+        status: answered.status,
+        ...(answered.response ? { response: answered.response } : {}),
+        respondedAt: answered.respondedAt!,
+      });
+    }
+  }
+}
+
+/** A change to the identity's own record: demo chats, chats with demo candidates, reports. */
+function applyOwn(
+  record: ChatRecord,
+  change: Exclude<ChatChange, { type: "open" }>,
+  me: ChatIdentity,
+  view: ReturnType<typeof chatView>,
+): ChatRecord {
+  const now = new Date().toISOString();
+  switch (change.type) {
+    case "read":
+      return markConversationRead(record, change.conversationId, now);
+    case "send": {
+      const text = typeof change.text === "string" ? change.text.trim() : "";
+      if (!text || text.length > MESSAGE_MAX) return record;
       return addSentMessage(record, change.conversationId, text, now, me.by);
     }
     case "request": {
       const payload = parsePayload(change.payload);
-      if (!known || !payload || !["contact", "resume"].includes(change.kind)) return record;
+      if (!payload || !["contact", "resume"].includes(change.kind)) return record;
       return addExchangeRequest(record, me.demo, change.conversationId, change.kind, payload, randomUUID());
     }
     case "answer": {
-      if (!known || typeof change.exchangeId !== "string") return record;
+      if (typeof change.exchangeId !== "string") return record;
       if (!["accepted", "rejected", "cancelled"].includes(change.status)) return record;
       const payload = change.status === "accepted" ? parsePayload(change.payload) : undefined;
       if (change.status === "accepted" && !payload) return record;
       return answerExchange(record, me.demo, change.conversationId, change.exchangeId, change.status, payload);
     }
     case "report": {
-      if (!known) return record;
+      // The evidence may come from a shared conversation: the view has it.
       const conversation = view.conversations.find((c) => c.id === change.conversationId)!;
       const thread = view.messages[change.conversationId];
       const index = change.messageIndex;
@@ -162,71 +287,97 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
       });
       return report ? addReport(record, report) : record;
     }
-    case "open":
-      return openFor(record, change.conversation, me);
     default:
       return record;
   }
 }
 
-/** A chat about one active job: a job seeker with its employer, or an employer with a candidate for its own job. */
+/**
+ * The conversation of a job seeker with the business of one of its active jobs: not a banned business, not their
+ * own. Made the first time; undefined when the job seeker may not chat about the job.
+ */
+async function openForSeeker(me: ChatIdentity, jobId: string): Promise<ConversationRow | undefined> {
+  const job = await getJob(jobId);
+  if (!job || job.status !== "active" || isExpired(job, Date.now())) return undefined;
+  const employer = await getEmployer(job.employerId);
+  if (!employer || employer.bannedAt || me.session.employer?.id === employer.id) return undefined;
+  const page = await getSeekerProfile(me.session.email);
+  return openSharedConversation({
+    seekerEmail: me.session.email,
+    employerId: employer.id,
+    jobId: job.id,
+    startedBy: "seeker",
+    seekerName: page?.profile.name,
+  });
+}
+
+/**
+ * A chat about one active job: a job seeker with its business, or a business with someone who applied for its job
+ * or a candidate for it. With an account on the other side it is the conversation both share (#110); with a demo
+ * candidate, a conversation in the business's own record.
+ */
 async function openFor(
   record: ChatRecord,
   target: Extract<ChatChange, { type: "open" }>["conversation"],
   me: ChatIdentity,
-): Promise<ChatRecord> {
-  if (!target || typeof target !== "object" || typeof target.jobId !== "string") return record;
-  const job = await getJob(target.jobId);
-  if (!job || job.status !== "active" || isExpired(job, Date.now())) return record;
+): Promise<Applied> {
+  if (!target || typeof target !== "object" || typeof target.jobId !== "string") return { record };
 
   if (target.kind === "employer" && !me.isEmployer) {
-    const employer = await getEmployer(job.employerId);
-    if (!employer || employer.bannedAt || me.session.employer?.id === employer.id) return record;
-    return openConversation(record, {
-      id: `employer:${employer.id}:${job.id}`,
-      person: employer.name,
-      title: job.titleZh,
-      time: "刚刚",
-      avatar: employer.name.slice(0, 1),
-      job: job.id,
-      employerId: employer.id,
-    });
+    const row = await openForSeeker(me, target.jobId);
+    return row ? { record, opened: sharedConversationId({ ...row, jobId: row.jobId! }, "seeker") } : { record };
   }
+
+  const job = await getJob(target.jobId);
+  if (!job || job.status !== "active" || isExpired(job, Date.now())) return { record };
+  if (!me.isEmployer || job.employerId !== me.session.employer?.id) return { record };
+  const withAccount = async (seekerEmail: string, seekerName: string): Promise<Applied> => {
+    if (normalizeEmail(seekerEmail) === normalizeEmail(me.session.email)) return { record };
+    const row = await openSharedConversation({
+      seekerEmail,
+      employerId: job.employerId,
+      jobId: job.id,
+      startedBy: "employer",
+      seekerName,
+    });
+    return { record, opened: sharedConversationId({ ...row, jobId: job.id }, "employer") };
+  };
 
   // #84: someone who applied for one of the business's jobs; their name is the one on the page they applied with.
-  if (target.kind === "applicant" && me.isEmployer && job.employerId === me.session.employer?.id) {
-    if (typeof target.applicationId !== "string") return record;
+  if (target.kind === "applicant") {
+    if (typeof target.applicationId !== "string") return { record };
     const application = await applicationOf(job.employerId, target.applicationId);
-    if (!application || application.jobId !== job.id) return record;
-    const name = application.profile.name;
-    return openConversation(record, {
-      id: applicantConversationId(application.id),
-      person: name,
-      title: job.titleZh,
-      time: "刚刚",
-      avatar: name.slice(0, 1),
-      job: job.id,
-    });
+    if (!application || application.jobId !== job.id) return { record };
+    return withAccount(application.seekerEmail, application.profile.name);
   }
 
-  if (target.kind === "candidate" && me.isEmployer && job.employerId === me.session.employer?.id) {
-    if (typeof target.candidateId !== "string" || !target.candidateId) return record;
-    // Demo candidates are known here; candidates who made a page in their own browser are not (yet), so their
-    // name is the one the page shows.
-    const known = MOCK_CANDIDATES.find((c) => c.id === target.candidateId)?.name;
-    const name = (known ?? (typeof target.name === "string" ? target.name.trim() : "")).slice(0, NAME_MAX);
-    if (!name) return record;
-    return openConversation(record, {
-      id: `recommend:${target.candidateId}:${job.id}`,
-      person: name,
-      title: job.titleZh,
-      time: "刚刚",
-      avatar: name.slice(0, 1),
-      job: job.id,
-      candidateId: target.candidateId,
-    });
+  if (target.kind === "candidate") {
+    if (typeof target.candidateId !== "string" || !target.candidateId) return { record };
+    // A candidate with a page on their account (#104) has a conversation both sides share; demo candidates are
+    // not accounts, so their chat stays in the business's own record.
+    const demo = MOCK_CANDIDATES.find((c) => c.id === target.candidateId);
+    if (!demo) {
+      const page = (await listDiscoverableSeekerProfiles()).find(
+        (row) => `local-${row.profile.resume?.candidateId}` === target.candidateId,
+      );
+      const name = page?.profile.name?.trim();
+      return page && name ? withAccount(page.email, name.slice(0, NAME_MAX)) : { record };
+    }
+    const id = `recommend:${demo.id}:${job.id}`;
+    return {
+      record: openConversation(record, {
+        id,
+        person: demo.name,
+        title: job.titleZh,
+        time: "刚刚",
+        avatar: demo.name.slice(0, 1),
+        job: job.id,
+        candidateId: demo.id,
+      }),
+      opened: id,
+    };
   }
-  return record;
+  return { record };
 }
 
 /** The ids of the notifications the signed-in identity has read; null when signed out. */

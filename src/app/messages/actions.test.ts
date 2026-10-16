@@ -10,7 +10,10 @@ import { databaseChatStore } from "@/db/chat-store";
 import { answerInvite, inviteToTeam, setTeamName } from "@/db/team";
 import { jobNumbers } from "@/db/job-stats";
 import { chatDemo } from "@/components/seeker/chat-demo";
-import { EMPTY_CHAT, addSentMessage, chatView } from "@/components/seeker/chat-store";
+import { EMPTY_CHAT, addSentMessage, chatView, type ChatRecord } from "@/components/seeker/chat-store";
+import { addApplication } from "@/db/job-applications";
+import { saveSeekerProfile } from "@/db/seeker-profiles";
+import { teamChatScope } from "@/lib/chat-server/identity";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -23,6 +26,7 @@ vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myNotificationReads } =
   await import("@/app/messages/actions");
+type ChatChange = Parameters<typeof changeMyChat>[0];
 const { myAlertNotifications } = await import("@/app/me/alerts/actions");
 
 const seekerScope = (email: string) => JSON.stringify([email, "seeker", null]);
@@ -319,5 +323,219 @@ describe("notifications on the server (#10)", () => {
       expect(shown.length).toBeGreaterThan(0);
       expect(await markRead(shown)).toEqual(expect.arrayContaining(shown));
     }
+  });
+});
+
+describe("chats both sides share (#110)", () => {
+  const PAGE = {
+    name: "小王",
+    headline: "",
+    location: "",
+    languages: "",
+    availability: "",
+    bio: "",
+    resume: { employmentTypes: [], regionIds: [], skills: "" },
+  };
+
+  /** A business with an admin (王老板) and a member (小李), and one open job. */
+  async function business(tag: string) {
+    const shop = await createEmployer({ name: `${tag}茶楼`, regionId: "akl-cbd" });
+    const boss = `demo.${tag}.boss@example.com`;
+    const staff = `${tag}.staff@example.com`;
+    await ensureAccount(boss);
+    await openEmployerIdentity(boss, shop.id);
+    await setTeamName(boss, "王老板");
+    await ensureAccount(staff);
+    const invited = await inviteToTeam(shop.id, boss, staff, "member");
+    if (invited.status !== "invited") throw new Error(invited.status);
+    await answerInvite(staff, invited.invite.id, { accept: true, name: "小李" });
+    const job: Partial<Job> = { ...MOCK_JOBS[0], employerId: shop.id, titleZh: `${tag}服务员`, status: "active" };
+    delete job.id;
+    job.expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    return { shop, boss, staff, job: await createJob(job as Omit<Job, "id">) };
+  }
+
+  it("a job seeker and a whole team talk in one conversation, with read receipts and who sent what", async () => {
+    const { shop, boss, staff, job } = await business("shared");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+
+    await signedIn("shared.seeker@example.com");
+    const opened = await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+    expect(opened?.opened).toBe(seekerId);
+    await change({ type: "send", conversationId: seekerId, text: "你好，还招人吗？" });
+
+    await signedIn(staff, "employer");
+    const staffSees = (await my())!;
+    const conversation = staffSees.extra.find((c) => c.job === job.id)!;
+    expect(conversation).toMatchObject({ person: "求职者", title: "shared服务员" });
+    expect(conversation.id).toMatch(/^chat:/);
+    expect(chatView(staffSees, chatDemo(true, false)).unread[conversation.id]).toBe(1);
+    await change({ type: "read", conversationId: conversation.id });
+    await change({ type: "send", conversationId: conversation.id, text: "还招，明天来面试吧" });
+
+    await signedIn(boss, "employer");
+    const bossSees = (await my())!;
+    expect(bossSees.added[conversation.id].map((m) => [m.from, m.text, m.by])).toEqual([
+      ["them", "你好，还招人吗？", undefined],
+      ["me", "还招，明天来面试吧", "小李"],
+    ]);
+    await change({ type: "send", conversationId: conversation.id, text: "地址在皇后街" });
+
+    await signedIn("shared.seeker@example.com");
+    const seekerSees = (await my())!;
+    const thread = chatView(seekerSees, chatDemo(false, false)).messages[seekerId];
+    expect(thread.map((m) => [m.from, m.text, m.by])).toEqual([
+      ["me", "你好，还招人吗？", undefined],
+      ["them", "还招，明天来面试吧", "小李"],
+      ["them", "地址在皇后街", "王老板"],
+    ]);
+    expect(thread[0].readAt).toBeTruthy(); // the business read it
+    expect(chatView(seekerSees, chatDemo(false, false)).unread[seekerId]).toBe(2);
+    expect(store.chats.get(seekerScope("shared.seeker@example.com"))).toBeUndefined(); // nothing in its own record
+
+    // Another business sees none of it, and cannot write to it.
+    const other = await createEmployer({ name: "别家", regionId: "akl-cbd" });
+    await ensureAccount("demo.other.shop@example.com");
+    await openEmployerIdentity("demo.other.shop@example.com", other.id);
+    await signedIn("demo.other.shop@example.com", "employer");
+    expect((await my())!.extra.some((c) => c.id === conversation.id)).toBe(false);
+    await change({ type: "send", conversationId: conversation.id, text: "插一句" });
+    await signedIn(boss, "employer");
+    expect((await my())!.added[conversation.id]).toHaveLength(3);
+  });
+
+  it("the business's 发起聊天 on an applicant opens the conversation the job seeker has", async () => {
+    const { shop, boss, job } = await business("applied");
+    await ensureAccount("applied.seeker@example.com");
+    const application = await addApplication({
+      email: "applied.seeker@example.com",
+      jobId: job.id,
+      employerId: shop.id,
+      note: "",
+      profile: PAGE,
+    });
+    if (application === "already") throw new Error("fresh application expected");
+
+    await signedIn(boss, "employer");
+    const open: ChatChange = {
+      type: "open",
+      conversation: { kind: "applicant", jobId: job.id, applicationId: application.id },
+    };
+    const first = await changeMyChat(open);
+    expect(first?.opened).toMatch(/^chat:/);
+    expect((await changeMyChat(open))?.opened).toBe(first?.opened);
+    expect(first?.record.extra[0]).toMatchObject({ id: first?.opened, person: "小王" });
+
+    // Nothing for the job seeker until something is said.
+    await signedIn("applied.seeker@example.com");
+    expect((await my())!.extra).toEqual([]);
+    await signedIn(boss, "employer");
+    await change({ type: "send", conversationId: first!.opened!, text: "看了你的申请" });
+    await signedIn("applied.seeker@example.com");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    expect((await my())!.added[seekerId].map((m) => m.text)).toEqual(["看了你的申请"]);
+    expect((await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } }))?.opened).toBe(
+      seekerId,
+    );
+  });
+
+  it("exchanges follow R-12 for both sides: the asker offers first and sees the answer only when accepted", async () => {
+    const { shop, boss, job } = await business("swap");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("swap.seeker@example.com");
+    await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+    const offer = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0002" }] };
+    await change({ type: "request", conversationId: seekerId, kind: "contact", payload: offer });
+    await change({ type: "request", conversationId: seekerId, kind: "contact", payload: offer }); // one at a time
+
+    await signedIn(boss, "employer");
+    const seen = (await my())!;
+    const id = seen.extra.find((c) => c.job === job.id)!.id;
+    expect(seen.exchanges[id]).toEqual([expect.objectContaining({ from: "them", status: "pending", offered: offer })]);
+    const answer = { title: "联系方式", fields: [{ label: "微信", value: "swapshop" }] };
+    const exchangeId = seen.exchanges[id][0].id;
+    await change({ type: "answer", conversationId: id, exchangeId, status: "accepted", payload: answer });
+
+    await signedIn("swap.seeker@example.com");
+    const back = (await my())!.exchanges[seekerId];
+    expect(back).toEqual([
+      expect.objectContaining({ from: "me", status: "accepted", offered: offer, response: answer }),
+    ]);
+    // An answer already given is not given again.
+    await change({ type: "answer", conversationId: seekerId, exchangeId, status: "cancelled" });
+    expect((await my())!.exchanges[seekerId][0].status).toBe("accepted");
+  });
+
+  it("a 推荐人才 candidate with a page on their account shares the chat; a demo candidate stays the business's own", async () => {
+    const { boss, job } = await business("found");
+    await ensureAccount("found.seeker@example.com");
+    await saveSeekerProfile("found.seeker@example.com", {
+      ...PAGE,
+      name: "陈晨",
+      resume: { employmentTypes: [], regionIds: [], skills: "", candidateId: "found1", discoverable: true },
+    });
+    await signedIn(boss, "employer");
+    const shared = await changeMyChat({
+      type: "open",
+      conversation: { kind: "candidate", jobId: job.id, candidateId: "local-found1", name: "随便写的" },
+    });
+    expect(shared?.opened).toMatch(/^chat:/);
+    expect(shared?.record.extra[0]).toMatchObject({ person: "陈晨", candidateId: "local-found1" });
+    const nobody = await changeMyChat({
+      type: "open",
+      conversation: { kind: "candidate", jobId: job.id, candidateId: "local-nobody", name: "没有这个人" },
+    });
+    expect(nobody?.opened).toBeUndefined();
+
+    const demo = await changeMyChat({
+      type: "open",
+      conversation: { kind: "candidate", jobId: job.id, candidateId: "candidate-lin", name: "林晓" },
+    });
+    expect(demo?.opened).toBe(`recommend:candidate-lin:${job.id}`);
+    expect(store.chats.get(teamChatScope(job.employerId))?.extra.map((c) => c.id)).toEqual([demo?.opened]);
+  });
+
+  it("a job seeker's chat from before #110 keeps its messages and goes on in the shared conversation", async () => {
+    const { shop, boss, job } = await business("before");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("before.seeker@example.com");
+    const old: ChatRecord = {
+      ...addSentMessage(EMPTY_CHAT, seekerId, "以前发的", "2026-10-16T00:00:00.000Z"),
+      extra: [{ id: seekerId, person: shop.name, title: job.titleZh, time: "昨天", avatar: "b", job: job.id }],
+    };
+    await store.putChat(seekerScope("before.seeker@example.com"), old);
+    await change({ type: "send", conversationId: seekerId, text: "现在发的" });
+    expect((await my())!.added[seekerId].map((m) => m.text)).toEqual(["以前发的", "现在发的"]);
+
+    await signedIn(boss, "employer");
+    const seen = (await my())!;
+    const id = seen.extra.find((c) => c.job === job.id)!.id;
+    expect(seen.added[id].map((m) => m.text)).toEqual(["现在发的"]);
+  });
+
+  it("a ticket applies a shared change once", async () => {
+    const { shop, boss, job } = await business("ticket");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("ticket.seeker@example.com");
+    await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+    const ticket = { id: "5a0c1f7e-4d1a-4a5e-9f3c-1c2d3e4f5a6b", scope: seekerScope("ticket.seeker@example.com") };
+    const send = { type: "send", conversationId: seekerId, text: "只发一次" } as const;
+    await changeMyChat(send, ticket);
+    await changeMyChat(send, ticket);
+    await signedIn(boss, "employer");
+    const seen = (await my())!;
+    expect(seen.added[seen.extra.find((c) => c.job === job.id)!.id].map((m) => m.text)).toEqual(["只发一次"]);
+  });
+
+  it("a job seeker's message that gets there before its open starts the conversation; a closed job's does not", async () => {
+    const { shop, boss, job } = await business("early");
+    await signedIn("early.seeker@example.com");
+    await change({ type: "send", conversationId: `employer:${shop.id}:${job.id}`, text: "先到的消息" });
+    await change({ type: "send", conversationId: `employer:${shop.id}:j17`, text: "过期职位" }); // expired
+    await change({ type: "send", conversationId: `employer:${shop.id}:j1`, text: "企业和职位对不上" }); // j1 is another business's
+    await signedIn(boss, "employer");
+    const seen = (await my())!;
+    expect(seen.extra.map((c) => c.job)).toEqual([job.id]);
+    expect(seen.added[seen.extra[0].id].map((m) => m.text)).toEqual(["先到的消息"]);
   });
 });

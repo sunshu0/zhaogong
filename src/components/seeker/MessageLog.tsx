@@ -6,6 +6,7 @@ import { useChat, type Conversation, type Message } from "@/components/seeker/ch
 import { ChatExchangeList, ChatReportButton } from "@/components/seeker/ChatInteractions";
 import { incomingWarnings } from "@/components/seeker/chat-warnings";
 import { messageReadLabel } from "@/lib/chat-activity";
+import { teamSignature } from "@/components/employer/team";
 
 /** The messages of one conversation, then its exchange requests; keeps the newest in view. */
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
@@ -54,8 +55,10 @@ function MessageBubble({
       >
         <p>{message.text}</p>
         <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${mine ? "text-white" : "text-muted"}`}>
-          {/* Who in the business's team sent it (#87); the business side shares one set of conversations. */}
-          {mine && message.by && <span data-message-by="">{message.by}</span>}
+          {/* Who in the business's team sent it (#87): the team sees the name, the job seeker 「店名 · 名字」 (#110). */}
+          {message.by && (
+            <span data-message-by="">{mine ? message.by : teamSignature(conversation?.person ?? "", message.by)}</span>
+          )}
           <span>{message.time}</span>
           <span data-message-read="" aria-label={mine ? `对方${readLabel}` : readLabel}>
             {readLabel}

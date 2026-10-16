@@ -157,6 +157,7 @@ function ApplicantCard({
 }) {
   const router = useRouter();
   const { openApplicantChat } = useChat();
+  const [opening, setOpening] = useState(false);
   return (
     <article aria-label={`申请人 ${a.profile.name}`} className="rounded-md border border-border bg-surface p-4 lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -185,9 +186,13 @@ function ApplicantCard({
         <button
           type="button"
           className={buttonClass("primary")}
-          onClick={() => {
-            const id = openApplicantChat({ id: a.id, name: a.profile.name }, job);
+          disabled={opening}
+          onClick={async () => {
+            // The conversation is the one the job seeker has too (#110); its id comes from the server.
+            setOpening(true);
+            const id = await openApplicantChat({ id: a.id }, job);
             if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
+            else setOpening(false);
           }}
         >
           发起聊天
