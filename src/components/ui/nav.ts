@@ -8,6 +8,8 @@ export type NavKey = "jobs" | "manage" | "post" | "candidates" | "chat" | "works
 export type NavItem = { key: NavKey; href: string; label: string };
 
 export const ACCOUNT_PATH = "/account";
+/** 数据与账号 (#54): export the account's data, delete the account. */
+export const ACCOUNT_DATA_PATH = "/account/data";
 export const MANAGE_JOBS_PATH = "/employer/jobs";
 
 export function navRole(session: DemoSession | null): NavRole {
@@ -82,9 +84,16 @@ export function activeNavKey(pathname: string): NavKey | null {
   if (under(pathname, "/messages")) return "chat";
   if (pathname === "/workspace") return "workspace";
   if (
-    [ACCOUNT_PATH, "/notifications", "/profile", "/me", "/me/saved", "/me/alerts", "/employer/verify"].includes(
-      pathname,
-    )
+    [
+      ACCOUNT_PATH,
+      ACCOUNT_DATA_PATH,
+      "/notifications",
+      "/profile",
+      "/me",
+      "/me/saved",
+      "/me/alerts",
+      "/employer/verify",
+    ].includes(pathname)
   )
     return "mine";
   return null;

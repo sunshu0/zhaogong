@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useNotifications } from "@/components/seeker/hub-client";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
+import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 
 type NavItem = { href: string; label: string };
 
@@ -23,6 +24,8 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
           { href: ALERTS_PATH, label: "职位提醒" },
           { href: "/me", label: "浏览与举报" },
         ]),
+    // Both identities: on a desktop this sidebar and the account menu are the only ways to it (#76).
+    { href: ACCOUNT_DATA_PATH, label: "数据与账号" },
   ];
 }
 

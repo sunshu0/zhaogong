@@ -98,9 +98,17 @@ test("职位提醒: home → a quick filter → 保存为提醒 → 管理提醒
 });
 
 test("导出数据和删除账号: home → 数据与账号 → download, then delete", async ({ page }, testInfo) => {
-  test.fixme(!isPhone(testInfo), "#76: on a desktop neither the account menu nor the workspace sidebar links to it.");
   const email = await signInByClicks(page, testInfo);
-  await openMine(page, testInfo, "数据与账号");
+  if (isPhone(testInfo)) {
+    await openMine(page, testInfo, "数据与账号");
+  } else {
+    // A desktop has two ways in (#76): the account menu, and the workspace sidebar, which marks the page.
+    await page.getByRole("button", { name: /^账号菜单/ }).click();
+    await page.getByRole("link", { name: "数据与账号", exact: true }).click();
+    await expect(
+      page.getByRole("navigation", { name: "工作台导航" }).getByRole("link", { name: "数据与账号", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+  }
   await expect(page).toHaveURL("/account/data");
 
   const download = page.waitForEvent("download");
@@ -142,6 +150,12 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   await card.getByRole("link", { name: "近 14 天" }).click();
   await expect(page).toHaveURL(/\/employer\/jobs\/j\d+\/stats$/);
   await expect(page.getByRole("heading", { name: "职位数据" })).toBeVisible();
+
+  // The employer identity reaches 数据与账号 too (#76): 我的 on a phone, the account menu on a desktop.
+  if (isPhone(testInfo)) await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+  else await page.getByRole("button", { name: /^账号菜单/ }).click();
+  await page.getByRole("link", { name: /^数据与账号/ }).click();
+  await expect(page).toHaveURL("/account/data");
 });
 
 test("职位续期: 职位管理 → 快到期的职位 → 续期 (#69)", async () => {

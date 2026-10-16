@@ -12,6 +12,7 @@ import { signOut, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
 import { LinkList, type LinkListItem } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
+import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 
 /** 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. */
 export function AccountHome() {
@@ -39,7 +40,7 @@ export function AccountHome() {
           { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
         ]),
     ...(moderator ? [{ ...ADMIN_ENTRY, detail: "审核职位和举报（审核员）" }] : []),
-    { href: "/account/data", label: "数据与账号", detail: "导出我的数据、删除账号" },
+    { href: ACCOUNT_DATA_PATH, label: "数据与账号", detail: "导出我的数据、删除账号" },
   ];
 
   return (

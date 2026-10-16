@@ -12,7 +12,8 @@ async function signedInEmail(page: Page): Promise<string> {
 
 async function openMyData(page: Page) {
   await page.goto("/account");
-  await page.getByRole("link", { name: /数据与账号/ }).click();
+  // 我的's own entry (on a desktop the workspace sidebar has a 数据与账号 link too, #76).
+  await page.getByRole("link", { name: /^数据与账号.*删除账号/ }).click();
   await expect(page).toHaveURL("/account/data");
   await expect(page.getByRole("heading", { name: "导出我的数据" })).toBeVisible();
 }

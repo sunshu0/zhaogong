@@ -7,7 +7,7 @@ import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
 import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
-import { navRole, showsPostJob } from "@/components/ui/nav";
+import { ACCOUNT_DATA_PATH, navRole, showsPostJob } from "@/components/ui/nav";
 
 /** Once per page load, make the browser's copy of the session match the server's (A12-1: the cookie is the truth). */
 function useAccountSync() {
@@ -116,6 +116,9 @@ export function AccountMenu() {
                 浏览与举报
               </Link>
             )}
+            <Link href={ACCOUNT_DATA_PATH} className={pageItem} onClick={close}>
+              数据与账号
+            </Link>
             {moderator && (
               <Link href={ADMIN_ENTRY.href} className={pageItem} onClick={close}>
                 {ADMIN_ENTRY.label}
