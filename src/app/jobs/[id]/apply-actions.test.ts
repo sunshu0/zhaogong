@@ -16,7 +16,7 @@ vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { applyForJob, myAppliedJobIds, myApplicationViews, myJobApplication, withdrawMyApplication } =
   await import("@/app/jobs/[id]/apply-actions");
-const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants } =
+const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants, markMyApplicantsSeen } =
   await import("@/app/employer/applicant-actions");
 const { myAlertNotifications } = await import("@/app/me/alerts/actions");
 const { markMyNotificationsRead } = await import("@/app/messages/actions");
@@ -90,7 +90,7 @@ describe("applying for a job (#84)", () => {
 });
 
 describe("the employer's applicant list (#84)", () => {
-  it("counts applications, lists them without contact details, marks them seen and records 合适 / 不合适", async () => {
+  it("counts applications, lists them without contact details, marks them seen when shown, records 合适 / 不合适", async () => {
     await signedIn("apply.three@example.com");
     await applyForJob("j4", "会做点心", PAGE);
 
@@ -116,6 +116,9 @@ describe("the employer's applicant list (#84)", () => {
     expect(applicant).toMatchObject({ note: "会做点心", isNew: true, decision: null, profile: { name: "林晓" } });
     expect(applicant.facts.map((f) => f.label)).toEqual(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
     expect(JSON.stringify(first)).not.toMatch(/apply\.three|021 555|linxiao|lin\.private/);
+    expect((await getMyApplicationCounts()).j4).toEqual({ total: 1, unseen: 1 }); // reading changes nothing
+    await markMyApplicantsSeen("j3"); // not theirs: nothing happens
+    await markMyApplicantsSeen("j4");
     expect((await getMyApplicationCounts()).j4).toEqual({ total: 1, unseen: 0 });
     expect((await getMyJobApplicants("j4"))!.applicants[0].isNew).toBe(false);
 

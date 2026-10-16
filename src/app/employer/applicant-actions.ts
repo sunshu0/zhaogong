@@ -45,8 +45,8 @@ export async function getMyApplicationCounts(): Promise<Record<string, Applicati
 }
 
 /**
- * One of the account's jobs and who applied, oldest first. Opening the list marks every application as seen (the
- * job seeker then sees 「雇主已看过」); `isNew` says which were new on this visit. Null for anyone else's job.
+ * One of the account's jobs and who applied, oldest first; `isNew` for those the business has not looked at yet.
+ * Reading changes nothing: the page then calls markMyApplicantsSeen. Null for anyone else's job.
  */
 export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; applicants: Applicant[] } | null> {
   const employer = await myBusiness();
@@ -54,7 +54,6 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
   const job = await getJob(jobId);
   if (!job || job.employerId !== employer.id) return null;
   const rows = await jobApplicationsFor(employer.id, job.id);
-  await markApplicationsSeen(employer.id, job.id);
   return {
     job,
     applicants: rows.map((row) => ({
@@ -67,6 +66,13 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
       decision: row.decision,
     })),
   };
+}
+
+/** The business has looked at the job's applicants: the job seekers then see 「雇主已看过」. */
+export async function markMyApplicantsSeen(jobId: string): Promise<void> {
+  const employer = await myBusiness();
+  if (!employer || typeof jobId !== "string") return;
+  await markApplicationsSeen(employer.id, jobId);
 }
 
 /** Marks one of the business's applicants 合适 or 不合适, or clears it (null). False when it is not theirs. */

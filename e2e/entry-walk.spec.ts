@@ -191,7 +191,7 @@ test("一键申请: home → search → a job → 申请; the employer: 总览 �
   const hero = seeker.getByRole("region", { name: /^奥克兰的中文工作/ });
   await hero.getByRole("searchbox", { name: "搜索职位" }).fill(title);
   await hero.getByRole("button", { name: "找工作" }).click();
-  await seeker.getByRole("main").getByRole("link", { name: title }).click();
+  await seeker.getByRole("main").getByRole("link", { name: title, exact: true }).click();
   await expect(seeker).toHaveURL(/\/jobs\/j\d+$/);
   await seeker.getByRole("button", { name: "申请", exact: true }).click();
   const form = seeker.getByRole("dialog", { name: "申请这个职位" });

@@ -137,7 +137,8 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `getMyApplicationCounts()` | | `{ [jobId]: { total, unseen } }`，没人申请的职位不列 | 没有雇主身份时 `{}` |
-| `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先申请的在前；每人 `{ id, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18）。打开就把这个职位的申请都标为看过 | 不是自己企业的职位时 `null` |
+| `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先申请的在前；每人 `{ id, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18），`isNew` 是还没看过的。只读，不改动 | 不是自己企业的职位时 `null` |
+| `markMyApplicantsSeen(jobId)` | 职位编号 | 列表显示出来后调用：这个职位的申请都标为看过，求职者看到「雇主已看过」 | 不是自己企业的职位时不改动 |
 | `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"` 或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
 
 雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后开对话 `apply:<申请编号>`。

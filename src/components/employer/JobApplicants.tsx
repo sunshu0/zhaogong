@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { decideMyApplicant, getMyJobApplicants, type Applicant } from "@/app/employer/applicant-actions";
+import {
+  decideMyApplicant,
+  getMyJobApplicants,
+  markMyApplicantsSeen,
+  type Applicant,
+} from "@/app/employer/applicant-actions";
 import type { Job } from "@/lib/types";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { DECISION_LABELS, type ApplicationDecision } from "@/components/seeker/applications";
@@ -22,7 +27,7 @@ const appliedAt = new Intl.DateTimeFormat("zh-CN", {
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
- * and 合适 / 不合适, and a chat with them. Opening the list marks everyone seen. No contact details: those follow the
+ * and 合适 / 不合适, and a chat with them. Once shown, everyone in it counts as seen. No contact details: those follow the
  * job's two rules (ADR 0002).
  */
 export function JobApplicants({ jobId }: { jobId: string }) {
@@ -38,7 +43,10 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   useEffect(() => {
     let live = true;
     getMyJobApplicants(jobId).then((data) => {
-      if (live) setLoaded({ email: me.email, data });
+      if (!live) return;
+      setLoaded({ email: me.email, data });
+      // Shown with 新 marked; from now on they count as seen.
+      if (data?.applicants.some((a) => a.isNew)) void markMyApplicantsSeen(jobId).catch(() => {});
     });
     return () => {
       live = false;
