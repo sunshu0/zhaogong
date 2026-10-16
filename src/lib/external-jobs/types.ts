@@ -3,7 +3,7 @@
 // is never stored or shown (ADR 0014 rule 2).
 
 /** The applicant-tracking systems the importer reads. */
-export type ExternalSource = "greenhouse" | "lever";
+export type ExternalSource = "greenhouse" | "lever" | "ashby";
 
 /** The two fields of the pilot (user, 2026-10-17): software, and electrical and electronic engineering. */
 export type ExternalField = "software" | "electrical";
@@ -56,11 +56,11 @@ export interface RawPosting {
   title: string;
   /** Location names as the posting gives them, most specific first. */
   locations: string[];
-  /** ISO 3166 country code when the API gives one (Lever). */
+  /** ISO 3166 country code when the API gives one (Lever), or when every address of an Ashby posting is in NZ. */
   country?: string;
   /** Departments or teams, used to place a generic title like "Graduate Engineer". */
   departments: string[];
-  /** Lever's commitment ("Full-time", "Internship", "Fixed Term"…). */
+  /** Lever's commitment ("Full-time", "Internship", "Fixed Term"…) or Ashby's employment type ("FullTime", "Intern"…). */
   commitment?: string;
   /** The posting page on the company's careers site or its tracking system. */
   url: string;

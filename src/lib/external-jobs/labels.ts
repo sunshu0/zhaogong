@@ -6,6 +6,7 @@ import type {
   ExternalCity,
   ExternalFacts,
   ExternalField,
+  ExternalSource,
   ExternalFlag,
   ExternalKind,
   ExternalPay,
@@ -13,6 +14,13 @@ import type {
 } from "@/lib/external-jobs/types";
 
 export const NOT_STATED = "原文未说明";
+
+/** The applicant-tracking systems by their own names, for the moderators (#112, Ashby #138). */
+export const SOURCE_NAMES: Record<ExternalSource, string> = {
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
+};
 
 export const FIELD_LABELS: Record<ExternalField, string> = { software: "软件", electrical: "电子电气" };
 

@@ -13,7 +13,7 @@ import {
   type ExternalReviewQueue,
 } from "@/app/admin/external-actions";
 import { Empty } from "@/app/admin/_components/Empty";
-import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS } from "@/lib/external-jobs/labels";
+import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { HIDE_REASONS, type HideReason } from "@/lib/external-jobs/review";
 import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
@@ -252,9 +252,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
         <h3 lang="en" className="text-body font-semibold">
           {company.name}
         </h3>
-        {company.source && (
-          <span className="text-meta text-muted">{company.source === "greenhouse" ? "Greenhouse" : "Lever"}</span>
-        )}
+        {company.source && <span className="text-meta text-muted">{SOURCE_NAMES[company.source]}</span>}
         {company.imported && <Tag kind="perk">导入中</Tag>}
         {company.block && <Tag kind="urgent">{company.block.kind === "takedown" ? "已删除" : "已停用"}</Tag>}
         <span className="text-meta text-muted">

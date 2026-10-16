@@ -2,7 +2,7 @@
 // 实习 / 专业职位 sections have something to show before any real company's terms are checked. Dated from `now`
 // (refreshed today, closing weeks ahead), so they show on a freshly seeded database; after 2 days without an import
 // they stop showing, like real ones. The links go to example.com.
-import type { ExternalFacts } from "@/lib/external-jobs/types";
+import type { ExternalFacts, ExternalSource } from "@/lib/external-jobs/types";
 import type { ExternalReview } from "@/lib/external-jobs/visibility";
 
 const DAY = 86_400_000;
@@ -10,7 +10,7 @@ const DAY = 86_400_000;
 type DemoJob = Omit<ExternalFacts, "closesAt" | "postedAt" | "url"> & {
   companyId: string;
   companyName: string;
-  source: "greenhouse" | "lever";
+  source: ExternalSource;
   closesInDays: number | null;
   postedDaysAgo: number;
   review: ExternalReview;

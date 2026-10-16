@@ -1,0 +1,239 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000001",
+      "title": "Senior Firmware Engineer",
+      "department": "Hardware",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Auckland",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Auckland",
+          "addressRegion": "Auckland",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000001",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000001/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\nYou bring 5+ years of embedded C experience.\nYou must have the right to work in New Zealand.",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000002",
+      "title": "Senior Software Engineer",
+      "department": "Software Engineering",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Remote - New Zealand",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Wellington",
+          "addressRegion": "Wellington",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000002",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000002/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\nA degree in Computer Science or similar.",
+      "compensation": {
+        "compensationTierSummary": "NZ$150K – NZ$180K",
+        "scrapeableCompensationSalarySummary": "NZ$150K - NZ$180K",
+        "compensationTiers": [],
+        "summaryComponents": [
+          {
+            "compensationType": "EquityPercentage",
+            "interval": "NONE",
+            "currencyCode": null,
+            "minValue": null,
+            "maxValue": null
+          },
+          {
+            "compensationType": "Salary",
+            "interval": "1 YEAR",
+            "currencyCode": "NZD",
+            "minValue": 150000,
+            "maxValue": 180000
+          }
+        ]
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000003",
+      "title": "Software Engineering Intern",
+      "department": "Software Engineering",
+      "team": "",
+      "employmentType": "Intern",
+      "location": "Christchurch",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Christchurch",
+          "addressRegion": "Canterbury",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000003",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000003/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\nApplications close 30 November 2026.",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000004",
+      "title": "Backend Engineer",
+      "department": "Software Engineering",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Auckland",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": false,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Auckland",
+          "addressRegion": "Auckland",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000004",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000004/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\n",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000005",
+      "title": "Account Manager",
+      "department": "Sales",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Auckland",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Auckland",
+          "addressRegion": "Auckland",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000005",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000005/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\n",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000006",
+      "title": "Software Engineer",
+      "department": "Software Engineering",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "San Francisco",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "San Francisco",
+          "addressRegion": "California",
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000006",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000006/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\n",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000007",
+      "title": "Senior Data Engineer",
+      "department": "Data",
+      "team": "",
+      "employmentType": "Contract",
+      "location": "Sydney",
+      "secondaryLocations": [
+        {
+          "location": "Wellington",
+          "address": {
+            "addressLocality": "Wellington",
+            "addressRegion": "Wellington",
+            "addressCountry": "New Zealand"
+          }
+        }
+      ],
+      "publishedAt": "2026-10-05T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Sydney",
+          "addressRegion": "New South Wales",
+          "addressCountry": "Australia"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000007",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000007/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\n",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
-// The two applicant-tracking systems the importer reads (#111, ADR 0014), through the APIs they publish for public
-// job boards; no key, no sign-in, no HTML pages. Each adapter gives the URL to read and turns the answer into
+// The applicant-tracking systems the importer reads (#111, ADR 0014; Ashby #138), through the APIs they publish for
+// public job boards; no key, no sign-in, no HTML pages. Each adapter gives the URL to read and turns the answer into
 // RawPostings. Pure: the fetching is in polite-fetch.ts.
 import { decodeEntities, htmlToText } from "@/lib/external-jobs/facts";
 import type { ExternalPay, ExternalSource, PayPeriod, RawPosting } from "@/lib/external-jobs/types";
@@ -102,16 +102,121 @@ export function parseLever(body: unknown): RawPosting[] {
   });
 }
 
-// ---- both ----
+// ---- Ashby Job Postings API: https://developers.ashbyhq.com/docs/public-job-posting-api (#138) ----
 
-/** Where a company's public postings are read. `board` is the board token (Greenhouse) or site name (Lever). */
+type AshbyPostal = { addressLocality?: string; addressRegion?: string; addressCountry?: string };
+/** The job's address wraps it in postalAddress; a secondary location's address is the postal address itself. */
+type AshbyAddress = { postalAddress?: AshbyPostal } | AshbyPostal;
+
+interface AshbyJob {
+  id: string;
+  title: string;
+  department?: string;
+  team?: string;
+  employmentType?: string;
+  location?: string;
+  secondaryLocations?: { location?: string; address?: AshbyAddress }[];
+  address?: AshbyAddress;
+  publishedAt?: string;
+  /** False: the company shows it only by direct link, so it is not listed elsewhere either. */
+  isListed?: boolean;
+  jobUrl: string;
+  descriptionPlain?: string;
+  compensation?: {
+    summaryComponents?: {
+      compensationType?: string;
+      interval?: string;
+      currencyCode?: string | null;
+      minValue?: number | null;
+      maxValue?: number | null;
+    }[];
+  } | null;
+}
+
+const postal = (address?: AshbyAddress): AshbyPostal | undefined =>
+  address && "postalAddress" in address ? address.postalAddress : (address as AshbyPostal | undefined);
+
+/** An Ashby address as place names, city first. */
+function ashbyPlaces(address?: AshbyAddress): string[] {
+  const a = postal(address);
+  return [a?.addressLocality, a?.addressRegion, a?.addressCountry].filter((n): n is string => Boolean(n));
+}
+
+function ashbyPay(job: AshbyJob): ExternalPay | undefined {
+  const salary = job.compensation?.summaryComponents?.find((c) => c.compensationType === "Salary");
+  if (!salary?.minValue || !(salary.minValue > 0) || !salary.currencyCode) return undefined;
+  const period: PayPeriod = /hour/i.test(salary.interval ?? "")
+    ? "hour"
+    : /month/i.test(salary.interval ?? "")
+      ? "month"
+      : "year";
+  return {
+    minCents: Math.round(salary.minValue * 100),
+    ...(salary.maxValue && salary.maxValue > salary.minValue && { maxCents: Math.round(salary.maxValue * 100) }),
+    currency: salary.currencyCode,
+    period,
+  };
+}
+
+export function parseAshby(body: unknown): RawPosting[] {
+  const jobs = (body as { jobs?: AshbyJob[] })?.jobs;
+  if (!Array.isArray(jobs)) throw new Error("Ashby answer has no jobs list");
+  return (
+    jobs
+      // Ashby: a posting not listed "should only be available via direct link".
+      .filter((job) => job.isListed !== false)
+      .map((job) => {
+        const secondary = job.secondaryLocations ?? [];
+        const countries = [job.address, ...secondary.map((s) => s.address)]
+          .map((a) => postal(a)?.addressCountry?.trim())
+          .filter((c): c is string => Boolean(c));
+        const onlyNz = countries.length > 0 && countries.every((c) => /^(new zealand|nz|aotearoa)$/i.test(c));
+        const locations = [
+          job.location,
+          ...ashbyPlaces(job.address),
+          ...secondary.flatMap((s) => [s.location, ...ashbyPlaces(s.address)]),
+        ].filter((n): n is string => Boolean(n));
+        return {
+          externalId: job.id,
+          title: job.title,
+          locations: [...new Set(locations)],
+          ...(onlyNz && { country: "NZ" }),
+          departments: [job.department, job.team].filter((n): n is string => Boolean(n)),
+          ...(job.employmentType && { commitment: job.employmentType }),
+          url: job.jobUrl,
+          ...(job.publishedAt && { postedAt: new Date(job.publishedAt).toISOString() }),
+          ...(ashbyPay(job) && { pay: ashbyPay(job) }),
+          text: job.descriptionPlain ?? "",
+        };
+      })
+  );
+}
+
+// ---- all ----
+
+/**
+ * Where a company's public postings are read. `board` is the board token (Greenhouse), site name (Lever) or job board
+ * name (Ashby).
+ */
 export function postingsUrl(source: ExternalSource, board: string): string {
   const b = encodeURIComponent(board);
-  return source === "greenhouse"
-    ? `https://boards-api.greenhouse.io/v1/boards/${b}/jobs?content=true&pay_transparency=true`
-    : `https://api.lever.co/v0/postings/${b}?mode=json`;
+  switch (source) {
+    case "greenhouse":
+      return `https://boards-api.greenhouse.io/v1/boards/${b}/jobs?content=true&pay_transparency=true`;
+    case "lever":
+      return `https://api.lever.co/v0/postings/${b}?mode=json`;
+    case "ashby":
+      return `https://api.ashbyhq.com/posting-api/job-board/${b}?includeCompensation=true`;
+  }
 }
 
 export function parsePostings(source: ExternalSource, body: unknown): RawPosting[] {
-  return source === "greenhouse" ? parseGreenhouse(body) : parseLever(body);
+  switch (source) {
+    case "greenhouse":
+      return parseGreenhouse(body);
+    case "lever":
+      return parseLever(body);
+    case "ashby":
+      return parseAshby(body);
+  }
 }

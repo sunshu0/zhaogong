@@ -55,3 +55,23 @@
 **用户决定：** 只保留 ClearPoint 和 MYOB，另外 5 家从名单删掉，不去要书面许可，暂时不扩大名单。以后要加回来，先拿到书面许可，再按上面的标准写 `terms`。
 
 **放上去以后：** 2026-10-17 的 dry run 里，ClearPoint 留下 3 条（奥克兰、惠灵顿的合同制高级工程师意向登记），MYOB 留下 1 条（奥克兰的 Engineering Manager），其余不在新西兰或不是软件、电子电气。导入以后照第 6 条，审核员在「外部职位」里逐条通过才显示。
+
+## 补充二：第三个来源 Ashby（2026-10-17，#138）
+
+第一次审核后名单上只剩 4 条职位。执行 C 调研后发现，新西兰的软件公司大多不用 Greenhouse 和 Lever，而是用 Ashby（Halter、Xero、Partly、Auror）。用户同意加上 Ashby，条款仍由找工导师代为审核。调研记录在仓库外：`D:/dev/zhaogong-external-candidates-2026-10-17.md`（第二轮）。
+
+**口径（导师 2026-10-17 定，沿用第一次的先例）：** 只约束付费客户、或者只限定在产品上的条款，不算对网站和招聘页的限制。第一次的 MYOB 就是因为只限制软件，才算可以的。
+
+**招聘系统这一层：** Ashby 的公开 Job Postings API（`https://api.ashbyhq.com/posting-api/job-board/<name>`）不要密钥。文档说它给公司自己的招聘页用（「If you host your own careers page, you can use this data to populate it」），没有禁止第三方读取。Ashby 的 Terms of Service 是「Ashby Customer Terms of Service」，只约束付费客户。`jobs.ashbyhq.com` 的 `robots.txt` 只挡 `/meeting/`、`/b/`、`/api/`。`api.ashbyhq.com` 的 `robots.txt` 回 401，按 RFC 9309 等于没有。
+
+| 公司 | 结论 | 依据 |
+| --- | --- | --- |
+| Halter（Ashby `halter`） | 可以放 | 官网没有网站使用条款；服务合同和 Software Usage Policy 限制的都是「the Software Services」里的内容。 |
+| Partly（Ashby `partly.com`） | 可以放 | 官网没有网站使用条款；End User Agreement 禁止抓取的是「the Services, or information featured in it」。 |
+| Auror（Ashby `auror`） | 可以放 | 官网没有网站使用条款；平台用户条款禁止抓取、深链的都是「on the Platform」。 |
+| Xero | 不放 | 官网唯一的使用条款写了不许复制「any of our content」，没有限定在产品上。 |
+| Lightspeed | 不放 | 网站内容受版权保护，没有许可不得复制、展示。 |
+
+**导入器：** 第三个适配器 `parseAshby`（`src/lib/external-jobs/sources.ts`）。地点取 `location`、`address` 和 `secondaryLocations`；只有每个地址都在新西兰时，才记国家为 NZ。部门取 `department` 和 `team`，`employmentType` 当用工形式，薪资取 `compensation.summaryComponents` 里的 Salary。**`isListed: false` 的职位跳过**：Ashby 文档说这种职位只许直链，公司没把它列在自己的招聘页上，我们也不列。事实规则（第 2–4 条）和先审后显示（第 6 条）不变。
+
+**放上去以后：** 2026-10-17 用真实接口 dry run，Halter 284 条里留下 28 条（软件 22、电子电气 6，都在奥克兰），Partly 34 条里留下 11 条（基督城、奥克兰），Auror 13 条里留下 4 条（奥克兰和新西兰远程，写了薪资）。Partly 有 1 条产品经理职位因为标题里有 Developer 被算成软件，审核员会看到。

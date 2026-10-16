@@ -70,5 +70,9 @@ describe("polite fetching of the public APIs (#111)", () => {
 
     const none = fakeHost(404);
     expect(await none.getJson("https://boards.example.com/v1/boards/a/jobs")).toEqual({ jobs: [] });
+
+    // api.ashbyhq.com answers 401 for robots.txt (#138): a 4xx means there is none (RFC 9309 2.3.1.3).
+    const locked = fakeHost(401);
+    expect(await locked.getJson("https://api.example.com/posting-api/job-board/a")).toEqual({ jobs: [] });
   });
 });

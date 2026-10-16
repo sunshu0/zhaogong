@@ -7,13 +7,14 @@ import { EXTERNAL_COMPANIES, importAllowed, type ExternalCompany } from "@/confi
 import { getExternalJob, listExternalJobs as listAll, setExternalReview } from "@/db/external-jobs";
 import { database } from "@/db/ready";
 import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
-import { parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
+import { parseAshby, parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(process.cwd(), "src/lib/external-jobs/fixtures", name), "utf8"));
 const GREENHOUSE = fixture("greenhouse-kowhai.json");
 const LEVER = fixture("lever-tui.json");
+const ASHBY = fixture("ashby-pukeko.json");
 
 const checked = {
   checkedBy: "测试",
@@ -254,6 +255,69 @@ describe("external job import (#111)", () => {
       "Software Engineering Intern",
     ]);
     expect(await listExternalJobs()).toEqual(before);
+  });
+
+  it("reads Ashby's answer (#138): unlisted postings left out, New Zealand only when every address is", () => {
+    const ab = parseAshby(ASHBY);
+    expect(ab.map((p) => p.title)).toEqual([
+      "Senior Firmware Engineer",
+      "Senior Software Engineer",
+      "Software Engineering Intern",
+      "Account Manager",
+      "Software Engineer",
+      "Senior Data Engineer",
+    ]);
+    expect(ab[0]).toMatchObject({
+      externalId: "7a1e0000-0000-4000-8000-000000000001",
+      locations: ["Auckland", "New Zealand"],
+      country: "NZ",
+      departments: ["Hardware"],
+      commitment: "FullTime",
+      url: "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000001",
+      postedAt: "2026-10-05T21:00:00.000Z",
+    });
+    expect(ab[0].text).toContain("5+ years of embedded C");
+    expect(ab[1].pay).toEqual({ minCents: 15_000_000, maxCents: 18_000_000, currency: "NZD", period: "year" });
+    expect(ab[1].locations).toEqual(["Remote - New Zealand", "Wellington", "New Zealand"]);
+    // Sydney first, Wellington as a secondary location: not New Zealand only, but Wellington is among the places.
+    expect(ab[5]).not.toHaveProperty("country");
+    expect(ab[5].locations).toEqual(["Sydney", "New South Wales", "Australia", "Wellington", "New Zealand"]);
+    expect(() => parseAshby([])).toThrow();
+    expect(postingsUrl("ashby", "partly.com")).toBe(
+      "https://api.ashbyhq.com/posting-api/job-board/partly.com?includeCompensation=true",
+    );
+  });
+
+  it("keeps an Ashby company's software and electrical jobs in New Zealand, like the other two", async () => {
+    const PUKEKO: ExternalCompany = {
+      id: "pukeko",
+      name: "Pukeko Farms",
+      source: "ashby",
+      board: "pukeko-example",
+      careersUrl: "https://jobs.ashbyhq.com/pukeko-example",
+      terms: checked,
+    };
+    const { getJson } = feeds({ [postingsUrl("ashby", "pukeko-example")]: ASHBY });
+    const [report] = await importExternalJobs({ companies: [PUKEKO], getJson, now: () => T0 });
+    expect(report).toMatchObject({ company: "pukeko", status: "imported", inFeed: 6, kept: 4, added: 4 });
+    const jobs = await listExternalJobs({ companyId: "pukeko" });
+    expect(new Map(jobs.map((j) => [j.title, [j.field, j.kind, j.city]]))).toEqual(
+      new Map([
+        ["Senior Firmware Engineer", ["electrical", "full_time", "auckland"]],
+        ["Senior Software Engineer", ["software", "full_time", "wellington"]],
+        ["Software Engineering Intern", ["software", "internship", "christchurch"]],
+        ["Senior Data Engineer", ["software", "contract", "wellington"]],
+      ]),
+    );
+    expect(await getExternalJob("pukeko:7a1e0000-0000-4000-8000-000000000001")).toMatchObject({
+      source: "ashby",
+      minYears: 5,
+      visa: ["work_rights"],
+    });
+    expect(await getExternalJob("pukeko:7a1e0000-0000-4000-8000-000000000003")).toMatchObject({
+      closesAt: "2026-11-30T10:59:59.000Z",
+    });
+    expect(JSON.stringify(jobs)).not.toContain("must never reach the database");
   });
 
   it("has no company on the real list whose terms are marked checked without a person and a day", () => {
