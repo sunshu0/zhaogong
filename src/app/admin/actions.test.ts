@@ -186,7 +186,7 @@ describe("moderation queue", () => {
       "actioned",
       "actioned",
     ]);
-    expect((await listJobs({ country: "NZ" })).map((j) => j.id)).not.toContain("j1");
+    expect((await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id)).not.toContain("j1");
   });
 
   it("dismisses reports and leaves the job live", async () => {

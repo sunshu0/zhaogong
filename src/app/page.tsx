@@ -202,8 +202,11 @@ async function HeroNotices() {
  * contacts where they may be shown (heroCounts), per request; while the data is demo data it says so.
  */
 async function HeroCount() {
-  await connection();
-  const [jobs, stats] = await Promise.all([listJobs({ country: DEFAULT_COUNTRY }), getPlatformStats(DEFAULT_COUNTRY)]);
+  const now = await requestTime();
+  const [jobs, stats] = await Promise.all([
+    listJobs({ country: DEFAULT_COUNTRY }, now),
+    getPlatformStats(DEFAULT_COUNTRY),
+  ]);
   const employers = await employersOf(jobs);
   const verified = [...employers.values()].filter((e) => e.verification !== "unverified").length;
   const [open, by, ...more] = heroCounts(jobs.length, verified, stats);

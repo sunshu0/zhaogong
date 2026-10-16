@@ -72,11 +72,13 @@ async function selectJobs(where?: SQL): Promise<Job[]> {
   return rows.map(toJob);
 }
 
-/** Open jobs (past their closing date they are left out, ADR 0008), newest first, urgent first within a day. */
-export async function listJobs(filter: JobFilter): Promise<Job[]> {
+/**
+ * Open jobs at `now` (past their closing date they are left out, ADR 0008), newest first, urgent first within a day.
+ * Pages pass `await requestTime()`: reading the clock here would end up in a prerendered shell (#100).
+ */
+export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
   // The market and status narrow it in SQL; the rest of the filter is matchesFilter, shared with the tests.
   const jobs = await selectJobs(and(eq(t.jobs.country, filter.country), eq(t.jobs.status, "active")));
-  const now = Date.now();
   return jobs
     .filter((j) => isOpenJob(j, now) && matchesFilter(j, filter))
     .sort((a, b) => {

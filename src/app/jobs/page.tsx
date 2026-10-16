@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Suspense } from "react";
 import Link from "next/link";
-import { connection } from "next/server";
+import { requestTime } from "@/components/seeker/request-time";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { listJobs } from "@/lib/data";
 import { ActiveFilters } from "@/components/seeker/ActiveFilters";
@@ -32,8 +32,8 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
 
 async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams">) {
   const filter = parseFilter(await searchParams, DEFAULT_COUNTRY);
-  await connection(); // the list changes as jobs are published
-  const jobs = await listJobs(filter);
+  const now = await requestTime(); // the list changes as jobs are published and close
+  const jobs = await listJobs(filter, now);
   const employers = await employersOf(jobs);
   const filtered = isFiltered(filter);
   const query = filterToQuery(filter);

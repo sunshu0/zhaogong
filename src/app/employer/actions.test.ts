@@ -78,7 +78,7 @@ describe("publishJob", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.job).toMatchObject({ employerId: "e1", status: "active", titleZh: "前厅服务员" });
-    expect((await listJobs({ country: "NZ" })).map((j) => j.id)).toContain(result.job.id);
+    expect((await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id)).toContain(result.job.id);
     expect((await as(E.e1, () => getMyJobs()))[0].id).toBe(result.job.id);
   });
 
@@ -150,7 +150,7 @@ describe("managing published jobs", () => {
   it("closes a job and takes it off the list; renewing, not refreshing, reopens it (#69)", async () => {
     const closed = await as(E.e1, () => closeMyJob("j2"));
     expect(closed.ok && closed.job.status).toBe("expired");
-    expect((await listJobs({ country: "NZ" })).map((j) => j.id)).not.toContain("j2");
+    expect((await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id)).not.toContain("j2");
     expect(await as(E.e1, () => refreshMyJob("j2"))).toMatchObject({
       ok: false,
       error_zh: "不能刷新：已截止，不能刷新",
@@ -159,7 +159,7 @@ describe("managing published jobs", () => {
     const reopened = await as(E.e1, () => renewMyJob("j2", 30));
     expect(reopened.ok && reopened.job.status).toBe("active");
     expect(reopened.ok && Date.parse(reopened.job.expiresAt) - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    expect((await listJobs({ country: "NZ" })).map((j) => j.id)).toContain("j2");
+    expect((await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id)).toContain("j2");
   });
 
   it("saves an edit after the same checks, and sends risky new text back to review", async () => {

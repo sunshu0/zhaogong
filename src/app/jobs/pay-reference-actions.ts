@@ -19,7 +19,8 @@ export async function payReferenceFor(
   if (typeof industry !== "string" || !(industry in INDUSTRY_LABELS)) return null;
   const country = DEFAULT_COUNTRY;
   const region = typeof regionId === "string" && regionById(country, regionId) ? regionId : undefined;
-  const jobs = await listJobs({ country });
+  const now = new Date();
+  const jobs = await listJobs({ country }, now.getTime());
   return {
     reference: payReference(jobs, {
       country,
@@ -27,6 +28,6 @@ export async function payReferenceFor(
       regionId: region,
       exclude: typeof exclude === "string" ? exclude : undefined,
     }),
-    at: new Date().toISOString(),
+    at: now.toISOString(),
   };
 }

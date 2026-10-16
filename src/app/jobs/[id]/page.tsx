@@ -53,11 +53,9 @@ export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
 async function Job({ params }: Pick<PageProps<"/jobs/[id]">, "params">) {
   const job = await getJob((await params).id);
   if (!job || !isPublic(job)) notFound();
-  const [employer, now, open] = await Promise.all([
-    getEmployer(job.employerId),
-    requestTime(),
-    listJobs({ country: job.country }),
-  ]);
+  // The request's time first: the open jobs are counted at it (#100).
+  const now = await requestTime();
+  const [employer, open] = await Promise.all([getEmployer(job.employerId), listJobs({ country: job.country }, now)]);
   // 时薪参考 (#85): the other open jobs of the industry, in the region or across its area.
   const reference = payReference(open, {
     country: job.country,

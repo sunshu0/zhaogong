@@ -154,7 +154,7 @@ describe("toParams", () => {
 
 describe("with listJobs", () => {
   it("finds the jobs a shared link describes", async () => {
-    const jobs = await listJobs(parse("industry=hospitality&visa=student&minPay=25"));
+    const jobs = await listJobs(parse("industry=hospitality&visa=student&minPay=25"), Date.now());
     expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: a demo job added in #88
   });
 });

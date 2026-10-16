@@ -20,7 +20,7 @@ describe("job filter", () => {
     ).toBe(false);
   });
   it("lists only active NZ jobs, newest first", async () => {
-    const jobs = await listJobs({ country: "NZ" });
+    const jobs = await listJobs({ country: "NZ" }, Date.now());
     // The demo's own jobs, and those added to show the newer features (#88) that are open now.
     const showcase = demoShowcase(Date.now()).jobs.filter((j) => isOpenJob(j, Date.now()));
     expect(jobs.length).toBe(MOCK_JOBS.filter((j) => j.status === "active").length + showcase.length);
@@ -30,7 +30,10 @@ describe("job filter", () => {
   });
 
   it("filters by visa, industry and minimum pay", async () => {
-    const jobs = await listJobs({ country: "NZ", visa: "student", industries: ["hospitality"], minPay: 25 });
+    const jobs = await listJobs(
+      { country: "NZ", visa: "student", industries: ["hospitality"], minPay: 25 },
+      Date.now(),
+    );
     expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: 川味小馆's, from #88
   });
 
@@ -42,7 +45,7 @@ describe("job filter", () => {
   });
 
   it("ignores markets that are not opened", async () => {
-    expect(await listJobs({ country: "AU" })).toEqual([]);
+    expect(await listJobs({ country: "AU" }, Date.now())).toEqual([]);
   });
 });
 
@@ -52,7 +55,7 @@ describe("employer and moderation data", () => {
     await updateJob("j9", { status: "expired" });
     expect((await getJob("j9"))?.status).toBe("expired");
     expect((await listAllJobs("NZ")).some((j) => j.id === "j9")).toBe(true);
-    expect((await listJobs({ country: "NZ" })).some((j) => j.id === "j9")).toBe(false);
+    expect((await listJobs({ country: "NZ" }, Date.now())).some((j) => j.id === "j9")).toBe(false);
     expect(await updateJob("nope", { status: "active" })).toBeUndefined();
   });
 
@@ -261,11 +264,18 @@ describe("closed jobs leave the lists when read (R-32, ADR 0008)", () => {
     const open = await createJob({ ...base, titleZh: "还在招的职位", expiresAt: "2099-01-01T00:00:00.000Z" });
     expect((await getJob(past.id))?.status).toBe("active");
 
-    const listed = (await listJobs({ country: "NZ" })).map((j) => j.id);
+    const listed = (await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id);
     expect(listed).toContain(open.id);
     expect(listed).not.toContain(past.id);
     const featured = (await listFeaturedJobs("NZ", 50, Date.now())).map((j) => j.id);
     expect(featured).toContain(open.id);
     expect(featured).not.toContain(past.id);
+  });
+  it("counts open at the time it is given, not its own clock (#100)", async () => {
+    const base = { ...MOCK_JOBS[0], employerId: "e1", pay: { min: 99 } };
+    const job = await createJob({ ...base, titleZh: "月底截止的职位", expiresAt: "2030-06-30T00:00:00.000Z" });
+    const ids = async (at: string) => (await listJobs({ country: "NZ" }, Date.parse(at))).map((j) => j.id);
+    expect(await ids("2030-06-29T00:00:00.000Z")).toContain(job.id);
+    expect(await ids("2030-07-01T00:00:00.000Z")).not.toContain(job.id);
   });
 });
