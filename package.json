@@ -23,7 +23,8 @@
     "db:migrate": "tsx src/db/cli.ts migrate",
     "db:seed": "tsx src/db/cli.ts seed",
     "admin:grant": "tsx src/db/cli.ts admin:grant",
-    "admin:revoke": "tsx src/db/cli.ts admin:revoke"
+    "admin:revoke": "tsx src/db/cli.ts admin:revoke",
+    "import:external": "tsx src/db/cli.ts import:external"
   },
   "engines": {
     "node": ">=24 <25"

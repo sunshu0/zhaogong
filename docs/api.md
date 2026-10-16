@@ -204,6 +204,18 @@
 | --- | --- | --- |
 | `{ conversationId, reply?, readMine? }`：`reply` 最多 2000 字；`readMine: true` 把我发的消息标为对方已读 | 200，改动后的 `ChatRecord` | 401 `{ error: "请先登录" }`；400 `{ error: "没有这个对话" }` |
 
+## 外部职位导入 — `npm run import:external`
+
+#111（PRD R-39，ADR 0014）。没有 Server Function：本机命令（`src/db/cli.ts import:external`）读公司名单（`src/config/external-companies.ts`），对 `terms` 核对过且允许展示的公司请求它的公开接口，把事实存进 `external_jobs`（迁移 0016）。
+
+- **我们请求的外部接口（只读，不要密钥）：**
+  - Greenhouse Job Board API：`GET https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=true&pay_transparency=true`
+  - Lever Postings API：`GET https://api.lever.co/v0/postings/{site}?mode=json`
+  - 每台主机先读 `/robots.txt` 并遵守；同一主机的请求间隔至少 2 秒（或主机的 `Crawl-delay`）；`User-Agent: zhaogong-external-jobs/1.0 (+https://github.com/open-alternative-app/zhaogong)`。
+- **参数：** `npm run import:external -- [--dry-run] [公司 id …]`。不写公司就是整张名单；`--dry-run` 只打印每家会保留的事实，不写数据库（可以读还没核对条款的公司，用来在核对前看提取效果）。读不到的公司退出码 1。
+- **数据函数（`src/db/external-jobs.ts`，只在服务器上用）：** `saveCompanyFeed(company, facts, now)` 存一次导入的结果（新职位待审；已有的更新事实和取到时间；接口里没有了或过了截止日的下架；已通过的职位名、链接或标记变了回到待审），`takeDownCompany(id)`，`listExternalJobs({ shownAt?, companyId? })`（带 `shownAt` 只返回那时可以显示的），`getExternalJob(id)`，`setExternalReview(id, review)`（审核后台的入口在 #112）。
+- **能不能显示** 在读取时判断：`isShown()`（`src/lib/external-jobs/visibility.ts`）= 审核通过、没下架、2 天内刷新到过、截止日当天没过。`sectionOf(kind)`：实习和毕业生项目进「实习」，其余进「专业职位」。
+
 ## 审核后台 — `src/app/admin/actions.ts`
 
 只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/admin/moderator.ts`，#50）：

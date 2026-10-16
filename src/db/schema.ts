@@ -19,6 +19,18 @@ import type { ApplicationDecision, ApplicationProfile } from "@/components/seeke
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
+import type {
+  DegreeLevel,
+  DegreeSubject,
+  ExternalCity,
+  ExternalField,
+  ExternalFlag,
+  ExternalKind,
+  ExternalPay,
+  ExternalSource,
+  VisaFact,
+} from "@/lib/external-jobs/types";
+import type { ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -471,5 +483,48 @@ export const verificationRequests = sqliteTable(
   (table) => [
     index("verification_requests_employer_idx").on(table.employerId),
     index("verification_requests_status_idx").on(table.status),
+  ],
+);
+// ---- external jobs (Round 18, #111, ADR 0014) ----
+
+/**
+ * A job read from a company's public job-board API: facts only, never the posting's text (ADR 0014). Shown only
+ * after a moderator approves it (#112), while it is still in the company's feed, refreshed in the last 2 days and
+ * not past its closing date (src/lib/external-jobs/visibility.ts). Belongs to no account.
+ */
+export const externalJobs = sqliteTable(
+  "external_jobs",
+  {
+    /** `<company>:<id in the source>`. */
+    id: text("id").primaryKey(),
+    companyId: text("company_id").notNull(),
+    companyName: text("company_name").notNull(),
+    source: text("source").$type<ExternalSource>().notNull(),
+    externalId: text("external_id").notNull(),
+    title: text("title").notNull(),
+    location: text("location").notNull(),
+    city: text("city").$type<ExternalCity>().notNull(),
+    field: text("field").$type<ExternalField>().notNull(),
+    kind: text("kind").$type<ExternalKind>(),
+    closesAt: text("closes_at"),
+    minYears: integer("min_years"),
+    degree: text("degree").$type<DegreeLevel>(),
+    degreeSubjects: text("degree_subjects", { mode: "json" }).$type<DegreeSubject[]>().notNull(),
+    visa: text("visa", { mode: "json" }).$type<VisaFact[]>().notNull(),
+    pay: text("pay", { mode: "json" }).$type<ExternalPay>(),
+    url: text("url").notNull(),
+    postedAt: text("posted_at"),
+    flags: text("flags", { mode: "json" }).$type<ExternalFlag[]>().notNull(),
+    firstSeenAt: text("first_seen_at").notNull(),
+    /** The last import that found it in the company's feed: 「信息取于」. */
+    lastSeenAt: text("last_seen_at").notNull(),
+    removedAt: text("removed_at"),
+    removedReason: text("removed_reason").$type<ExternalRemovedReason>(),
+    review: text("review").$type<ExternalReview>().notNull(),
+    reviewedAt: text("reviewed_at"),
+  },
+  (table) => [
+    index("external_jobs_company_idx").on(table.companyId),
+    index("external_jobs_review_idx").on(table.review),
   ],
 );

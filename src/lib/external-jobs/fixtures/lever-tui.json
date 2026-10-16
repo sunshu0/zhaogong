@@ -1,0 +1,85 @@
+[
+  {
+    "additionalPlain": "We are unable to offer visa sponsorship for this role.",
+    "additional": "<p>We are unable to offer visa sponsorship for this role.</p>",
+    "categories": {
+      "commitment": "Permanent",
+      "department": "Engineering",
+      "location": "Wellington",
+      "team": "Product",
+      "allLocations": ["Wellington"]
+    },
+    "createdAt": 1791000000000,
+    "descriptionPlain": "Tui Software makes rostering apps for vineyards, and this sentence must never reach the database.\nYou bring 3-5 years experience with TypeScript and React.",
+    "description": "<div>Tui Software makes rostering apps for vineyards, and this sentence must never reach the database.</div>",
+    "id": "6f1d3a0e-0000-4000-8000-000000000001",
+    "lists": [
+      {
+        "text": "What you bring",
+        "content": "<li>A degree in Computer Science or similar</li><li>Kind code reviews</li>"
+      }
+    ],
+    "text": "Full Stack Developer",
+    "country": "NZ",
+    "workplaceType": "hybrid",
+    "hostedUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000001",
+    "applyUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000001/apply",
+    "salaryRange": {
+      "currency": "NZD",
+      "interval": "per-year-salary",
+      "min": 100000,
+      "max": 120000
+    }
+  },
+  {
+    "additionalPlain": "",
+    "categories": {
+      "commitment": "Internship",
+      "department": "Engineering",
+      "location": "Auckland, New Zealand",
+      "team": "Platform",
+      "allLocations": ["Auckland, New Zealand"]
+    },
+    "createdAt": 1791100000000,
+    "descriptionPlain": "Twelve weeks over summer with our platform team. Closing date: 30/11/2026",
+    "id": "6f1d3a0e-0000-4000-8000-000000000002",
+    "lists": [],
+    "text": "Software Engineering Intern",
+    "country": "NZ",
+    "workplaceType": "onsite",
+    "hostedUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000002",
+    "applyUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000002/apply"
+  },
+  {
+    "additionalPlain": "",
+    "categories": {
+      "commitment": "Permanent",
+      "department": "Sales",
+      "location": "Auckland",
+      "allLocations": ["Auckland"]
+    },
+    "createdAt": 1791100000000,
+    "descriptionPlain": "Sell our software to vineyards.",
+    "id": "6f1d3a0e-0000-4000-8000-000000000003",
+    "lists": [],
+    "text": "Account Executive",
+    "country": "NZ",
+    "hostedUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000003"
+  },
+  {
+    "additionalPlain": "",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "European Postings",
+      "location": "Paris",
+      "allLocations": ["Paris"]
+    },
+    "createdAt": 1791100000000,
+    "descriptionPlain": "Work alongside our team based in Auckland, New Zealand.",
+    "id": "6f1d3a0e-0000-4000-8000-000000000004",
+    "lists": [],
+    "text": "Move to New Zealand - Senior Software Engineer",
+    "country": "FR",
+    "hostedUrl": "https://jobs.lever.co/tui-example/6f1d3a0e-0000-4000-8000-000000000004"
+  }
+]
