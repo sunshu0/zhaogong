@@ -54,6 +54,16 @@ export function defaultBusinessChoice(businesses: readonly { id: string; claimed
   return businesses.find((b) => !b.claimed)?.id ?? "new";
 }
 
+/**
+ * The business step's choice now: what the person picked, unless that shop has been bound (or left the list) since,
+ * in which case the default again. The list changes while the page is open (the page is drawn again with fresh data,
+ * or the server refuses a shop as taken), and a shop nobody can bind must not stay chosen (#66).
+ */
+export function businessChoice(picked: string, businesses: readonly { id: string; claimed: boolean }[]): string {
+  if (picked === "new" || businesses.some((b) => b.id === picked && !b.claimed)) return picked;
+  return defaultBusinessChoice(businesses);
+}
+
 export function employerSignUpHref(next: string = POST_JOB_PATH): string {
   return `/login?role=employer&next=${encodeURIComponent(next)}`;
 }

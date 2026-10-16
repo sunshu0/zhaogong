@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyServerSession,
   DEMO_BUSINESS_IDS,
+  businessChoice,
   defaultBusinessChoice,
   employerSignUpHref,
   identityLabel,
@@ -72,6 +73,21 @@ describe("parseBusinessChoice", () => {
       error: "请选择地区",
     });
     expect(parseBusinessChoice(null, "NZ")).toEqual({ ok: false, error: "请选择一家店" });
+  });
+});
+
+describe("businessChoice", () => {
+  const shop = (id: string, claimed: boolean) => ({ id, claimed });
+
+  it("keeps what was picked while it can still go through", () => {
+    expect(businessChoice("e2", [shop("e1", false), shop("e2", false)])).toBe("e2");
+    expect(businessChoice("new", [shop("e1", false)])).toBe("new");
+  });
+
+  it("moves on when the picked shop is bound in the meantime (#66), or is no longer listed", () => {
+    expect(businessChoice("e2", [shop("e1", true), shop("e2", true), shop("e4", false)])).toBe("e4");
+    expect(businessChoice("e2", [shop("e1", true), shop("e2", true)])).toBe("new");
+    expect(businessChoice("e9", [shop("e1", false)])).toBe("e1");
   });
 });
 

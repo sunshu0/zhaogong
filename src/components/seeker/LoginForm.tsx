@@ -12,7 +12,12 @@ import {
 import { COUNTRIES } from "@/config/countries";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import type { EmployerVerification } from "@/lib/types";
-import { defaultBusinessChoice, openErrorMessage, reconcileIdentity } from "@/components/seeker/identity";
+import {
+  businessChoice,
+  defaultBusinessChoice,
+  openErrorMessage,
+  reconcileIdentity,
+} from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 
@@ -288,7 +293,8 @@ function BusinessStep({
   // Shops the server refused as taken since this page loaded (someone bound one in the meantime).
   const [takenHere, setTakenHere] = useState<readonly string[]>([]);
   const shops = businesses.map((b) => (takenHere.includes(b.id) ? { ...b, claimed: true } : b));
-  const [choice, setChoice] = useState<string>(() => defaultBusinessChoice(businesses));
+  const [picked, setChoice] = useState<string>(() => defaultBusinessChoice(businesses));
+  const choice = businessChoice(picked, shops);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const regions = COUNTRIES.NZ.regions;
@@ -306,9 +312,7 @@ function BusinessStep({
       if (!result) return setError("网络有问题，请稍后再试");
       if (!result.ok) {
         if (choice !== "new" && result.error === openErrorMessage("taken")) {
-          const taken = [...takenHere, choice];
-          setTakenHere(taken);
-          setChoice(defaultBusinessChoice(shops.map((b) => ({ ...b, claimed: b.claimed || taken.includes(b.id) }))));
+          setTakenHere([...takenHere, choice]); // the choice moves on by itself (businessChoice)
         }
         return setError(result.error);
       }
