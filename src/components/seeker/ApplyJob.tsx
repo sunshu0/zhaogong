@@ -255,7 +255,9 @@ function ApplyDialog({
 
 /**
  * 申请 on a job row (#84): opens the job with the form (signed out: sign-in first). 已申请 once applied. Not shown in
- * the employer identity. Sits above the row's stretched title link, like 收藏.
+ * the employer identity. Sits above the row's stretched title link, like 收藏. From 768 px only: on a phone the row
+ * would need another line (three whole rows must fit on a 375 × 812 screen, A21), and tapping the row opens the job,
+ * whose bar at the bottom has 申请.
  */
 export function ApplyRowButton({ jobId, title }: { jobId: string; title: string }) {
   const hydrated = useHydrated();
@@ -271,7 +273,7 @@ export function ApplyRowButton({ jobId, title }: { jobId: string; title: string 
       disabled={!hydrated}
       aria-label={`申请：${title}`}
       onClick={() => router.push(session ? `/jobs/${jobId}?${APPLY_PARAM}=1` : applyAfterSignInHref(jobId))}
-      className="relative z-10 inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-meta text-muted hover:text-brand disabled:opacity-60"
+      className="relative z-10 hidden min-h-8 items-center gap-1 rounded-md px-1.5 text-meta text-muted hover:text-brand disabled:opacity-60 md:inline-flex"
     >
       <Send aria-hidden="true" className="size-4" />
       申请
