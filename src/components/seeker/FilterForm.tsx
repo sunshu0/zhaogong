@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { COUNTRIES } from "@/config/countries";
+import { useHydrated } from "@/components/seeker/session-client";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
 import {
@@ -56,6 +57,8 @@ function Form({
   const formRef = useRef<HTMLFormElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  // 筛选 waits for hydration: a tap before it was lost and the panel never opened (#90, layout.spec:107).
+  const hydrated = useHydrated();
   const [pending, startTransition] = useTransition();
   const country = COUNTRIES[filter.country];
   const active = filterChips(filter).filter((c) => c.id !== "q").length;
@@ -138,6 +141,7 @@ function Form({
           ref={toggleRef}
           type="button"
           onClick={() => (open ? close(false) : setOpen(true))}
+          disabled={!hydrated}
           aria-expanded={open}
           aria-controls="job-filters"
           className={`shrink-0 rounded-lg border px-3 py-2 text-sm lg:hidden ${
