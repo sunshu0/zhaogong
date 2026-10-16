@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { getCurrentSession } from "@/lib/auth";
 import { regionById } from "@/config/countries";
@@ -31,6 +32,8 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
 async function Login({ searchParams }: Pick<PageProps<"/login">, "searchParams">) {
   const params = await searchParams;
   // Already signed in (a tap on 我的 before the page knew it, an old link): straight on to where it was going (#109).
+  // The session is checked against the request's time, so wait for the request first (#100's rule).
+  await connection();
   const session = await getCurrentSession();
   const onward = session && nextForSignedIn(params.next, params.role, session.activeRole);
   if (onward) redirect(onward);
