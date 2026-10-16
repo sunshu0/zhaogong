@@ -29,5 +29,7 @@ test("a message sent just before leaving the page reaches the server on the next
   await page.evaluate(() => localStorage.removeItem("zhaogong:chat-demo"));
   await page.reload();
   await expect(log.getByText("离开页面前发出的消息", { exact: true })).toHaveCount(1);
-  expect(await page.evaluate(() => localStorage.getItem("zhaogong:chat-outbox"))).toBeNull();
+  // Opening the thread marks it read, and that change goes through the outbox too: the outbox empties once the
+  // server has it, which may be after the thread shows (#90).
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("zhaogong:chat-outbox"))).toBeNull();
 });

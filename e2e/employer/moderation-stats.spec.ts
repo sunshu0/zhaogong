@@ -30,7 +30,7 @@ test("审核数据: a report waits in the summary, and taking the job down count
 
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  const [, handledBefore, , takenDownBefore] = await thisWeek(admin);
+  const [reportedBefore, handledBefore, , takenDownBefore] = await thisWeek(admin);
   const weeks = admin.getByRole("table", { name: /最近 8 周每周/ });
   await expect(weeks.getByRole("row")).toHaveCount(9); // the header and eight weeks
   expect(
@@ -48,6 +48,8 @@ test("审核数据: a report waits in the summary, and taking the job down count
   // The report itself is checked in 被举报 below.
   expect(await summary(admin, "未处理的举报")).toBeGreaterThanOrEqual(1);
   await expect(admin.getByLabel("审核数据：现在")).toContainText("最早的等了");
+  // This week's 新举报 only grows, so it must count this report (#90).
+  expect(Number((await thisWeek(admin))[0])).toBeGreaterThanOrEqual(Number(reportedBefore) + 1);
 
   await admin.getByRole("tab", { name: /被举报/ }).click();
   const card = admin.getByRole("article").filter({ has: admin.getByRole("heading", { name: title }) });
