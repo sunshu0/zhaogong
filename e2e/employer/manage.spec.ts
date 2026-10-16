@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle, cardMenuItem } from "./helpers";
 
-test("manage → end a job → it leaves the list; reopen → it is back", async ({ page }, testInfo) => {
+test("manage → end a job → it leaves the list; renew → it is back (#69)", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo);
   const title = uniqueTitle("前厅服务员", testInfo);
   await publishJob(page, title);
@@ -9,7 +9,7 @@ test("manage → end a job → it leaves the list; reopen → it is back", async
   await page.goto("/employer/jobs");
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
   await expect(card).toContainText("招聘中");
-  await expect(card).toContainText("还有 30 天到期");
+  await expect(card).toContainText("30 天后截止");
 
   await expect(card.getByRole("link", { name: "查看", exact: true })).toHaveAttribute("href", /^\/jobs\/j\d+$/);
   await expect(card).toContainText("还没有人聊过");
@@ -22,8 +22,12 @@ test("manage → end a job → it leaves the list; reopen → it is back", async
   await expect(page.getByText("暂时没有符合条件的职位").filter({ visible: true })).toBeVisible();
 
   await page.goto("/employer/jobs");
-  await (await cardMenuItem(card, "重新开放")).click();
-  await expect(page.getByRole("status")).toHaveText(`${title}：已重新开放 30 天`);
+  await expect(card).toContainText("还可以续期 14 天");
+  await (await cardMenuItem(card, "续期")).click();
+  await card.getByRole("button", { name: "确定续期" }).click();
+  await expect(page.getByRole("status")).toContainText(`${title}：已续期 30 天，`);
+  await expect(card).toContainText("招聘中");
+  await expect(card).toContainText("已续期 1 次");
   await expect(await cardMenuItem(card, "今天已刷新过")).toHaveAttribute("aria-disabled", "true");
   await page.keyboard.press("Escape");
 

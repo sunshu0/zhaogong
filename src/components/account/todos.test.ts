@@ -57,7 +57,7 @@ describe("workspaceTodos", () => {
     expect(todos).toEqual([]);
   });
 
-  it("gives employers jobs ending within 7 days, soonest first, and jobs under review", () => {
+  it("gives employers jobs closing within 3 days or ran out and still renewable (#69), and jobs under review", () => {
     const job = (id: string, days: number, status: "active" | "pending_review" | "expired" = "active") => ({
       id,
       titleZh: id,
@@ -68,7 +68,8 @@ describe("workspaceTodos", () => {
       ...base,
       isEmployer: true,
       jobs: [
-        job("厨师", 6),
+        job("厨师", 2.5),
+        job("切配", 6),
         job("服务员", 0.5),
         job("洗碗工", 20),
         job("收银", 3, "pending_review"),
@@ -77,8 +78,9 @@ describe("workspaceTodos", () => {
       profileMissing: { count: 1, labels: ["企业验证"] },
     });
     expect(todos.map((todo) => todo.title)).toEqual([
-      "「服务员」今天到期",
-      "「厨师」6 天后到期",
+      "「旧职位」已截止",
+      "「服务员」今天截止",
+      "「厨师」3 天后截止",
       "「收银」审核中",
       "企业资料还差 1 项",
     ]);

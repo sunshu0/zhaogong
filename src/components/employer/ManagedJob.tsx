@@ -2,16 +2,28 @@
 import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
-import { closeMyJob, confirmHires, type ChangeResult } from "@/app/employer/actions";
-import { canEdit, effectiveStatus, expiryLabelZh, type ShownStatus } from "@/components/employer/job-status";
+import { closeMyJob, confirmHires, renewMyJob, type ChangeResult } from "@/app/employer/actions";
+import {
+  canEdit,
+  canRepublish,
+  closeDateZh,
+  effectiveStatus,
+  expiryLabelZh,
+  jobPhase,
+  renewDaysLeft,
+  renewedExpiry,
+  type Phase,
+} from "@/components/employer/job-status";
 import { hiresLabelZh, type HiresAnswer } from "@/components/employer/hires";
 import { HiresQuestion } from "@/components/employer/HiresQuestion";
+import { RenewQuestion } from "@/components/employer/RenewQuestion";
 import { ACTION_BUTTON, JobActions, type Asking, type Run } from "@/components/employer/ManagedJobActions";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import Link from "next/link";
 import type { JobNumbers } from "@/db/job-stats";
+import type { RenewalCounts } from "@/db/job-renewals";
 import { cardNumbers } from "@/components/employer/job-card";
-import { Figures, StatusTag } from "@/components/employer/StatusTag";
+import { Figures, PhaseTag } from "@/components/employer/StatusTag";
 import { Pay } from "@/components/ui/Pay";
 
 /** Tells the list what happened, with the text to show when it worked. */
@@ -25,6 +37,7 @@ export function ManagedJob({
   job,
   employer,
   numbers,
+  renewals,
   now,
   onDone,
 }: {
@@ -32,6 +45,8 @@ export function ManagedJob({
   employer?: Employer;
   /** Views, chats and contact views from the server (#55). */
   numbers: JobNumbers;
+  /** How often it was renewed (#69), when it was. */
+  renewals?: RenewalCounts[string];
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -39,6 +54,7 @@ export function ManagedJob({
   const [asking, setAsking] = useState<Asking>();
   const [sharing, setSharing] = useState(false);
   const status = effectiveStatus(job, now);
+  const phase = jobPhase(job, now);
 
   const run: Run = (action, okText) =>
     startTransition(async () => {
@@ -48,8 +64,13 @@ export function ManagedJob({
 
   return (
     <article className="py-4">
-      <JobSummary job={job} status={status} numbers={numbers} now={now} />
-      <StatusNote status={status} />
+      <JobSummary job={job} phase={phase} numbers={numbers} renewals={renewals} now={now} />
+      <StatusNote
+        job={job}
+        phase={phase}
+        now={now}
+        onRenew={canEdit(job) && !asking ? () => setAsking("renew") : undefined}
+      />
       {canEdit(job) && (
         <JobActions
           job={job}
@@ -65,6 +86,16 @@ export function ManagedJob({
       {asking === "close" && (
         <CloseQuestion job={job} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
       )}
+      {asking === "renew" && (
+        <RenewQuestion
+          job={job}
+          now={now}
+          submitClassName={`${ACTION_BUTTON} border-brand text-brand`}
+          pending={pending}
+          onSubmit={(days) => run(() => renewMyJob(job.id, days), renewDoneText(job, now, days))}
+          onCancel={() => setAsking(undefined)}
+        />
+      )}
       {asking === "hires" && (
         <HiresCorrection job={job} pending={pending} run={run} onCancel={() => setAsking(undefined)} />
       )}
@@ -79,13 +110,15 @@ export function ManagedJob({
 
 function JobSummary({
   job,
-  status,
+  phase,
   numbers,
+  renewals,
   now,
 }: {
   job: Job;
-  status: ShownStatus;
+  phase: Phase;
   numbers: JobNumbers;
+  renewals?: RenewalCounts[string];
   now: number;
 }) {
   const hires = hiresLabelZh(job);
@@ -102,7 +135,7 @@ function JobSummary({
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <StatusTag status={status} />
+          <PhaseTag phase={phase} />
           <p className="leading-none">
             <Pay pay={job.pay} country={job.country} />
           </p>
@@ -120,17 +153,51 @@ function JobSummary({
         <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
           近 14 天
         </Link>
+        {renewals && (
+          <span>
+            <Figures>{`已续期 ${renewals.count} 次`}</Figures>
+          </span>
+        )}
         {hires && <span className="font-medium text-ok">{hires}</span>}
       </p>
     </>
   );
 }
 
-/** Why a job is not live, when it is not. */
-function StatusNote({ status }: { status: ShownStatus }) {
-  if (status === "removed")
+/**
+ * Why a job is not live, when it is not; and from 3 days before it closes, that it is closing and can be renewed
+ * (#69), with the button right there.
+ */
+function StatusNote({ job, phase, now, onRenew }: { job: Job; phase: Phase; now: number; onRenew?: () => void }) {
+  if (phase === "removed")
     return <p className="mt-2 text-body text-danger">这个职位已被后台下架。如有疑问请联系我们。</p>;
-  if (status === "pending_review") return <p className="mt-2 text-body text-warn">审核通过后才会公开。</p>;
+  if (phase === "pending_review") return <p className="mt-2 text-body text-warn">审核通过后才会公开。</p>;
+  if (phase === "ending" || (phase === "timed_out" && renewDaysLeft(job, now) > 0)) {
+    const text =
+      phase === "ending"
+        ? `${closeDateZh(job.expiresAt)}截止。还要招人就续期，在列表里的位置不变。`
+        : `${closeDateZh(job.expiresAt)}已截止，求职者看不到了。${renewDaysLeft(job, now)} 天内还可以续期。`;
+    return (
+      <p className="mt-2 text-body text-warn">
+        {text}
+        {onRenew && (
+          <button type="button" onClick={onRenew} className="ml-1 font-medium text-brand underline underline-offset-4">
+            续期
+          </button>
+        )}
+      </p>
+    );
+  }
+  if (canRepublish(job, now))
+    return (
+      <p className="mt-2 text-body text-muted">
+        截止超过 14 天，不能再续期。还要招人的话，用原内容
+        <Link href={`/employer/jobs/${job.id}/republish`} className="mx-1 text-brand underline underline-offset-4">
+          重新发布
+        </Link>
+        一条新职位，会按现在的规则重新检查。
+      </p>
+    );
   return null;
 }
 
@@ -163,6 +230,11 @@ function HiresCorrection({ job, pending, run, onCancel }: QuestionProps) {
       onCancel={onCancel}
     />
   );
+}
+
+/** Says the new date, since a renewed job may leave the tab it was under (将截止 → 招聘中). */
+function renewDoneText(job: Job, now: number, days: number): string {
+  return `已续期 ${days} 天，${closeDateZh(renewedExpiry(job, now, days))}截止`;
 }
 
 function closeDoneText(answer: HiresAnswer | undefined): string {

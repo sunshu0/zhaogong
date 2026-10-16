@@ -316,3 +316,24 @@ export const jobAlertHits = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.email, table.jobId] })],
 );
+
+// ---- renewals (#69) ----
+
+/**
+ * Each time an employer pushed a job's closing date back (PRD R-33): when, by how many days, and the closing date
+ * before and after. Only the employer's own pages read it.
+ */
+export const jobRenewals = sqliteTable(
+  "job_renewals",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    renewedAt: text("renewed_at").notNull(),
+    days: integer("days").notNull(),
+    expiresBefore: text("expires_before").notNull(),
+    expiresAfter: text("expires_after").notNull(),
+  },
+  (table) => [index("job_renewals_job_idx").on(table.jobId)],
+);

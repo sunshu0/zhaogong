@@ -11,6 +11,7 @@ import {
   listJobs,
   openEmployerIdentity,
   recordContactView,
+  updateJob,
 } from "@/lib/data";
 import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
 
@@ -30,6 +31,7 @@ const {
   editMyJob,
   getMyJobDays,
   getMyJobNumbers,
+  getMyJobRenewals,
   getMyEmployer,
   getMyJob,
   getMyJobs,
@@ -37,6 +39,7 @@ const {
   parseDraft,
   publishJob,
   refreshMyJob,
+  renewMyJob,
   verifyBusiness,
 } = await import("@/app/employer/actions");
 
@@ -142,15 +145,19 @@ describe("managing published jobs", () => {
     expect(await as(E.e2, () => closeMyJob("j1"))).toMatchObject({ ok: false, error_zh: "找不到这个职位。" });
   });
 
-  it("closes a job, takes it off the list, and refreshing reopens it for 30 days", async () => {
+  it("closes a job and takes it off the list; renewing, not refreshing, reopens it (#69)", async () => {
     const closed = await as(E.e1, () => closeMyJob("j2"));
     expect(closed.ok && closed.job.status).toBe("expired");
     expect((await listJobs({ country: "NZ" })).map((j) => j.id)).not.toContain("j2");
+    expect(await as(E.e1, () => refreshMyJob("j2"))).toMatchObject({
+      ok: false,
+      error_zh: "不能刷新：已截止，不能刷新",
+    });
 
-    const reopened = await as(E.e1, () => refreshMyJob("j2"));
+    const reopened = await as(E.e1, () => renewMyJob("j2", 30));
     expect(reopened.ok && reopened.job.status).toBe("active");
     expect(reopened.ok && Date.parse(reopened.job.expiresAt) - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    expect(await as(E.e1, () => refreshMyJob("j2"))).toMatchObject({ ok: false, error_zh: "不能刷新：今天已刷新过" });
+    expect((await listJobs({ country: "NZ" })).map((j) => j.id)).toContain("j2");
   });
 
   it("saves an edit after the same checks, and sends risky new text back to review", async () => {
@@ -200,6 +207,66 @@ describe("managing published jobs", () => {
       ok: false,
       error_zh: "账号已被停用，不能再修改职位。",
     });
+    expect(await as(E.e5, () => renewMyJob("j8", 30))).toMatchObject({
+      ok: false,
+      error_zh: "账号已被停用，不能再修改职位。",
+    });
+  });
+});
+
+describe("renewing a job (#69)", () => {
+  const DAY = 86_400_000;
+  /** One of e4's demo jobs, closing `days` from now (negative: closed that long ago). */
+  async function closingIn(days: number, status: "active" | "expired" = "active") {
+    const id = "j7";
+    await updateJob(id, { status, expiresAt: new Date(Date.now() + days * DAY).toISOString() });
+    return (await getJob(id))!;
+  }
+
+  it("pushes the closing date back from the old one, keeps the job's place, and records it", async () => {
+    const job = await closingIn(2);
+    const renewed = await as(E.e4, () => renewMyJob(job.id, 14));
+    expect(renewed.ok && renewed.job).toMatchObject({
+      status: "active",
+      postedAt: job.postedAt,
+      expiresAt: new Date(Date.parse(job.expiresAt) + 14 * DAY).toISOString(),
+    });
+    const counts = await as(E.e4, () => getMyJobRenewals());
+    expect(counts[job.id].count).toBeGreaterThanOrEqual(1);
+    expect(await as(E.e1, () => getMyJobRenewals())).not.toHaveProperty(job.id);
+  });
+
+  it("reopens a job up to 14 days after it closed, counting from today", async () => {
+    await closingIn(-10);
+    const renewed = await as(E.e4, () => renewMyJob("j7", 60));
+    expect(renewed.ok && renewed.job.status).toBe("active");
+    expect(renewed.ok && Math.round((Date.parse(renewed.job.expiresAt) - Date.now()) / DAY)).toBe(60);
+  });
+
+  it("refuses a job closed longer ago, a length not offered, and a date beyond 90 days", async () => {
+    await closingIn(-15);
+    expect(await as(E.e4, () => renewMyJob("j7", 30))).toEqual({
+      ok: false,
+      error_zh: "不能续期：截止超过 14 天，不能续期",
+    });
+    await closingIn(10);
+    expect(await as(E.e4, () => renewMyJob("j7", 45))).toEqual({ ok: false, error_zh: "请选择续期 14、30 或 60 天。" });
+    await closingIn(40);
+    expect(await as(E.e4, () => renewMyJob("j7", 60))).toEqual({
+      ok: false,
+      error_zh: "续期 60 天会超过最远的截止日，请选短一些的。",
+    });
+    expect((await getJob("j7"))?.status).toBe("active");
+  });
+
+  it("checks the job against today's rules first", async () => {
+    const job = await closingIn(-3, "expired");
+    await updateJob(job.id, { pay: { ...job.pay, min: 10, max: 11 } });
+    const refused = await as(E.e4, () => renewMyJob(job.id, 30));
+    expect(refused).toMatchObject({ ok: false, error_zh: "这个职位不符合现在的发布规则，请先编辑。" });
+    expect(!refused.ok && refused.findings?.map((f) => f.rule)).toContain("min_wage");
+    expect((await getJob(job.id))?.status).toBe("expired");
+    await updateJob(job.id, { pay: job.pay });
   });
 });
 
@@ -344,6 +411,8 @@ describe("refused without the right session (#19)", () => {
       close: await closeMyJob(job),
       hires: await confirmHires(job, hires),
       refresh: await refreshMyJob(job),
+      renew: await renewMyJob(job, 30),
+      renewals: await getMyJobRenewals(),
       edit: await editMyJob(job, { titleZh: "改名" }),
       verify: await verifyBusiness("9429000000004"),
     };
@@ -359,9 +428,9 @@ describe("refused without the right session (#19)", () => {
       cookies.clear();
       if (cookie) cookies.set(SESSION_COOKIE, cookie);
       const r = await everything();
-      expect(r).toMatchObject({ jobs: [], views: {}, days: null, profile: null, job: null });
+      expect(r).toMatchObject({ jobs: [], views: {}, renewals: {}, days: null, profile: null, job: null });
       expect(r.publish).toMatchObject({ ok: false, reason: "signed_out" });
-      for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
+      for (const change of [r.close, r.hires, r.refresh, r.renew, r.edit, r.verify]) {
         expect(change).toEqual({ ok: false, error_zh: "请先登录。" });
       }
     }
@@ -370,9 +439,9 @@ describe("refused without the right session (#19)", () => {
 
   it("refuses a signed-in account that has no business", async () => {
     const r = await as("seeker.only@example.com", everything);
-    expect(r).toMatchObject({ jobs: [], views: {}, days: null, profile: null, job: null });
+    expect(r).toMatchObject({ jobs: [], views: {}, renewals: {}, days: null, profile: null, job: null });
     expect(r.publish).toMatchObject({ ok: false, reason: "no_identity" });
-    for (const change of [r.close, r.hires, r.refresh, r.edit, r.verify]) {
+    for (const change of [r.close, r.hires, r.refresh, r.renew, r.edit, r.verify]) {
       expect(change).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });
     }
     await untouched();
@@ -383,7 +452,7 @@ describe("refused without the right session (#19)", () => {
     expect(r.job).toBeNull();
     expect(r.days).toBeNull();
     expect(Object.keys(r.views)).not.toContain(job);
-    for (const change of [r.close, r.hires, r.refresh, r.edit]) {
+    for (const change of [r.close, r.hires, r.refresh, r.renew, r.edit]) {
       expect(change).toEqual({ ok: false, error_zh: "找不到这个职位。" });
     }
     expect(r.jobs.every((j) => j.employerId === "e1")).toBe(true);

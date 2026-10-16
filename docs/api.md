@@ -55,6 +55,7 @@
 | `getMyJobs()` | | 本企业所有职位，按发布时间从新到旧，任何状态 | `[]` |
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
 | `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
+| `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
 | `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0 | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
 | `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿） | — |
@@ -62,7 +63,8 @@
 | `editMyJob(jobId, input)` | 修改后的草稿 | `{ ok: true, job }`；在线的职位改出需审核的内容会回到审核 | `{ ok: false, error_zh, findings? }`：「这个职位已被下架，不能修改。」「还有问题没处理或必填项没填。」 |
 | `closeMyJob(jobId, hires?)` | `hires`：`{ hired: true, count: 1–20 }` 或 `{ hired: false }`，可省略 | `{ ok: true, job }`，状态 `expired` | 「这个职位已经结束或已被下架。」「人数请填 1 到 20。」 |
 | `confirmHires(jobId, hires)` | 同上，用于事后更正 | `{ ok: true, job }` | 「职位结束后才能记录招到几人。」「请选择招到了，或者没有 / 不确定。」 |
-| `refreshMyJob(jobId)` | | `{ ok: true, job }`，再开 30 天；已结束的职位重新检查后上线或进审核 | 「不能刷新：…」（24 小时内只能刷新一次等）、「这个职位不符合现在的发布规则，请先编辑。」 |
+| `refreshMyJob(jobId)` | | `{ ok: true, job }`：在招的职位排到前面，至少再开 30 天（续期后更晚的截止日不变） | 「不能刷新：…」（24 小时内只能刷新一次、已截止等）、「这个职位不符合现在的发布规则，请先编辑。」 |
+| `renewMyJob(jobId, days)` | `days`：14、30 或 60 | `{ ok: true, job }`（#69）：截止日从原来的日期往后推（已截止的从现在算），位置不变；先按现在的规则检查，已截止的职位重新上线或进审核；记一条续期 | 「不能续期：…」（审核中、已被下架、截止超过 14 天、已经排到 90 天后）、「请选择续期 14、30 或 60 天。」「续期 N 天会超过最远的截止日，请选短一些的。」「这个职位不符合现在的发布规则，请先编辑。」（带 `findings`） |
 | `getMyEmployer()` | | 账号绑定的企业（含验证状态、是否被停用） | `null` |
 | `lookupBusiness(query)` | 公司名或 NZBN，最多 100 字 | `{ results: RegisterEntry[], error_zh? }`（演示登记表，以后换成 NZBN 接口） | — |
 | `verifyBusiness(nzbn)` | NZBN | `{ ok: true, employer }`，显示「已验证企业」，认证雇主保持原级别 | `{ ok: false, error_zh }`：「企业登记里没有这个 NZBN。」「这家公司在企业登记里已注销，不能用来验证。」「这个 NZBN 已经被其他店铺验证。…」「账号已被停用，不能验证。」 |
@@ -128,7 +130,7 @@
 | `saveMyJobAlert(query)` | 职位列表的查询串 | `{ status: "created", alert }`；同样的条件已经存过时 `{ status: "exists", alert }`（不新建） | 未登录时 `null`；已有 5 个时 `{ status: "limit" }` |
 | `changeMyJobAlert(id, { name?, paused? })` | 名称去掉多余空白后 1–20 字（空白名称不改）；`paused` 布尔值 | 改后的全部提醒 | 未登录时 `null`；不是自己的提醒时不改，照样返回自己的列表 |
 | `deleteMyJobAlert(id)` | | 删后的全部提醒；已经提醒过的通知保留 | 同上 |
-| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`），最新的在前，最多 50 条；雇主身份是空列表 | 未登录时 `null` |
+| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending` | 未登录时 `null` |
 
 ## 只在开发环境存在的接口
 
@@ -184,7 +186,8 @@
 | `/me/alerts` | 职位提醒：查看、改名、暂停、删除（#53） | 登录，求职者身份 |
 | `/candidates/[id]` | 求职者主页（`?job=` 带上职位） | 雇主身份才显示职位和聊天入口 |
 | `/employer` | 雇主介绍 | — |
-| `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理、编辑职位、推荐人才、企业验证 | 雇主身份 |
+| `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
+| `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |

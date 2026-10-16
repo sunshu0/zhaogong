@@ -93,7 +93,7 @@ async function subject(jobId: unknown) {
   };
 }
 
-/** A job flagged at posting is fine: it goes live for 30 days from now. */
+/** A job flagged at posting is fine: it goes live for 30 days from now, or until the later date it was renewed to. */
 export async function approveJob(jobId: string): Promise<AdminResult> {
   const me = await acting();
   if (me.refused) return me.refused;
@@ -102,7 +102,7 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
   const findings = checkJob(s.job, s.job.country, s.employer);
   if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
-  const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now()) });
+  const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now(), s.job.expiresAt) });
   if (approved) await matchJobAlerts(approved); // now live: tell job seekers whose alerts it matches (#53)
   const entry = await addModerationLog({
     action: "approve",

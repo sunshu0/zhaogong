@@ -1,8 +1,9 @@
 "use client";
 import { useState, type RefObject } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Employer, Job } from "@/lib/types";
 import type { ChangeResult } from "@/app/employer/actions";
-import { effectiveStatus, type ShownStatus } from "@/components/employer/job-status";
+import { jobPhase, type Phase } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";
 import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
@@ -14,15 +15,23 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 
-type TabKey = "all" | ShownStatus;
+type TabKey = "all" | Phase;
 
+/** One tab per phase (#69): each job is under exactly one, so the counts add up to 全部. */
 const TABS: { key: TabKey; label: string }[] = [
   { key: "all", label: "全部" },
   { key: "active", label: "招聘中" },
+  { key: "ending", label: "将截止" },
   { key: "pending_review", label: "审核中" },
-  { key: "expired", label: "已结束" },
+  { key: "timed_out", label: "已截止" },
+  { key: "closed", label: "已结束" },
   { key: "removed", label: "已下架" },
 ];
+
+/** The tab named in the address (`?tab=ending` from a closing reminder), else 全部. */
+function tabFrom(value: string | null): TabKey {
+  return TABS.find((t) => t.key === value)?.key ?? "all";
+}
 
 const TAB_ID_BASE = "manage";
 
@@ -34,9 +43,10 @@ export function ManageJobs() {
 }
 
 function Manage({ me }: { me: EmployerIdentity }) {
+  const asked = useSearchParams().get("tab");
   const { ready, reload } = useMyJobs(me.email);
   const { profile } = useEmployerProfile(me.email);
-  const [tab, setTab] = useState<TabKey>("all");
+  const [tab, setTab] = useState<TabKey>(() => tabFrom(asked));
   const [notice, setNotice] = useState<Notice>();
   const noticeRef = useFocusOnChange<HTMLParagraphElement>(notice);
   const employer = profile ?? undefined;
@@ -99,8 +109,8 @@ function StatusTabs({ ready, value, onChange }: { ready?: Loaded; value: TabKey;
 function countByStatus(ready?: Loaded): Map<string, number> {
   const counts = new Map<string, number>();
   for (const job of ready?.jobs ?? []) {
-    const status = effectiveStatus(job, ready!.now);
-    counts.set(status, (counts.get(status) ?? 0) + 1);
+    const phase = jobPhase(job, ready!.now);
+    counts.set(phase, (counts.get(phase) ?? 0) + 1);
   }
   return counts;
 }
@@ -140,7 +150,7 @@ function JobsInTab({
       <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
     );
 
-  const shown = ready.jobs.filter((job: Job) => tab === "all" || effectiveStatus(job, ready.now) === tab);
+  const shown = ready.jobs.filter((job: Job) => tab === "all" || jobPhase(job, ready.now) === tab);
   if (shown.length === 0) {
     return (
       <Section>
@@ -160,6 +170,7 @@ function JobsInTab({
               job={job}
               employer={employer}
               numbers={ready.numbers[job.id] ?? NO_NUMBERS}
+              renewals={ready.renewals[job.id]}
               now={ready.now}
               onDone={onDone}
             />

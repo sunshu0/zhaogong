@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
-import { editMyJob, getMyJob } from "@/app/employer/actions";
+import { editMyJob } from "@/app/employer/actions";
 import { DraftEditor } from "@/components/employer/DraftEditor";
 import { canEdit } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
@@ -10,6 +10,7 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
+import { useMyJob } from "@/components/employer/use-my-jobs";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 
 /** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
@@ -23,21 +24,9 @@ export function EditJob({ jobId, country }: { jobId: string; country: CountryCod
 
 function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
   const email = me.email;
-  const [loaded, setLoaded] = useState<{ email: string; job: Job | null }>();
+  const job = useMyJob(jobId, email);
 
-  useEffect(() => {
-    let live = true;
-    getMyJob(jobId).then((job) => {
-      if (live) setLoaded({ email, job });
-    });
-    return () => {
-      live = false;
-    };
-  }, [jobId, email]);
-
-  if (loaded?.email !== email) return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
-
-  const job = loaded.job;
+  if (job === undefined) return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
   if (!job || !canEdit(job)) {
     return (
       <div className="rounded-md border border-dashed border-border bg-surface px-4 py-8 text-center text-body text-muted">

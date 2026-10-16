@@ -1,9 +1,10 @@
 // The workspace (/workspace) lists only what needs doing, most urgent first (Round 11, C3):
-// someone waiting for your consent, then unread chats, then jobs about to end or under review, then the profile.
+// someone waiting for your consent, then unread chats, then jobs about to close (#69) or under review, then the
+// profile.
 import type { Exchange } from "@/lib/chat-consent";
 import { EXCHANGE_LABELS } from "@/lib/chat-consent";
 import type { Job } from "@/lib/types";
-import { daysLeft, effectiveStatus } from "@/components/employer/job-status";
+import { closingReminders } from "@/components/employer/job-reminders";
 
 export type Todo = { id: string; title: string; detail?: string; href: string };
 
@@ -18,7 +19,7 @@ export type TodoInput = {
   profileMissing: { count: number; labels: string[] };
 };
 
-const EXPIRING_DAYS = 7;
+const CLOSING_HREF = "/employer/jobs?tab=ending";
 const conversationHref = (id: string) => `/messages?conversation=${encodeURIComponent(id)}`;
 
 export function workspaceTodos(input: TodoInput): Todo[] {
@@ -47,17 +48,9 @@ export function workspaceTodos(input: TodoInput): Todo[] {
   }
 
   if (input.isEmployer && input.jobs) {
-    const expiring = input.jobs
-      .filter((job) => effectiveStatus(job, input.now) === "active" && daysLeft(job, input.now) <= EXPIRING_DAYS)
-      .sort((a, b) => Date.parse(a.expiresAt) - Date.parse(b.expiresAt));
-    for (const job of expiring) {
-      const days = daysLeft(job, input.now);
-      todos.push({
-        id: `expiring:${job.id}`,
-        title: `「${job.titleZh}」${days <= 1 ? "今天到期" : `${days} 天后到期`}`,
-        detail: "还要招人就刷新，招到了就结束招聘",
-        href: "/employer/jobs",
-      });
+    // The same reminders as 通知 has: from 3 days before closing, and while a job that ran out can be renewed.
+    for (const reminder of closingReminders(input.jobs, input.now)) {
+      todos.push({ id: reminder.id, title: reminder.title, detail: reminder.detail, href: CLOSING_HREF });
     }
     for (const job of input.jobs.filter((job) => job.status === "pending_review")) {
       todos.push({

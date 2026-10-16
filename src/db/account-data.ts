@@ -2,6 +2,7 @@
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
 import { asc, count, eq, inArray } from "drizzle-orm";
+import { listRenewals, type JobRenewal } from "@/db/job-renewals";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
 import * as t from "@/db/schema";
@@ -15,8 +16,8 @@ export interface ServerAccountData {
   moderator: { grantedAt: string; grantedBy: string | null } | null;
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
-  /** The business of the employer identity and every job it posted, whatever their status. */
-  employer: { business: Employer; jobs: Job[] } | null;
+  /** The business of the employer identity, every job it posted whatever their status, and their renewals (#69). */
+  employer: { business: Employer; jobs: Job[]; renewals: JobRenewal[] } | null;
   /** Each identity's chat records and the notifications it has read. */
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /** Saved jobs and how far the application got (#52). */
@@ -49,6 +50,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
   const jobs = business
     ? await db.select().from(t.jobs).where(eq(t.jobs.employerId, business.id)).orderBy(asc(t.jobs.postedAt))
     : [];
+  const renewals = await listRenewals(jobs.map((j) => j.id));
   const chats = await db
     .select()
     .from(t.chatRecords)
@@ -95,7 +97,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       jobId: a.jobId,
       employerId: a.employerId,
     })),
-    employer: business ? { business: toEmployer(business), jobs: jobs.map(toJob) } : null,
+    employer: business ? { business: toEmployer(business), jobs: jobs.map(toJob), renewals } : null,
     chats: chats.map((row) => ({
       identity: row.scope,
       record: row.record ?? null,

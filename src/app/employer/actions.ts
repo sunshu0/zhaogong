@@ -28,6 +28,7 @@ import {
 } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
 import { matchJobAlerts } from "@/db/job-alerts";
+import { renewalCounts, renewJob, type RenewalCounts } from "@/db/job-renewals";
 import {
   buildRegister,
   normalizeNzbn,
@@ -35,7 +36,14 @@ import {
   type RegisterEntry,
 } from "@/components/employer/business-register";
 import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
-import { canClose, canEdit, effectiveStatus, refreshedDates, refreshState } from "@/components/employer/job-status";
+import {
+  canClose,
+  canEdit,
+  effectiveStatus,
+  refreshedDates,
+  refreshState,
+  renewState,
+} from "@/components/employer/job-status";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
 /**
@@ -74,6 +82,13 @@ export async function getMyJobNumbers(): Promise<Record<string, JobNumbers>> {
   const employer = await postingEmployer();
   if (typeof employer === "string") return {};
   return jobNumbers((await listJobsByEmployer(employer.id)).map((j) => j.id));
+}
+
+/** How often each of the account's jobs was renewed, and when last (#69). */
+export async function getMyJobRenewals(): Promise<RenewalCounts> {
+  const employer = await postingEmployer();
+  if (typeof employer === "string") return {};
+  return renewalCounts((await listJobsByEmployer(employer.id)).map((j) => j.id));
 }
 
 /** One of the account's jobs with its numbers for each of the last 14 New Zealand days; null for anyone else's. */
@@ -167,7 +182,15 @@ export async function confirmHires(jobId: string, hires: HiresAnswer): Promise<C
   return { ok: true, job: (await updateJob(job.id, answer.fields))! };
 }
 
-/** Back on top for 30 more days. An ended job is checked again and reopens, or waits for review. */
+/** Checks a job against today's rules (the minimum wage may have gone up since it was posted). */
+async function recheck(job: Job): Promise<{ ok: true; status: Job["status"] } | ChangeResult> {
+  const findings = checkJob(job, job.country, await getEmployer(job.employerId));
+  const decision = publishDecision(findings);
+  if (!decision.canPublish) return { ok: false, error_zh: "这个职位不符合现在的发布规则，请先编辑。", findings };
+  return { ok: true, status: decision.status };
+}
+
+/** Back on top, with at least 30 days to run. Only a live job; it is checked again and stays live. */
 export async function refreshMyJob(jobId: string): Promise<ChangeResult> {
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
@@ -175,11 +198,31 @@ export async function refreshMyJob(jobId: string): Promise<ChangeResult> {
   const state = refreshState(job, now);
   if (!state.allowed) return { ok: false, error_zh: `不能刷新：${state.reason_zh}` };
 
-  const findings = checkJob(job, job.country, await getEmployer(job.employerId));
-  const decision = publishDecision(findings);
-  if (!decision.canPublish) return { ok: false, error_zh: "这个职位不符合现在的发布规则，请先编辑。", findings };
-  const status = effectiveStatus(job, now) === "active" ? "active" : decision.status;
-  return { ok: true, job: (await updateJob(job.id, { ...refreshedDates(now), status }))! };
+  const checked = await recheck(job);
+  if (!("status" in checked)) return checked;
+  return { ok: true, job: (await updateJob(job.id, { ...refreshedDates(now, job.expiresAt), status: "active" }))! };
+}
+
+/**
+ * Pushes the closing date back by 14, 30 or 60 days without moving the job up the list (#69): before it closes, or
+ * up to 14 days after. It is checked against today's rules first; an ended job reopens, or waits for review when
+ * the check says so. Each renewal is recorded. A banned business cannot renew (ownJob).
+ */
+export async function renewMyJob(jobId: string, days: number): Promise<ChangeResult> {
+  const job = await ownJob(jobId);
+  if (typeof job === "string") return { ok: false, error_zh: job };
+  const now = Date.now();
+  const state = renewState(job, now);
+  if (!state.allowed) return { ok: false, error_zh: `不能续期：${state.reason_zh}` };
+  const choice = state.choices.find((c) => c.days === days);
+  if (!choice) return { ok: false, error_zh: "请选择续期 14、30 或 60 天。" };
+  if (!choice.allowed) return { ok: false, error_zh: `续期 ${days} 天会超过最远的截止日，请选短一些的。` };
+
+  const checked = await recheck(job);
+  if (!("status" in checked)) return checked;
+  const status = effectiveStatus(job, now) === "active" ? "active" : checked.status;
+  const renewed = await renewJob(job.id, { expiresAt: choice.expiresAt, status, days }, new Date(now));
+  return renewed ? { ok: true, job: renewed } : { ok: false, error_zh: "找不到这个职位。" };
 }
 
 /**

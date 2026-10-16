@@ -35,7 +35,8 @@ describe("cardActions", () => {
   it("gives a live job one main button, 查看, and the rest under 更多", () => {
     const a = cardActions(job, NOW, { asking: undefined, sharing: false });
     expect(a.main).toEqual({ label: "查看", href: `/jobs/${job.id}` });
-    expect(keys(a)).toEqual(["edit", "refresh", "share", "close"]);
+    expect(keys(a)).toEqual(["edit", "renew", "refresh", "share", "close"]);
+    expect(a.more.find((m) => m.key === "renew")).toMatchObject({ label: "续期", disabled: false });
     expect(a.more.find((m) => m.key === "refresh")).toMatchObject({ label: "刷新", disabled: false });
     expect(a.more.find((m) => m.key === "close")).toMatchObject({ label: "结束招聘", danger: true });
   });
@@ -47,13 +48,28 @@ describe("cardActions", () => {
     expect(a.more.find((m) => m.key === "share")?.label).toBe("收起文案");
   });
 
-  it("lets an ended job reopen, record hires, and still be viewed", () => {
-    const ended = { ...job, status: "expired" as const };
+  it("lets an ended job be renewed for 14 days, record hires, and still be viewed (#69)", () => {
+    const ended = { ...job, status: "expired" as const, expiresAt: new Date(NOW - 2 * day).toISOString() };
     const a = cardActions(ended, NOW, { asking: undefined, sharing: false });
     expect(a.main.label).toBe("查看");
-    expect(a.more.map((m) => m.label)).toEqual(["编辑", "重新开放", "记录招到几人"]);
+    expect(a.more.map((m) => m.label)).toEqual(["编辑", "续期", "记录招到几人"]);
     const corrected = cardActions({ ...ended, hiresConfirmed: 2 }, NOW, { asking: undefined, sharing: false });
     expect(corrected.more.at(-1)?.label).toBe("更正招到人数");
+  });
+
+  it("offers 重新发布 instead once a job closed more than 14 days ago (#69)", () => {
+    const old = { ...job, expiresAt: new Date(NOW - 20 * day).toISOString() };
+    const a = cardActions(old, NOW, { asking: undefined, sharing: false });
+    expect(a.more.map((m) => m.label)).toEqual(["编辑", "重新发布", "记录招到几人"]);
+  });
+
+  it("names why a live job cannot be renewed", () => {
+    const far = { ...job, expiresAt: new Date(NOW + 80 * day).toISOString() };
+    const a = cardActions(far, NOW, { asking: undefined, sharing: false });
+    expect(a.more.find((m) => m.key === "renew")).toMatchObject({
+      label: "截止日最远到 90 天后，现在不用续期",
+      disabled: true,
+    });
   });
 
   it("makes 编辑 the main button while a job waits for review (job seekers cannot open it yet)", () => {

@@ -90,7 +90,8 @@ export function resolveProfiles(patches: Record<string, Partial<Profile>>): Reco
 const SEEKER: DemoSession = { email: "", signedInAt: "", activeRole: "seeker" };
 const EMPLOYER: DemoSession = { ...SEEKER, activeRole: "employer" };
 
-type NotificationTarget = { type: "conversation"; id: string } | { type: "profile" } | { type: "job"; id: string };
+type NotificationTarget =
+  { type: "conversation"; id: string } | { type: "profile" } | { type: "job"; id: string } | { type: "closing_jobs" };
 export type Notification = {
   id: string;
   type: string;
@@ -196,5 +197,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
       ? `/jobs/${encodeURIComponent(target.id)}`
       : target?.type === "profile"
         ? "/profile"
-        : undefined;
+        : target?.type === "closing_jobs"
+          ? "/employer/jobs?tab=ending"
+          : undefined;
 }

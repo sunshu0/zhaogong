@@ -2,7 +2,6 @@
 import type { Job } from "@/lib/types";
 import { refreshMyJob, type ChangeResult } from "@/app/employer/actions";
 import { cardActions, type Asking, type CardActionKey } from "@/components/employer/job-card";
-import { effectiveStatus } from "@/components/employer/job-status";
 import { ButtonLink } from "@/components/ui/Button";
 import { MoreMenu } from "@/components/ui/MoreMenu";
 
@@ -37,10 +36,11 @@ export function JobActions({
   onToggleShare: () => void;
 }) {
   const { main, more } = cardActions(job, now, { asking, sharing });
-  const reopening = effectiveStatus(job, now) === "expired";
   const handlers: Record<CardActionKey, (() => void) | string> = {
     edit: `/employer/jobs/${job.id}`,
-    refresh: () => run(() => refreshMyJob(job.id), reopening ? "已重新开放 30 天" : "已刷新，排到前面"),
+    renew: () => onAsk("renew"),
+    republish: `/employer/jobs/${job.id}/republish`,
+    refresh: () => run(() => refreshMyJob(job.id), "已刷新，排到前面"),
     share: onToggleShare,
     close: () => onAsk("close"),
     hires: () => onAsk("hires"),

@@ -7,6 +7,7 @@ import { databaseChatStore } from "@/db/chat-store";
 import { grantModerator, isModerator, listModerators, revokeModerator } from "@/db/moderators";
 import { database } from "@/db/ready";
 import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
+import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
@@ -72,6 +73,7 @@ async function fullAccount(email: string) {
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
+  await renewJob(job.id, { expiresAt: "2026-12-01T00:00:00.000Z", status: "active", days: 30 });
   return { business, job };
 }
 
@@ -85,6 +87,9 @@ describe("exportAccountData (#54)", () => {
     expect(data?.moderator).toBeNull();
     expect(data?.employer?.business).toMatchObject({ id: business.id, name: business.name });
     expect(data?.employer?.jobs.map((j) => j.id)).toEqual([job.id]);
+    expect(data?.employer?.renewals).toMatchObject([
+      { jobId: job.id, days: 30, expiresAfter: "2026-12-01T00:00:00.000Z" },
+    ]);
     expect(data?.chats.map((c) => c.identity).sort()).toEqual(
       [scopeOf(email, "employer", business.id), scopeOf(email, "seeker")].sort(),
     );
