@@ -158,7 +158,10 @@ test("chat with the keyboard only: type, Enter, Shift+Tab to the quick replies",
   await expect(lastAssistant(page)).toContainText("每周大概多少小时");
   await expect(box).toBeFocused();
 
-  // The quick replies sit just before the reply box.
+  // The quick replies sit just before the reply box. They show once the turn has finished (not while it is pending),
+  // which can be a moment after the reply text: other Server Function calls (the job card's pay reference, #85) go
+  // one at a time with the chat's.
+  await expect(page.getByRole("group", { name: "快捷回复" })).toBeVisible();
   await page.keyboard.press("Shift+Tab");
   const chip = await focused(page);
   expect(chip.label).toBe("不固定");
