@@ -5,28 +5,11 @@
 // Email alerts wait for an email service (#16).
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
-import { getEmployer, getJob } from "@/lib/data";
-import { isOpenJob } from "@/lib/job-expiry";
-import {
-  createJobAlert,
-  deleteJobAlert,
-  listJobAlertHits,
-  listJobAlerts,
-  updateJobAlert,
-  type JobAlert,
-} from "@/db/job-alerts";
+import { createJobAlert, deleteJobAlert, listJobAlerts, updateJobAlert, type JobAlert } from "@/db/job-alerts";
 import { scopeOf } from "@/lib/chat-server/identity";
-import { postedAgoZh } from "@/components/seeker/format";
-import { myClosingNotifications } from "@/app/employer/closing-notifications";
-import { myApplicationNotifications } from "@/app/employer/application-notifications";
+import { serverNotifications } from "@/app/messages/server-notifications";
 import type { Notification } from "@/components/seeker/hub-state";
-import {
-  alertConditions,
-  alertNotificationId,
-  cleanAlertName,
-  defaultAlertName,
-  normalizeAlertQuery,
-} from "@/components/seeker/job-alerts";
+import { alertConditions, cleanAlertName, defaultAlertName, normalizeAlertQuery } from "@/components/seeker/job-alerts";
 
 export type JobAlertView = { id: string; name: string; query: string; conditions: string[]; paused: boolean };
 
@@ -77,40 +60,16 @@ export async function deleteMyJobAlert(id: string): Promise<JobAlertView[] | nul
 }
 
 /**
- * The jobs the account's alerts found, as notifications of its job-seeker identity (the employer identity has
- * none). With the scope they are for, as the other notification answers have (messages/actions.ts).
+ * The server's notifications of the identity in use (server-notifications.ts): for a job seeker the jobs its alerts
+ * found, for an employer applications and jobs closing soon. With the scope they are for, as the other notification
+ * answers have (messages/actions.ts).
  */
 export async function myAlertNotifications(): Promise<{ scope: string; items: Notification[] } | null> {
   const session = await getCurrentSession();
   if (!session) return null;
-  const scope = scopeOf(session);
-  const now = Date.now();
-  // The employer identity's are applications (#84) and its jobs closing soon (#69).
-  if (session.activeRole === "employer")
-    return {
-      scope,
-      items: [
-        ...(await myApplicationNotifications(session.email, now)),
-        ...(await myClosingNotifications(session.email, now)),
-      ],
-    };
-  const items = await Promise.all(
-    (await listJobAlertHits(session.email)).map(async (hit): Promise<Notification> => {
-      const job = await getJob(hit.jobId);
-      const employer = job && (await getEmployer(job.employerId));
-      return {
-        id: alertNotificationId(hit.jobId),
-        type: "提醒",
-        title: `有新职位符合提醒「${hit.alertName}」`,
-        detail:
-          job && isOpenJob(job, now)
-            ? `${employer?.name ?? ""}正在招聘${job.titleZh}`
-            : `${job?.titleZh ?? "这个职位"}已经停止招聘`,
-        time: postedAgoZh(hit.createdAt, now),
-        unread: true,
-        target: { type: "job", id: hit.jobId },
-      };
-    }),
-  );
-  return { scope, items };
+  const isEmployer = session.activeRole === "employer";
+  return {
+    scope: scopeOf(session),
+    items: await serverNotifications({ email: session.email, isEmployer }, Date.now()),
+  };
 }

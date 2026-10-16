@@ -18,10 +18,17 @@ test("a job closing in 3 days shows in 待办 and 通知, under 将截止, and r
   await expect(todo).toHaveAttribute("href", "/employer/jobs?tab=ending");
 
   await page.goto("/notifications");
-  const notice = page.getByRole("region", { name: "通知列表" }).getByRole("link", { name: new RegExp(title) });
+  const list = page.getByRole("region", { name: "通知列表" });
+  const notice = list.getByRole("link", { name: new RegExp(title) });
   await expect(notice).toHaveCount(1);
+  await expect(list).toContainText("3 条未读"); // the two demo ones and this
   await notice.click();
   await expect(page).toHaveURL("/employer/jobs?tab=ending");
+  // Opening it marked it read on the server, so it stays read after a reload (#94).
+  await page.goto("/notifications");
+  await page.reload();
+  await expect(list).toContainText("2 条未读");
+  await page.goto("/employer/jobs?tab=ending");
 
   await expect(page.getByRole("tab", { name: /^将截止/ })).toHaveAttribute("aria-selected", "true");
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });

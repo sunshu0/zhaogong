@@ -6,12 +6,11 @@
 // the server's clock and ids.
 import { randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
-import { listJobAlertHits } from "@/db/job-alerts";
 import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
 import { applicationOf } from "@/db/job-applications";
-import { myApplicationNotificationIds } from "@/app/employer/application-notifications";
+import { serverNotifications } from "@/app/messages/server-notifications";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { parsePayload, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
 import {
@@ -27,7 +26,6 @@ import {
   type ChatRecord,
 } from "@/components/seeker/chat-store";
 import { initialNotifications } from "@/components/seeker/hub-state";
-import { alertNotificationId } from "@/components/seeker/job-alerts";
 import { isExpired } from "@/components/seeker/job-facts";
 import { applicantConversationId } from "@/components/seeker/applications";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
@@ -250,9 +248,9 @@ export async function markMyNotificationsRead(ids: string[] | "all"): Promise<Re
     employerId: me.session.employer?.id,
     employerName: me.session.employer?.name,
   }).map((n) => n.id);
-  if (!me.isEmployer)
-    mine.push(...(await listJobAlertHits(me.session.email)).map((hit) => alertNotificationId(hit.jobId)));
-  else mine.push(...(await myApplicationNotificationIds(me.session.email)));
+  // The same list the notifications page shows (#94), so every kind it shows can be marked read.
+  const fromServer = await serverNotifications({ email: me.session.email, isEmployer: me.isEmployer }, Date.now());
+  mine.push(...fromServer.map((n) => n.id));
   const asked = ids === "all" ? mine : Array.isArray(ids) ? ids.filter((id) => mine.includes(id)) : [];
   const read = [...new Set([...((await store.getNotificationReads(me.scope)) ?? []), ...asked])];
   await store.putNotificationReads(me.scope, read);

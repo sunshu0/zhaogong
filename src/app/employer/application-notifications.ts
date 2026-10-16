@@ -1,5 +1,5 @@
 // The employer identity's notifications about applications (#84). Not a Server Function: it takes the email, so only
-// server code that read the email from the session calls it (me/alerts/actions.ts, messages/actions.ts). Server only.
+// server code that read the email from the session calls it (messages/server-notifications.ts). Server only.
 import { getAccountEmployer, getJob } from "@/lib/data";
 import { applicationsOfBusiness } from "@/db/job-applications";
 import { postedAgoZh } from "@/components/seeker/format";
@@ -25,11 +25,4 @@ export async function myApplicationNotifications(email: string, now: number): Pr
       };
     }),
   );
-}
-
-/** The ids of those notifications, for marking them read. */
-export async function myApplicationNotificationIds(email: string): Promise<string[]> {
-  const employer = await getAccountEmployer(email);
-  if (!employer) return [];
-  return (await applicationsOfBusiness(employer.id)).map((row) => applicationNotificationId(row.id));
 }

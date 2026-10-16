@@ -1,5 +1,5 @@
 // The employer identity's notifications about its jobs closing soon (#69). Not a Server Function: it takes the email,
-// so only server code that read the email from the session calls it (me/alerts/actions.ts). Server only.
+// so only server code that read the email from the session calls it (messages/server-notifications.ts). Server only.
 import { getAccountEmployer, listJobsByEmployer } from "@/lib/data";
 import { closingReminders } from "@/components/employer/job-reminders";
 import { postedAgoZh } from "@/components/seeker/format";

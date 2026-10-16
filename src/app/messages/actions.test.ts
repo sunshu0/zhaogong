@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
-import { createEmployer, ensureAccount, openEmployerIdentity } from "@/lib/data";
+import { createEmployer, createJob, ensureAccount, openEmployerIdentity } from "@/lib/data";
+import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
+import { MOCK_JOBS } from "@/mock/data";
+import type { Job } from "@/lib/types";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { databaseChatStore } from "@/db/chat-store";
 import { jobNumbers } from "@/db/job-stats";
@@ -19,6 +22,7 @@ vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myNotificationReads } =
   await import("@/app/messages/actions");
+const { myAlertNotifications } = await import("@/app/me/alerts/actions");
 
 const seekerScope = (email: string) => JSON.stringify([email, "seeker", null]);
 // Most checks are about the records; the scope each answer names is checked once below.
@@ -230,5 +234,42 @@ describe("notifications on the server (#10)", () => {
     expect(await reads()).toEqual([]);
     expect(await markRead(["n1", "n1", "made-up"])).toEqual(["n1"]);
     expect(await markRead("all")).toEqual(["n1", "n2", "n3"]);
+  });
+
+  /** A job of the business, open for `days` more days, under a title only this test uses. */
+  async function jobOf(employerId: string, titleZh: string, days: number): Promise<Job> {
+    const job: Partial<Job> = { ...MOCK_JOBS[0], employerId, titleZh, status: "active" };
+    delete job.id;
+    job.expiresAt = new Date(Date.now() + days * 86_400_000).toISOString();
+    return createJob(job as Omit<Job, "id">);
+  }
+
+  it("keeps a 快截止 notice read after a restart (#94)", async () => {
+    setChatServerStoreForTests(databaseChatStore());
+    const shop = await createEmployer({ name: "截止提醒小店", regionId: "akl-cbd" });
+    await openEmployerIdentity("closing.reader@example.com", shop.id);
+    await jobOf(shop.id, "两天后截止的职位", 2);
+    await signedIn("closing.reader@example.com", "employer");
+    const [closing] = (await myAlertNotifications())!.items.filter((n) => n.id.startsWith("closing:"));
+    expect(closing.title).toBe("「两天后截止的职位」2 天后截止");
+    expect(await markRead([closing.id])).toContain(closing.id);
+
+    setChatServerStoreForTests(databaseChatStore()); // a new store, as after the server restarts
+    expect(await reads()).toContain(closing.id);
+  });
+
+  it("lets every notification the server shows be marked read, for both identities (#94)", async () => {
+    const shop = await createEmployer({ name: "通知齐全小店", regionId: "akl-cbd" });
+    await openEmployerIdentity("all.kinds@example.com", shop.id);
+    await jobOf(shop.id, "快截止", 1);
+    await createJobAlert("all.kinds@example.com", { name: "全部", country: "NZ", query: "q=提醒都能已读" });
+    await matchJobAlerts(await jobOf("e2", "提醒都能已读", 30));
+
+    for (const role of ["employer", "seeker"] as const) {
+      await signedIn("all.kinds@example.com", role);
+      const shown = (await myAlertNotifications())!.items.map((n) => n.id);
+      expect(shown.length).toBeGreaterThan(0);
+      expect(await markRead(shown)).toEqual(expect.arrayContaining(shown));
+    }
   });
 });
