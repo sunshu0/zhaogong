@@ -5,6 +5,7 @@ import { startChat } from "@/lib/ai-post";
 import { recordChatStart, recordJobView } from "@/db/job-stats";
 import {
   banEmployer,
+  createEmployer,
   ensureAccount,
   getJob,
   getPlatformStats,
@@ -40,7 +41,8 @@ const {
   publishJob,
   refreshMyJob,
   renewMyJob,
-  verifyBusiness,
+  requestVerification,
+  getMyVerification,
 } = await import("@/app/employer/actions");
 
 /** The email of each demo business's owner. The Server Functions take no email: the session says who acts. */
@@ -211,6 +213,16 @@ describe("managing published jobs", () => {
       ok: false,
       error_zh: "账号已被停用，不能再修改职位。",
     });
+    expect(
+      await as(E.e5, () =>
+        requestVerification({
+          nzbn: "9429999000555",
+          contactName: "刘",
+          contactRole: "董事",
+          companyPhone: "09 555 0105",
+        }),
+      ),
+    ).toEqual({ ok: false, error_zh: "账号已被停用，不能申请验证。" }); // #78
   });
 });
 
@@ -276,34 +288,53 @@ describe("business verification", () => {
     expect((await lookupBusiness("123")).error_zh).toContain("13 位");
   });
 
-  it("verifies an unverified shop with its register entry", async () => {
-    const result = await as(E.e4, () => verifyBusiness("9429 0000 0000 4"));
-    expect(result.ok && result.employer).toMatchObject({
-      verification: "business_verified",
-      legalName: "Demo Yuemei Hair Studio Limited",
+  const form = { contactName: "陈美", contactRole: "店主", companyPhone: "09 555 0106" };
+
+  it("applies for 已验证企业 and waits for a moderator: the badge does not change (#78)", async () => {
+    const result = await as(E.e6, () => requestVerification({ ...form, nzbn: "9429 0000 0000 6" }));
+    expect(result.ok && result.request).toMatchObject({
+      status: "pending",
+      kind: "business_verified",
+      legalName: "Demo Jiejing Home Services Limited",
+      tradingName: "洁净家政",
     });
-    expect(await as(E.e4, () => getMyEmployer())).toMatchObject({
-      verification: "business_verified",
-      businessNumber: "9429000000004",
+    expect(JSON.stringify(result)).not.toContain("@");
+    expect((await as(E.e6, () => getMyEmployer()))?.verification).toBe("unverified");
+    expect(await as(E.e6, () => getMyVerification())).toMatchObject({ status: "pending" });
+    expect(await as(E.e6, () => requestVerification({ ...form, nzbn: "9429000000006" }))).toEqual({
+      ok: false,
+      error_zh: "你已经有一份验证申请在审核中，审核员核对后会通知你。",
     });
   });
 
-  it("refuses a struck-off company, an unknown number and another shop's NZBN", async () => {
-    expect(await as(E.e6, () => verifyBusiness("9429000000099"))).toMatchObject({
+  it("refuses a struck-off company, an unknown number, another shop's NZBN and a missing phone", async () => {
+    const shop = await createEmployer({ name: "新开小店", regionId: "akl-cbd" });
+    await openEmployerIdentity("new.shop@example.com", shop.id);
+    const apply = (input: object) => as("new.shop@example.com", () => requestVerification({ ...form, ...input }));
+    expect(await apply({ nzbn: "9429000000099" })).toMatchObject({
       ok: false,
       error_zh: expect.stringContaining("已注销"),
     });
-    expect(await as(E.e6, () => verifyBusiness("9429000000123"))).toMatchObject({ ok: false });
-    expect(await as(E.e6, () => verifyBusiness("9429000000001"))).toMatchObject({
+    expect(await apply({ nzbn: "9429000000123" })).toEqual({ ok: false, error_zh: "企业登记里没有这个 NZBN。" });
+    expect(await apply({ nzbn: "9429000000001" })).toMatchObject({
       ok: false,
       error_zh: expect.stringContaining("其他店铺"),
     });
-    expect((await as(E.e6, () => getMyEmployer()))?.verification).toBe("unverified");
+    expect(await apply({ nzbn: "9429000000006" })).toMatchObject({
+      ok: false,
+      error_zh: expect.stringContaining("审核中"),
+    }); // e6's, above
+    expect(await apply({ nzbn: "9429000000010", companyPhone: "" })).toMatchObject({ ok: false });
+    expect(await as("new.shop@example.com", () => getMyVerification())).toBeNull();
   });
 
-  it("keeps an accredited employer's badge", async () => {
-    const result = await as(E.e2, () => verifyBusiness("9429000000002"));
-    expect(result.ok && result.employer.verification).toBe("accredited_employer");
+  it("only offers a badge the business does not have yet", async () => {
+    expect(
+      await as(E.e2, () => requestVerification({ ...form, nzbn: "9429000000002", kind: "accredited_employer" })),
+    ).toEqual({
+      ok: false,
+      error_zh: "你的店铺已经是「认证雇主」。",
+    });
   });
 });
 
@@ -414,7 +445,13 @@ describe("refused without the right session (#19)", () => {
       renew: await renewMyJob(job, 30),
       renewals: await getMyJobRenewals(),
       edit: await editMyJob(job, { titleZh: "改名" }),
-      verify: await verifyBusiness("9429000000004"),
+      verify: await requestVerification({
+        nzbn: "9429000000004",
+        contactName: "冒名",
+        contactRole: "店主",
+        companyPhone: "09 555 0000",
+      }),
+      verification: await getMyVerification(),
     };
   }
 
@@ -428,7 +465,15 @@ describe("refused without the right session (#19)", () => {
       cookies.clear();
       if (cookie) cookies.set(SESSION_COOKIE, cookie);
       const r = await everything();
-      expect(r).toMatchObject({ jobs: [], views: {}, renewals: {}, days: null, profile: null, job: null });
+      expect(r).toMatchObject({
+        jobs: [],
+        views: {},
+        renewals: {},
+        days: null,
+        profile: null,
+        job: null,
+        verification: null,
+      });
       expect(r.publish).toMatchObject({ ok: false, reason: "signed_out" });
       for (const change of [r.close, r.hires, r.refresh, r.renew, r.edit, r.verify]) {
         expect(change).toEqual({ ok: false, error_zh: "请先登录。" });
@@ -439,7 +484,15 @@ describe("refused without the right session (#19)", () => {
 
   it("refuses a signed-in account that has no business", async () => {
     const r = await as("seeker.only@example.com", everything);
-    expect(r).toMatchObject({ jobs: [], views: {}, renewals: {}, days: null, profile: null, job: null });
+    expect(r).toMatchObject({
+      jobs: [],
+      views: {},
+      renewals: {},
+      days: null,
+      profile: null,
+      job: null,
+      verification: null,
+    });
     expect(r.publish).toMatchObject({ ok: false, reason: "no_identity" });
     for (const change of [r.close, r.hires, r.refresh, r.renew, r.edit, r.verify]) {
       expect(change).toEqual({ ok: false, error_zh: "需要先开通雇主身份。" });

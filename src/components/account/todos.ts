@@ -5,6 +5,7 @@ import type { Exchange } from "@/lib/chat-consent";
 import { EXCHANGE_LABELS } from "@/lib/chat-consent";
 import type { Job } from "@/lib/types";
 import { closingReminders } from "@/components/employer/job-reminders";
+import { REJECT_REASONS, type RejectReason, type RequestStatus } from "@/components/employer/verification";
 
 export type Todo = { id: string; title: string; detail?: string; href: string };
 
@@ -19,6 +20,8 @@ export type TodoInput = {
   unseenApplications?: Record<string, number>;
   now: number;
   profileMissing: { count: number; labels: string[] };
+  /** The business's latest 企业验证 application (#78), once loaded. */
+  verification?: { status: RequestStatus; rejectReason?: RejectReason | null } | null;
 };
 
 const CLOSING_HREF = "/employer/jobs?tab=ending";
@@ -72,6 +75,24 @@ export function workspaceTodos(input: TodoInput): Todo[] {
         href: "/employer/jobs",
       });
     }
+  }
+
+  // 企业验证 (#78): a rejection needs the employer; a pending application only says it is in hand.
+  if (input.isEmployer && input.verification?.status === "rejected") {
+    const reason = input.verification.rejectReason;
+    todos.push({
+      id: "verification",
+      title: "企业验证没有通过",
+      detail: `${reason ? `${REJECT_REASONS[reason]}，` : ""}改好资料重新提交`,
+      href: "/employer/verify",
+    });
+  } else if (input.isEmployer && input.verification?.status === "pending") {
+    todos.push({
+      id: "verification",
+      title: "企业验证审核中",
+      detail: "审核员核对后会通知你，不需要你操作",
+      href: "/employer/verify",
+    });
   }
 
   if (input.profileMissing.count > 0) {

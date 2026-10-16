@@ -82,6 +82,13 @@
     {
       "idx": 11,
       "version": "6",
+      "when": 1792149307415,
+      "tag": "0011_verification_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
       "when": 1792149236695,
       "tag": "0012_resume_shares",
       "breakpoints": true

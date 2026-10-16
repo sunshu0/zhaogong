@@ -94,6 +94,8 @@ describe("moderationStats (#70)", () => {
       logged({ action: "ban", takenDown: 3, moderator: "b@example.com" }),
       logged({ action: "dismiss", moderator: "a@example.com" }),
       logged({ action: "approve" }), // from before #60: nobody named
+      logged({ action: "verify_approve", moderator: "a@example.com" }), // 企业验证 (#78): not a take-down
+      logged({ action: "verify_reject", moderator: "a@example.com" }),
       logged({ action: "take_down", at: "2026-10-06T00:00:00.000Z", moderator: "b@example.com" }),
       logged({ action: "approve", at: "2026-01-06T00:00:00.000Z", moderator: "c@example.com" }), // too old
     ];
@@ -118,9 +120,9 @@ describe("moderationStats (#70)", () => {
     expect(untimed).toBe(1);
     // Per moderator over the eight weeks (#60): most first, the unnamed old entries last.
     expect(byModerator).toEqual([
-      { moderator: "a@example.com", approve: 0, takeDown: 1, dismiss: 1, ban: 0, total: 2 },
-      { moderator: "b@example.com", approve: 0, takeDown: 1, dismiss: 0, ban: 1, total: 2 },
-      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, total: 1 },
+      { moderator: "a@example.com", approve: 0, takeDown: 1, dismiss: 1, ban: 0, verify: 2, total: 4 },
+      { moderator: "b@example.com", approve: 0, takeDown: 1, dismiss: 0, ban: 1, verify: 0, total: 2 },
+      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, verify: 0, total: 1 },
     ]);
   });
 });

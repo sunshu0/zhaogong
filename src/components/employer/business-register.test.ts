@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRegister, searchRegister } from "@/components/employer/business-register";
+import { buildRegister, findInRegister, searchRegister } from "@/components/employer/business-register";
 import { MOCK_EMPLOYERS } from "@/mock/data";
 
 const register = buildRegister(MOCK_EMPLOYERS);
@@ -18,6 +18,20 @@ describe("searchRegister", () => {
   it("finds an exact NZBN, with spaces or dashes", () => {
     expect(searchRegister(register, "9429 0000 0000 4").results.map((e) => e.nzbn)).toEqual(["9429000000004"]);
     expect(searchRegister(register, "9429-000-000-004").results).toHaveLength(1);
+  });
+
+  it("has a company for every NZBN in the demo range 9429999xxxxxx, and none outside it (#78)", () => {
+    expect(searchRegister(register, "9429999123456").results).toEqual([
+      {
+        nzbn: "9429999123456",
+        legalName: "Demo Company 123456 Limited",
+        tradingNames: ["示例公司 123456"],
+        status: "registered",
+      },
+    ]);
+    expect(findInRegister(register, "9429 999 123 456")?.legalName).toBe("Demo Company 123456 Limited");
+    expect(findInRegister(register, "9429998123456")).toBeUndefined();
+    expect(searchRegister(register, "Demo Company").results.map((e) => e.nzbn)).not.toContain("9429999123456");
   });
 
   it("explains a number that is not an NZBN", () => {

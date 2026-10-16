@@ -248,6 +248,8 @@ describe("deleteAccount (#54)", () => {
       "moderation_log.moderator_email",
       "moderators.email",
       "conversations.seeker_email",
+      "verification_requests.submitted_by_email",
+      "verification_requests.decided_by_email",
     ]);
     const found = Object.values(t as Record<string, unknown>)
       .filter((value): value is SQLiteTable => value instanceof SQLiteTable)

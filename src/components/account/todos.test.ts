@@ -105,6 +105,26 @@ describe("workspaceTodos", () => {
     ]);
   });
 
+  it("tells an employer about a rejected 企业验证 with its reason, and that a pending one is in hand (#78)", () => {
+    const rejected = workspaceTodos({
+      ...base,
+      isEmployer: true,
+      jobs: [],
+      verification: { status: "rejected", rejectReason: "phone_unreachable" },
+    });
+    expect(rejected).toEqual([
+      {
+        id: "verification",
+        title: "企业验证没有通过",
+        detail: "电话核实不到人，改好资料重新提交",
+        href: "/employer/verify",
+      },
+    ]);
+    const pending = workspaceTodos({ ...base, isEmployer: true, jobs: [], verification: { status: "pending" } });
+    expect(pending.map((t) => t.title)).toEqual(["企业验证审核中"]);
+    expect(workspaceTodos({ ...base, isEmployer: true, jobs: [], verification: { status: "approved" } })).toEqual([]);
+  });
+
   it("ignores jobs for job seekers", () => {
     const todos = workspaceTodos({
       ...base,

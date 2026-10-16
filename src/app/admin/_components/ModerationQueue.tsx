@@ -17,6 +17,7 @@ import {
 import { moderatorLabel } from "@/app/admin/moderation";
 import { Empty } from "@/app/admin/_components/Empty";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
+import { useVerificationQueue, VerificationQueue } from "@/app/admin/_components/VerificationQueue";
 import {
   ModerationSummary,
   ModerationWeeks,
@@ -32,7 +33,7 @@ import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "log" | "stats" | "moderators";
+type Tab = "flagged" | "reported" | "verification" | "log" | "stats" | "moderators";
 
 const time = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -51,6 +52,7 @@ export function ModerationQueue() {
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
   const stats = useModerationStats(version); // #70
+  const verifications = useVerificationQueue(version); // #78
 
   useEffect(() => {
     let live = true;
@@ -80,6 +82,11 @@ export function ModerationQueue() {
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "flagged", label: "发布时被标记", count: queue?.flagged.length },
     { key: "reported", label: "被举报", count: queue?.reported.length },
+    {
+      key: "verification",
+      label: "企业验证",
+      count: verifications && !("refused" in verifications) ? verifications.length : undefined,
+    },
     { key: "log", label: "操作记录", count: queue?.log.length },
     { key: "stats", label: "审核数据" },
     { key: "moderators", label: "审核员" },
@@ -113,6 +120,8 @@ export function ModerationQueue() {
       <TabPanel idBase="admin" value={tab}>
         {tab === "moderators" ? (
           <ModeratorList onDone={setResult} />
+        ) : tab === "verification" ? (
+          <VerificationQueue queue={verifications} onDone={done} />
         ) : tab === "stats" ? (
           stats && !("refused" in stats) ? (
             <div className="space-y-section">

@@ -47,6 +47,28 @@ export function buildRegister(employers: Employer[]): RegisterEntry[] {
 
 export const normalizeNzbn = (s: string) => s.replace(/[\s-]/g, "");
 
+/**
+ * Demo only: every NZBN 9429999xxxxxx is a registered company of its own, so each browser test (and anyone trying
+ * the demo) can apply for 企业验证 with a company nobody else has used (#78). The real lookup replaces all of this.
+ */
+const DEMO_RANGE = /^9429999\d{6}$/;
+
+function demoRangeEntry(nzbn: string): RegisterEntry | undefined {
+  if (!DEMO_RANGE.test(nzbn)) return undefined;
+  return {
+    nzbn,
+    legalName: `Demo Company ${nzbn.slice(-6)} Limited`,
+    tradingNames: [`示例公司 ${nzbn.slice(-6)}`],
+    status: "registered",
+  };
+}
+
+/** The register's entry for an NZBN, if it has one. */
+export function findInRegister(register: RegisterEntry[], nzbn: string): RegisterEntry | undefined {
+  const number = normalizeNzbn(nzbn);
+  return register.find((e) => e.nzbn === number) ?? demoRangeEntry(number);
+}
+
 const MAX_RESULTS = 5;
 
 export function searchRegister(
@@ -57,8 +79,8 @@ export function searchRegister(
   const digits = normalizeNzbn(q);
   if (/^\d+$/.test(digits)) {
     if (digits.length !== 13) return { results: [], error_zh: "NZBN 是 13 位数字，请检查一下。" };
-    const found = register.filter((e) => e.nzbn === digits);
-    return found.length ? { results: found } : { results: [], error_zh: "企业登记里没有这个 NZBN。" };
+    const found = findInRegister(register, digits);
+    return found ? { results: [found] } : { results: [], error_zh: "企业登记里没有这个 NZBN。" };
   }
   if ([...q].length < 2) return { results: [], error_zh: "请至少输入两个字。" };
   const needle = q.toLowerCase();

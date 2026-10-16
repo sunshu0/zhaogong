@@ -1,13 +1,16 @@
 // A person's own data (#54, R-30): everything the server keeps about an account, for 导出我的数据, and deleting the
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
-import { asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { listRenewals, type JobRenewal } from "@/db/job-renewals";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
 import * as t from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+
+/** Who applied for 企业验证, once their account is deleted. */
+const DELETED_CONTACT = "（已删除的账号）";
 import type { AccountRole, Employer, Job } from "@/lib/types";
 
 /** The server's part of the export. The browser adds what it keeps itself (profiles, reports sent, jobs viewed). */
@@ -33,6 +36,24 @@ export interface ServerAccountData {
   }[];
   /** The 中英文简历 share link (#86): its id and the page it shows. */
   resumeShare: { id: string; resume: unknown; createdAt: string; updatedAt: string } | null;
+  /**
+   * The 企业验证 applications this account made (#78), with a moderator's reason when one was rejected. Which
+   * moderator decided is left out: that is someone else's email.
+   */
+  verificationRequests: {
+    kind: string;
+    nzbn: string;
+    legalName: string;
+    contactName: string;
+    contactRole: string;
+    companyPhone: string;
+    website: string | null;
+    submittedAt: string;
+    status: string;
+    decidedAt: string | null;
+    rejectReason: string | null;
+    rejectNote: string | null;
+  }[];
   /** Jobs this account started a chat about (counted for the employer, #55). */
   chatStarts: { jobId: string; startedAt: string }[];
   /** Job alerts (#53): saved searches, and the new jobs they found. */
@@ -83,6 +104,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobChatStarts)
     .where(eq(t.jobChatStarts.seekerEmail, address))
     .orderBy(asc(t.jobChatStarts.startedAt));
+  const verifications = await db
+    .select()
+    .from(t.verificationRequests)
+    .where(eq(t.verificationRequests.submittedByEmail, address))
+    .orderBy(asc(t.verificationRequests.submittedAt));
   const alerts = await db
     .select()
     .from(t.jobAlerts)
@@ -133,6 +159,20 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     resumeShare: share
       ? { id: share.id, resume: share.resume, createdAt: share.createdAt, updatedAt: share.updatedAt }
       : null,
+    verificationRequests: verifications.map((v) => ({
+      kind: v.kind,
+      nzbn: v.nzbn,
+      legalName: v.legalName,
+      contactName: v.contactName,
+      contactRole: v.contactRole,
+      companyPhone: v.companyPhone,
+      website: v.website,
+      submittedAt: v.submittedAt,
+      status: v.status,
+      decidedAt: v.decidedAt,
+      rejectReason: v.rejectReason,
+      rejectNote: v.rejectNote,
+    })),
     chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
     jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
     jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
@@ -163,6 +203,20 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.update(t.moderators).set({ grantedBy: DELETED_ACCOUNT }).where(eq(t.moderators.grantedBy, address));
     // The decisions stay in the log (#60), without the moderator's email.
     await tx.update(t.moderationLog).set({ moderator: DELETED_ACCOUNT }).where(eq(t.moderationLog.moderator, address));
+    // 企业验证 (#78): a decision is why a business carries its badge, so the application stays, without the person's
+    // email or name; one still waiting is withdrawn. Applications this account decided as a moderator lose its email.
+    await tx
+      .update(t.verificationRequests)
+      .set({ status: "withdrawn" })
+      .where(and(eq(t.verificationRequests.submittedByEmail, address), eq(t.verificationRequests.status, "pending")));
+    await tx
+      .update(t.verificationRequests)
+      .set({ submittedByEmail: DELETED_ACCOUNT, contactName: DELETED_CONTACT })
+      .where(eq(t.verificationRequests.submittedByEmail, address));
+    await tx
+      .update(t.verificationRequests)
+      .set({ decidedByEmail: DELETED_ACCOUNT })
+      .where(eq(t.verificationRequests.decidedByEmail, address));
 
     await tx.delete(t.sessions).where(eq(t.sessions.email, address));
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));

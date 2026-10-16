@@ -1,9 +1,11 @@
 // What the demo data adds so the newer features show without making anything up by hand (#88): a job of 川味小馆
 // closing in 2 days (将截止, 续期) and one closed 20 days ago (已截止, 重新发布); a job held for review at posting and
-// two reports from job seekers (审核后台); a demo job seeker with saved jobs and a job alert that found a new job.
+// two reports from job seekers (审核后台); two 企业验证 applications waiting (#78); a demo job seeker with saved jobs
+// and a job alert that found a new job.
 // Dates are counted from the moment the demo data is loaded, so they read the same whichever day it is.
 import type { Job, Report } from "@/lib/types";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
+import type { VerificationRequest } from "@/db/verification-requests";
 
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
@@ -17,6 +19,7 @@ export interface Showcase {
   savedJobs: { email: string; jobId: string; savedAt: string; stage: SavedStage | null; stageSetAt: string | null }[];
   alert: { id: string; email: string; name: string; country: "NZ"; query: string; paused: boolean; createdAt: string };
   alertHit: { email: string; jobId: string; alertName: string; createdAt: string };
+  verifications: VerificationRequest[];
 }
 
 /** The records, with dates counted from `now`. Ids follow the demo's own (j20…, r1…). */
@@ -115,6 +118,14 @@ export function demoShowcase(now: number): Showcase {
   };
 
   const alertName = "Mt Eden 餐饮";
+  const waiting = {
+    status: "pending",
+    decidedAt: null,
+    decidedByEmail: null,
+    checklist: null,
+    rejectReason: null,
+    rejectNote: null,
+  } as const;
   return {
     jobs: [closingSoon, longClosed, newChef, heldForReview],
     reports: [
@@ -149,5 +160,39 @@ export function demoShowcase(now: number): Showcase {
       createdAt: at(-5 * DAY),
     },
     alertHit: { email: DEMO_SEEKER, jobId: newChef.id, alertName, createdAt: newChef.postedAt },
+    verifications: [
+      // 悦美发型工作室 applies for 已验证企业; 安居装修, already verified, for 认证雇主. Nobody signs in as these
+      // owners in the demo, so the applicants' addresses are the businesses' own.
+      {
+        ...waiting,
+        id: "v1",
+        employerId: "e4",
+        kind: "business_verified",
+        nzbn: "9429000000004",
+        legalName: "Demo Yuemei Hair Studio Limited",
+        tradingName: "悦美发型工作室",
+        contactName: "陈美玲",
+        contactRole: "店主",
+        companyPhone: "09 555 0104",
+        website: "https://www.facebook.com/",
+        submittedByEmail: "owner.yuemei@example.com",
+        submittedAt: at(-20 * HOUR),
+      },
+      {
+        ...waiting,
+        id: "v2",
+        employerId: "e5",
+        kind: "accredited_employer",
+        nzbn: "9429000000005",
+        legalName: "Demo Anju Renovation Limited",
+        tradingName: "安居装修",
+        contactName: "刘建国",
+        contactRole: "董事",
+        companyPhone: "09 555 0105",
+        website: null,
+        submittedByEmail: "owner.anju@example.com",
+        submittedAt: at(-2 * DAY),
+      },
+    ],
   };
 }

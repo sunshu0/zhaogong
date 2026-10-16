@@ -35,8 +35,8 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `myServerData()` | | `{ ok: true, data: ServerAccountData }`：账号、审核员身份、企业和它的全部职位、各身份的聊天记录和已读通知、收藏的职位和求职进度、职位提醒和提醒过的职位、看过联系方式的职位、登录会话（只有身份和时间）。浏览器再加上本机的资料、举报和浏览记录，下载成 `zhaogong-my-data-日期.json` | `{ ok: false, error }`：「请先登录」「找不到这个账号」 |
-| `deleteMyAccount(email)` | 再输入一次登录邮箱（不分大小写、首尾空格） | `{ ok: true }`：删除账号、所有会话、验证码、聊天记录、收藏、职位提醒和审核员身份；企业的职位下架并清空联系方式；查看记录和「由谁添加」改成 `deleted-account`；删除这次的 cookie | `{ ok: false, error }`：「请先登录」「输入的邮箱和当前登录的邮箱不一致」「你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。」 |
+| `myServerData()` | | `{ ok: true, data: ServerAccountData }`：账号、审核员身份、企业和它的全部职位、各身份的聊天记录和已读通知、收藏的职位和求职进度、职位提醒和提醒过的职位、提交过的企业验证申请（#78，不含审核员的邮箱）、看过联系方式的职位、登录会话（只有身份和时间）。浏览器再加上本机的资料、举报和浏览记录，下载成 `zhaogong-my-data-日期.json` | `{ ok: false, error }`：「请先登录」「找不到这个账号」 |
+| `deleteMyAccount(email)` | 再输入一次登录邮箱（不分大小写、首尾空格） | `{ ok: true }`：删除账号、所有会话、验证码、聊天记录、收藏、职位提醒和审核员身份；企业的职位下架并清空联系方式；查看记录和「由谁添加」改成 `deleted-account`；企业验证申请保留，提交人邮箱改成 `deleted-account`、联系人姓名清掉，还在等的改为撤回（#78）；删除这次的 cookie | `{ ok: false, error }`：「请先登录」「输入的邮箱和当前登录的邮箱不一致」「你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。」 |
 
 ## 职位（求职者）— `src/app/jobs/[id]/actions.ts`
 
@@ -67,7 +67,8 @@
 | `renewMyJob(jobId, days)` | `days`：14、30 或 60 | `{ ok: true, job }`（#69）：截止日从原来的日期往后推（已截止的从现在算），位置不变；先按现在的规则检查，已截止的职位重新上线或进审核；记一条续期 | 「不能续期：…」（审核中、已被下架、截止超过 14 天、已经排到 90 天后）、「请选择续期 14、30 或 60 天。」「续期 N 天会超过最远的截止日，请选短一些的。」「这个职位不符合现在的发布规则，请先编辑。」（带 `findings`） |
 | `getMyEmployer()` | | 账号绑定的企业（含验证状态、是否被停用） | `null` |
 | `lookupBusiness(query)` | 公司名或 NZBN，最多 100 字 | `{ results: RegisterEntry[], error_zh? }`（演示登记表，以后换成 NZBN 接口） | — |
-| `verifyBusiness(nzbn)` | NZBN | `{ ok: true, employer }`，显示「已验证企业」，认证雇主保持原级别 | `{ ok: false, error_zh }`：「企业登记里没有这个 NZBN。」「这家公司在企业登记里已注销，不能用来验证。」「这个 NZBN 已经被其他店铺验证。…」「账号已被停用，不能验证。」 |
+| `requestVerification(input)` | `{ nzbn, kind?, contactName, contactRole, companyPhone, website? }`；`kind` 是 `business_verified`（默认）或 `accredited_employer` | `{ ok: true, request }`（#78）：申请记为待审，企业的标识**不变**，等审核员通过。`request` 不含任何邮箱 | `{ ok: false, error_zh }`：「请先在企业登记里选好你的公司。」「请填写联系人姓名。」「请填写你在公司的职务。」「请填写公司电话…」「网站或 Facebook 请填完整的网址…」「企业登记里没有这个 NZBN。」「这家公司在企业登记里已注销，不能用来验证。」「你已经有一份验证申请在审核中…」「这个 NZBN 已经有一份验证申请在审核中。…」「这个 NZBN 已经被其他店铺验证。…」「你的店铺已经是「…」。」「账号已被停用，不能申请验证。」 |
+| `getMyVerification()` | | 本企业最近一份申请（`pending`、`approved`、`rejected` 或 `withdrawn`，被驳回的带 `rejectReason`、`rejectNote`），不含邮箱和核对清单 | `null`（没申请过、未登录、不是雇主） |
 
 `findings` 的每一项：`{ level: "block" | "rewrite" | "review", field, message_zh, rule, matches }`（`src/lib/compliance/`）。
 
@@ -175,7 +176,7 @@
 | `saveMyJobAlert(query)` | 职位列表的查询串 | `{ status: "created", alert }`；同样的条件已经存过时 `{ status: "exists", alert }`（不新建） | 未登录时 `null`；已有 5 个时 `{ status: "limit" }` |
 | `changeMyJobAlert(id, { name?, paused? })` | 名称去掉多余空白后 1–20 字（空白名称不改）；`paused` 布尔值 | 改后的全部提醒 | 未登录时 `null`；不是自己的提醒时不改，照样返回自己的列表 |
 | `deleteMyJobAlert(id)` | | 删后的全部提醒；已经提醒过的通知保留 | 同上 |
-| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending` | 未登录时 `null` |
+| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending`；以及企业验证的结果（#78）：每份通过或驳回的申请一条，`id` 为 `verification:<申请编号>:<approved|rejected>`，驳回的写明理由和说明，点开到 `/employer/verify`。所有服务器通知都由 `serverNotifications()`（`src/app/messages/server-notifications.ts`）生成，`markMyNotificationsRead` 也只接受它给出的编号（#94） | 未登录时 `null` |
 
 ## 只在开发环境存在的接口
 
@@ -207,11 +208,19 @@
 | `addModerator(email)` | 已经登录过的账号的邮箱 | `{ ok: true, text }` | 「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个账号已经是审核员。」 |
 | `removeModerator(email)` | 审核员的邮箱 | `{ ok: true, text }` | 「至少要留一位审核员，不能移除最后一位。」「这个账号不是审核员。」 |
 
+企业验证（#78，PRD R-16，ADR 0011）在 `src/app/admin/verification-actions.ts`，同样先 `requireModerator()`：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `getVerificationQueue()` | | 待审的申请，从早到晚：`{ request, employer, register, checklist }`。`register` 是这个 NZBN 在企业登记里的条目，`checklist` 是这份申请要核对的项目（申请认证雇主时多一项），每项带「去查」的链接。不含任何邮箱 | `{ refused, error_zh }` |
+| `approveVerification(id, checklist)` | `checklist`：`{ [项目]: { done, note? } }` | `{ ok: true, text }`：企业得到申请的标识（认证雇主保持原级别），登记名和 NZBN 写进企业资料；核对结果存进申请；记日志 `verify_approve` | 「还有核对项没打勾：…。」「这份申请已经处理过，或者不存在。」「这家店已被封禁，不能通过验证。」 |
+| `rejectVerification(id, reason, note, checklist)` | `reason`：`register_mismatch`、`phone_unreachable`、`impersonation`、`other`；`note`：说明，雇主会看到 | `{ ok: true, text }`：申请记为驳回，企业的标识不变；记日志 `verify_reject`（`note` 是理由和说明） | 「请选择驳回理由。」「请写明驳回的说明，雇主会看到。」「这份申请已经处理过，或者不存在。」 |
+
 审核数据（#70，PRD R-34，ADR 0010）在 `src/app/admin/stats-actions.ts`，同样先 `requireModerator()`：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, weeks, untimed }`。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, total }`，多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数 | `{ refused, error_zh }` |
+| `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, pendingVerifications, oldestPendingVerificationAt?, weeks, untimed }`（`pendingVerifications`：待审的企业验证，#78）。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, verify, total }`（`verify`：通过或驳回的企业验证，#78），多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数 | `{ refused, error_zh }` |
 
 举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
 

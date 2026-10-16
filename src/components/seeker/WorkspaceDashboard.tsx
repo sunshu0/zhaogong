@@ -2,7 +2,7 @@
 
 import { profileChecklist, profileProgress } from "@/components/account/profile-checklist";
 import { workspaceTodos } from "@/components/account/todos";
-import { useEmployerProfile } from "@/components/employer/use-employer";
+import { useEmployerProfile, useMyVerification } from "@/components/employer/use-employer";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { useChat } from "@/components/seeker/chat-client";
 import { useProfile } from "@/components/seeker/hub-client";
@@ -21,8 +21,9 @@ export function WorkspaceDashboard() {
   const { profile } = useProfile();
   const jobs = useMyJobs(employerEmail).ready;
   const employer = useEmployerProfile(employerEmail).profile;
+  const verification = useMyVerification(employerEmail).request;
   // An employer's jobs and verification come from the server; wait for them rather than list a stale to-do.
-  const loading = isEmployer && (!jobs || !employer);
+  const loading = isEmployer && (!jobs || !employer || verification === undefined);
 
   const progress = profileProgress(profileChecklist(profile, isEmployer, employer?.verification));
   const todos = workspaceTodos({
@@ -36,6 +37,7 @@ export function WorkspaceDashboard() {
       : undefined,
     now: jobs?.now ?? 0,
     profileMissing: { count: progress.missing.length, labels: progress.missing.map((item) => item.label) },
+    verification,
   });
 
   return (

@@ -60,5 +60,9 @@ export function describeAction(entry: ModerationLogEntry): string {
       return `驳回对${job}的举报${why}`;
     case "ban":
       return `封禁雇主「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位`;
+    case "verify_approve":
+      return `通过企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+    case "verify_reject":
+      return `驳回企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
   }
 }

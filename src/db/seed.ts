@@ -54,6 +54,7 @@ export async function seedDemoData(
     await tx.insert(schema.savedJobs).values(showcase.savedJobs);
     await tx.insert(schema.jobAlerts).values(showcase.alert);
     await tx.insert(schema.jobAlertHits).values(showcase.alertHit);
+    await tx.insert(schema.verificationRequests).values(showcase.verifications);
   });
   return {
     employers: MOCK_EMPLOYERS.length,

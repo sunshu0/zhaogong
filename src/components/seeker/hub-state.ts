@@ -113,7 +113,8 @@ type NotificationTarget =
   | { type: "profile" }
   | { type: "job"; id: string }
   | { type: "closing_jobs" }
-  | { type: "applicants"; jobId: string };
+  | { type: "applicants"; jobId: string }
+  | { type: "verification" };
 export type Notification = {
   id: string;
   type: string;
@@ -223,5 +224,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
           ? "/employer/jobs?tab=ending"
           : target?.type === "applicants"
             ? `/employer/jobs/${encodeURIComponent(target.jobId)}/applicants`
-            : undefined;
+            : target?.type === "verification"
+              ? "/employer/verify"
+              : undefined;
 }

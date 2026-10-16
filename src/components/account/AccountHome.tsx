@@ -33,7 +33,10 @@ export function AccountHome() {
       ? { href: "/profile", label: "企业主页", detail: "企业介绍和招聘联系人" }
       : { href: "/profile", label: "我的主页", detail: "雇主看到的资料和简历" },
     ...(isEmployer
-      ? [{ href: "/employer/candidates", label: "推荐人才" }]
+      ? [
+          { href: "/employer/candidates", label: "推荐人才" },
+          { href: "/employer/verify", label: "企业验证", detail: "申请「已验证企业」标识，审核员人工核对" },
+        ]
       : [
           { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
           { href: ALERTS_PATH, label: "职位提醒", detail: "有符合条件的新职位时通知你" },

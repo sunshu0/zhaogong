@@ -40,7 +40,7 @@ export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
   const waited = (since?: string) => (since ? `最早的等了 ${waitZh(stats.at - Date.parse(since))}` : "没有在等的");
   return (
     <Section>
-      <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group">
+      <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group sm:grid-cols-3">
         <div>
           <dt className="text-meta text-muted">待审核的职位</dt>
           <dd className="font-figure text-title">{stats.pendingJobs}</dd>
@@ -50,6 +50,11 @@ export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
           <dt className="text-meta text-muted">未处理的举报</dt>
           <dd className="font-figure text-title">{stats.openReports}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestOpenReportAt)}</dd>
+        </div>
+        <div>
+          <dt className="text-meta text-muted">待审核的企业验证</dt>
+          <dd className="font-figure text-title">{stats.pendingVerifications}</dd>
+          <dd className="text-meta text-muted">{waited(stats.oldestPendingVerificationAt)}</dd>
         </div>
       </dl>
     </Section>
@@ -132,6 +137,7 @@ const DECISIONS = [
   ["takeDown", "下架"],
   ["dismiss", "驳回"],
   ["ban", "封禁"],
+  ["verify", "企业验证"],
 ] as const;
 
 /** Decisions per moderator over the same eight weeks (#60 names who acted), most first. */
@@ -143,7 +149,7 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-body">
-            <caption className="sr-only">最近 {WEEKS} 周每位审核员的通过、下架、驳回、封禁次数</caption>
+            <caption className="sr-only">最近 {WEEKS} 周每位审核员的通过、下架、驳回、封禁和企业验证次数</caption>
             <thead>
               <tr className="border-b border-border text-left text-meta text-muted">
                 <th scope="col" className="py-2 pr-2 font-normal">

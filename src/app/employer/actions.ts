@@ -23,7 +23,6 @@ import {
   getJob,
   listEmployers,
   listJobsByEmployer,
-  setEmployerVerification,
   updateJob,
 } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
@@ -31,11 +30,13 @@ import { matchJobAlerts } from "@/db/job-alerts";
 import { renewalCounts, renewJob, type RenewalCounts } from "@/db/job-renewals";
 import {
   buildRegister,
-  normalizeNzbn,
+  findInRegister,
   searchRegister,
   type RegisterEntry,
 } from "@/components/employer/business-register";
 import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
+import { canApplyFor, KIND_LABELS, parseApplication, type VerifyKind } from "@/components/employer/verification";
+import { latestVerification, submitVerification, type VerificationRequest } from "@/db/verification-requests";
 import {
   canClose,
   canEdit,
@@ -261,30 +262,56 @@ export async function lookupBusiness(query: string): Promise<{ results: Register
   return searchRegister(buildRegister(await listEmployers()), String(query).slice(0, 100));
 }
 
-export type VerifyResult = { ok: true; employer: Employer } | { ok: false; error_zh: string };
+// ---- 企业验证 by a person (#78, ADR 0011) ----
+
+/** An application as its own business sees it: no email, neither the applicant's nor the moderator's. */
+export type MyVerification = Omit<VerificationRequest, "submittedByEmail" | "decidedByEmail" | "checklist">;
+
+function mine(request: VerificationRequest): MyVerification {
+  const view: Partial<VerificationRequest> = { ...request };
+  delete view.submittedByEmail;
+  delete view.decidedByEmail;
+  delete view.checklist;
+  return view as MyVerification;
+}
+
+/** The business's latest 企业验证 application, if any (pending, approved, rejected or withdrawn). */
+export async function getMyVerification(): Promise<MyVerification | null> {
+  const employer = await postingEmployer();
+  if (typeof employer === "string") return null;
+  const latest = await latestVerification(employer.id);
+  return latest ? mine(latest) : null;
+}
+
+export type VerifyResult = { ok: true; request: MyVerification } | { ok: false; error_zh: string };
+
+const SUBMIT_ERRORS = {
+  pending: "你已经有一份验证申请在审核中，审核员核对后会通知你。",
+  nzbn_pending: "这个 NZBN 已经有一份验证申请在审核中。如果是你的公司，请联系我们。",
+  nzbn_taken: "这个 NZBN 已经被其他店铺验证。如果是你的公司，请联系我们。",
+};
 
 /**
- * Links a register entry to the employer and shows 已验证企业. An accredited employer keeps its
- * higher badge. Demo: the real version must also prove the person speaks for the company.
+ * Applies for 已验证企业 or 认证雇主 with a register entry and the applicant's details. It waits for a moderator
+ * (#78): nothing changes on the business until they approve. A banned business cannot apply.
  */
-export async function verifyBusiness(nzbn: string): Promise<VerifyResult> {
+export async function requestVerification(input: unknown): Promise<VerifyResult> {
   const employer = await postingEmployer();
-  if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能验证。" };
+  if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能申请验证。" };
   if (typeof employer === "string") return { ok: false, error_zh: IDENTITY_ERRORS[employer] };
+  const session = (await getCurrentSession())!;
 
-  const employers = await listEmployers();
-  const number = normalizeNzbn(String(nzbn));
-  const entry = buildRegister(employers).find((e) => e.nzbn === number);
+  const parsed = parseApplication(input);
+  if (!parsed.ok) return parsed;
+  const application = parsed.value;
+  if (!canApplyFor(employer.verification, application.kind))
+    return { ok: false, error_zh: `你的店铺已经是「${KIND_LABELS[employer.verification as VerifyKind]}」。` };
+  const entry = findInRegister(buildRegister(await listEmployers()), application.nzbn);
   if (!entry) return { ok: false, error_zh: "企业登记里没有这个 NZBN。" };
   if (entry.status !== "registered") return { ok: false, error_zh: "这家公司在企业登记里已注销，不能用来验证。" };
-  if (employers.some((e) => e.id !== employer.id && e.businessNumber === number)) {
-    return { ok: false, error_zh: "这个 NZBN 已经被其他店铺验证。如果是你的公司，请联系我们。" };
-  }
 
-  const verification = employer.verification === "accredited_employer" ? "accredited_employer" : "business_verified";
-  const updated = await setEmployerVerification(employer.id, verification, {
-    legalName: entry.legalName,
-    businessNumber: entry.nzbn,
-  });
-  return { ok: true, employer: { ...updated! } };
+  const result = await submitVerification(employer, session.email, { ...application, legalName: entry.legalName });
+  return result.status === "submitted"
+    ? { ok: true, request: mine(result.request) }
+    : { ok: false, error_zh: SUBMIT_ERRORS[result.status] };
 }

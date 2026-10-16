@@ -55,6 +55,8 @@ export type ModeratorStats = {
   takeDown: number;
   dismiss: number;
   ban: number;
+  /** 企业验证 decisions, approved or rejected (#78). */
+  verify: number;
   total: number;
 };
 
@@ -66,6 +68,9 @@ export type ModerationStats = {
   /** When the oldest job waiting for review was posted, and the oldest open report made. */
   oldestPendingJobAt?: string;
   oldestOpenReportAt?: string;
+  /** 企业验证 applications waiting (#78), and when the oldest was made. */
+  pendingVerifications: number;
+  oldestPendingVerificationAt?: string;
   /** This week first. */
   weeks: WeekStats[];
   /** Decisions per moderator over the same eight weeks, most first. */
@@ -74,10 +79,28 @@ export type ModerationStats = {
   untimed: number;
 };
 
+/** The column a log entry counts under in 按审核员. */
+function decisionKey(action: ModerationLogEntry["action"]): "approve" | "takeDown" | "dismiss" | "ban" | "verify" {
+  if (action === "take_down") return "takeDown";
+  if (action === "verify_approve" || action === "verify_reject") return "verify";
+  return action;
+}
+
 const oldest = (dates: string[]) => (dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : undefined);
 
 export function moderationStats(
-  { jobs, reports, log }: { jobs: readonly Job[]; reports: readonly Report[]; log: readonly ModerationLogEntry[] },
+  {
+    jobs,
+    reports,
+    log,
+    verifications = [],
+  }: {
+    jobs: readonly Job[];
+    reports: readonly Report[];
+    log: readonly ModerationLogEntry[];
+    /** The 企业验证 applications waiting (#78). */
+    verifications?: readonly { submittedAt: string }[];
+  },
   now: number,
 ): ModerationStats {
   const weeks = lastWeeks(now);
@@ -113,10 +136,11 @@ export function moderationStats(
       takeDown: 0,
       dismiss: 0,
       ban: 0,
+      verify: 0,
       total: 0,
     };
     moderators.set(entry.moderator, who);
-    who[entry.action === "take_down" ? "takeDown" : entry.action] += 1;
+    who[decisionKey(entry.action)] += 1;
     who.total += 1;
     if (entry.action === "take_down") week.takenDown += 1;
     if (entry.action === "ban") {
@@ -133,6 +157,8 @@ export function moderationStats(
     openReports: open.length,
     oldestPendingJobAt: oldest(pending.map((job) => job.postedAt)),
     oldestOpenReportAt: oldest(open.map((report) => report.createdAt)),
+    pendingVerifications: verifications.length,
+    oldestPendingVerificationAt: oldest(verifications.map((v) => v.submittedAt)),
     weeks: weeks.map((week) => {
       const { times, ...stats } = rows.get(week)!;
       return { ...stats, medianHandleMs: median(times) };

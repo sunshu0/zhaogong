@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_SEEKER, demoShowcase } from "@/db/demo-showcase";
 import { listJobAlertHits, listJobAlerts } from "@/db/job-alerts";
 import { listSavedJobs } from "@/db/saved-jobs";
+import { listPendingVerifications } from "@/db/verification-requests";
 import { canRepublish, jobPhase, renewState } from "@/components/employer/job-status";
 import { checkJob, publishDecision } from "@/lib/compliance";
 import { getEmployer, getJob, listJobsByEmployer, listReports, matchesFilter } from "@/lib/data";
@@ -41,6 +42,15 @@ describe("the demo shows the newer features in use (#88)", () => {
     const [hit] = await listJobAlertHits(DEMO_SEEKER);
     expect(hit).toMatchObject({ jobId: "j22", alertName: alert.name });
     expect(matchesFilter((await getJob(hit.jobId))!, alertFilter(alert))).toBe(true);
+  });
+
+  it("has two 企业验证 applications waiting, one for each badge (#78)", async () => {
+    const waiting = await listPendingVerifications();
+    expect(waiting.filter((r) => r.id === "v1" || r.id === "v2").map((r) => [r.tradingName, r.kind])).toEqual([
+      ["安居装修", "accredited_employer"],
+      ["悦美发型工作室", "business_verified"],
+    ]);
+    expect((await getEmployer("e4"))?.verification).toBe("unverified"); // waiting, not verified
   });
 
   it("counts every date from the day it is loaded, and reads as real, not as a test", () => {

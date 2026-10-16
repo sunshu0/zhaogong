@@ -127,7 +127,7 @@ export interface ContactView {
   viewedAt: string;
 }
 
-export type ModerationAction = "approve" | "take_down" | "dismiss" | "ban";
+export type ModerationAction = "approve" | "take_down" | "dismiss" | "ban" | "verify_approve" | "verify_reject";
 
 /** One moderation decision, kept for complaints and audits. */
 export interface ModerationLogEntry {
@@ -146,6 +146,8 @@ export interface ModerationLogEntry {
   takenDown?: number;
   /** The moderator's email (#60). Missing on entries from before #60; "deleted-account" once the account is deleted. */
   moderator?: string;
+  /** 企业验证 (#78): the badge applied for, and why it was rejected (the reason's words and the note). */
+  note?: string;
 }
 
 /** Platform-wide counts for the landing page. Real counts only, never estimates. */

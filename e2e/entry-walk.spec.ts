@@ -281,6 +281,63 @@ test("职位续期: home → 工作台 → 快截止的职位 → 将截止 → 
   await expect(page.getByRole("status")).toContainText(`${title}：已续期 30 天`);
 });
 
+test("企业验证: home → 工作台 → 企业验证 → 提交审核; a moderator: home → 审核后台 → 企业验证 (#78)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await openShopAndPublish(page, testInfo, uniqueTitle("走查验证", testInfo));
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await expect(page).toHaveURL("/");
+  if (isPhone(testInfo)) {
+    await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /^企业验证/ })
+      .click();
+  } else {
+    await siteNav(page).getByRole("link", { name: "工作台", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "工作台导航" })
+      .getByRole("link", { name: "企业验证", exact: true })
+      .click();
+  }
+  await expect(page).toHaveURL("/employer/verify");
+  // An NZBN of the demo register's own range (9429999xxxxxx), so no other test has applied with it.
+  const digits = `${isPhone(testInfo) ? 3 : 4}${testInfo.workerIndex % 10}${Date.now() % 10_000}`;
+  await page.getByLabel("公司名称或 NZBN").fill(`9429999${digits.padStart(6, "0").slice(-6)}`);
+  await page.getByRole("button", { name: "查询" }).click();
+  await page.getByRole("button", { name: "这是我的公司" }).click();
+  await page.getByLabel(/联系人姓名/).fill("走查店主");
+  await page.getByLabel(/你在公司的职务/).fill("店主");
+  await page.getByLabel(/^公司电话/).fill("09 555 0777");
+  await page.getByRole("button", { name: "提交审核" }).click();
+  await expect(page.getByRole("region", { name: "验证申请" })).toContainText("验证审核中");
+
+  // The demo moderator, from the home page as well (signed in once by the setup project).
+  const admin = await moderatorPage(browser, testInfo);
+  await admin.goto("/");
+  if (isPhone(testInfo)) {
+    // Until the page has read the session, 我的 goes through sign-in (nav.ts); wait for the signed-in link.
+    const mine = siteNav(admin).getByRole("link", { name: "我的", exact: true });
+    await expect(mine).toHaveAttribute("href", "/account");
+    await mine.click();
+    await admin
+      .getByRole("main")
+      .getByRole("link", { name: /^审核后台/ })
+      .click();
+  } else {
+    await admin
+      .getByRole("banner")
+      .getByRole("button", { name: /^账号菜单/ })
+      .click();
+    await admin.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
+  }
+  await expect(admin).toHaveURL("/admin");
+  await admin.getByRole("tab", { name: /^企业验证/ }).click();
+  await expect(admin.getByRole("article", { name: /^企业验证：走查店/ }).first()).toBeVisible();
+  await admin.context().close();
+});
+
 test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async ({ page, browser }, testInfo) => {
   // A fresh account, made a moderator by the demo one (its code can be asked for once a minute, so it is not
   // signed in again here).

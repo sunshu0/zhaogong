@@ -17,6 +17,7 @@ import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
+import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -99,6 +100,8 @@ export const moderationLog = sqliteTable("moderation_log", {
   takenDown: integer("taken_down"),
   /** The moderator who acted (#60); null on entries from before #60, deleted-account once that account is gone. */
   moderator: text("moderator_email"),
+  /** 企业验证 decisions (#78): what was applied for, and a rejection's reason and note. */
+  note: text("note"),
 });
 
 /** One person, one email; every account can look for work, and can open one employer identity. */
@@ -386,3 +389,40 @@ export const resumeShares = sqliteTable("resume_shares", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+// ---- 企业验证 by a person (#78) ----
+
+/**
+ * An employer's application for a badge (PRD R-16, ADR 0011): the register entry it chose, who is applying and the
+ * company's phone; a moderator approves or rejects it after a checklist. One pending application per NZBN at a time.
+ * The emails are replaced by deleted-account when an account is deleted.
+ */
+export const verificationRequests = sqliteTable(
+  "verification_requests",
+  {
+    id: text("id").primaryKey(),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    kind: text("kind").$type<VerifyKind>().notNull(),
+    nzbn: text("nzbn").notNull(),
+    /** The register's name for the company, and the shop's name, when the application was made. */
+    legalName: text("legal_name").notNull(),
+    tradingName: text("trading_name").notNull(),
+    contactName: text("contact_name").notNull(),
+    contactRole: text("contact_role").notNull(),
+    companyPhone: text("company_phone").notNull(),
+    website: text("website"),
+    submittedByEmail: text("submitted_by_email").notNull(),
+    submittedAt: text("submitted_at").notNull(),
+    status: text("status").$type<RequestStatus>().notNull(),
+    decidedAt: text("decided_at"),
+    decidedByEmail: text("decided_by_email"),
+    checklist: text("checklist", { mode: "json" }).$type<Checklist>(),
+    rejectReason: text("reject_reason").$type<RejectReason>(),
+    rejectNote: text("reject_note"),
+  },
+  (table) => [
+    index("verification_requests_employer_idx").on(table.employerId),
+    index("verification_requests_status_idx").on(table.status),
+  ],
+);
