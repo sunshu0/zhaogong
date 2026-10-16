@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEMO_SEEKER } from "@/db/demo-showcase";
 import {
   createJobAlert,
   deleteJobAlert,
@@ -75,7 +76,9 @@ describe("job alerts in the database (#53)", () => {
     await createJobAlert("match.owner@example.com", alert(query), NOW);
 
     const job = await newJob({ titleZh: "匹配一次的职位", descriptionZh: "匹配一次" });
-    expect((await matchJobAlerts(job, NOW)).sort()).toEqual(["match.a@example.com", "match.b@example.com"]);
+    // The demo job seeker's alert (Mt Eden 餐饮, #88) finds this job too; it is not one of this test's accounts.
+    const told = (await matchJobAlerts(job, NOW)).filter((email) => email !== DEMO_SEEKER);
+    expect(told.sort()).toEqual(["match.a@example.com", "match.b@example.com"]);
     expect(await matchJobAlerts(job, NOW)).toEqual([]); // the same job going live again
     expect(await listJobAlertHits("match.a@example.com")).toEqual([
       { email: "match.a@example.com", jobId: job.id, alertName: "第一个", createdAt: NOW.toISOString() },
@@ -90,7 +93,8 @@ describe("job alerts in the database (#53)", () => {
     const wrongIndustry = await newJob({ industry: "hospitality", descriptionZh: "筛选测试" });
     const pending = await newJob({ industry: "cleaning", descriptionZh: "筛选测试", status: "pending_review" });
     const closed = await newJob({ industry: "cleaning", descriptionZh: "筛选测试", expiresAt: "2026-10-01T00:00:00Z" });
-    for (const job of [wrongIndustry, pending, closed]) expect(await matchJobAlerts(job, NOW)).toEqual([]);
+    const mine = async (job: Job) => (await matchJobAlerts(job, NOW)).filter((email) => email !== DEMO_SEEKER);
+    for (const job of [wrongIndustry, pending, closed]) expect(await mine(job)).toEqual([]);
     const right = await newJob({ industry: "cleaning", descriptionZh: "筛选测试" });
     expect(await matchJobAlerts(right, NOW)).toEqual(["match.filter@example.com"]);
   });

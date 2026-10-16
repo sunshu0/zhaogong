@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { demoShowcase } from "@/db/demo-showcase";
+import { isOpenJob } from "@/lib/job-expiry";
 import { createJob, getJob, listFeaturedJobs, listJobs, matchesFilter, updateJob } from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
@@ -19,7 +21,9 @@ describe("job filter", () => {
   });
   it("lists only active NZ jobs, newest first", async () => {
     const jobs = await listJobs({ country: "NZ" });
-    expect(jobs.length).toBe(MOCK_JOBS.filter((j) => j.status === "active").length);
+    // The demo's own jobs, and those added to show the newer features (#88) that are open now.
+    const showcase = demoShowcase(Date.now()).jobs.filter((j) => isOpenJob(j, Date.now()));
+    expect(jobs.length).toBe(MOCK_JOBS.filter((j) => j.status === "active").length + showcase.length);
     for (let i = 1; i < jobs.length; i++) {
       expect(jobs[i - 1].postedAt.slice(0, 10) >= jobs[i].postedAt.slice(0, 10)).toBe(true);
     }
@@ -27,7 +31,7 @@ describe("job filter", () => {
 
   it("filters by visa, industry and minimum pay", async () => {
     const jobs = await listJobs({ country: "NZ", visa: "student", industries: ["hospitality"], minPay: 25 });
-    expect(jobs.map((j) => j.id).sort()).toEqual(["j1"]);
+    expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: 川味小馆's, from #88
   });
 
   it("matches the query in either language", () => {

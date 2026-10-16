@@ -1,5 +1,4 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
-import { createClient } from "@libsql/client";
 import { expect, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { fillSignInCode } from "../helpers";
 
@@ -152,16 +151,10 @@ export async function cardMenuItem(card: Locator, name: string): Promise<Locator
 }
 
 /**
- * Moves a job's closing date in the dev server's database (the clone's data/zhaogong.db, or DATABASE_URL), so a test
- * sees a job close soon or long ago without waiting for it (#69). Use it only on jobs the test published.
+ * Moves a job's closing date, so a test sees a job close soon or long ago without waiting for it (#69, #88). Goes
+ * through the dev server (POST /api/dev/job-closing) as the employer signed in on `page`, whose job it must be.
  */
-export async function setJobClosing(jobId: string, daysFromNow: number) {
-  const db = createClient({ url: process.env.DATABASE_URL || "file:./data/zhaogong.db" });
-  try {
-    await db.execute("PRAGMA busy_timeout = 5000"); // the dev server may be writing at the same moment
-    const expiresAt = new Date(Date.now() + daysFromNow * 86_400_000).toISOString();
-    await db.execute({ sql: "UPDATE jobs SET expires_at = ? WHERE id = ?", args: [expiresAt, jobId] });
-  } finally {
-    db.close();
-  }
+export async function setJobClosing(page: Page, jobId: string, daysFromNow: number) {
+  const response = await page.request.post("/api/dev/job-closing", { data: { jobId, daysFromNow } });
+  expect(response.status()).toBe(200);
 }

@@ -42,7 +42,7 @@ describe("kept across a restart", () => {
     const report = await submitReport("j1", "charges_fee", "电话里说要交押金");
     await updateReport(report.id, "actioned", new Date("2026-10-16T02:00:00.000Z"));
     restart();
-    expect(await listReports()).toEqual([
+    expect((await listReports()).filter((r) => r.id === report.id)).toEqual([
       { ...report, status: "actioned", handledAt: "2026-10-16T02:00:00.000Z" }, // #70
     ]);
   });
@@ -73,6 +73,7 @@ describe("kept across a restart", () => {
 
   it("loads the demo data only into the empty file, not again after a restart", async () => {
     restart();
-    expect((await listReports()).length).toBe(1);
+    // The demo's two reports (#88) and the one the first test sent; the demo is not loaded a second time.
+    expect((await listReports()).length).toBe(3);
   });
 });

@@ -1,6 +1,13 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { fillSignInCode, freshEmail, siteNav } from "./helpers";
-import { CLEAN_MESSAGE, moderatorPage, openReportForm, openTheForm, uniqueTitle } from "./employer/helpers";
+import {
+  CLEAN_MESSAGE,
+  moderatorPage,
+  openReportForm,
+  openTheForm,
+  setJobClosing,
+  uniqueTitle,
+} from "./employer/helpers";
 
 // 入口走查 (#75): every feature reached the way a person would — from the home page, by clicking. The only
 // page.goto in this file is the one to "/". Other specs open deep addresses directly, which is how /admin shipped
@@ -120,7 +127,8 @@ test("导出数据和删除账号: home → 数据与账号 → download, then d
   await expect(page.getByText("账号已删除")).toBeVisible();
 });
 
-test("雇主职位数据: home → 发布招聘 → publish → 职位管理 → 近 14 天", async ({ page }, testInfo) => {
+/** From the home page: 发布招聘 → sign up → open a new business → publish a job titled `title`. Ends on 已发布. */
+async function openShopAndPublish(page: Page, testInfo: TestInfo, title: string): Promise<string> {
   const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
   await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
   await page.getByLabel("邮箱", { exact: true }).fill(`walk.boss.${run}@example.com`);
@@ -133,7 +141,6 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
 
-  const title = uniqueTitle("走查服务员", testInfo);
   await openTheForm(page);
   await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
   await page.getByRole("button", { name: "整理成职位" }).click();
@@ -141,6 +148,13 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   await page.getByRole("button", { name: "预览", exact: true }).click();
   await page.getByRole("button", { name: "发布", exact: true }).click();
   await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
+  const href = await page.getByRole("link", { name: "看看职位页面" }).getAttribute("href");
+  return href!.split("/").pop()!;
+}
+
+test("雇主职位数据: home → 发布招聘 → publish → 职位管理 → 近 14 天", async ({ page }, testInfo) => {
+  const title = uniqueTitle("走查服务员", testInfo);
+  await openShopAndPublish(page, testInfo, title);
 
   // The bottom bar is hidden while posting (hidesBottomNav); the 已发布 screen links to 职位管理 itself.
   await page.getByRole("main").getByRole("link", { name: "职位管理", exact: true }).click();
@@ -242,8 +256,29 @@ test("时薪参考: home → a job → 同类职位时薪; 发布招聘 → 直�
   await expect(page.getByRole("region", { name: "同类职位时薪" })).toContainText("餐饮");
 });
 
-test("职位续期: 职位管理 → 快到期的职位 → 续期 (#69)", async () => {
-  test.fixme(true, "#69 (职位快到期提醒、续期和重新发布) is not merged yet; walk it once it is.");
+test("职位续期: home → 工作台 → 快截止的职位 → 将截止 → 续期 (#69)", async ({ page }, testInfo) => {
+  const title = uniqueTitle("走查续期", testInfo);
+  const jobId = await openShopAndPublish(page, testInfo, title);
+  await setJobClosing(page, jobId, 2.5); // three days are not waited for: the job is moved closer to its closing date
+
+  // Home by the logo, then the workspace: 我的 → 总览 on a phone, 工作台 in the header on a desktop.
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await expect(page).toHaveURL("/");
+  if (isPhone(testInfo)) {
+    await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
+    await page.getByRole("main").getByRole("link", { name: /^总览/ }).click();
+  } else {
+    await siteNav(page).getByRole("link", { name: "工作台", exact: true }).click();
+  }
+  await expect(page).toHaveURL("/workspace");
+  await page.getByRole("link", { name: new RegExp(`「${title}」3 天后截止`) }).click();
+
+  await expect(page).toHaveURL("/employer/jobs?tab=ending");
+  await expect(page.getByRole("tab", { name: /^将截止/ })).toHaveAttribute("aria-selected", "true");
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await card.getByRole("button", { name: "续期", exact: true }).click();
+  await card.getByRole("group", { name: "续期多久？" }).getByRole("button", { name: "确定续期" }).click();
+  await expect(page.getByRole("status")).toContainText(`${title}：已续期 30 天`);
 });
 
 test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async ({ page, browser }, testInfo) => {

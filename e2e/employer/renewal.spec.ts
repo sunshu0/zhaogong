@@ -10,7 +10,7 @@ test("a job closing in 3 days shows in 待办 and 通知, under 将截止, and r
   const title = uniqueTitle("续期测试服务员", testInfo);
   const jobId = (await publishJob(page, title))!;
   expect(jobId).toBeTruthy();
-  await setJobClosing(jobId, 2.5);
+  await setJobClosing(page, jobId, 2.5);
 
   await page.goto("/workspace");
   const todo = page.getByRole("link", { name: new RegExp(`「${title}」3 天后截止`) });
@@ -49,7 +49,7 @@ test("a job closed more than 14 days ago is published again as a new job; the ol
   await signUpEmployer(page, testInfo);
   const title = uniqueTitle("重新发布测试", testInfo);
   const jobId = (await publishJob(page, title))!;
-  await setJobClosing(jobId, -20);
+  await setJobClosing(page, jobId, -20);
 
   await page.goto("/employer/jobs?tab=timed_out");
   const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });

@@ -167,6 +167,8 @@
 
 ## 只在开发环境存在的接口
 
+`POST /api/dev/job-closing`（`src/app/api/dev/job-closing/route.ts`，#88）：把已登录雇主自己的一个职位的截止时间改到 `daysFromNow` 天后（负数是多少天前），用来在开发和浏览器测试里看「将截止」、续期和重新发布。生产环境返回 404。请求体 `{ jobId, daysFromNow }`（±365 天内）；成功 200，返回改后的职位；401 `{ error: "需要雇主身份" }`；400 `{ error: "找不到这个职位" }`（包括别家的职位）或 `{ error: "天数不对" }`。
+
 `POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
 
 | 请求体 | 成功 | 失败 |

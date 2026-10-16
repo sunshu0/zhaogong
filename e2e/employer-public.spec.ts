@@ -32,7 +32,9 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
     }
     await page.setViewportSize({ width: 1280, height: 800 });
   }
-  await jobs.getByRole("link", { name: "立即沟通", exact: true }).first().click();
+  // j1's own item: the list is newest first, and the demo data has newer jobs of 川味小馆 (#88).
+  const j1 = jobs.getByRole("listitem").filter({ has: page.locator('a[href="/jobs/j1"]') });
+  await j1.getByRole("link", { name: "立即沟通", exact: true }).click();
   await expect(page).toHaveURL("/login?role=seeker&next=%2Fjobs%2Fj1");
   await page
     .getByLabel("邮箱", { exact: true })
@@ -50,7 +52,7 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
   await expect(page.getByRole("log")).toContainText("我想应聘前厅服务员");
   await (await chatMenuItem(page, "雇主主页")).click();
   await expect(page).toHaveURL("/employers/e1");
-  await jobs.getByRole("button", { name: "立即沟通", exact: true }).first().click();
+  await j1.getByRole("button", { name: "立即沟通", exact: true }).click();
   await expect(page.getByRole("log")).toContainText("我想应聘前厅服务员");
   await page.goto("/messages");
   await expect(
