@@ -20,7 +20,19 @@ export const metadata: Metadata = { title: "奥克兰中文工作" };
 export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
     <div className={WIDE_ON_DESKTOP}>
-      <h1 className="mb-3 text-lg font-semibold">奥克兰中文工作</h1>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4">
+        <h1 className="text-lg font-semibold">奥克兰中文工作</h1>
+        {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
+        <p className="text-body">
+          <Link href="/internships" className="text-brand underline underline-offset-2">
+            实习
+          </Link>
+          {" · "}
+          <Link href="/professional" className="text-brand underline underline-offset-2">
+            专业职位
+          </Link>
+        </p>
+      </div>
       <NoScriptStreams />
       <FinishSaveAfterSignIn />
       <Suspense fallback={<JobListSkeleton />}>

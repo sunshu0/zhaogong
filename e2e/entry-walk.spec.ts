@@ -462,6 +462,22 @@ test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通�
   await admin.context().close();
 });
 
+test("专业职位: home → 专业职位 → a job → 去官网申请 (#113)", async ({ page }) => {
+  // The demo jobs link to example.com; answer it here instead of the network.
+  await page.context().route("https://example.com/**", (route) => route.fulfill({ body: "company site" }));
+  await page.goto("/");
+  await page.getByRole("link", { name: "专业职位", exact: true }).first().click();
+  await expect(page).toHaveURL("/professional");
+  await page.getByRole("region", { name: "专业职位列表" }).getByRole("link", { name: "Full Stack Developer" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Full Stack Developer" })).toBeVisible();
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("link", { name: "去官网申请（新窗口）" }).click(),
+  ]);
+  await expect(popup).toHaveURL(/example\.com\/demo-tui\/jobs\//);
+  await popup.close();
+});
+
 test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存为 PDF and 生成分享链接 (#86)", async ({ page }, testInfo) => {
   await signInByClicks(page, testInfo);
   await openMine(page, testInfo, "我的主页");

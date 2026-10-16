@@ -102,6 +102,18 @@ export default function Home({ searchParams }: PageProps<"/">) {
                 </li>
               ))}
             </ul>
+            {/* Round 18 (#113): external jobs from companies' own sites. */}
+            <p className="mt-3 text-body">
+              找软件、电子电气方向的工作？看{" "}
+              <Link href="/internships" className="font-medium text-brand underline underline-offset-2">
+                实习
+              </Link>{" "}
+              和{" "}
+              <Link href="/professional" className="font-medium text-brand underline underline-offset-2">
+                专业职位
+              </Link>
+              （来自公司官网）
+            </p>
             <Suspense fallback={<p className="mt-4 h-6" />}>
               <HeroCount />
             </Suspense>

@@ -94,3 +94,11 @@ export const EXTERNAL_COMPANIES: ExternalCompany[] = [
 export function importAllowed(company: ExternalCompany): boolean {
   return company.terms?.allowsDisplay === true && /^\d{4}-\d{2}-\d{2}$/.test(company.terms.checkedOn);
 }
+
+/**
+ * Where a company asks for its jobs to be removed (#113, shown under every external job page). Set TAKEDOWN_EMAIL on
+ * the server before launch; until then the pages say the address is still to come.
+ */
+export function takedownEmail(): string | undefined {
+  return process.env.TAKEDOWN_EMAIL?.trim() || undefined;
+}
