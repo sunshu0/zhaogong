@@ -34,6 +34,7 @@ import type {
   VisaFact,
 } from "@/lib/external-jobs/types";
 import type { ExternalBlockKind, ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
+import type { ExternalSection } from "@/lib/external-jobs/filter";
 import type { AiUsageResult } from "@/lib/ai-post/model/limits";
 
 export const employers = sqliteTable("employers", {
@@ -352,7 +353,10 @@ export const jobChatStarts = sqliteTable(
 
 // ---- job alerts (#53) ----
 
-/** A job seeker's saved search (PRD R-29): the job list's filter as its query string, at most 5 per account. */
+/**
+ * A job seeker's saved search (PRD R-29): the job list's filter as its query string, at most 5 per account. With a
+ * `section` (#131, ADR 0020) it is a search of 实习 or 专业职位 instead, and the query is that section's filter.
+ */
 export const jobAlerts = sqliteTable(
   "job_alerts",
   {
@@ -362,8 +366,13 @@ export const jobAlerts = sqliteTable(
       .references(() => accounts.email),
     name: text("name").notNull(),
     country: text("country").$type<CountryCode>().notNull(),
-    /** filterToQuery of the filter; read with parseFilter, so values the app no longer knows drop out. */
+    /**
+     * filterToQuery of the filter; read with parseFilter, so values the app no longer knows drop out. For a section,
+     * externalFilterToQuery of the section's filter.
+     */
     query: text("query").notNull(),
+    /** Null for the job list (#53); the section for an alert on external jobs (#131). */
+    section: text("section").$type<ExternalSection>(),
     paused: integer("paused", { mode: "boolean" }).notNull(),
     createdAt: text("created_at").notNull(),
   },
@@ -548,6 +557,47 @@ export const externalCompanyBlocks = sqliteTable("external_company_blocks", {
   note: text("note").notNull(),
   createdAt: text("created_at").notNull(),
 });
+
+/**
+ * 收藏 for external jobs (#131, ADR 0020): saved_jobs for the 实习 and 专业职位 sections. A table of its own because
+ * saved_jobs.job_id is a foreign key to jobs. `stage` is null until the account picks one: there is no chat to say
+ * 已联系.
+ */
+export const savedExternalJobs = sqliteTable(
+  "saved_external_jobs",
+  {
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    externalJobId: text("external_job_id")
+      .notNull()
+      .references(() => externalJobs.id),
+    savedAt: text("saved_at").notNull(),
+    stage: text("stage").$type<SavedStage>(),
+    stageSetAt: text("stage_set_at"),
+  },
+  (t) => [primaryKey({ columns: [t.email, t.externalJobId] })],
+);
+
+/**
+ * An external job a section's alert found for an account (#131), when a moderator approved it. One row per account
+ * and job, as job_alert_hits.
+ */
+export const externalJobAlertHits = sqliteTable(
+  "external_job_alert_hits",
+  {
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    externalJobId: text("external_job_id")
+      .notNull()
+      .references(() => externalJobs.id),
+    /** The alert's name when it matched. */
+    alertName: text("alert_name").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.email, table.externalJobId] })],
+);
 
 /**
  * 约面试 (#103): at most one per application, changed in place when the employer changes the times. `slots` are the

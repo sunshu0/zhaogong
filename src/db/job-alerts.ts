@@ -1,12 +1,13 @@
 // 职位提醒 (#53, PRD R-29): each account's saved searches, and the new jobs they found. Matching runs on the server
 // when a job goes live (published without review, or approved by a moderator). Server only.
 import { randomUUID } from "node:crypto";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, jobAlertHits, jobAlerts } from "@/db/schema";
 import { matchesFilter } from "@/lib/data";
 import { isOpenJob } from "@/lib/job-expiry";
 import type { CountryCode, Job } from "@/lib/types";
+import type { ExternalSection } from "@/lib/external-jobs/filter";
 import { normalizeEmail } from "@/components/seeker/session";
 import { ALERT_LIMIT, alertFilter } from "@/components/seeker/job-alerts";
 
@@ -30,12 +31,13 @@ export type CreateAlertResult =
   { status: "created" | "exists"; alert: JobAlert } | { status: "limit" } | { status: "no_account" };
 
 /**
- * Saves a search as an alert. `query` must already be in stored form (normalizeAlertQuery): the same search saved
- * twice is the alert there is. At most ALERT_LIMIT per account.
+ * Saves a search as an alert: of the job list, or with a `section` of 实习 or 专业职位 (#131). `query` must already be
+ * in stored form (normalizeAlertQuery, normalizeExternalQuery): the same search saved twice is the alert there is. At
+ * most ALERT_LIMIT per account, both kinds together.
  */
 export async function createJobAlert(
   email: string,
-  alert: { name: string; country: CountryCode; query: string },
+  alert: { name: string; country: CountryCode; query: string; section?: ExternalSection },
   now = new Date(),
 ): Promise<CreateAlertResult> {
   const address = normalizeEmail(email);
@@ -43,7 +45,12 @@ export async function createJobAlert(
   return db.transaction(async (tx) => {
     const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
     if (!account) return { status: "no_account" };
-    const mine = and(eq(jobAlerts.email, address), eq(jobAlerts.country, alert.country));
+    const section = alert.section ?? null;
+    const mine = and(
+      eq(jobAlerts.email, address),
+      eq(jobAlerts.country, alert.country),
+      section ? eq(jobAlerts.section, section) : isNull(jobAlerts.section),
+    );
     const [same] = await tx
       .select()
       .from(jobAlerts)
@@ -57,6 +64,7 @@ export async function createJobAlert(
       name: alert.name,
       country: alert.country,
       query: alert.query,
+      section,
       paused: false,
       createdAt: now.toISOString(),
     };
@@ -104,7 +112,7 @@ export async function matchJobAlerts(job: Job, now = new Date()): Promise<string
   const running = await db
     .select()
     .from(jobAlerts)
-    .where(and(eq(jobAlerts.country, job.country), eq(jobAlerts.paused, false)))
+    .where(and(eq(jobAlerts.country, job.country), isNull(jobAlerts.section), eq(jobAlerts.paused, false)))
     .orderBy(asc(jobAlerts.createdAt), inserted);
   const owners = await db
     .select({ email: accounts.email })

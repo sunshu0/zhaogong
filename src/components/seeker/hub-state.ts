@@ -119,6 +119,7 @@ type NotificationTarget =
   | { type: "conversation"; id: string }
   | { type: "profile" }
   | { type: "job"; id: string }
+  | { type: "external_job"; id: string }
   | { type: "closing_jobs" }
   | { type: "applicants"; jobId: string }
   | { type: "verification" }
@@ -241,5 +242,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
                 ? "/account#team-invites"
                 : target?.type === "applications"
                   ? "/me/saved"
-                  : undefined;
+                  : target?.type === "external_job"
+                    ? `/external/${encodeURIComponent(target.id)}`
+                    : undefined;
 }

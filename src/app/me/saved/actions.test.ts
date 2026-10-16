@@ -5,6 +5,8 @@ import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/s
 import { ensureAccount, updateJob } from "@/lib/data";
 import { EMPTY_CHAT } from "@/components/seeker/chat-store";
 import { identityScope } from "@/components/seeker/identity-scope";
+import { externalSaveKey } from "@/components/seeker/saved-jobs";
+import { setExternalReview } from "@/db/external-jobs";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -65,7 +67,7 @@ describe("收藏和进度 on the server (#52)", () => {
       stage: "saved",
       picked: false,
     });
-    expect(j3.pay.min).toBe(30);
+    expect(j3.pay?.min).toBe(30);
   });
 
   it("marks a job 已联系 once its chat swapped contact details; a stage the user picks wins", async () => {
@@ -98,5 +100,48 @@ describe("收藏和进度 on the server (#52)", () => {
     await saveMyJob("j11");
     await updateJob("j11", { status: "removed" });
     expect((await mySavedJobs())![0]).toMatchObject({ jobId: "j11", gone: true });
+  });
+});
+
+describe("收藏 for external jobs (#131)", () => {
+  const grad = "demo-kowhai:4001"; // Graduate Software Engineer, approved
+  const pending = "demo-kowhai:4002"; // Senior Electronics Engineer, waiting for review
+
+  it("saves a job the sections show, in the same list as the job list's, under its save key", async () => {
+    await signedIn("ext.saver@example.com");
+    await saveMyJob("j3");
+    expect(await saveMyJob(externalSaveKey(grad))).toEqual(expect.arrayContaining(["j3", `external:${grad}`]));
+    expect(await saveMyJob(externalSaveKey(pending))).not.toContain(`external:${pending}`);
+    const list = (await mySavedJobs())!;
+    expect(list.map((job) => job.jobId)).toEqual([`external:${grad}`, "j3"]); // newest first
+    expect(list[0]).toMatchObject({
+      href: "/external/demo-kowhai%3A4001",
+      external: true,
+      titleZh: "Graduate Software Engineer",
+      titleEn: "",
+      employerName: "Kōwhai Robotics",
+      region: "奥克兰",
+      gone: false,
+      stage: "saved",
+      picked: false,
+    });
+    expect(list[1]).toMatchObject({ jobId: "j3", href: "/jobs/j3", external: false });
+  });
+
+  it("keeps its stage, marks it 已下架 once it stops showing, and removes it", async () => {
+    await signedIn("ext.stage@example.com");
+    await saveMyJob(externalSaveKey(grad));
+    const [picked] = (await setMyJobStage(externalSaveKey(grad), "interviewed"))!;
+    expect(picked).toMatchObject({ stage: "interviewed", picked: true });
+
+    await setExternalReview(grad, "hidden");
+    try {
+      expect((await mySavedJobs())![0]).toMatchObject({ jobId: `external:${grad}`, gone: true });
+    } finally {
+      await setExternalReview(grad, "approved");
+    }
+
+    expect(await unsaveMyJob(externalSaveKey(grad))).toEqual([]);
+    expect(await mySavedJobs()).toEqual([]);
   });
 });

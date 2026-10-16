@@ -122,9 +122,9 @@
 
 ## 收藏和进度 — `src/app/me/saved/actions.ts`
 
-#52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。
+#52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。「实习」「专业职位」的外部职位（#131，ADR 0020）存在 `saved_external_jobs`（迁移 0021），在这些函数里的编号写成 `external:<外部职位编号>`（`externalSaveKey`）；只有分区里正在显示的外部职位能收藏。
 
-`SavedJobView`：`{ jobId, titleZh, titleEn, pay, country, region?, employerName?, gone, savedAt, stage, picked }`。`gone` 表示职位已下架、过了截止时间或雇主被停用（照样列出，页面标「已下架」）。`stage` 是 `saved`（已收藏）、`contacted`（已联系）、`interviewed`（已面试）、`hired`（已录用）、`rejected`（没成）之一。`picked` 为 `false` 时进度由聊天决定：这个职位的聊天里双方同意交换过联系方式就是 `contacted`，否则 `saved`；用户选过之后以用户选的为准。
+`SavedJobView`：`{ jobId, href, external, titleZh, titleEn, pay?, payText?, country, region?, employerName?, gone, savedAt, stage, picked }`。外部职位的 `external` 为 `true`，`titleZh` 是英文职位名，`titleEn` 为空，薪资写在 `payText`（原文写了才有），`region` 是城市，`employerName` 是公司，`href` 是 `/external/<编号>`；外部职位的进度只能自己选，不看聊天。`gone` 表示职位已下架、过了截止时间或雇主被停用，外部职位是分区里不再显示（照样列出，页面标「已下架」）。`stage` 是 `saved`（已收藏）、`contacted`（已联系）、`interviewed`（已面试）、`hired`（已录用）、`rejected`（没成）之一。`picked` 为 `false` 时进度由聊天决定：这个职位的聊天里双方同意交换过联系方式就是 `contacted`，否则 `saved`；用户选过之后以用户选的为准。
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -217,17 +217,17 @@
 
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 
-职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
+职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。分区的提醒（#131，ADR 0020）`section` 是 `internship` 或 `professional`，筛选条件是分区的（`externalFilterToQuery`）；审核员通过外部职位（`approveExternalJob`）时 `matchExternalJobAlerts`（`src/db/external-job-alerts.ts`）匹配同一分区没暂停的提醒，命中写进 `external_job_alert_hits`，同样一个职位只提醒一次。两种合计每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
 
-`JobAlertView`：`{ id, name, query, conditions: string[], paused }`，`conditions` 是条件的中文说明（和职位列表的筛选标签一样）。
+`JobAlertView`：`{ id, name, query, section, href, conditions: string[], paused }`，`section` 职位列表的提醒为 `null`，`href` 是提醒对应的列表，`conditions` 是条件的中文说明（和职位列表的筛选标签一样）。
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `myJobAlerts()` | | 当前账号的提醒，先建的在前 | 未登录时 `null` |
-| `saveMyJobAlert(query)` | 职位列表的查询串 | `{ status: "created", alert }`；同样的条件已经存过时 `{ status: "exists", alert }`（不新建） | 未登录时 `null`；已有 5 个时 `{ status: "limit" }` |
+| `saveMyJobAlert(query, section?)` | 职位列表的查询串；带 `section`（`internship` / `professional`）时是这个分区的查询串 | `{ status: "created", alert }`；同样的条件已经存过时 `{ status: "exists", alert }`（不新建） | 未登录时 `null`；已有 5 个时 `{ status: "limit" }` |
 | `changeMyJobAlert(id, { name?, paused? })` | 名称去掉多余空白后 1–20 字（空白名称不改）；`paused` 布尔值 | 改后的全部提醒 | 未登录时 `null`；不是自己的提醒时不改，照样返回自己的列表 |
 | `deleteMyJobAlert(id)` | | 删后的全部提醒；已经提醒过的通知保留 | 同上 |
-| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending`；以及企业验证的结果（#78）：每份通过或驳回的申请一条，`id` 为 `verification:<申请编号>:<approved|rejected>`，驳回的写明理由和说明，点开到 `/employer/verify`。所有服务器通知都由 `serverNotifications()`（`src/app/messages/server-notifications.ts`）生成，`markMyNotificationsRead` 也只接受它给出的编号（#94） | 未登录时 `null` |
+| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`；外部职位为 `alert:external:<编号>`，点开到 `/external/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending`；以及企业验证的结果（#78）：每份通过或驳回的申请一条，`id` 为 `verification:<申请编号>:<approved|rejected>`，驳回的写明理由和说明，点开到 `/employer/verify`。所有服务器通知都由 `serverNotifications()`（`src/app/messages/server-notifications.ts`）生成，`markMyNotificationsRead` 也只接受它给出的编号（#94） | 未登录时 `null` |
 
 ## 只在开发环境存在的接口
 

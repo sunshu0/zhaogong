@@ -49,6 +49,8 @@ describe("职位提醒 on the server (#53)", () => {
         id: expect.any(String),
         name: "餐饮、洗碗",
         query: "industry=hospitality&q=%E6%B4%97%E7%A2%97",
+        section: null,
+        href: "/jobs?industry=hospitality&q=%E6%B4%97%E7%A2%97",
         conditions: ["餐饮", "“洗碗”"],
         paused: false,
       },

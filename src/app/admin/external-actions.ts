@@ -14,6 +14,7 @@ import {
   type CompanyBlock,
   type ExternalJob,
 } from "@/db/external-jobs";
+import { matchExternalJobAlerts } from "@/db/external-job-alerts";
 import { addModerationLog } from "@/lib/data";
 import { approvalProblem, HIDE_REASONS, parseHide, parseNote, parseTakedown } from "@/lib/external-jobs/review";
 import { isShown } from "@/lib/external-jobs/visibility";
@@ -100,6 +101,7 @@ export async function approveExternalJob(id: unknown, flagsChecked: unknown): Pr
   const problem = approvalProblem(job, flagsChecked === true);
   if (problem) return { ok: false, error_zh: problem };
   await setExternalReview(job.id, "approved");
+  await matchExternalJobAlerts({ ...job, review: "approved" }); // now shown: tell alerts on its section (#131)
   const entry = await addModerationLog({
     action: "external_approve",
     jobId: job.id,

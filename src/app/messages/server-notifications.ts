@@ -1,5 +1,5 @@
 // Every notification the server makes for an identity, in one place (#94): the job seeker's are the jobs its alerts
-// found (#53), team invitations (#87) and how its applications ended (#105); the employer's are applications (#84), its jobs closing soon (#69) and 企业验证
+// found (#53, external ones #131), team invitations (#87) and how its applications ended (#105); the employer's are applications (#84), its jobs closing soon (#69) and 企业验证
 // decisions (#78); either side's, interviews (#103). The notification list
 // (myAlertNotifications) and the ids that may be marked read (markMyNotificationsRead) both come from here, so a new
 // kind of notification cannot be shown without also being markable as read. Not a Server Function: it takes the
@@ -11,6 +11,7 @@ import { myApplicationNotifications } from "@/app/employer/application-notificat
 import { myClosingNotifications } from "@/app/employer/closing-notifications";
 import { interviewNotifications } from "@/app/me/interview-notifications";
 import { applicationOutcomeNotifications } from "@/app/me/application-notifications";
+import { externalAlertNotifications } from "@/app/me/external-alert-notifications";
 import { myVerificationNotifications } from "@/app/employer/verification-notifications";
 import { myTeamInviteNotifications } from "@/app/employer/team-notifications";
 import { postedAgoZh } from "@/components/seeker/format";
@@ -52,5 +53,6 @@ export async function serverNotifications(
     ...(await applicationOutcomeNotifications(identity.email, now)),
     ...(await myTeamInviteNotifications(identity.email, now)),
     ...alerts,
+    ...(await externalAlertNotifications(identity.email, now)),
   ];
 }

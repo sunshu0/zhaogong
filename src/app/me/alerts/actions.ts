@@ -1,8 +1,8 @@
 "use server";
 
 // 职位提醒 (#53, PRD R-29): the signed-in account's alerts and the jobs they found. The account comes from the
-// session cookie; an alert belongs to the account, and what it finds shows in the job seeker's notifications.
-// Email alerts wait for an email service (#16).
+// session cookie; an alert belongs to the account, and what it finds shows in the job seeker's notifications. An
+// alert is on the job list, or on 实习 or 专业职位 (#131). Email alerts wait for an email service (#16).
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { createJobAlert, deleteJobAlert, listJobAlerts, updateJobAlert, type JobAlert } from "@/db/job-alerts";
@@ -10,14 +10,46 @@ import { scopeOf } from "@/lib/chat-server/identity";
 import { serverNotifications } from "@/app/messages/server-notifications";
 import type { Notification } from "@/components/seeker/hub-state";
 import { alertConditions, cleanAlertName, defaultAlertName, normalizeAlertQuery } from "@/components/seeker/job-alerts";
+import { jobsHref } from "@/components/seeker/filter-query";
+import {
+  defaultExternalAlertName,
+  externalAlertConditions,
+  externalAlertHref,
+  normalizeExternalQuery,
+  parseSection,
+} from "@/lib/external-jobs/alerts";
+import type { ExternalSection } from "@/lib/external-jobs/filter";
 
-export type JobAlertView = { id: string; name: string; query: string; conditions: string[]; paused: boolean };
+export type JobAlertView = {
+  id: string;
+  name: string;
+  query: string;
+  /** Null for the job list; the section of an alert on external jobs. */
+  section: ExternalSection | null;
+  /** The list the alert stands for. */
+  href: string;
+  conditions: string[];
+  paused: boolean;
+};
 
 export type SaveAlertResult = { status: "created" | "exists"; alert: JobAlertView } | { status: "limit" };
 
 function view(alert: JobAlert): JobAlertView {
   const { id, name, query, paused } = alert;
-  return { id, name, query, paused, conditions: alertConditions(alert) };
+  const section = parseSection(alert.section) ?? null;
+  if (section) {
+    const external = { section, query };
+    return {
+      id,
+      name,
+      query,
+      paused,
+      section,
+      href: externalAlertHref(external),
+      conditions: externalAlertConditions(external),
+    };
+  }
+  return { id, name, query, paused, section, href: jobsHref(query), conditions: alertConditions(alert) };
 }
 
 async function myEmail(): Promise<string | null> {
@@ -30,12 +62,19 @@ export async function myJobAlerts(): Promise<JobAlertView[] | null> {
   return email ? (await listJobAlerts(email)).map(view) : null;
 }
 
-/** Saves the job list's filters (its query string) as an alert, named after its conditions. */
-export async function saveMyJobAlert(query: string): Promise<SaveAlertResult | null> {
+/**
+ * Saves the filters of the job list, or of 实习 or 专业职位 when `section` says so (#131), as an alert named after its
+ * conditions. `query` is the list's query string.
+ */
+export async function saveMyJobAlert(query: string, section?: ExternalSection): Promise<SaveAlertResult | null> {
   const email = await myEmail();
   if (!email) return null;
-  const stored = { country: DEFAULT_COUNTRY, query: normalizeAlertQuery(query, DEFAULT_COUNTRY) };
-  const result = await createJobAlert(email, { ...stored, name: defaultAlertName(stored) });
+  const on = parseSection(section);
+  const stored = on ? normalizeExternalQuery(query, on) : normalizeAlertQuery(query, DEFAULT_COUNTRY);
+  const name = on
+    ? defaultExternalAlertName({ section: on, query: stored })
+    : defaultAlertName({ country: DEFAULT_COUNTRY, query: stored });
+  const result = await createJobAlert(email, { country: DEFAULT_COUNTRY, query: stored, name, section: on });
   if (result.status === "no_account") return null; // a session always has its account
   return result.status === "limit" ? result : { status: result.status, alert: view(result.alert) };
 }

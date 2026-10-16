@@ -1,6 +1,7 @@
 // 实习 and 专业职位 (#113, ADR 0014): external jobs a moderator approved, read from companies' public job feeds.
 // Facts only, with where they come from and when they were read; applying happens on the company's own site.
-// Server components: the list and its filter form work without JavaScript (a GET form).
+// Server components: the list and its filter form work without JavaScript (a GET form). 收藏 and 保存为提醒 (#131) are
+// the job list's buttons, keyed for external jobs.
 import Link from "next/link";
 import { Suspense } from "react";
 import { requestTime } from "@/components/seeker/request-time";
@@ -20,6 +21,10 @@ import {
 import { CITY_LABELS, FIELD_LABELS, KIND_LABELS, NOT_STATED, payLabel, sourceLine } from "@/lib/external-jobs/labels";
 import { Tag } from "@/components/ui/Tag";
 import { TakedownNote } from "@/components/external/TakedownNote";
+import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
+import { SaveAlert } from "@/components/seeker/SaveAlert";
+import { externalSaveKey } from "@/components/seeker/saved-jobs";
+import { externalFilterToQuery } from "@/lib/external-jobs/alerts";
 
 type Query = Record<string, string | string[] | undefined>;
 
@@ -53,6 +58,7 @@ export function ExternalSectionPage({
           。
         </p>
       </div>
+      <FinishSaveAfterSignIn />
       <Suspense fallback={<div className="h-60 animate-pulse rounded-md bg-surface" />}>
         <Results section={section} searchParams={searchParams} />
       </Suspense>
@@ -74,9 +80,12 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
     <div className="space-y-3 lg:grid lg:grid-cols-[15rem_minmax(0,45rem)] lg:items-start lg:gap-x-10 lg:space-y-0">
       <FilterForm section={section} filter={filter} />
       <section aria-label={`${SECTION_TITLES[section]}列表`} className="space-y-3">
-        <p className="text-body text-muted">
-          {filtered ? `找到 ${jobs.length} 个，共 ${all.length} 个` : `共 ${all.length} 个，最新发布在前`}
-        </p>
+        <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3">
+          <p className="text-body text-muted">
+            {filtered ? `找到 ${jobs.length} 个，共 ${all.length} 个` : `共 ${all.length} 个，最新发布在前`}
+          </p>
+          <SaveAlert key={externalFilterToQuery(filter)} query={externalFilterToQuery(filter)} section={section} />
+        </div>
         {jobs.length === 0 ? (
           <div className="space-y-2 rounded-md border border-border bg-surface p-4 text-body">
             <p>{filtered ? "没有符合这些条件的职位。" : "现在还没有职位。"}</p>
@@ -108,11 +117,14 @@ function ExternalJobRow({ job }: { job: ExternalJob }) {
     : `截止日期：${NOT_STATED}`;
   return (
     <article aria-labelledby={`x-${job.id}`} className="space-y-1.5 px-4 py-3 sm:px-5">
-      <h2 id={`x-${job.id}`} lang="en" className="text-subtitle font-semibold">
-        <Link href={externalJobHref(job.id)} className="hover:text-brand">
-          {job.title}
-        </Link>
-      </h2>
+      <div className="flex items-start justify-between gap-2">
+        <h2 id={`x-${job.id}`} lang="en" className="text-subtitle font-semibold">
+          <Link href={externalJobHref(job.id)} className="hover:text-brand">
+            {job.title}
+          </Link>
+        </h2>
+        <SaveJobButton jobId={externalSaveKey(job.id)} title={job.title} />
+      </div>
       <p className="text-body">
         <span lang="en">{job.companyName}</span> · {CITY_LABELS[job.city]}
       </p>

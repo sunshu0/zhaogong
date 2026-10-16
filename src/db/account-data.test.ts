@@ -9,6 +9,9 @@ import { database } from "@/db/ready";
 import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
 import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
+import { saveExternalJob } from "@/db/saved-external-jobs";
+import { matchExternalJobAlerts } from "@/db/external-job-alerts";
+import { getExternalJob } from "@/db/external-jobs";
 import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
@@ -101,6 +104,14 @@ async function fullAccount(email: string) {
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
+  // 实习 and 专业职位 (#131): a saved external job, an alert on a section and what it found.
+  await saveExternalJob(email, "demo-kowhai:4001", new Date("2026-10-17T00:00:00.000Z"));
+  await createJobAlert(
+    email,
+    { name: "全部实习", country: "NZ", query: "", section: "internship" },
+    new Date("2026-10-16T01:00:00.000Z"),
+  );
+  await matchExternalJobAlerts((await getExternalJob("demo-kowhai:4001"))!);
   await renewJob(job.id, { expiresAt: "2026-12-01T00:00:00.000Z", status: "active", days: 30 });
   await recordAiUsage(
     email,
@@ -162,9 +173,16 @@ describe("exportAccountData (#54)", () => {
     });
     expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
     expect(data?.jobAlerts).toEqual([
-      { name: "全部新职位", query: "", paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
+      { name: "全部新职位", query: "", section: null, paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
+      { name: "全部实习", query: "", section: "internship", paused: false, createdAt: "2026-10-16T01:00:00.000Z" },
     ]);
     expect(data?.jobAlertHits).toEqual([{ jobId: "j2", alertName: "全部新职位", createdAt: expect.any(String) }]);
+    expect(data?.savedExternalJobs).toEqual([
+      { externalJobId: "demo-kowhai:4001", savedAt: "2026-10-17T00:00:00.000Z", stage: null, stageSetAt: null },
+    ]);
+    expect(data?.externalJobAlertHits).toEqual([
+      { externalJobId: "demo-kowhai:4001", alertName: "全部实习", createdAt: expect.any(String) },
+    ]);
     expect(data?.contactViews).toEqual([{ jobId: "j1", viewedAt: expect.any(String) }]);
     expect(data?.aiUsage).toEqual([
       { at: "2026-10-17T00:00:00.000Z", model: "claude-sonnet-5-5", ...AI_TOKENS, result: "ok" },
@@ -205,6 +223,8 @@ describe("deleteAccount (#54)", () => {
       [t.seekerProfiles, t.seekerProfiles.email],
       [t.jobAlerts, t.jobAlerts.email],
       [t.jobAlertHits, t.jobAlertHits.email],
+      [t.savedExternalJobs, t.savedExternalJobs.email],
+      [t.externalJobAlertHits, t.externalJobAlertHits.email],
       [t.aiUsage, t.aiUsage.email],
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
@@ -291,6 +311,8 @@ describe("deleteAccount (#54)", () => {
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",
+      "saved_external_jobs.email",
+      "external_job_alert_hits.email",
       "moderation_log.moderator_email",
       "moderators.email",
       "conversations.seeker_email",

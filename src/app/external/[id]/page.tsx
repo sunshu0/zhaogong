@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { requestTime } from "@/components/seeker/request-time";
+import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
+import { externalSaveKey } from "@/components/seeker/saved-jobs";
 import { buttonClass } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Tag";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
@@ -14,7 +16,7 @@ import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
 
 // An external job (#113, ADR 0014): its facts, where they come from and when they were read, and 去官网申请. No
 // apply, chat or contact details here (Round 18 draft 3.8), no company logo, nobody's name. Kept out of search
-// engines: the job belongs on the company's own site.
+// engines: the job belongs on the company's own site. 收藏 (#131) keeps it in 收藏和进度.
 export const metadata: Metadata = { title: "外部职位", robots: { index: false, follow: false } };
 
 const decode = (id: string) => {
@@ -28,6 +30,7 @@ const decode = (id: string) => {
 export default function ExternalJobPage({ params }: PageProps<"/external/[id]">) {
   return (
     <div className={`${WIDE_ON_DESKTOP} space-y-4`}>
+      <FinishSaveAfterSignIn />
       <Suspense fallback={<div className="h-80 animate-pulse rounded-md bg-surface" />}>
         <ExternalJob params={params} />
       </Suspense>
@@ -49,10 +52,13 @@ async function ExternalJob({ params }: Pick<PageProps<"/external/[id]">, "params
         </Link>
       </p>
       <div className="space-y-2">
-        <p className="flex flex-wrap gap-1.5">
-          <Tag kind="neutral">外部职位</Tag>
-          <Tag kind="perk">{FIELD_LABELS[job.field]}</Tag>
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="flex flex-wrap gap-1.5">
+            <Tag kind="neutral">外部职位</Tag>
+            <Tag kind="perk">{FIELD_LABELS[job.field]}</Tag>
+          </p>
+          <SaveJobButton jobId={externalSaveKey(job.id)} title={job.title} />
+        </div>
         <h1 id="external-title" lang="en" className="text-title font-semibold">
           {job.title}
         </h1>

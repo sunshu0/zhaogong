@@ -30,6 +30,8 @@ export interface ServerAccountData {
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /** Saved jobs and how far the application got (#52). */
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
+  /** Saved external jobs of 实习 and 专业职位 (#131). */
+  savedExternalJobs: { externalJobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
   /** Jobs this account applied for (#84), with the note and the page sent, and what the employer did. */
   applications: {
     jobId: string;
@@ -77,9 +79,10 @@ export interface ServerAccountData {
   }[];
   /** Jobs this account started a chat about (counted for the employer, #55). */
   chatStarts: { jobId: string; startedAt: string }[];
-  /** Job alerts (#53): saved searches, and the new jobs they found. */
-  jobAlerts: { name: string; query: string; paused: boolean; createdAt: string }[];
+  /** Job alerts (#53): saved searches (`section` for 实习 and 专业职位, #131), and the new jobs they found. */
+  jobAlerts: { name: string; query: string; section: string | null; paused: boolean; createdAt: string }[];
   jobAlertHits: { jobId: string; alertName: string; createdAt: string }[];
+  externalJobAlertHits: { externalJobId: string; alertName: string; createdAt: string }[];
   /** Jobs whose public contact details this account looked at. */
   contactViews: { jobId: string; viewedAt: string }[];
   /** Each call to the AI 发帖 model (#102): when, which model, its tokens and how it ended. */
@@ -116,6 +119,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.savedJobs)
     .where(eq(t.savedJobs.email, address))
     .orderBy(asc(t.savedJobs.savedAt));
+  const savedExternal = await db
+    .select()
+    .from(t.savedExternalJobs)
+    .where(eq(t.savedExternalJobs.email, address))
+    .orderBy(asc(t.savedExternalJobs.savedAt));
   const applications = await db
     .select()
     .from(t.jobApplications)
@@ -160,6 +168,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobAlertHits)
     .where(eq(t.jobAlertHits.email, address))
     .orderBy(asc(t.jobAlertHits.createdAt));
+  const externalHits = await db
+    .select()
+    .from(t.externalJobAlertHits)
+    .where(eq(t.externalJobAlertHits.email, address))
+    .orderBy(asc(t.externalJobAlertHits.createdAt));
   const views = await db
     .select()
     .from(t.contactViews)
@@ -199,6 +212,12 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       updatedAt: row.updatedAt,
     })),
     savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
+    savedExternalJobs: savedExternal.map((s) => ({
+      externalJobId: s.externalJobId,
+      savedAt: s.savedAt,
+      stage: s.stage,
+      stageSetAt: s.stageSetAt,
+    })),
     applications: applications.map((a) => ({
       jobId: a.jobId,
       appliedAt: a.appliedAt,
@@ -239,8 +258,19 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       rejectNote: v.rejectNote,
     })),
     chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
-    jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
+    jobAlerts: alerts.map((a) => ({
+      name: a.name,
+      query: a.query,
+      section: a.section,
+      paused: a.paused,
+      createdAt: a.createdAt,
+    })),
     jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
+    externalJobAlertHits: externalHits.map((h) => ({
+      externalJobId: h.externalJobId,
+      alertName: h.alertName,
+      createdAt: h.createdAt,
+    })),
     contactViews: views.map((v) => ({ jobId: v.jobId, viewedAt: v.viewedAt })),
     aiUsage: await listAiUsageOf(address),
     sessions: sessions.map((s) => ({ activeRole: s.activeRole, createdAt: s.createdAt, expiresAt: s.expiresAt })),
@@ -297,6 +327,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
+    await tx.delete(t.savedExternalJobs).where(eq(t.savedExternalJobs.email, address));
     // Applications are the person's page and note: they go, and the employers' lists lose them (#84), with the
     // interviews on them (#103).
     const applicationIds = (
@@ -312,6 +343,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.seekerProfiles).where(eq(t.seekerProfiles.email, address));
     await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
     await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
+    await tx.delete(t.externalJobAlertHits).where(eq(t.externalJobAlertHits.email, address));
     // Invitations to this account go with it; ones it sent stay as the team's record, without its email (#87).
     await tx.delete(t.teamInvites).where(eq(t.teamInvites.email, address));
     await tx

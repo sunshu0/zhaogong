@@ -141,6 +141,13 @@
       "when": 1792179804052,
       "tag": "0020_ai_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1792187190487,
+      "tag": "0021_external_saved_alerts",
+      "breakpoints": true
     }
   ]
 }

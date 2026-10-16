@@ -48,3 +48,16 @@ export function saveAfterSignInHref(path: string, jobId: string): string {
 
 /** The query parameter a page reads after sign-in to finish a save (saveAfterSignInHref). */
 export const SAVE_PARAM = "save";
+
+/**
+ * 收藏 of an external job (#131) shares the buttons and the list with the job list's jobs: its key there is the
+ * external job's id behind this prefix, which no job id has.
+ */
+const EXTERNAL_KEY = "external:";
+
+export const externalSaveKey = (externalJobId: string) => `${EXTERNAL_KEY}${externalJobId}`;
+
+/** The external job's id in a save key, or undefined for a job of the job list. */
+export function externalIdOfSaveKey(key: string): string | undefined {
+  return key.startsWith(EXTERNAL_KEY) ? key.slice(EXTERNAL_KEY.length) : undefined;
+}

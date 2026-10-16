@@ -13,8 +13,9 @@ import { Tag } from "@/components/ui/Tag";
 import { useAppliedJobIds } from "@/components/seeker/applied-client";
 
 /**
- * 收藏和进度 (#52): the account's saved jobs, newest first, each with its stage. Jobs taken down or past their
- * closing date stay, marked 已下架. Only the account sees this; employers never do.
+ * 收藏和进度 (#52): the account's saved jobs, newest first, each with its stage; external jobs of 实习 and 专业职位
+ * (#131) among them, marked 外部职位. Jobs taken down or past their closing date stay, marked 已下架. Only the account
+ * sees this; employers never do.
  */
 export function SavedJobsPage() {
   const hydrated = useHydrated();
@@ -99,20 +100,27 @@ export function SavedJobsPage() {
                     {job.gone ? (
                       <span className="text-muted">{job.titleZh}</span>
                     ) : (
-                      <Link href={`/jobs/${job.jobId}`} className="hover:text-brand">
+                      <Link href={job.href} lang={job.external ? "en" : undefined} className="hover:text-brand">
                         {job.titleZh}
                       </Link>
                     )}
+                    {job.external && <Tag kind="neutral">外部职位</Tag>}
                     {job.gone && <Tag kind="neutral">已下架</Tag>}
                     {applied?.has(job.jobId) && <Tag kind="perk">已申请</Tag>}
                   </h2>
-                  <p lang="en" className="truncate font-latin text-meta text-muted">
-                    {job.titleEn}
-                  </p>
+                  {job.titleEn && (
+                    <p lang="en" className="truncate font-latin text-meta text-muted">
+                      {job.titleEn}
+                    </p>
+                  )}
                 </div>
-                <p className={`shrink-0 leading-none ${job.gone ? "opacity-60" : ""}`}>
-                  <Pay pay={job.pay} country={job.country} />
-                </p>
+                {job.pay ? (
+                  <p className={`shrink-0 leading-none ${job.gone ? "opacity-60" : ""}`}>
+                    <Pay pay={job.pay} country={job.country} />
+                  </p>
+                ) : (
+                  job.payText && <p className="shrink-0 text-meta text-muted">{job.payText}</p>
+                )}
               </div>
               <p className="mt-1 text-body text-muted">
                 {[job.region, job.employerName].filter(Boolean).join(" · ")} · {formatDateZh(job.savedAt, job.country)}

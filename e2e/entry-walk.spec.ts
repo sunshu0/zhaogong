@@ -564,6 +564,36 @@ test("专业职位: home → 专业职位 → a job → 去官网申请 (#113)",
   await popup.close();
 });
 
+test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 → 收藏和进度 (#131)", async ({ page }, testInfo) => {
+  await signInByClicks(page, testInfo);
+  await page.getByRole("link", { name: "找工" }).first().click();
+  await page.getByRole("link", { name: "实习", exact: true }).first().click();
+  await expect(page).toHaveURL("/internships");
+  const form = page.getByRole("form", { name: "筛选" });
+  await form.getByLabel("领域").selectOption({ label: "电子电气" });
+  await form.getByRole("button", { name: "筛选" }).click();
+  await expect(page).toHaveURL(/field=electrical/);
+  await page.getByRole("button", { name: "保存为提醒" }).click();
+  await page.getByRole("status").getByRole("link", { name: "管理提醒" }).click();
+  await expect(page).toHaveURL("/me/alerts");
+  const alert = page.getByRole("article", { name: "提醒：实习：电子电气" });
+  await expect(alert).toContainText("实习 · 外部职位");
+  await alert.getByRole("link", { name: "看职位" }).click();
+  await expect(page).toHaveURL("/internships?field=electrical");
+
+  const list = page.getByRole("region", { name: "实习列表" }).filter({ visible: true });
+  await list.getByRole("link", { name: "Firmware Intern (Summer 2026/27)" }).click();
+  const save = page.getByRole("button", { name: "收藏：Firmware Intern (Summer 2026/27)" }).filter({ visible: true });
+  await save.click();
+  await expect(save).toHaveText("已收藏");
+  await openMine(page, testInfo, "收藏和进度");
+  await expect(page).toHaveURL("/me/saved");
+  const saved = page.getByRole("list", { name: "收藏的职位" }).getByRole("article", {
+    name: "Firmware Intern (Summer 2026/27)",
+  });
+  await expect(saved).toContainText("外部职位");
+});
+
 test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存为 PDF and 生成分享链接 (#86)", async ({ page }, testInfo) => {
   await signInByClicks(page, testInfo, freshEmail("demo.walk")); // starts with 林晓's demo page (#125)
   await openMine(page, testInfo, "我的主页");
