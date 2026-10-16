@@ -24,18 +24,28 @@ beforeEach(() => {
 });
 
 describe("countJobView (#55)", () => {
-  it("gives the browser a random id and counts it once a day; another browser counts again", async () => {
+  it("counts a browser's id once a day; another browser counts again", async () => {
     const before = await views("j2");
+    cookies.set("zg_visitor", "a".repeat(22)); // from the job page (proxy)
     await countJobView("j2");
-    const visitor = cookies.get("zg_visitor");
-    expect(visitor).toMatch(/^[A-Za-z0-9_-]{22}$/);
     await countJobView("j2");
-    expect(cookies.get("zg_visitor")).toBe(visitor);
     expect(await views("j2")).toBe(before + 1);
 
-    cookies.clear(); // another browser
+    cookies.set("zg_visitor", "b".repeat(22)); // another browser
     await countJobView("j2");
     expect(await views("j2")).toBe(before + 2);
+  });
+
+  it("never sets the cookie: a browser without one counts each view under a throw-away id (#90)", async () => {
+    const before = await views("j2");
+    await countJobView("j2");
+    await countJobView("j2");
+    // Setting a cookie in a Server Function's answer refreshes the page, which drops a #contact from the address.
+    expect(cookies.has("zg_visitor")).toBe(false);
+    expect(await views("j2")).toBe(before + 2);
+    // Nor does the proxy on the Server Function's own request, which posts to the job page's path.
+    const action = proxy(new NextRequest("http://localhost/jobs/j2", { method: "POST" }));
+    expect(action.cookies.get("zg_visitor")).toBeUndefined();
   });
 
   it("counts a reload right after the first view once, even when the first count's answer is lost (#79)", async () => {

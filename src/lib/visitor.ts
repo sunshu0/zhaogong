@@ -1,6 +1,6 @@
 // The anonymous browser id behind job view counts (#55): a random value in an httpOnly cookie, stored only hashed.
 // No IP and no account. Handed out with the job page itself (src/proxy.ts, #79), so it is in the browser before
-// the page counts the view; the view count makes one only when a browser arrives without it.
+// the page counts the view. The view count never sets it (#90): a browser without it counts under a throw-away id.
 
 export const VISITOR_COOKIE = "zg_visitor";
 const YEAR_SECONDS = 365 * 24 * 3600;
