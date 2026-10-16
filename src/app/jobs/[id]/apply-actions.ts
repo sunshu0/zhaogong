@@ -10,9 +10,11 @@ import type { CountryCode, PayRange } from "@/lib/types";
 import { addApplication, myApplication, myApplications, withdrawApplication } from "@/db/job-applications";
 import {
   APPLY_ERRORS,
+  applicationStage,
   parseApplicationNote,
   parseApplicationProfile,
   seekerStatus,
+  type ApplicationDecision,
   type ApplyRefusal,
 } from "@/components/seeker/applications";
 import { isExpired } from "@/components/seeker/job-facts";
@@ -20,6 +22,7 @@ import { interviewsFor, interviewView } from "@/db/interviews";
 import { getSeekerProfile } from "@/db/seeker-profiles";
 import { initialProfile } from "@/components/seeker/hub-state";
 import type { InterviewView } from "@/components/seeker/interviews";
+import { jobEndings } from "@/app/me/application-notifications";
 
 /** The account's application for one job, as the job seeker sees it. */
 export type MyApplication = { jobId: string; appliedAt: string; note: string; status: string };
@@ -34,6 +37,8 @@ export type MyApplicationView = MyApplication & {
   employerName?: string;
   /** Taken down or past its closing date. */
   gone: boolean;
+  /** 进行中, or 已结束 once the person is hired or the job has ended (#105). */
+  stage: "open" | "ended";
   /** The employer's interview invitation, if any (#103). */
   interview: InterviewView | null;
 };
@@ -42,14 +47,17 @@ export type ApplyResult = { ok: true; application: MyApplication } | { ok: false
 
 const refuse = (reason: ApplyRefusal): ApplyResult => ({ ok: false, reason, error: APPLY_ERRORS[reason] });
 
-function view(row: {
-  jobId: string;
-  appliedAt: string;
-  note: string;
-  seenAt: string | null;
-  decision: "fit" | "unfit" | null;
-}): MyApplication {
-  return { jobId: row.jobId, appliedAt: row.appliedAt, note: row.note, status: seekerStatus(row) };
+function view(
+  row: {
+    jobId: string;
+    appliedAt: string;
+    note: string;
+    seenAt: string | null;
+    decision: ApplicationDecision | null;
+  },
+  ended = false,
+): MyApplication {
+  return { jobId: row.jobId, appliedAt: row.appliedAt, note: row.note, status: seekerStatus(row, ended) };
 }
 
 /** The account's application for the job, or null (none, or signed out). */
@@ -57,7 +65,10 @@ export async function myJobApplication(jobId: string): Promise<MyApplication | n
   const session = await getCurrentSession();
   if (!session || typeof jobId !== "string") return null;
   const row = await myApplication(session.email, jobId);
-  return row ? view(row) : null;
+  if (!row) return null;
+  const job = await getJob(row.jobId);
+  const ended = job ? (await jobEndings([job], Date.now())).get(job.id) != null : false;
+  return view(row, ended);
 }
 
 /** Ids of the jobs the account applied for, for the job rows; null when signed out. */
@@ -114,13 +125,19 @@ export async function myApplicationViews(): Promise<MyApplicationView[] | null> 
   const now = Date.now();
   const rows = await myApplications(session.email);
   const interviews = await interviewsFor(rows.map((row) => row.id));
+  const jobs = new Map(
+    (await Promise.all(rows.map((row) => getJob(row.jobId)))).flatMap((j) => (j ? [[j.id, j]] : [])),
+  );
+  const endings = await jobEndings([...jobs.values()], now);
   const views = await Promise.all(
     rows.map(async (row): Promise<MyApplicationView | null> => {
-      const job = await getJob(row.jobId);
+      const job = jobs.get(row.jobId);
       if (!job) return null;
       const employer = await getEmployer(job.employerId);
+      const ended = endings.get(job.id) != null;
       return {
-        ...view(row),
+        ...view(row, ended),
+        stage: applicationStage(row.decision, ended),
         titleZh: job.titleZh,
         titleEn: job.titleEn,
         pay: job.pay,

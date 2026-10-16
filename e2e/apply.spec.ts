@@ -54,7 +54,7 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
   await applicant.getByRole("button", { name: "合适", exact: true }).click();
   await expect(applicant.getByRole("button", { name: "合适", exact: true })).toHaveAttribute("aria-pressed", "true");
   await seeker.goto("/me/saved");
-  const mine = seeker.getByRole("list", { name: "申请过的职位" }).getByRole("article", { name: title });
+  const mine = seeker.getByRole("region", { name: /^我的申请/ }).getByRole("article", { name: title });
   await expect(mine).toContainText("雇主觉得合适");
   await expect(mine).toContainText("附言：周末都能上班");
 
@@ -65,7 +65,7 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
 
   // Withdrawn: gone from the employer's list.
   await mine.getByRole("button", { name: "撤回申请" }).click();
-  await expect(seeker.getByRole("list", { name: "申请过的职位" })).toHaveCount(0);
+  await expect(seeker.getByRole("region", { name: /^我的申请/ })).toHaveCount(0);
   await seeker.context().close();
   await page.goto(`/employer/jobs/${jobId}/applicants`);
   await expect(page.getByText("还没有人申请这个职位。")).toBeVisible();

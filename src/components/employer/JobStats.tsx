@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getMyJobDays } from "@/app/employer/actions";
 import type { JobDay } from "@/db/job-stats";
+import type { ApplicationFunnel } from "@/db/job-applications";
 import type { Job } from "@/lib/types";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { Section } from "@/components/ui/Section";
@@ -26,7 +27,10 @@ export function JobStats({ jobId }: { jobId: string }) {
 }
 
 function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
-  const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; days: JobDay[] } | null }>();
+  const [loaded, setLoaded] = useState<{
+    email: string;
+    data: { job: Job; days: JobDay[]; funnel: ApplicationFunnel } | null;
+  }>();
 
   useEffect(() => {
     let live = true;
@@ -51,7 +55,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     );
   }
 
-  const { job, days } = loaded.data;
+  const { job, days, funnel } = loaded.data;
   const total = (key: "views" | "chats" | "contactViews") => days.reduce((sum, d) => sum + d[key], 0);
   const most = Math.max(1, ...days.map((d) => d.views));
 
@@ -77,6 +81,23 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
             <div key={label}>
               <dt className="text-meta text-muted">{label}</dt>
               <dd className="font-figure text-title">{n ?? "—"}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+
+      <Section title="申请到录用" description="从发布到现在。约面试不算已取消的；录用是在申请人里标了「已录用」的人。">
+        <dl aria-label="申请到录用" className="grid grid-cols-3 gap-3 py-group text-center">
+          {(
+            [
+              ["申请", funnel.applied],
+              ["约面试", funnel.interviewed],
+              ["录用", funnel.hired],
+            ] as const
+          ).map(([label, n]) => (
+            <div key={label}>
+              <dt className="text-meta text-muted">{label}</dt>
+              <dd className="font-figure text-title">{n}</dd>
             </div>
           ))}
         </dl>

@@ -31,7 +31,7 @@ async function applied(page: Page, browser: Browser, testInfo: TestInfo) {
 }
 
 const mine = (seeker: Page, title: string) =>
-  seeker.getByRole("list", { name: "申请过的职位" }).getByRole("article", { name: title });
+  seeker.getByRole("region", { name: /^我的申请/ }).getByRole("article", { name: title });
 
 test("the employer offers two times; the job seeker confirms one and saves it to a calendar", async ({
   page,

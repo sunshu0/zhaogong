@@ -5,6 +5,8 @@ import {
   applicantCandidate,
   applyAfterSignInHref,
   applicationProfileFrom,
+  applicationStage,
+  jobEndedAt,
   parseApplicationNote,
   parseApplicationProfile,
   parseDecision,
@@ -92,11 +94,53 @@ describe("seekerStatus", () => {
     expect(seekerStatus({ decision: "unfit" })).toBe("雇主已看过");
     expect(seekerStatus({ seenAt: "2026-10-16T09:00:00Z", decision: "fit" })).toBe("雇主觉得合适");
   });
+
+  it("says 已录用, and once the job ends the same 职位已结束 to everyone else, 不合适 or not (#105)", () => {
+    expect(seekerStatus({ decision: "hired" })).toBe("已录用");
+    expect(seekerStatus({ decision: "hired" }, true)).toBe("已录用");
+    for (const decision of [null, "fit", "unfit"] as const)
+      expect(seekerStatus({ seenAt: "2026-10-16T09:00:00Z", decision }, true)).toBe("职位已结束");
+  });
+});
+
+describe("applicationStage (#105)", () => {
+  it("is 已结束 once hired or once the job ended, 进行中 otherwise", () => {
+    expect(applicationStage(null, false)).toBe("open");
+    expect(applicationStage("fit", false)).toBe("open");
+    expect(applicationStage("unfit", false)).toBe("open");
+    expect(applicationStage("hired", false)).toBe("ended");
+    expect(applicationStage(null, true)).toBe("ended");
+  });
+});
+
+describe("jobEndedAt (#105)", () => {
+  const now = Date.parse("2026-10-17T00:00:00.000Z");
+  const future = "2026-11-01T00:00:00.000Z";
+  const past = "2026-10-10T00:00:00.000Z";
+
+  it("is null while the job takes people, and for one waiting for review", () => {
+    expect(jobEndedAt({ status: "active", expiresAt: future }, now)).toBeNull();
+    expect(jobEndedAt({ status: "pending_review", expiresAt: past }, now)).toBeNull();
+  });
+
+  it("is the closing date for a job closed by the employer or past it", () => {
+    expect(jobEndedAt({ status: "expired", expiresAt: past }, now)).toBe(past);
+    expect(jobEndedAt({ status: "active", expiresAt: past }, now)).toBe(past);
+  });
+
+  it("is when it was taken down, when known; otherwise the earlier of its closing date and now", () => {
+    expect(jobEndedAt({ status: "removed", expiresAt: future }, now, "2026-10-15T00:00:00.000Z")).toBe(
+      "2026-10-15T00:00:00.000Z",
+    );
+    expect(jobEndedAt({ status: "removed", expiresAt: future }, now)).toBe(new Date(now).toISOString());
+    expect(jobEndedAt({ status: "removed", expiresAt: past }, now)).toBe(past);
+  });
 });
 
 describe("parseDecision", () => {
-  it("takes 合适, 不合适 or clearing, nothing else", () => {
+  it("takes 合适, 不合适, 已录用 or clearing, nothing else", () => {
     expect(parseDecision("fit")).toBe("fit");
+    expect(parseDecision("hired")).toBe("hired");
     expect(parseDecision("unfit")).toBe("unfit");
     expect(parseDecision(null)).toBeNull();
     expect(parseDecision("maybe")).toBeUndefined();

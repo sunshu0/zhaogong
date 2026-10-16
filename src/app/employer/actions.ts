@@ -19,6 +19,7 @@ import { assistantKind, FAKE_COOKIE, postingModel, postingTurn, type AssistantKi
 import { LIMITED_ZH, overLimit } from "@/lib/ai-post/model/limits";
 import { countAiCalls, recordAiUsage } from "@/db/ai-usage";
 import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
+import { applicationFunnel, type ApplicationFunnel } from "@/db/job-applications";
 import {
   createJob,
   getAccount,
@@ -97,13 +98,18 @@ export async function getMyJobRenewals(): Promise<RenewalCounts> {
   return renewalCounts((await listJobsByEmployer(employer.id)).map((j) => j.id));
 }
 
-/** One of the account's jobs with its numbers for each of the last 14 New Zealand days; null for anyone else's. */
-export async function getMyJobDays(jobId: string): Promise<{ job: Job; days: JobDay[] } | null> {
+/**
+ * One of the account's jobs with its numbers for each of the last 14 New Zealand days, and how many applied, were
+ * invited to an interview and were hired (#105); null for anyone else's.
+ */
+export async function getMyJobDays(
+  jobId: string,
+): Promise<{ job: Job; days: JobDay[]; funnel: ApplicationFunnel } | null> {
   const employer = await postingEmployer();
   if (typeof employer === "string" || typeof jobId !== "string") return null;
   const job = await getJob(jobId);
   if (!job || job.employerId !== employer.id) return null;
-  return { job, days: await jobDays(job.id) };
+  return { job, days: await jobDays(job.id), funnel: await applicationFunnel(employer.id, job.id) };
 }
 
 /** Runs on the server so a real model call can replace the stub without exposing a key. */

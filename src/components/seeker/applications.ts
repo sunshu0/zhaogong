@@ -32,13 +32,16 @@ export type ApplicationProfile = {
   resume: Omit<Resume, "candidateId" | "discoverable">;
 };
 
-/** The employer's decision. 不合适 is never shown to the job seeker in those words. */
-export type ApplicationDecision = "fit" | "unfit";
-export const DECISION_LABELS: Record<ApplicationDecision, string> = { fit: "合适", unfit: "不合适" };
+/**
+ * The employer's decision: 合适, 不合适, or 已录用 (#105). 不合适 is never shown to the job seeker: they see 「雇主已看过」,
+ * and once the job ends, 「职位已结束」 like everyone else who was not hired.
+ */
+export type ApplicationDecision = "fit" | "unfit" | "hired";
+export const DECISION_LABELS: Record<ApplicationDecision, string> = { fit: "合适", unfit: "不合适", hired: "已录用" };
 
 export function parseDecision(value: unknown): ApplicationDecision | null | undefined {
   if (value === null) return null;
-  return value === "fit" || value === "unfit" ? value : undefined;
+  return value === "fit" || value === "unfit" || value === "hired" ? value : undefined;
 }
 
 export function parseApplicationNote(value: unknown): { ok: true; note: string } | { ok: false; error: string } {
@@ -80,11 +83,48 @@ export function applicantCandidate(id: string, profile: ApplicationProfile): Can
   return { id, source: "local", ...profile, resume: { ...profile.resume, discoverable: false } };
 }
 
-/** What the job seeker sees about their application: whether the employer looked, and only a yes as a decision. */
-export function seekerStatus(application: { seenAt?: string | null; decision?: ApplicationDecision | null }): string {
+/**
+ * What the job seeker sees about their application: whether the employer looked, and only a yes as a decision. Once
+ * the job has ended (`ended`, #105), everyone not hired sees 「职位已结束」, whatever the employer marked.
+ */
+export function seekerStatus(
+  application: { seenAt?: string | null; decision?: ApplicationDecision | null },
+  ended = false,
+): string {
+  if (application.decision === "hired") return "已录用";
+  if (ended) return "职位已结束";
   if (application.decision === "fit") return "雇主觉得合适";
   if (application.seenAt || application.decision === "unfit") return "雇主已看过";
   return "已申请，等雇主查看";
+}
+
+/** 进行中 or 已结束 in 我的申请 (#105): an application is over once the person is hired or the job has ended. */
+export function applicationStage(decision: ApplicationDecision | null | undefined, ended: boolean): "open" | "ended" {
+  return decision === "hired" || ended ? "ended" : "open";
+}
+
+/**
+ * When a job stopped taking people (#105), or null while it is open: closed by the employer or past its closing date
+ * (expires_at, which closing sets to the moment), or taken down (`takenDownAt`, from the moderation log, when known).
+ */
+export function jobEndedAt(
+  job: { status: string; expiresAt: string },
+  now: number,
+  takenDownAt?: string,
+): string | null {
+  if (job.status === "removed") return takenDownAt ?? new Date(Math.min(Date.parse(job.expiresAt), now)).toISOString();
+  if (job.status === "pending_review") return null;
+  return job.status === "expired" || Date.parse(job.expiresAt) <= now ? job.expiresAt : null;
+}
+
+/** The job seeker's notification that the employer hired them (#105). */
+export function hiredNotificationId(applicationId: string): string {
+  return `hired:${applicationId}`;
+}
+
+/** The job seeker's notification that a job they applied for has ended (#105). */
+export function jobEndedNotificationId(applicationId: string): string {
+  return `job-ended:${applicationId}`;
 }
 
 /** The employer's notification about one application (#84). */

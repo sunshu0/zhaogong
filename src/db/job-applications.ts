@@ -168,6 +168,33 @@ export async function applicationsOfBusiness(employerId: string, limit = 30): Pr
     .limit(limit);
 }
 
+export type ApplicationFunnel = { applied: number; interviewed: number; hired: number };
+
+/**
+ * For 职位数据 (#105, R-31): how many applied for one of the business's jobs, how many of them were invited to an
+ * interview that was not cancelled, and how many were hired.
+ */
+export async function applicationFunnel(employerId: string, jobId: string): Promise<ApplicationFunnel> {
+  const rows = await jobApplicationsFor(employerId, jobId);
+  const db = await database();
+  const invited = rows.length
+    ? await db
+        .select({ status: interviews.status })
+        .from(interviews)
+        .where(
+          inArray(
+            interviews.applicationId,
+            rows.map((row) => row.id),
+          ),
+        )
+    : [];
+  return {
+    applied: rows.length,
+    interviewed: invited.filter((i) => i.status !== "cancelled").length,
+    hired: rows.filter((row) => row.decision === "hired").length,
+  };
+}
+
 function mine(email: string, jobId: string) {
   return and(eq(jobApplications.seekerEmail, email), eq(jobApplications.jobId, jobId));
 }

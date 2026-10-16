@@ -29,7 +29,7 @@ const appliedAt = new Intl.DateTimeFormat("zh-CN", {
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
- * and 合适 / 不合适, a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No contact details: those follow the
+ * and 合适 / 不合适 / 已录用 (#105), a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No contact details: those follow the
  * job's two rules (ADR 0002).
  */
 export function JobApplicants({ jobId }: { jobId: string }) {
@@ -112,7 +112,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           {job.titleZh} · {applicants.length} 个申请
         </p>
         <p className="mt-1 text-meta text-muted">
-          申请里没有对方的联系方式。标「不合适」时，对方只会看到「雇主已看过」。
+          申请里没有对方的联系方式。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。
         </p>
       </div>
 
@@ -164,7 +164,7 @@ function ApplicantCard({
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
             {a.profile.name}
             {a.isNew && <Tag kind="urgent">新</Tag>}
-            {a.decision && <Tag kind={a.decision === "fit" ? "perk" : "neutral"}>{DECISION_LABELS[a.decision]}</Tag>}
+            {a.decision && <Tag kind={a.decision === "unfit" ? "neutral" : "perk"}>{DECISION_LABELS[a.decision]}</Tag>}
           </h2>
           {a.profile.headline && <p className="text-body text-muted">{a.profile.headline}</p>}
         </div>
@@ -193,7 +193,7 @@ function ApplicantCard({
           发起聊天
         </button>
         <div role="group" aria-label={`标记 ${a.profile.name}`} className="flex gap-2">
-          {(["fit", "unfit"] as const).map((d) => (
+          {(["fit", "unfit", "hired"] as const).map((d) => (
             <button
               key={d}
               type="button"

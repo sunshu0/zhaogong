@@ -3,7 +3,8 @@ import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { notificationHref } from "@/components/seeker/hub-state";
-import { banEmployer, ensureAccount, openEmployerIdentity, updateJob } from "@/lib/data";
+import { cancelInterview, inviteToInterview } from "@/db/interviews";
+import { addModerationLog, banEmployer, ensureAccount, openEmployerIdentity, updateJob } from "@/lib/data";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -21,6 +22,7 @@ const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants, markMyApp
 const { myAlertNotifications } = await import("@/app/me/alerts/actions");
 const { markMyNotificationsRead } = await import("@/app/messages/actions");
 const { saveMyProfile } = await import("@/app/profile/actions");
+const { closeMyJob, getMyJobDays } = await import("@/app/employer/actions");
 
 const PAGE = {
   name: "林晓",
@@ -150,5 +152,79 @@ describe("the page an application carries (#104)", () => {
     await signedIn("apply.e2@example.com", "employer");
     const applicant = (await getMyJobApplicants("j4"))!.applicants.find((a) => a.profile.name === "账号里的王芳");
     expect(applicant?.profile).toMatchObject({ name: "账号里的王芳", availability: "只有周末" });
+  });
+});
+
+describe("已录用和职位结束 (#105)", () => {
+  /** The job seeker's notifications about how their applications ended. */
+  async function outcomes() {
+    return (await myAlertNotifications())!.items.filter((n) => /^(hired|job-ended):/.test(n.id));
+  }
+
+  it("tells the one hired, then everyone else the same words once the job ends, 不合适 included", async () => {
+    for (const who of ["hired.one", "fit.two", "unfit.three"]) {
+      await signedIn(`${who}@example.com`);
+      expect(await applyForJob("j8", "", PAGE)).toMatchObject({ ok: true });
+    }
+    await openEmployerIdentity("boss.e5@example.com", "e5");
+    await signedIn("boss.e5@example.com", "employer");
+    const ids = (await getMyJobApplicants("j8"))!.applicants.map((a) => a.id);
+    expect(await decideMyApplicant(ids[0], "hired")).toBe(true);
+    expect(await decideMyApplicant(ids[1], "fit")).toBe(true);
+    expect(await decideMyApplicant(ids[2], "unfit")).toBe(true);
+    // 约面试 counts the invitations that were not called off.
+    const invite = { slots: ["2099-01-05T01:00:00.000Z"], callFirst: false, mode: null, place: "", note: "" };
+    await inviteToInterview("e5", ids[1], invite);
+    await inviteToInterview("e5", ids[2], invite);
+    await cancelInterview("e5", ids[2]);
+    expect((await getMyJobDays("j8"))!.funnel).toEqual({ applied: 3, interviewed: 1, hired: 1 });
+
+    // Hired: told at once, and the application is over.
+    await signedIn("hired.one@example.com");
+    expect((await myApplicationViews())![0]).toMatchObject({ jobId: "j8", status: "已录用", stage: "ended" });
+    const [hired] = await outcomes();
+    expect(hired).toMatchObject({ type: "申请", title: expect.stringMatching(/录用了你$/), unread: true });
+    expect(hired.detail).toContain("「装修木工」");
+    expect(notificationHref(hired, { email: "hired.one@example.com", signedInAt: "", activeRole: "seeker" })).toBe(
+      "/me/saved",
+    );
+    expect((await markMyNotificationsRead([hired.id]))!.ids).toContain(hired.id);
+
+    // The others: nothing yet while the job is open.
+    await signedIn("fit.two@example.com");
+    expect((await myApplicationViews())![0]).toMatchObject({ status: "雇主觉得合适", stage: "open" });
+    expect(await outcomes()).toEqual([]);
+
+    await signedIn("boss.e5@example.com", "employer");
+    expect(await closeMyJob("j8", { hired: true, count: 1 })).toMatchObject({ ok: true });
+
+    const seen: string[] = [];
+    for (const who of ["fit.two", "unfit.three"]) {
+      await signedIn(`${who}@example.com`);
+      expect((await myApplicationViews())![0]).toMatchObject({ status: "职位已结束", stage: "ended" });
+      expect((await myJobApplication("j8"))!.status).toBe("职位已结束");
+      const notes = await outcomes();
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toMatchObject({ title: "「装修木工」已经招满", time: "今天", unread: true });
+      seen.push(`${notes[0].title}|${notes[0].detail}`);
+    }
+    // 不合适 reads exactly like 合适.
+    expect(new Set(seen).size).toBe(1);
+    expect(seen[0]).not.toMatch(/不合适|拒/);
+  });
+
+  it("says 已结束 for a job taken down, from when it was taken down", async () => {
+    await signedIn("taken.down@example.com");
+    expect(await applyForJob("j9", "", PAGE)).toMatchObject({ ok: true });
+    expect(await outcomes()).toEqual([]);
+    await updateJob("j9", { status: "removed" });
+    await addModerationLog({ action: "take_down", jobId: "j9", moderator: "mod@example.com" });
+    const [ended] = await outcomes();
+    expect(ended).toMatchObject({ title: "「油漆工」已结束", time: "今天" });
+    expect((await myApplicationViews())!.find((a) => a.jobId === "j9")).toMatchObject({
+      stage: "ended",
+      status: "职位已结束",
+      gone: true,
+    });
   });
 });

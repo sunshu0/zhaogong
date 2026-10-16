@@ -56,7 +56,7 @@
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
 | `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
-| `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0 | `null`（未登录、不是雇主、不是本企业的职位） |
+| `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days, funnel }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0；`funnel` 是从发布到现在的 `{ applied, interviewed, hired }`（#105：申请人数、约过面试的人数，不算已取消的、录用人数） | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
 | `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿）。生产环境由 Claude 回答（#102，`src/lib/ai-post/model/`）：模型用结构化输出交回下一句话、快捷回复和草稿字段，服务器再用 `sanitizeDraft` 清洗、跑合规规则。没配 key、超时或出错时 `unavailable: true`，对话里说明「暂时不可用」。调用模型（`claude`、`fake`）要登录，没登录时 `unavailable: true`，说「登录后才能用 AI 发帖助手」。**限额**：每个账号最近 60 秒 6 次、最近 24 小时 100 次，超了不调用模型，`unavailable: true`，说明稍后再试或明天再继续。每次调用在 `ai_usage` 记一行（模型、四种 token、结果 `ok` / `error` / `refused` / `unreadable`，被限额挡下的记 `limited`）；脚本不计数，也不记 | — |
 | `chatAssistantKind()` | — | 谁在回答：`claude`、`unavailable`（生产环境没配 key）、`script`（开发环境的规则脚本，页面标明不是 AI）、`fake`（开发和测试用的固定回答模型，浏览器带 `zg_ai_fake=1` cookie 时） | — |
@@ -148,7 +148,7 @@
 | `withdrawMyApplication(jobId)` | 职位编号 | `true` | 未登录时 `false` |
 | `myJobApplication(jobId)` | 职位编号 | `MyApplication` | 没申请过或未登录时 `null` |
 | `myAppliedJobIds()` | | 申请过的职位编号（职位块的「已申请」） | 未登录时 `null` |
-| `myApplicationViews()` | | `MyApplication` 加职位名、时薪、地区、企业名和 `gone`，新的在前（「收藏和进度」的「我的申请」） | 未登录时 `null` |
+| `myApplicationViews()` | | `MyApplication` 加职位名、时薪、地区、企业名、`gone` 和 `stage`（#105：`open` 进行中，`ended` 已录用或职位已结束），新的在前（「收藏和进度」的「我的申请」）。职位结束后，没被录用的申请 `status` 是「职位已结束」，标没标「不合适」都一样 | 未登录时 `null` |
 
 雇主（只看自己企业的职位）：
 
@@ -157,7 +157,7 @@
 | `getMyApplicationCounts()` | | `{ [jobId]: { total, unseen } }`，没人申请的职位不列 | 没有雇主身份时 `{}` |
 | `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先申请的在前；每人 `{ id, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18），`isNew` 是还没看过的。只读，不改动 | 不是自己企业的职位时 `null` |
 | `markMyApplicantsSeen(jobId)` | 职位编号 | 列表显示出来后调用：这个职位的申请都标为看过，求职者看到「雇主已看过」 | 不是自己企业的职位时不改动 |
-| `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"` 或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
+| `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"`、`"hired"`（已录用，#105）或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
 
 雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后开对话 `apply:<申请编号>`。
 
@@ -213,7 +213,7 @@
 | `answerMyInterview(jobId, response)` | `{ kind: "confirm", slot }`（`slot` 必须是邀约里还没过去的时间；电话再定时不用）、`{ kind: "decline", reply? }`、`{ kind: "counter", reply }`（`reply` 必填） | `{ ok: true, interview }` | `{ ok: false, error }`：未登录或雇主身份、没有邀约、邀约已经不是 `proposed`、时间不在邀约里或已过去、没写方便的时间 |
 | `myInterviewTodos()` | | 当前身份的面试待办：求职者「待确认的面试」，雇主「待确认的面试」和「X 回了方便的时间」；双方「今天 / 明天的面试」 | 未登录时 `[]` |
 
-`myApplicationViews` 的每条多了 `interview`。通知（`serverNotifications`）：求职者的编号是 `interview:<id>:<invitedAt>`，雇主的是 `interview-reply:<id>:<respondedAt>`，有新改动就是新编号。
+`myApplicationViews` 的每条多了 `interview`。求职者的申请结果通知（#105，ADR 0019，读取时生成）：被录用时 `hired:<申请编号>`「〈店名〉录用了你」；职位结束后其余申请人 `job-ended:<申请编号>`「〈职位〉已经招满 / 已结束」；都点开到 `/me/saved`。通知（`serverNotifications`）：求职者的编号是 `interview:<id>:<invitedAt>`，雇主的是 `interview-reply:<id>:<respondedAt>`，有新改动就是新编号。
 
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 

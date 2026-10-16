@@ -3,6 +3,7 @@ import { fillSignInCode, freshEmail, siteNav } from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/interviews";
 import {
   CLEAN_MESSAGE,
+  cardMenuItem,
   moderatorPage,
   openReportForm,
   lastAssistant,
@@ -264,6 +265,48 @@ test("一键申请: home → search → a job → 申请; the employer: 总览 �
   await expect(applicant).toContainText("附言：入口走查");
   await applicant.getByRole("button", { name: "合适", exact: true }).click();
   await expect(applicant.getByRole("button", { name: "合适", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("已录用和职位结束: the employer 职位管理 → 申请人 → 已录用 → 结束招聘; the job seeker 通知 → 我的申请 (#105)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const { title, seeker } = await postAndApplyByClicks(page, browser, testInfo, "录用走查员");
+
+  // The employer, still on 已发布: 职位管理 → the job's applications → 已录用.
+  await page.getByRole("main").getByRole("link", { name: "职位管理", exact: true }).click();
+  await expect(page).toHaveURL("/employer/jobs");
+  const card = () => page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await card()
+    .getByRole("link", { name: /个(新)?申请/ })
+    .click();
+  await expect(page).toHaveURL(/\/employer\/jobs\/j\d+\/applicants$/);
+  const applicant = page.getByRole("article", { name: /^申请人 / });
+  await applicant.getByRole("button", { name: "已录用", exact: true }).click();
+  await expect(applicant.getByRole("button", { name: "已录用", exact: true })).toHaveAttribute("aria-pressed", "true");
+
+  // Then back to 职位管理 → 结束招聘, saying one person was hired.
+  await page.getByRole("link", { name: "← 职位管理" }).click();
+  await expect(page).toHaveURL("/employer/jobs");
+  await (await cardMenuItem(card(), "结束招聘")).click();
+  const question = card().getByRole("group", { name: /通过找工招到人了吗/ });
+  await question.getByLabel("招到了").check();
+  await question.getByLabel("招到的人数").selectOption("1");
+  await question.getByRole("button", { name: "确定结束招聘" }).click();
+  await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 1 人`);
+
+  // The job seeker: home → 通知 → 「…录用了你」 → 我的申请, where the job is under 已结束.
+  await seeker.getByRole("dialog").getByRole("button", { name: "好的" }).click();
+  await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await openMine(seeker, testInfo, "通知");
+  await seeker
+    .getByRole("main")
+    .getByRole("link", { name: /录用了你/ })
+    .click();
+  await expect(seeker).toHaveURL("/me/saved");
+  const ended = seeker.getByRole("region", { name: /^我的申请/ }).getByRole("region", { name: /^已结束/ });
+  await expect(ended.getByRole("article", { name: title })).toContainText("已录用");
+  await seeker.context().close();
 });
 
 test("时薪参考: home → a job → 同类职位时薪; 发布招聘 → 直接填表 → beside 时薪 (#85)", async ({ page }, testInfo) => {
@@ -604,7 +647,7 @@ test("约面试: the employer 总览 → 1 个新申请 → 约面试; the job s
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await openMine(seeker, testInfo, "收藏和进度");
   const invitation = seeker
-    .getByRole("list", { name: "申请过的职位" })
+    .getByRole("region", { name: /^我的申请/ })
     .getByRole("article", { name: title })
     .getByRole("region", { name: "面试邀约" });
   await invitation.getByRole("radio").first().check();
