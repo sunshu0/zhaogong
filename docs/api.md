@@ -118,6 +118,30 @@
 
 未登录点「收藏」会去 `/login?next=<原页面>?save=<职位编号>`，登录后回到原页面，由页面完成收藏并去掉 `save` 参数。
 
+## 申请职位 — `src/app/jobs/[id]/apply-actions.ts`、`src/app/employer/applicant-actions.ts`
+
+#84（PRD R-35）。存在 `job_applications`（迁移 0010）：账号 + 职位唯一，附言最多 200 字，`profile` 是申请时求职者主页的一份（`ApplicationProfile`：名字、一句话介绍、所在地、语言、可上班时间、介绍和简历要点，不含头像和联系方式；服务器用 `parseApplicationProfile` 重新检查）。账号取自会话；雇主只通过申请的随机编号操作，看不到求职者的邮箱。撤回就是删除。
+
+求职者（`MyApplication`：`{ jobId, appliedAt, note, status }`，`status` 是「已申请，等雇主查看」「雇主已看过」「雇主觉得合适」之一，「不合适」也显示「雇主已看过」）：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `applyForJob(jobId, note, profile)` | 职位编号；附言；求职者自己的主页 | `{ ok: true, application }` | `{ ok: false, reason, error }`：`signed_out`、`employer_identity`（雇主身份）、`closed`（已截止、已下架或不存在）、`banned`（企业被封禁）、`own_job`（自己企业的职位）、`no_profile`（主页没有名字）、`note_too_long`、`already` |
+| `withdrawMyApplication(jobId)` | 职位编号 | `true` | 未登录时 `false` |
+| `myJobApplication(jobId)` | 职位编号 | `MyApplication` | 没申请过或未登录时 `null` |
+| `myAppliedJobIds()` | | 申请过的职位编号（职位块的「已申请」） | 未登录时 `null` |
+| `myApplicationViews()` | | `MyApplication` 加职位名、时薪、地区、企业名和 `gone`，新的在前（「收藏和进度」的「我的申请」） | 未登录时 `null` |
+
+雇主（只看自己企业的职位）：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `getMyApplicationCounts()` | | `{ [jobId]: { total, unseen } }`，没人申请的职位不列 | 没有雇主身份时 `{}` |
+| `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先申请的在前；每人 `{ id, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18）。打开就把这个职位的申请都标为看过 | 不是自己企业的职位时 `null` |
+| `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"` 或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
+
+雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后开对话 `apply:<申请编号>`。
+
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 
 职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
@@ -188,6 +212,7 @@
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
 | `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
+| `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |

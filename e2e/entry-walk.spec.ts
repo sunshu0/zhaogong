@@ -158,6 +158,60 @@ test("雇主职位数据: home → 发布招聘 → publish → 职位管理 →
   await expect(page).toHaveURL("/account/data");
 });
 
+test("一键申请: home → search → a job → 申请; the employer: 总览 → 1 个新申请 → 合适 (#84)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  // The employer posts a job, by clicks from the home page.
+  const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
+  await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
+  await page.getByLabel("邮箱", { exact: true }).fill(`walk.apply.boss.${run}@example.com`);
+  await page.getByRole("button", { name: "获取验证码" }).click();
+  await fillSignInCode(page);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  await page.getByLabel("店名", { exact: true }).fill(`申请走查店${run}`);
+  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(page).toHaveURL("/employer/post");
+  const title = uniqueTitle("申请走查员", testInfo);
+  await openTheForm(page);
+  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await page.getByRole("button", { name: "整理成职位" }).click();
+  await page.getByLabel("职位名称（中文）").fill(title);
+  await page.getByRole("button", { name: "预览", exact: true }).click();
+  await page.getByRole("button", { name: "发布", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
+
+  // A job seeker, in another browser: home → sign in → home → search → the job → 申请.
+  const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  await seeker.goto("/");
+  await signInByClicks(seeker, testInfo);
+  await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  const hero = seeker.getByRole("region", { name: /^奥克兰的中文工作/ });
+  await hero.getByRole("searchbox", { name: "搜索职位" }).fill(title);
+  await hero.getByRole("button", { name: "找工作" }).click();
+  await seeker.getByRole("main").getByRole("link", { name: title }).click();
+  await expect(seeker).toHaveURL(/\/jobs\/j\d+$/);
+  await seeker.getByRole("button", { name: "申请", exact: true }).click();
+  const form = seeker.getByRole("dialog", { name: "申请这个职位" });
+  await form.getByLabel("附言（选填）").fill("入口走查");
+  await form.getByRole("button", { name: "提交申请" }).click();
+  await expect(seeker.getByRole("dialog").getByRole("status")).toHaveText("已申请，等雇主查看");
+  await seeker.context().close();
+
+  // The employer: home → 总览 → 「1 个新申请」 → 申请人 → 合适.
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await openMine(page, testInfo, "总览");
+  await expect(page).toHaveURL("/workspace");
+  await page.getByRole("link", { name: /1 个新申请/ }).click();
+  await expect(page).toHaveURL(/\/employer\/jobs\/j\d+\/applicants$/);
+  const applicant = page.getByRole("article", { name: /^申请人 / });
+  await expect(applicant).toContainText("附言：入口走查");
+  await applicant.getByRole("button", { name: "合适", exact: true }).click();
+  await expect(applicant.getByRole("button", { name: "合适", exact: true })).toHaveAttribute("aria-pressed", "true");
+});
+
 test("职位续期: 职位管理 → 快到期的职位 → 续期 (#69)", async () => {
   test.fixme(true, "#69 (职位快到期提醒、续期和重新发布) is not merged yet; walk it once it is.");
 });
