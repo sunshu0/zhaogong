@@ -30,7 +30,6 @@ test("审核数据: a report waits in the summary, and taking the job down count
 
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  const openBefore = await summary(admin, "未处理的举报");
   const [, handledBefore, , takenDownBefore] = await thisWeek(admin);
   const weeks = admin.getByRole("table", { name: /最近 8 周每周/ });
   await expect(weeks.getByRole("row")).toHaveCount(9); // the header and eight weeks
@@ -45,7 +44,9 @@ test("审核数据: a report waits in the summary, and taking the job down count
   await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");
 
   await admin.reload();
-  expect(await summary(admin, "未处理的举报")).toBeGreaterThanOrEqual(openBefore + 1);
+  // Not openBefore + 1: specs running beside this one close their own reports meanwhile, so the total can drop.
+  // The report itself is checked in 被举报 below.
+  expect(await summary(admin, "未处理的举报")).toBeGreaterThanOrEqual(1);
   await expect(admin.getByLabel("审核数据：现在")).toContainText("最早的等了");
 
   await admin.getByRole("tab", { name: /被举报/ }).click();
