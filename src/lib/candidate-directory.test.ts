@@ -15,6 +15,7 @@ const employer: DemoSession = {
 const other = { ...employer, email: "candidate@example.com", activeRole: "seeker" as const };
 const profile = {
   ...initialProfile(other),
+  name: "王芳",
   contactName: "private contact",
   resume: { ...EMPTY_RESUME, candidateId: "abc-123", discoverable: true },
 };

@@ -3,7 +3,7 @@
 // downloads as a calendar file.
 import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { signIn } from "./helpers";
+import { freshEmail, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { instantToAuckland } from "../src/components/seeker/interviews";
 
@@ -19,7 +19,7 @@ async function applied(page: Page, browser: Browser, testInfo: TestInfo) {
   const title = uniqueTitle("面试服务员", testInfo);
   const jobId = await publishJob(page, title);
   const seeker = await (await browser.newContext({ ...testInfo.project.use, acceptDownloads: true })).newPage();
-  await signIn(seeker, `/jobs/${jobId}`);
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.interview")); // starts with 林晓's demo page (#125)
   await seeker.getByRole("button", { name: "申请", exact: true }).click();
   const form = seeker.getByRole("dialog", { name: /申请这个职位|我的申请/ });
   await form.getByRole("button", { name: "提交申请" }).click();

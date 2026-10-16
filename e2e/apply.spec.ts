@@ -21,7 +21,7 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
 
   // The job seeker: the form shows the page employers will see, without contact details; then 提交申请.
   const seeker = await seekerPage(browser, testInfo);
-  await signIn(seeker, `/jobs/${jobId}`);
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.apply")); // starts with 林晓's demo page (#125)
   await seeker.getByRole("button", { name: "申请", exact: true }).click();
   const form = applyDialog(seeker);
   await expect(form.getByRole("region", { name: "雇主会看到的资料" })).toContainText("林晓");
@@ -75,7 +75,7 @@ test("signed out, 申请 signs in and comes back with the form open; a job row s
   await page.goto("/jobs/j3");
   await page.getByRole("link", { name: "申请", exact: true }).click();
   await expect(page).toHaveURL(/\/login\?role=seeker&next=/);
-  await page.getByLabel("邮箱", { exact: true }).fill(freshEmail("e2e.apply"));
+  await page.getByLabel("邮箱", { exact: true }).fill(freshEmail("demo.apply"));
   await page.getByRole("button", { name: "获取验证码" }).click();
   await fillSignInCode(page);
   await page.getByRole("button", { name: "登录", exact: true }).click();

@@ -3,7 +3,8 @@ import { initialProfile, type Profile } from "@/components/seeker/hub-state";
 import { EMPTY_RESUME } from "@/lib/candidate-matching";
 import { profileChecklist, profileProgress } from "./profile-checklist";
 
-const seeker = initialProfile({ email: "a@b.co", signedInAt: "", activeRole: "seeker" });
+// The demo job seeker (林晓, #125: only demo accounts start with her page).
+const seeker = initialProfile({ email: "seeker@example.com", signedInAt: "", activeRole: "seeker" });
 const empty: Profile = {
   name: "",
   contactName: "",

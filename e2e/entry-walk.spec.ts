@@ -202,7 +202,7 @@ async function postAndApplyByClicks(page: Page, browser: Browser, testInfo: Test
   // A job seeker, in another browser: home → sign in → home → search → the job → 申请.
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
   await seeker.goto("/");
-  await signInByClicks(seeker, testInfo);
+  await signInByClicks(seeker, testInfo, freshEmail("demo.walk")); // starts with 林晓's demo page (#125)
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   const hero = seeker.getByRole("region", { name: /^奥克兰的中文工作/ });
   await hero.getByRole("searchbox", { name: "搜索职位" }).fill(title);
@@ -489,7 +489,7 @@ test("专业职位: home → 专业职位 → a job → 去官网申请 (#113)",
 });
 
 test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存为 PDF and 生成分享链接 (#86)", async ({ page }, testInfo) => {
-  await signInByClicks(page, testInfo);
+  await signInByClicks(page, testInfo, freshEmail("demo.walk")); // starts with 林晓's demo page (#125)
   await openMine(page, testInfo, "我的主页");
   await expect(page).toHaveURL("/profile");
   await page.getByRole("link", { name: "生成简历" }).click();

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signIn } from "./helpers";
+import { freshEmail, signIn } from "./helpers";
 
 test("/me (浏览与举报) lists jobs viewed and reports sent and clears history; 我的 signs out", async ({ page }) => {
   await page.goto("/me");
@@ -20,7 +20,7 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await page.getByRole("button", { name: "提交举报" }).click();
   await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");
 
-  const email = await signIn(page, "/me");
+  const email = await signIn(page, "/me", freshEmail("demo.me")); // starts with 林晓's demo page (#125)
   await expect(page.getByRole("heading", { level: 1, name: "浏览与举报" })).toBeVisible();
 
   const viewed = page.getByRole("region", { name: /最近看过的职位/ });

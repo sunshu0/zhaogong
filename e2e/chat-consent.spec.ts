@@ -6,7 +6,8 @@ import { signUpEmployer } from "./employer/helpers";
 test("the side that asks offers first: the other side sees its details at once, and gives its own only by agreeing", async ({
   page,
 }, testInfo) => {
-  await signIn(page, "/profile", `consent.${testInfo.project.name}.${Date.now()}@example.com`);
+  // A demo account: it starts from 林晓's demo page (#125).
+  await signIn(page, "/profile", `demo.consent.${testInfo.project.name}.${Date.now()}@example.com`);
   await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8801");
   await page.getByLabel("交换用微信", { exact: true }).fill("private_seeker_wechat");
   await expect(page.getByLabel("交换用地址", { exact: true })).toHaveCount(0); // A24: no address exchange

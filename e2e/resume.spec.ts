@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { expectProfileSaved, signIn, siteNav } from "./helpers";
+import { expectProfileSaved, freshEmail, signIn, siteNav } from "./helpers";
 
 // 中英文简历 (#86, R-37): made from the job seeker's page; the English side is only what they wrote; prints as one
 // A4 page; a share link (off by default, no email on it) can be updated and closed.
@@ -8,7 +8,7 @@ import { expectProfileSaved, signIn, siteNav } from "./helpers";
 const sheet = (page: Page) => page.getByRole("article", { name: "中英文简历" }).filter({ visible: true });
 
 async function openResume(page: Page) {
-  await signIn(page, "/profile");
+  await signIn(page, "/profile", freshEmail("demo.resume")); // starts with 林晓's demo page (#125)
   await page.getByLabel("交换用电话").fill("021 555 0186");
   await page.getByLabel("交换用邮箱").fill("lin.resume@example.com");
   await expectProfileSaved(page);

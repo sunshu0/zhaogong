@@ -3,7 +3,7 @@ import { freshEmail, openOptionalProfile, signIn } from "./helpers";
 
 // A12-1: a real sign-in (a session written into localStorage is cleared by the server).
 test.beforeEach(async ({ page }) => {
-  await signIn(page, "/profile", freshEmail("profile"));
+  await signIn(page, "/profile", freshEmail("demo.profile")); // starts with 林晓's demo page (#125)
 });
 
 test("我的主页: preview first, completeness counts the key items, optional fields folded, saved as you type", async ({
@@ -45,4 +45,20 @@ test("a save the browser refuses says so instead of 已保存", async ({ page })
   await page.getByLabel("可上班时间").fill("周末");
   await expect(page.getByText(/没有保存：这个浏览器不让本站保存资料/)).toBeVisible();
   await expect(page.getByText("已保存到你的账号")).toHaveCount(0);
+});
+
+test("a real account starts with an empty page, and applying asks for a name first (#125)", async ({ browser }) => {
+  // Its own browser: the beforeEach signed `page` in with a demo account.
+  const page = await (await browser.newContext()).newPage();
+  await signIn(page, "/profile", freshEmail("real.seeker"));
+  await expect(page.getByLabel("称呼", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("region", { name: "别人看到的样子" })).not.toContainText("林晓");
+
+  await page.goto("/jobs/j1");
+  await page.getByRole("button", { name: "申请", exact: true }).first().click();
+  const form = page.getByRole("dialog", { name: "申请这个职位" });
+  await expect(form).toContainText("还没有名字，雇主不知道是谁申请的。");
+  await expect(form.getByRole("button", { name: "提交申请" })).toBeDisabled();
+  await expect(form.getByRole("link", { name: "编辑我的主页" })).toHaveAttribute("href", "/profile");
+  await page.context().close();
 });

@@ -63,7 +63,7 @@ it("does not restore malformed accepted data as consent", () => {
 
 it("keeps contact details out of resume exchanges and has no address to offer", () => {
   const profile = {
-    ...initialProfile(null),
+    ...initialProfile({ email: "seeker@example.com", signedInAt: "", activeRole: "seeker" }),
     privateDetails: { phone: "021 555 8888", wechat: "private", email: "" },
   };
   expect(profilePayload(profile, "contact", false)?.fields.map((field) => field.value)).toEqual([

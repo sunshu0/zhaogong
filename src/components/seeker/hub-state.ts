@@ -1,4 +1,5 @@
 import type { DemoSession } from "@/components/seeker/session";
+import { isDemoAccount } from "@/lib/demo-accounts";
 import { parseStoredIdentities, scopeRole } from "@/components/seeker/identity-scope";
 import { parseResume, type Resume } from "@/lib/candidate-matching";
 import {
@@ -27,17 +28,24 @@ export type Profile = {
   resumeContact?: ResumeContactChoice;
 };
 
+const EMPTY_PAGE: Profile = {
+  name: "",
+  contactName: "",
+  headline: "",
+  location: "",
+  languages: "",
+  availability: "",
+  bio: "",
+};
+
+/**
+ * The page before anyone changed it: empty, with the business's name for a 企业主页. Only a demo account's job seeker
+ * page starts as the demo's 林晓 (isDemoAccount, #125), so a real account never carries her details.
+ */
 export function initialProfile(session: DemoSession | null): Profile {
-  return session?.activeRole === "employer"
-    ? {
-        name: session.employerName ?? "",
-        contactName: "",
-        headline: "",
-        location: "",
-        languages: "",
-        availability: "",
-        bio: "",
-      }
+  if (session?.activeRole === "employer") return { ...EMPTY_PAGE, name: session.employerName ?? "" };
+  return !isDemoAccount(session?.email)
+    ? EMPTY_PAGE
     : {
         name: "林晓",
         contactName: "",
@@ -99,14 +107,13 @@ export function resolveProfiles(patches: Record<string, Partial<Profile>>): Reco
   return Object.fromEntries(
     Object.entries(patches).flatMap(([scope, patch]) => {
       const role = scopeRole(scope);
-      return role ? [[scope, { ...initialProfile(role === "employer" ? EMPLOYER : SEEKER), ...patch }]] : [];
+      // A stand-in session for the defaults: the scope's email decides a demo page; an employer's business name
+      // comes from the business itself.
+      const email = !role ? "" : scope.startsWith("[") ? String((JSON.parse(scope) as unknown[])[0]) : scope;
+      return role ? [[scope, { ...initialProfile({ email, signedInAt: "", activeRole: role }), ...patch }]] : [];
     }),
   );
 }
-
-// Stand-ins for the defaults of a stored scope; an employer's business name comes from the business itself.
-const SEEKER: DemoSession = { email: "", signedInAt: "", activeRole: "seeker" };
-const EMPLOYER: DemoSession = { ...SEEKER, activeRole: "employer" };
 
 type NotificationTarget =
   | { type: "conversation"; id: string }
