@@ -1,7 +1,7 @@
 // Database tables. Shapes follow src/lib/types.ts; lists and small objects are stored as JSON, pay in cents.
 // The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
 // sign-in and sessions come with A12-1, chats and exchanges with A12-2.
-import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type {
   AccountRole,
   CountryCode,
@@ -15,6 +15,7 @@ import type {
 } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
+import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -336,4 +337,36 @@ export const jobRenewals = sqliteTable(
     expiresAfter: text("expires_after").notNull(),
   },
   (table) => [index("job_renewals_job_idx").on(table.jobId)],
+);
+
+/**
+ * 一键申请 (#84, R-35): one row per job seeker and job. The employer reaches it by `id` and never sees the email;
+ * `profile` is the job seeker's page as it was when they applied (it lives in their browser). Withdrawing deletes
+ * the row.
+ */
+export const jobApplications = sqliteTable(
+  "job_applications",
+  {
+    id: text("id").primaryKey(),
+    seekerEmail: text("seeker_email")
+      .notNull()
+      .references(() => accounts.email),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    note: text("note").notNull(),
+    profile: text("profile", { mode: "json" }).$type<ApplicationProfile>().notNull(),
+    appliedAt: text("applied_at").notNull(),
+    seenAt: text("seen_at"),
+    decision: text("decision").$type<ApplicationDecision>(),
+    decidedAt: text("decided_at"),
+  },
+  (table) => [
+    uniqueIndex("job_applications_seeker_job_idx").on(table.seekerEmail, table.jobId),
+    index("job_applications_job_idx").on(table.jobId),
+    index("job_applications_employer_idx").on(table.employerId),
+  ],
 );

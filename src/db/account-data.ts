@@ -22,6 +22,15 @@ export interface ServerAccountData {
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /** Saved jobs and how far the application got (#52). */
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
+  /** Jobs this account applied for (#84), with the note and the page sent, and what the employer did. */
+  applications: {
+    jobId: string;
+    appliedAt: string;
+    note: string;
+    profile: unknown;
+    seenAt: string | null;
+    decision: string | null;
+  }[];
   /** Jobs this account started a chat about (counted for the employer, #55). */
   chatStarts: { jobId: string; startedAt: string }[];
   /** Job alerts (#53): saved searches, and the new jobs they found. */
@@ -61,6 +70,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.savedJobs)
     .where(eq(t.savedJobs.email, address))
     .orderBy(asc(t.savedJobs.savedAt));
+  const applications = await db
+    .select()
+    .from(t.jobApplications)
+    .where(eq(t.jobApplications.seekerEmail, address))
+    .orderBy(asc(t.jobApplications.appliedAt));
   const starts = await db
     .select()
     .from(t.jobChatStarts)
@@ -105,6 +119,14 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       updatedAt: row.updatedAt,
     })),
     savedJobs: saved.map((s) => ({ jobId: s.jobId, savedAt: s.savedAt, stage: s.stage, stageSetAt: s.stageSetAt })),
+    applications: applications.map((a) => ({
+      jobId: a.jobId,
+      appliedAt: a.appliedAt,
+      note: a.note,
+      profile: a.profile,
+      seenAt: a.seenAt,
+      decision: a.decision,
+    })),
     chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
     jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
     jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
@@ -140,6 +162,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
+    // Applications are the person's page and note: they go, and the employers' lists lose them (#84).
+    await tx.delete(t.jobApplications).where(eq(t.jobApplications.seekerEmail, address));
     await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
     await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
     await tx

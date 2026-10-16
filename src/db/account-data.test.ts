@@ -9,6 +9,7 @@ import { database } from "@/db/ready";
 import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
 import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
+import { addApplication } from "@/db/job-applications";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
 import { DEMO_MODERATOR } from "@/db/seed";
@@ -27,6 +28,17 @@ import {
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { Job } from "@/lib/types";
 import { MOCK_JOBS } from "@/mock/data";
+import type { ApplicationProfile } from "@/components/seeker/applications";
+
+const APPLICATION_PAGE: ApplicationProfile = {
+  name: "导出测试",
+  headline: "",
+  location: "市中心",
+  languages: "普通话",
+  availability: "周末",
+  bio: "",
+  resume: { skills: "", employmentTypes: [], regionIds: [] },
+};
 
 const scopeOf = (email: string, role: "seeker" | "employer", employerId: string | null = null) =>
   JSON.stringify([email, role, employerId]);
@@ -70,6 +82,7 @@ async function fullAccount(email: string) {
   await chats.putNotificationReads(scopeOf(email, "employer", business.id), ["n2"]);
   await recordContactView("j1", email);
   await saveJob(email, "j1");
+  await addApplication({ email, jobId: "j1", employerId: "e1", note: "周末可以", profile: APPLICATION_PAGE });
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
@@ -95,6 +108,16 @@ describe("exportAccountData (#54)", () => {
     );
     expect(data?.chats.find((c) => c.identity === scopeOf(email, "seeker"))?.notificationsRead).toEqual(["n1"]);
     expect(data?.savedJobs).toEqual([{ jobId: "j1", savedAt: expect.any(String), stage: null, stageSetAt: null }]);
+    expect(data?.applications).toEqual([
+      {
+        jobId: "j1",
+        appliedAt: expect.any(String),
+        note: "周末可以",
+        profile: APPLICATION_PAGE,
+        seenAt: null,
+        decision: null,
+      },
+    ]);
     expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
     expect(data?.jobAlerts).toEqual([
       { name: "全部新职位", query: "", paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
@@ -132,6 +155,7 @@ describe("deleteAccount (#54)", () => {
       [t.chatRecords, t.chatRecords.email],
       [t.contactViews, t.contactViews.viewerEmail],
       [t.savedJobs, t.savedJobs.email],
+      [t.jobApplications, t.jobApplications.seekerEmail],
       [t.jobAlerts, t.jobAlerts.email],
       [t.jobAlertHits, t.jobAlertHits.email],
     ] as const) {
@@ -204,6 +228,7 @@ describe("deleteAccount (#54)", () => {
       "chat_records.email",
       "contact_views.viewer_email",
       "saved_jobs.email",
+      "job_applications.seeker_email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",
