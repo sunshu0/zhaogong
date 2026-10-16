@@ -14,7 +14,18 @@ import {
 } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReport } from "@/lib/chat-report";
 
-export type Message = { from: "me" | "them"; text: string; time: string; sentAt?: string; readAt?: string };
+export type Message = {
+  from: "me" | "them";
+  text: string;
+  time: string;
+  sentAt?: string;
+  readAt?: string;
+  /**
+   * Who in a business's team sent a message of the business side (#87): the name they go by, as it was when sent.
+   * Kept for the shared conversations of #110, where the job seeker sees 「店名 · 名字」.
+   */
+  by?: string;
+};
 
 export type Conversation = {
   id: string;
@@ -95,8 +106,8 @@ export function markConversationRead(record: ChatRecord, id: string, now: string
   return { ...record, readAt: { ...record.readAt, [id]: now } };
 }
 
-export function addSentMessage(record: ChatRecord, id: string, text: string, now: string): ChatRecord {
-  const message: Message = { from: "me", text, time: "刚刚", sentAt: now };
+export function addSentMessage(record: ChatRecord, id: string, text: string, now: string, by?: string): ChatRecord {
+  const message: Message = { from: "me", text, time: "刚刚", sentAt: now, ...(by ? { by } : {}) };
   return { ...record, added: { ...record.added, [id]: [...(record.added[id] ?? []), message] } };
 }
 
@@ -217,6 +228,7 @@ function parseMessage(value: unknown): Message[] {
       time: m.time,
       ...(validTimestamp(m.sentAt) ? { sentAt: m.sentAt } : {}),
       ...(validTimestamp(m.readAt) ? { readAt: m.readAt } : {}),
+      ...(typeof m.by === "string" && m.by.length <= 40 ? { by: m.by } : {}),
     },
   ];
 }

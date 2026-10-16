@@ -21,6 +21,7 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
       ? [
           { href: "/employer/candidates", label: "推荐人才" },
           { href: "/employer/verify", label: "企业验证" }, // #78: from 工作台, not only from 企业主页
+          { href: "/employer/team", label: "团队" }, // #87
         ]
       : [
           { href: "/me/saved", label: "收藏和进度" },

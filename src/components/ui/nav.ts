@@ -93,6 +93,7 @@ export function activeNavKey(pathname: string): NavKey | null {
       "/me/saved",
       "/me/alerts",
       "/employer/verify",
+      "/employer/team",
     ].includes(pathname)
   )
     return "mine";

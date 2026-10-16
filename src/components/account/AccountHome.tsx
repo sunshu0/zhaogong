@@ -12,6 +12,7 @@ import { signOut, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
 import { LinkList, type LinkListItem } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
+import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 
 /** 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. */
@@ -36,6 +37,7 @@ export function AccountHome() {
       ? [
           { href: "/employer/candidates", label: "推荐人才" },
           { href: "/employer/verify", label: "企业验证", detail: "申请「已验证企业」标识，审核员人工核对" },
+          { href: "/employer/team", label: "团队", detail: "邀请同事一起管理职位和聊天" },
         ]
       : [
           { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
@@ -77,6 +79,7 @@ export function AccountHome() {
           </p>
         )}
       </Section>
+      {!employer && <TeamInvites email={session.email} />}
       <Section>
         <LinkList items={rows} />
       </Section>

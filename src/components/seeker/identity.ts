@@ -80,7 +80,7 @@ export function identityLabel(session: DemoSession): string {
 export function openErrorMessage(reason: "no_employer" | "banned" | "taken" | "already_employer"): string {
   switch (reason) {
     case "taken":
-      return "这家店已被其他账号绑定。如果是你的店，请联系我们；也可以新建企业。";
+      return "这家店已经有团队在用了。请找这家店的管理员在「团队」里邀请你；也可以新建企业。";
     case "banned":
       return "这家企业已被停用，不能再绑定。";
     case "no_employer":

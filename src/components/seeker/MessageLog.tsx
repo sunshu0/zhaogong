@@ -54,6 +54,8 @@ function MessageBubble({
       >
         <p>{message.text}</p>
         <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${mine ? "text-white" : "text-muted"}`}>
+          {/* Who in the business's team sent it (#87); the business side shares one set of conversations. */}
+          {mine && message.by && <span data-message-by="">{message.by}</span>}
           <span>{message.time}</span>
           <span data-message-read="" aria-label={mine ? `对方${readLabel}` : readLabel}>
             {readLabel}

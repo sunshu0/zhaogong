@@ -336,7 +336,7 @@ function BusinessStep({
               <span className="block text-sm font-medium">{b.name}</span>
               <span className="block text-xs text-muted">
                 {b.regionName} · {VERIFICATION_LABELS[b.verification].zh}
-                {b.claimed && " · 已被绑定"}
+                {b.claimed && " · 已有团队，需要管理员邀请"}
               </span>
             </Choice>
           ))}

@@ -98,6 +98,11 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   // The signed-in shop's own NZBN is also in the header, so wait for the result line itself.
   await expect(page.getByText("NZBN 9429000000001 · 商号：川味小馆").filter({ visible: true })).toBeVisible();
   await expectNoViolations(page, "/employer/verify with results");
+
+  // 团队 (#87): the admin's view, with the invite form.
+  await page.goto("/employer/team");
+  await expect(page.getByRole("button", { name: "发送邀请" })).toBeVisible();
+  await expectNoViolations(page, "/employer/team");
 });
 
 test("moderation queue, each tab", async ({ browser, page }, testInfo) => {

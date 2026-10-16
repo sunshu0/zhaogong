@@ -114,7 +114,8 @@ type NotificationTarget =
   | { type: "job"; id: string }
   | { type: "closing_jobs" }
   | { type: "applicants"; jobId: string }
-  | { type: "verification" };
+  | { type: "verification" }
+  | { type: "team_invite" };
 export type Notification = {
   id: string;
   type: string;
@@ -226,5 +227,7 @@ export function notificationHref(item: Notification, session: DemoSession | null
             ? `/employer/jobs/${encodeURIComponent(target.jobId)}/applicants`
             : target?.type === "verification"
               ? "/employer/verify"
-              : undefined;
+              : target?.type === "team_invite"
+                ? "/account#team-invites"
+                : undefined;
 }

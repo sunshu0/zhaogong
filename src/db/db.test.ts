@@ -55,14 +55,22 @@ describe("database", () => {
     });
   });
 
-  it("lets one business belong to one account only", async () => {
+  it("lets a business have a team of accounts (#87), each account working for one business", async () => {
     const db = getDb();
     await db
       .insert(employers)
       .values({ id: "e1", name: "店", verification: "unverified", regionId: "akl-cbd", createdAt: "2026-10-13" });
-    await db.insert(accounts).values({ email: "a@example.com", createdAt: "2026-10-13", employerId: "e1" });
+    await db
+      .insert(accounts)
+      .values({ email: "a@example.com", createdAt: "2026-10-13", employerId: "e1", teamRole: "admin" });
+    await db
+      .insert(accounts)
+      .values({ email: "b@example.com", createdAt: "2026-10-13", employerId: "e1", teamRole: "member" });
+    const team = await db.select().from(accounts).where(eq(accounts.employerId, "e1"));
+    expect(team.map((a) => a.teamRole).sort()).toEqual(["admin", "member"]);
+    // Not a business that does not exist.
     await expect(
-      db.insert(accounts).values({ email: "b@example.com", createdAt: "2026-10-13", employerId: "e1" }),
+      db.insert(accounts).values({ email: "c@example.com", createdAt: "2026-10-13", employerId: "e404" }),
     ).rejects.toThrow();
   });
 });

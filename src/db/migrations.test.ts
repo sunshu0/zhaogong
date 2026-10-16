@@ -51,4 +51,29 @@ describe("versioned migrations", () => {
       expect.arrayContaining(["accounts", "conversations", "exchanges", "messages", "sessions", "sign_in_codes"]),
     );
   });
+
+  it("makes every account that already had a business its team's admin (0013, #87)", async () => {
+    resetDbForTests();
+    const before = migrationsUpTo(13);
+    made.push(before);
+    const db = getDb();
+    await migrate(db, { migrationsFolder: before });
+    await db.run(sql`insert into employers (id, name, verification, region_id, created_at)
+      values ('e1', '川味小馆', 'unverified', 'akl-mt-eden', '2026-09-01')`);
+    await db.run(sql`insert into accounts (email, created_at, employer_id)
+      values ('boss@example.com', '2026-09-01T00:00:00.000Z', 'e1'), ('seeker@example.com', '2026-09-02T00:00:00.000Z', null)`);
+
+    await migrate(db, { migrationsFolder: path.join(projectRoot(), "drizzle") });
+
+    const rows = await db.all<{ email: string; team_role: string | null; team_joined_at: string | null }>(
+      sql`select email, team_role, team_joined_at from accounts order by email`,
+    );
+    expect(rows).toEqual([
+      { email: "boss@example.com", team_role: "admin", team_joined_at: "2026-09-01T00:00:00.000Z" },
+      { email: "seeker@example.com", team_role: null, team_joined_at: null },
+    ]);
+    // A second account can now work for the same business.
+    await db.run(sql`insert into accounts (email, created_at, employer_id, team_role)
+      values ('staff@example.com', '2026-10-01T00:00:00.000Z', 'e1', 'member')`);
+  });
 });

@@ -72,6 +72,22 @@
 
 `findings` 的每一项：`{ level: "block" | "rewrite" | "review", field, message_zh, rule, matches }`（`src/lib/compliance/`）。
 
+`requestVerification` 只有团队管理员能调用（#87），成员调用时返回「只有团队管理员能申请企业验证，请找你们店的管理员。」。
+
+## 团队 — `src/app/employer/team-actions.ts`
+
+雇主多人管理（#87，ADR 0012）。人和企业都从会话读。没有雇主身份时读操作返回 `null` / `[]`，写操作返回「需要先开通雇主身份。」。只有管理员能邀请、撤回、改身份和移出；拒绝时的文字：「只有管理员能管理团队。」「团队里至少要有一位管理员：先把另一位成员设为管理员。」「这个人已经不在团队里了。」「你已经不在这家企业的团队里了。」。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `getMyTeam()` | | `{ employer: { id, name }, me: { email, role, name }, members, invites }`：成员按管理员在前、加入时间排序，每人 `{ email, role, name, joinedAt }`；`invites` 是没回复的邀请 `{ id, email, role, createdAt }`，只给管理员（成员是 `[]`） | `null` |
+| `inviteTeammate(email, role)` | 对方注册找工用的邮箱；`role` 是 `admin` 或 `member`（默认） | `{ ok: true }` | 「请填写对方注册找工用的邮箱。」「这个邮箱还没有注册找工。…」「这个人已经在团队里了。」「这个账号已经属于另一家企业，不能再加入。」「已经邀请过这个人，等对方回复。」「团队最多 10 人（包括还没回复的邀请）。」 |
+| `cancelTeamInvite(inviteId)` | | `{ ok: true }` | 「这条邀请已经回复或撤回了。」 |
+| `changeMyTeam(change)` | `{ type: "role", email, role }`、`{ type: "remove", email }` 或 `{ type: "leave" }` | `{ ok: true }`；退出后会话切回求职者身份 | 见上；「看不懂这个操作。」 |
+| `setMyTeamName(name)` | 称呼，去掉首尾空格后 1–12 个字，不能有邮箱或电话 | `{ ok: true, name }` | 「请填写称呼，例如「王经理」。」「称呼最多 12 个字。」「称呼里不要写邮箱或电话。」 |
+| `getMyTeamInvites()` | | 发给自己、没回复的邀请 `{ id, employerName, role, createdAt }`，旧的在前；已经有企业时是 `[]`；被封禁的企业不列 | `[]` |
+| `answerTeamInvite(inviteId, answer)` | `{ accept: true, name }` 或 `{ accept: false }` | `{ ok: true, employer? }`：接受时带上企业，会话已切到雇主身份 | 称呼的错误同上；「这条邀请已经撤回或回复过了。」「你的账号已经属于一家企业，不能再加入别的企业。」「这个团队已经满 10 人了。」 |
+
 ## 职位浏览计数 — `src/app/employer/count-view.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
@@ -246,6 +262,7 @@
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
 | `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
+| `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87） | 雇主身份 |
 | `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |

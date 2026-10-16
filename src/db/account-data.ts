@@ -1,7 +1,7 @@
 // A person's own data (#54, R-30): everything the server keeps about an account, for 导出我的数据, and deleting the
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne, or } from "drizzle-orm";
 import { listRenewals, type JobRenewal } from "@/db/job-renewals";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
@@ -16,6 +16,10 @@ import type { AccountRole, Employer, Job } from "@/lib/types";
 /** The server's part of the export. The browser adds what it keeps itself (profiles, reports sent, jobs viewed). */
 export interface ServerAccountData {
   account: { email: string; createdAt: string; lastRole: AccountRole };
+  /** The account's place in its business's team (#87): role, the name the team sees, since when. */
+  team: { role: string; name: string | null; joinedAt: string | null } | null;
+  /** Team invitations this account received or sent (#87), whatever their status. */
+  teamInvites: { employerId: string; role: string; received: boolean; status: string; createdAt: string }[];
   moderator: { grantedAt: string; grantedBy: string | null } | null;
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
@@ -114,6 +118,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobAlerts)
     .where(eq(t.jobAlerts.email, address))
     .orderBy(asc(t.jobAlerts.createdAt));
+  const invites = await db
+    .select()
+    .from(t.teamInvites)
+    .where(or(eq(t.teamInvites.email, address), eq(t.teamInvites.invitedByEmail, address)))
+    .orderBy(asc(t.teamInvites.createdAt));
   const hits = await db
     .select()
     .from(t.jobAlertHits)
@@ -132,6 +141,16 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
 
   return {
     account: { email: account.email, createdAt: account.createdAt, lastRole: account.lastRole },
+    team: account.employerId
+      ? { role: account.teamRole ?? "admin", name: account.teamName, joinedAt: account.teamJoinedAt }
+      : null,
+    teamInvites: invites.map((i) => ({
+      employerId: i.employerId,
+      role: i.role,
+      received: i.email === address,
+      status: i.status,
+      createdAt: i.createdAt,
+    })),
     moderator: moderator ? { grantedAt: moderator.grantedAt, grantedBy: moderator.grantedBy } : null,
     moderationActions: actions.map((a) => ({
       id: a.id,
@@ -181,12 +200,13 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
   };
 }
 
-export type DeleteAccountResult = "deleted" | "no_account" | "last_moderator";
+export type DeleteAccountResult = "deleted" | "no_account" | "last_moderator" | "last_team_admin";
 
 /**
  * Deletes the account and everything that is only about it, in one transaction. The business's jobs come down and
- * lose their contact details; records other people rely on stay, with the email replaced. The last moderator cannot
- * go (nobody could moderate). The caller ends the browser's session.
+ * lose their contact details, unless others in its team carry on (#87); records other people rely on stay, with the
+ * email replaced. The last moderator cannot go (nobody could moderate), nor a team's last admin while the team has
+ * others (nobody could run it). The caller ends the browser's session.
  */
 export async function deleteAccount(email: string): Promise<DeleteAccountResult> {
   const address = normalizeEmail(email);
@@ -194,6 +214,14 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
   return db.transaction(async (tx) => {
     const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
     if (!account) return "no_account";
+    const teammates = account.employerId
+      ? await tx
+          .select({ role: t.accounts.teamRole })
+          .from(t.accounts)
+          .where(and(eq(t.accounts.employerId, account.employerId), ne(t.accounts.email, address)))
+      : [];
+    if (account.teamRole !== "member" && teammates.length && !teammates.some((m) => m.role === "admin"))
+      return "last_team_admin";
     const [moderator] = await tx.select().from(t.moderators).where(eq(t.moderators.email, address));
     if (moderator) {
       const [{ n }] = await tx.select({ n: count() }).from(t.moderators);
@@ -228,6 +256,12 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.resumeShares).where(eq(t.resumeShares.email, address));
     await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
     await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
+    // Invitations to this account go with it; ones it sent stay as the team's record, without its email (#87).
+    await tx.delete(t.teamInvites).where(eq(t.teamInvites.email, address));
+    await tx
+      .update(t.teamInvites)
+      .set({ invitedByEmail: DELETED_ACCOUNT })
+      .where(eq(t.teamInvites.invitedByEmail, address));
     await tx
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
@@ -250,9 +284,16 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       await tx.delete(t.conversations).where(inArray(t.conversations.id, ids));
     }
 
-    // The business stays (reports and the moderation log name it, and a ban must outlive the account), but nobody
-    // posts for it any more: its jobs come down and the contact details on them, the person's own, are cleared.
-    if (account.employerId) {
+    // The business stays (reports and the moderation log name it, and a ban must outlive the account). When nobody
+    // else in its team carries on, nobody posts for it any more: its jobs come down and the contact details on them,
+    // the person's own, are cleared, and invitations nobody answered are cancelled (#87).
+    if (account.employerId && !teammates.length) {
+      // The business's shared chats (#87) were only ever this person's side of the conversations.
+      await tx.delete(t.teamChats).where(eq(t.teamChats.employerId, account.employerId));
+      await tx
+        .update(t.teamInvites)
+        .set({ status: "cancelled" })
+        .where(and(eq(t.teamInvites.employerId, account.employerId), eq(t.teamInvites.status, "pending")));
       await tx
         .update(t.jobs)
         .set({ status: "removed", contact: {}, contactPublic: false })

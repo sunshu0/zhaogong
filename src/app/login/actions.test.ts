@@ -118,7 +118,7 @@ describe("openEmployerForAccount", () => {
     expect((await openEmployerForAccount("first@example.com", { kind: "existing", employerId: "e1" })).ok).toBe(true);
     await signIn("second@example.com");
     const second = await openEmployerForAccount("second@example.com", { kind: "existing", employerId: "e1" });
-    expect(second).toEqual({ ok: false, error: expect.stringContaining("已被其他账号绑定") });
+    expect(second).toEqual({ ok: false, error: expect.stringContaining("已经有团队在用了") });
     expect(await getAccountEmployer("second@example.com")).toBeUndefined();
   });
 

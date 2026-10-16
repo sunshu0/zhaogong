@@ -338,6 +338,52 @@ test("企业验证: home → 工作台 → 企业验证 → 提交审核; a mode
   await admin.context().close();
 });
 
+test("团队: home → 团队 → 邀请; the invited: home → 通知 → 接受 → 发布招聘 (#87)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await openShopAndPublish(page, testInfo, uniqueTitle("走查团队", testInfo));
+  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await expect(page).toHaveURL("/");
+
+  // The person to invite signs up first, from the home page of their own browser.
+  const staff = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  await staff.goto("/");
+  const email = await signInByClicks(staff, testInfo, freshEmail("walk.staff"));
+
+  await openMine(page, testInfo, "团队");
+  await expect(page).toHaveURL("/employer/team");
+  await page.getByLabel("对方的邮箱").fill(email);
+  await page.getByRole("button", { name: "发送邀请" }).click();
+  await expect(page.getByRole("status")).toContainText(`已邀请 ${email}`);
+
+  await staff.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
+  await expect(staff).toHaveURL("/");
+  await openMine(staff, testInfo, "通知");
+  await staff
+    .getByRole("main")
+    .getByRole("link", { name: /邀请你加入团队/ })
+    .click();
+  await expect(staff).toHaveURL("/account#team-invites");
+  const invite = staff.getByRole("form", { name: /的邀请$/ });
+  await invite.getByLabel(/你在团队里的称呼/).fill("走查店员");
+  await invite.getByRole("button", { name: "接受并加入" }).click();
+  await expect(staff).toHaveURL("/employer/team");
+
+  // The phone's employer bottom bar has 发布 as its raised middle button; the desktop header has 发布招聘.
+  if (isPhone(testInfo)) await siteNav(staff).getByRole("link", { name: "发布", exact: true }).click();
+  else await staff.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
+  await expect(staff).toHaveURL("/employer/post");
+  await openTheForm(staff);
+  await staff.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await staff.getByRole("button", { name: "整理成职位" }).click();
+  await staff.getByLabel("职位名称（中文）").fill(uniqueTitle("店员发的", testInfo));
+  await staff.getByRole("button", { name: "预览", exact: true }).click();
+  await staff.getByRole("button", { name: "发布", exact: true }).click();
+  await expect(staff.getByRole("heading", { name: "已发布" })).toBeVisible();
+  await staff.context().close();
+});
+
 test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async ({ page, browser }, testInfo) => {
   // A fresh account, made a moderator by the demo one (its code can be asked for once a minute, so it is not
   // signed in again here).

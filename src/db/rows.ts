@@ -89,8 +89,9 @@ export const toContactView = ({ jobId, viewerEmail, viewedAt }: ContactViewRow):
 
 export const toLogEntry = (r: LogRow): ModerationLogEntry => present(r) as ModerationLogEntry;
 
-export const toAccount = ({ email, createdAt, employerId }: AccountRow): Account => ({
+export const toAccount = ({ email, createdAt, employerId, teamRole, teamName }: AccountRow): Account => ({
   email,
   createdAt,
-  ...(employerId != null && { employerId }),
+  ...(employerId != null && { employerId, teamRole: teamRole ?? "admin" }),
+  ...(employerId != null && teamName != null && { teamName }),
 });

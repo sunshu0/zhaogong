@@ -18,6 +18,7 @@ import type { SavedStage } from "@/components/seeker/saved-jobs";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
+import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -105,16 +106,50 @@ export const moderationLog = sqliteTable("moderation_log", {
 });
 
 /** One person, one email; every account can look for work, and can open one employer identity. */
-export const accounts = sqliteTable("accounts", {
-  email: text("email").primaryKey(), // lower-cased, trimmed
-  createdAt: text("created_at").notNull(),
-  /** The business of the employer identity, once opened. One business belongs to one account. */
-  employerId: text("employer_id")
-    .unique()
-    .references(() => employers.id),
-  /** The identity last used, so a new session starts where the person left off. */
-  lastRole: text("last_role").$type<AccountRole>().notNull().default("seeker"),
-});
+export const accounts = sqliteTable(
+  "accounts",
+  {
+    email: text("email").primaryKey(), // lower-cased, trimmed
+    createdAt: text("created_at").notNull(),
+    /**
+     * The business of the employer identity, once opened. An account works for one business; a business can have
+     * a team of accounts (#87, ADR 0012).
+     */
+    employerId: text("employer_id").references(() => employers.id),
+    /** The identity last used, so a new session starts where the person left off. */
+    lastRole: text("last_role").$type<AccountRole>().notNull().default("seeker"),
+    /** Set together with employerId (#87): admin or member of the business's team, and since when. */
+    teamRole: text("team_role").$type<TeamRole>(),
+    /** What the team calls this person in the business's chats, e.g. 王经理 (#87). */
+    teamName: text("team_name"),
+    teamJoinedAt: text("team_joined_at"),
+  },
+  (table) => [index("accounts_employer_idx").on(table.employerId)],
+);
+
+/**
+ * An admin's invitation for an account to join the business's team (#87). The invited account must exist and have
+ * no business; it accepts or declines. Rows stay as the record; the inviter's email becomes deleted-account when
+ * that account is deleted, and an invited account's rows go with it.
+ */
+export const teamInvites = sqliteTable(
+  "team_invites",
+  {
+    id: text("id").primaryKey(),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    role: text("role").$type<TeamRole>().notNull(),
+    invitedByEmail: text("invited_by_email").notNull(),
+    createdAt: text("created_at").notNull(),
+    status: text("status").$type<TeamInviteStatus>().notNull(),
+    answeredAt: text("answered_at"),
+  },
+  (table) => [index("team_invites_email_idx").on(table.email), index("team_invites_employer_idx").on(table.employerId)],
+);
 
 // ---- reserved: sign-in and sessions (A12-1) ----
 
@@ -213,6 +248,18 @@ export const chatRecords = sqliteTable(
   },
   (table) => [index("chat_records_email_idx").on(table.email)],
 );
+
+/**
+ * A business's chat record (#87): the conversations everyone in its team shares, as a ChatRecord (checked with
+ * parseChatRecord when read). Notification reads and change tickets stay per person in chat_records.
+ */
+export const teamChats = sqliteTable("team_chats", {
+  employerId: text("employer_id")
+    .primaryKey()
+    .references(() => employers.id),
+  record: text("record", { mode: "json" }).$type<unknown>().notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
 
 // ---- moderators (#50) ----
 

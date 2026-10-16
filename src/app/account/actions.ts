@@ -28,6 +28,9 @@ export async function deleteMyAccount(typedEmail: string): Promise<{ ok: true } 
   if (result === "last_moderator") {
     return { ok: false, error: "你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。" };
   }
+  if (result === "last_team_admin") {
+    return { ok: false, error: "你是团队里唯一的管理员。请先在「团队」里把另一位成员设为管理员，再删除账号。" };
+  }
   await signOut();
   return { ok: true };
 }

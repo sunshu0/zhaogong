@@ -3,9 +3,10 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import type { Employer } from "@/lib/types";
 import { lookupBusiness, requestVerification, type MyVerification } from "@/app/employer/actions";
+import type { MyTeam } from "@/app/employer/team-actions";
 import type { RegisterEntry } from "@/components/employer/business-register";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
-import { useEmployerProfile, useMyVerification } from "@/components/employer/use-employer";
+import { useEmployerProfile, useMyTeam, useMyVerification } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { canApplyFor, KIND_LABELS, REJECT_REASONS, type VerifyKind } from "@/components/employer/verification";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
@@ -31,6 +32,9 @@ export function VerifyBusiness() {
 function Verify({ me }: { me: EmployerIdentity }) {
   const { profile, reload: reloadProfile } = useEmployerProfile(me.email);
   const { request, reload } = useMyVerification(me.email);
+  const { team } = useMyTeam(me.email);
+  // Only an admin of the team applies (#87); the server refuses anyone else too.
+  const isMember = team?.me.role === "member";
   const employer: Pick<Employer, "name" | "verification" | "businessNumber" | "bannedAt"> = profile ?? {
     name: me.employerName,
     verification: "unverified",
@@ -86,7 +90,13 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
       <BadgeMeaning />
 
-      {canApply && (
+      {canApply && isMember && (
+        <p className="rounded-md border border-border bg-surface p-4 text-body">
+          只有团队管理员能申请企业验证。请找你们店的管理员（{adminNames(team)}）。
+        </p>
+      )}
+
+      {canApply && team && !isMember && (
         <ApplyForm
           key={request?.id ?? "first"}
           kinds={kinds}
@@ -372,4 +382,11 @@ function BadgeMeaning() {
       </div>
     </section>
   );
+}
+
+function adminNames(team: MyTeam | null | undefined): string {
+  return (team?.members ?? [])
+    .filter((m) => m.role === "admin")
+    .map((m) => m.name ?? m.email)
+    .join("、");
 }

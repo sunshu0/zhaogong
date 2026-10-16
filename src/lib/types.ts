@@ -167,7 +167,7 @@ export type AccountRole = "seeker" | "employer";
 
 /**
  * One person, one email. Every account can look for work; an account can also open an employer
- * identity for one business and switch between the two.
+ * identity for one business and switch between the two. A business can have several accounts (#87).
  */
 export interface Account {
   /** Lower-cased, trimmed. */
@@ -175,4 +175,7 @@ export interface Account {
   createdAt: string; // ISO datetime
   /** Set once the employer identity is opened. */
   employerId?: string;
+  /** With employerId (#87): admin or member of the business's team, and the name the team knows them by. */
+  teamRole?: "admin" | "member";
+  teamName?: string;
 }

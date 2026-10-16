@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { databaseChatStore } from "@/db/chat-store";
-import { resetDatabaseForTests } from "@/db/ready";
-import { ensureAccount } from "@/lib/data";
+import { createEmployer, ensureAccount } from "@/lib/data";
+import { database, resetDatabaseForTests } from "@/db/ready";
+import { chatRecords } from "@/db/schema";
 import { EMPTY_CHAT, addSentMessage } from "@/components/seeker/chat-store";
 
 const scopeOf = (email: string, role: "seeker" | "employer" = "seeker", employerId: string | null = null) =>
@@ -13,6 +14,17 @@ const sent = (text: string) => addSentMessage(EMPTY_CHAT, "c1", text, "2026-10-1
 
 describe("chat records in the database (#42)", () => {
   const store = databaseChatStore();
+
+  it("keeps a business's shared record (team:<id>, #87) in team_chats, apart from its people's own", async () => {
+    const shop = await createEmployer({ name: "共享记录小店", regionId: "akl-cbd" });
+    const team = `team:${shop.id}`;
+    expect(await store.getChat(team)).toBeUndefined();
+    await store.putChat(team, addSentMessage(EMPTY_CHAT, "c1", "店里的回复", "2026-10-17T01:00:00.000Z", "小李"));
+    await store.putChat(team, addSentMessage(EMPTY_CHAT, "c1", "又一条", "2026-10-17T01:01:00.000Z", "小李"));
+    expect((await store.getChat(team))?.added.c1).toMatchObject([{ text: "又一条", by: "小李" }]);
+    const db = await database();
+    expect(await db.select().from(chatRecords)).not.toContainEqual(expect.objectContaining({ scope: team }));
+  });
 
   it("has nothing for an identity that never wrote", async () => {
     const scope = scopeOf("nobody.yet@example.com");

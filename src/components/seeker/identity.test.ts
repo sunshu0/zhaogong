@@ -126,7 +126,7 @@ describe("labels and messages", () => {
   });
 
   it("explains why an employer identity could not be opened", () => {
-    expect(openErrorMessage("taken")).toContain("已被其他账号绑定");
+    expect(openErrorMessage("taken")).toContain("已经有团队在用了");
     expect(openErrorMessage("banned")).toContain("停用");
     expect(openErrorMessage("no_employer")).toContain("找不到");
     expect(openErrorMessage("already_employer")).toContain("已经");

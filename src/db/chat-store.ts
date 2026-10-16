@@ -1,8 +1,9 @@
 // Each identity's chat records in the database (#42): the database version of #10's ChatServerStore
-// (src/lib/chat-server/store.ts), one row per identity in chat_records. Server only.
+// (src/lib/chat-server/store.ts), one row per identity in chat_records. A business's shared record (team:<id>, #87)
+// is a row in team_chats instead. Server only.
 import { eq } from "drizzle-orm";
 import { database } from "@/db/ready";
-import { chatRecords } from "@/db/schema";
+import { chatRecords, teamChats } from "@/db/schema";
 import type { ChatServerStore } from "@/lib/chat-server/store";
 import { parseChatRecord } from "@/components/seeker/chat-store";
 
@@ -17,6 +18,23 @@ function emailOf(scope: string): string {
 
 const ids = (value: unknown): string[] | undefined =>
   Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : undefined;
+
+const TEAM_PREFIX = "team:";
+
+async function readTeamChat(employerId: string) {
+  const db = await database();
+  const [row] = await db.select().from(teamChats).where(eq(teamChats.employerId, employerId));
+  return row ? parseChatRecord(row.record) : undefined;
+}
+
+async function writeTeamChat(employerId: string, record: unknown) {
+  const db = await database();
+  const updatedAt = new Date().toISOString();
+  await db
+    .insert(teamChats)
+    .values({ employerId, record, updatedAt })
+    .onConflictDoUpdate({ target: teamChats.employerId, set: { record, updatedAt } });
+}
 
 export function databaseChatStore(): ChatServerStore {
   async function read(scope: string) {
@@ -37,10 +55,14 @@ export function databaseChatStore(): ChatServerStore {
 
   return {
     async getChat(scope) {
+      if (scope.startsWith(TEAM_PREFIX)) return readTeamChat(scope.slice(TEAM_PREFIX.length));
       const row = await read(scope);
       return row?.record == null ? undefined : parseChatRecord(row.record);
     },
-    putChat: (scope, record) => write(scope, "record", record),
+    putChat: (scope, record) =>
+      scope.startsWith(TEAM_PREFIX)
+        ? writeTeamChat(scope.slice(TEAM_PREFIX.length), record)
+        : write(scope, "record", record),
     async getNotificationReads(scope) {
       return ids((await read(scope))?.notificationReads);
     },

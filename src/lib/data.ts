@@ -2,7 +2,7 @@
 // these functions; their signatures and behaviour are the same as when the data lived in memory. Pay is
 // stored in cents and returned in dollars (src/db/rows.ts). New records get the next id of their kind
 // (j20, e9, r1 …), as the demo data has.
-import { and, count, desc, eq, inArray, isNotNull, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Db } from "@/db/client";
 import { database } from "@/db/ready";
@@ -328,8 +328,9 @@ export type OpenEmployerResult =
   | { ok: false; reason: "no_employer" | "banned" | "taken" | "already_employer" };
 
 /**
- * Open the employer identity of an account for one business. A business belongs to one account;
- * an account has one business. Banned businesses cannot be taken on.
+ * Open the employer identity of an account for one business, as the admin of its team. An account has one
+ * business. A business someone already works for is joined only by invitation (#87, src/db/team.ts), so it is
+ * `taken` here. Banned businesses cannot be taken on.
  */
 export async function openEmployerIdentity(email: string, employerId: string): Promise<OpenEmployerResult> {
   const account = await ensureAccount(email);
@@ -339,15 +340,17 @@ export async function openEmployerIdentity(email: string, employerId: string): P
   if (account.employerId && account.employerId !== employerId) return { ok: false, reason: "already_employer" };
   if (account.employerId === employerId) return { ok: true, account, employer };
   const db = await database();
-  const [owner] = await db.select().from(t.accounts).where(eq(t.accounts.employerId, employerId));
-  if (owner) return { ok: false, reason: "taken" };
-  try {
-    await db.update(t.accounts).set({ employerId }).where(eq(t.accounts.email, account.email));
-  } catch {
-    // Two accounts claimed the business at once: the unique column let only one through.
-    return { ok: false, reason: "taken" };
-  }
-  return { ok: true, account: { ...account, employerId }, employer };
+  const claimed = await db.transaction(async (tx) => {
+    const [owner] = await tx.select().from(t.accounts).where(eq(t.accounts.employerId, employerId)).limit(1);
+    if (owner) return false;
+    await tx
+      .update(t.accounts)
+      .set({ employerId, teamRole: "admin", teamJoinedAt: new Date().toISOString() })
+      .where(and(eq(t.accounts.email, account.email), isNull(t.accounts.employerId)));
+    return true;
+  });
+  if (!claimed) return { ok: false, reason: "taken" };
+  return { ok: true, account: { ...account, employerId, teamRole: "admin" }, employer };
 }
 
 /** The businesses some account has bound (banned ones included: they stay linked to their account). */

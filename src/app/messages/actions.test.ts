@@ -7,6 +7,7 @@ import { MOCK_JOBS } from "@/mock/data";
 import type { Job } from "@/lib/types";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { databaseChatStore } from "@/db/chat-store";
+import { answerInvite, inviteToTeam, setTeamName } from "@/db/team";
 import { jobNumbers } from "@/db/job-stats";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { EMPTY_CHAT, addSentMessage, chatView } from "@/components/seeker/chat-store";
@@ -153,6 +154,40 @@ describe("chat on the server (#10)", () => {
     expect(await change({ type: "send", conversationId: "north-tea", text: "x" })).toEqual(EMPTY_CHAT); // not an employer conversation
     const sent = await change({ type: "send", conversationId: "candidate-lin", text: "雇主身份的消息" });
     expect(sent?.added["candidate-lin"]?.[0].text).toBe("雇主身份的消息");
+  });
+
+  it("shares a business's chats with its whole team, each message saying who sent it (#87)", async () => {
+    const shop = await createEmployer({ name: "团队茶楼", regionId: "akl-cbd" });
+    await ensureAccount("team.chat.boss@example.com");
+    await openEmployerIdentity("team.chat.boss@example.com", shop.id);
+    // The founder's chats from before #87 were its own; the business starts from them.
+    await signedIn("team.chat.boss@example.com", "employer");
+    const ownScope = JSON.stringify(["team.chat.boss@example.com", "employer", shop.id]);
+    await store.putChat(
+      ownScope,
+      addSentMessage(EMPTY_CHAT, "candidate-lin", "以前的消息", "2026-10-16T00:00:00.000Z"),
+    );
+    expect((await my())?.added["candidate-lin"]?.map((m) => m.text)).toEqual(["以前的消息"]);
+    await setTeamName("team.chat.boss@example.com", "王老板");
+    await change({ type: "send", conversationId: "candidate-lin", text: "老板的回复" });
+
+    await ensureAccount("team.chat.staff@example.com");
+    const invited = await inviteToTeam(shop.id, "team.chat.boss@example.com", "team.chat.staff@example.com", "member");
+    if (invited.status !== "invited") throw new Error(invited.status);
+    await answerInvite("team.chat.staff@example.com", invited.invite.id, { accept: true, name: "小李" });
+    await signedIn("team.chat.staff@example.com", "employer");
+    await change({ type: "send", conversationId: "candidate-lin", text: "店员的回复" });
+
+    const messages = (await my())?.added["candidate-lin"] ?? [];
+    expect(messages.map((m) => [m.text, m.by])).toEqual([
+      ["以前的消息", undefined],
+      ["老板的回复", "王老板"],
+      ["店员的回复", "小李"],
+    ]);
+    // Each answer still names the person's own identity, for the browser's copy.
+    expect((await myChat())?.scope).toBe(JSON.stringify(["team.chat.staff@example.com", "employer", shop.id]));
+    await signedIn("team.chat.boss@example.com", "employer");
+    expect((await my())?.added["candidate-lin"]).toHaveLength(3);
   });
 
   it("answers a demo exchange with the account's offer, and builds a report's evidence from its own records", async () => {

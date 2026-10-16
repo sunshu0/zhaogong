@@ -45,6 +45,7 @@ import {
   refreshState,
   renewState,
 } from "@/components/employer/job-status";
+import { teamCan } from "@/components/employer/team";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
 /**
@@ -300,6 +301,9 @@ export async function requestVerification(input: unknown): Promise<VerifyResult>
   if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能申请验证。" };
   if (typeof employer === "string") return { ok: false, error_zh: IDENTITY_ERRORS[employer] };
   const session = (await getCurrentSession())!;
+  // Only an admin of the business's team applies (#87).
+  if (!teamCan((await getAccount(session.email))?.teamRole, "verify"))
+    return { ok: false, error_zh: "只有团队管理员能申请企业验证，请找你们店的管理员。" };
 
   const parsed = parseApplication(input);
   if (!parsed.ok) return parsed;

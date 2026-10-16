@@ -42,7 +42,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 ## 身份和权限
 
-一个账号可以同时是求职者和一家企业的雇主，页面按当前身份显示（ADR 0003）。
+一个账号可以同时是求职者和一家企业的雇主，页面按当前身份显示（ADR 0003）。一家企业可以有一个团队：几个账号，分管理员和成员（#87，ADR 0012）；雇主一侧的聊天记录按企业存一份（`team_chats`），每条消息记下回复人。
 
 - **登录：** 邮箱验证码，注册和登录是同一步；成功后服务器发一个 httpOnly 的会话 cookie，库里存它的哈希、账号和当前身份，30 天过期（ADR 0007，`src/lib/auth/`）。生产环境要等接上邮件服务（#16）才能发验证码。
 - **读身份：** Server Functions 用 `getCurrentSession()` / `requireSession()` / `requireEmployer()` 从 cookie 读账号和当前身份，不收邮箱参数（雇主和审核接口在 #19 改完）；企业每次用 `getAccountEmployer` 从账号查，不信任浏览器传来的企业编号。

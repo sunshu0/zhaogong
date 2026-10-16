@@ -6,7 +6,7 @@
 // the server's clock and ids.
 import { randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
-import { currentChatIdentity, type ChatIdentity } from "@/lib/chat-server/identity";
+import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
 import { applicationOf } from "@/db/job-applications";
@@ -67,7 +67,7 @@ export type ReadsSnapshot = { scope: string; ids: string[] };
 export async function myChat(): Promise<ChatSnapshot | null> {
   const me = await currentChatIdentity();
   if (!me) return null;
-  return { scope: me.scope, record: (await chatServerStore().getChat(me.scope)) ?? EMPTY_CHAT };
+  return { scope: me.scope, record: (await readChat(me)) ?? EMPTY_CHAT };
 }
 
 /** The browser's outbox entry for a change (chat-outbox.ts): its id, and the identity it was made in. */
@@ -82,7 +82,7 @@ export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): P
   const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
-  const current = (await store.getChat(me.scope)) ?? EMPTY_CHAT;
+  const current = (await readChat(me)) ?? EMPTY_CHAT;
   const unchanged = { scope: me.scope, record: current };
   let applied: string[] | undefined;
   if (ticket !== undefined) {
@@ -93,7 +93,7 @@ export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): P
     if (applied.includes(ticket.id)) return unchanged;
   }
   const next = await apply(current, change, me);
-  if (next !== current) await store.putChat(me.scope, next);
+  if (next !== current) await store.putChat(me.recordScope, next);
   if (applied && ticket) await store.putAppliedChanges(me.scope, [...applied, ticket.id].slice(-APPLIED_KEPT));
   return { scope: me.scope, record: next };
 }
@@ -106,11 +106,11 @@ export async function importMyChat(record: unknown): Promise<ChatSnapshot | null
   const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
-  const current = await store.getChat(me.scope);
+  const current = await readChat(me);
   if (current) return { scope: me.scope, record: current };
   const parsed = parseChatRecord(record);
   if (!parsed) return { scope: me.scope, record: EMPTY_CHAT };
-  await store.putChat(me.scope, parsed);
+  await store.putChat(me.recordScope, parsed);
   return { scope: me.scope, record: parsed };
 }
 
@@ -129,7 +129,7 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
       if (!known || !text || text.length > MESSAGE_MAX) return record;
       // A job seeker's message about a job counts as starting a chat on the employer's numbers (#55).
       if (!me.isEmployer) await countChatStart(change.conversationId, me.session.email);
-      return addSentMessage(record, change.conversationId, text, now);
+      return addSentMessage(record, change.conversationId, text, now, me.by);
     }
     case "request": {
       const payload = parsePayload(change.payload);
