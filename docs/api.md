@@ -151,6 +151,18 @@
 | --- | --- | --- | --- |
 | `payReferenceFor(industry, regionId, exclude?)` | 行业；地区（可不填）；不计入的职位编号（编辑中的职位） | `{ reference, at }`：`reference` 是 `{ scope, place, min, median, max, count }` 或 `{ scope: "none", count }`；`at` 是计算时间 | 行业不认识时 `null` |
 
+## 中英文简历的分享链接 — `src/app/profile/resume/actions.ts`
+
+#86（PRD R-37）。简历本身在浏览器里生成（`resumeDocFrom`，`src/components/seeker/resume-doc.ts`），打印不经过服务器。分享时存在 `resume_shares`：账号是主键（每个账号最多一条），`id` 是链接里的随机编号（18 个随机字节，base64url），`resume` 是分享时的简历（`ResumeDoc`：中文和英文各一份文字、简历要点、签证、勾选的电话和微信）。服务器用 `parseResumeDoc` 重新检查和截断，丢掉邮箱。账号取自会话，只有求职者身份能分享。
+
+`ResumeShareView`：`{ path, updatedAt, resume }`，`path` 是 `/resume/<id>`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myResumeShareLink()` | | 打开着的链接 `ResumeShareView` | 没有链接、未登录或雇主身份时 `null` |
+| `shareMyResume(resume)` | 浏览器生成的简历 | `{ ok: true, share }`；已经有链接时更新内容，链接不变 | `{ ok: false, error }`：未登录、雇主身份、没有称呼 |
+| `closeMyResumeShare()` | | `true`，链接从此打不开 | 没有链接或未登录时 `false` |
+
 ## 职位提醒 — `src/app/me/alerts/actions.ts`
 
 职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
@@ -219,6 +231,8 @@
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
 | `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |
 | `/me/alerts` | 职位提醒：查看、改名、暂停、删除（#53） | 登录，求职者身份 |
+| `/profile/resume` | 中英文简历：预览、打印 / 存为 PDF、补填英文、签证、联系方式、分享链接（#86） | 登录，求职者身份 |
+| `/resume/[id]` | 分享的简历，只读，不收录；关闭后显示「已关闭或不存在」（#86） | — |
 | `/candidates/[id]` | 求职者主页（`?job=` 带上职位） | 雇主身份才显示职位和聊天入口 |
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
@@ -228,6 +242,6 @@
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
 | `/sitemap.xml` | 首页、职位列表、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；每次请求时生成 | — |
-| `/robots.txt` | 允许收录，但不收录 `/admin`、`/account`、`/workspace`、`/profile`、`/me`、`/messages`、`/notifications`、`/login`、`/employer/`、`/candidates/`、`/api/`；指向 sitemap | — |
+| `/robots.txt` | 允许收录，但不收录 `/admin`、`/account`、`/workspace`、`/profile`、`/me`、`/messages`、`/notifications`、`/login`、`/employer/`、`/candidates/`、`/resume/`、`/api/`；指向 sitemap | — |
 
 职位详情页 `/jobs/[id]` 在职位在招时带一段 schema.org `JobPosting` 结构化数据（`<script type="application/ld+json">`）：职位名、描述、发布和截止时间、雇主和企业主页链接、地点、时薪、用工形式，**不含联系方式**（`src/lib/job-posting.ts`）。sitemap、robots 和结构化数据里的绝对地址用环境变量 `SITE_URL`，没设置时用请求的域名。

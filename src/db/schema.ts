@@ -16,6 +16,7 @@ import type {
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
+import type { ResumeDoc } from "@/components/seeker/resume-doc";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -370,3 +371,18 @@ export const jobApplications = sqliteTable(
     index("job_applications_employer_idx").on(table.employerId),
   ],
 );
+
+/**
+ * 中英文简历的分享链接 (#86, R-37): at most one per account. `id` is the random part of the link; `resume` is the
+ * page as it was when last shared (it lives in the person's browser), without the email. Closing the link deletes
+ * the row.
+ */
+export const resumeShares = sqliteTable("resume_shares", {
+  email: text("email")
+    .primaryKey()
+    .references(() => accounts.email),
+  id: text("id").notNull().unique(),
+  resume: text("resume", { mode: "json" }).$type<ResumeDoc>().notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});

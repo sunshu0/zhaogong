@@ -61,7 +61,7 @@ describe("robotsRules", () => {
     const robots = robotsRules("https://zhaogong.nz");
     expect(robots.sitemap).toBe("https://zhaogong.nz/sitemap.xml");
     expect(robots.rules).toMatchObject({ userAgent: "*", allow: "/", disallow: PRIVATE_PATHS });
-    for (const path of ["/admin", "/me", "/messages", "/profile", "/candidates/"])
+    for (const path of ["/admin", "/me", "/messages", "/profile", "/candidates/", "/resume/"])
       expect(PRIVATE_PATHS).toContain(path);
     expect(PRIVATE_PATHS).not.toContain("/employer");
   });

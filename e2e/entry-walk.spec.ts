@@ -313,3 +313,17 @@ test("审核后台和审核数据: a moderator signs in → 审核后台 → 审
   await page.getByRole("tab", { name: "审核数据" }).click();
   await expect(page.getByLabel("审核数据：现在")).toBeVisible();
 });
+
+test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存为 PDF and 生成分享链接 (#86)", async ({ page }, testInfo) => {
+  await signInByClicks(page, testInfo);
+  await openMine(page, testInfo, "我的主页");
+  await expect(page).toHaveURL("/profile");
+  await page.getByRole("link", { name: "生成简历" }).click();
+  await expect(page).toHaveURL("/profile/resume");
+  await expect(page.getByRole("article", { name: "中英文简历" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "打印 / 存为 PDF" })).toBeVisible();
+  await page.getByRole("link", { name: "去补填英文" }).click();
+  await page.getByLabel("称呼（英文）").fill("Xiao Lin");
+  await page.getByRole("button", { name: "生成分享链接" }).click();
+  await expect(page.locator("#resume-share").getByRole("link", { name: /\/resume\// })).toBeVisible();
+});

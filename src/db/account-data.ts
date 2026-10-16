@@ -31,6 +31,8 @@ export interface ServerAccountData {
     seenAt: string | null;
     decision: string | null;
   }[];
+  /** The 中英文简历 share link (#86): its id and the page it shows. */
+  resumeShare: { id: string; resume: unknown; createdAt: string; updatedAt: string } | null;
   /** Jobs this account started a chat about (counted for the employer, #55). */
   chatStarts: { jobId: string; startedAt: string }[];
   /** Job alerts (#53): saved searches, and the new jobs they found. */
@@ -75,6 +77,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.jobApplications)
     .where(eq(t.jobApplications.seekerEmail, address))
     .orderBy(asc(t.jobApplications.appliedAt));
+  const [share] = await db.select().from(t.resumeShares).where(eq(t.resumeShares.email, address));
   const starts = await db
     .select()
     .from(t.jobChatStarts)
@@ -127,6 +130,9 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       seenAt: a.seenAt,
       decision: a.decision,
     })),
+    resumeShare: share
+      ? { id: share.id, resume: share.resume, createdAt: share.createdAt, updatedAt: share.updatedAt }
+      : null,
     chatStarts: starts.map((s) => ({ jobId: s.jobId, startedAt: s.startedAt })),
     jobAlerts: alerts.map((a) => ({ name: a.name, query: a.query, paused: a.paused, createdAt: a.createdAt })),
     jobAlertHits: hits.map((h) => ({ jobId: h.jobId, alertName: h.alertName, createdAt: h.createdAt })),
@@ -164,6 +170,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
     // Applications are the person's page and note: they go, and the employers' lists lose them (#84).
     await tx.delete(t.jobApplications).where(eq(t.jobApplications.seekerEmail, address));
+    // The share link closes with the account (#86).
+    await tx.delete(t.resumeShares).where(eq(t.resumeShares.email, address));
     await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
     await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
     await tx

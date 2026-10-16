@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink, FileText } from "lucide-react";
 import { profileChecklist, profileProgress } from "@/components/account/profile-checklist";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useProfile } from "@/components/seeker/hub-client";
@@ -66,6 +66,14 @@ export function ProfileWorkspace() {
             >
               <ExternalLink aria-hidden="true" className="size-4" />
               查看公开主页
+            </Link>
+          ) : !isEmployer ? (
+            <Link
+              href="/profile/resume"
+              className="inline-flex min-h-11 items-center gap-1 text-body text-brand underline-offset-4 hover:underline"
+            >
+              <FileText aria-hidden="true" className="size-4" />
+              生成简历
             </Link>
           ) : undefined
         }

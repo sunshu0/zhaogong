@@ -6,7 +6,8 @@ import type { Employer, Job } from "@/lib/types";
 
 /**
  * Pages that belong to one person or to the site's own tools: not for search engines. /employer (the page about
- * posting) stays open; what is under it is the employer's own tools. /candidates/ are job seekers' pages.
+ * posting) stays open; what is under it is the employer's own tools. /candidates/ are job seekers' pages, and
+ * /resume/ the resumes they share by link (#86).
  */
 export const PRIVATE_PATHS = [
   "/admin",
@@ -19,6 +20,7 @@ export const PRIVATE_PATHS = [
   "/login",
   "/employer/",
   "/candidates/",
+  "/resume/",
   "/api/",
 ];
 

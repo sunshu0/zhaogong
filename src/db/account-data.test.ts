@@ -10,6 +10,8 @@ import { createJobAlert, matchJobAlerts } from "@/db/job-alerts";
 import { renewJob } from "@/db/job-renewals";
 import { saveJob } from "@/db/saved-jobs";
 import { addApplication } from "@/db/job-applications";
+import { saveResumeShare } from "@/db/resume-shares";
+import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
 import * as t from "@/db/schema";
 import { DEMO_MODERATOR } from "@/db/seed";
@@ -83,12 +85,15 @@ async function fullAccount(email: string) {
   await recordContactView("j1", email);
   await saveJob(email, "j1");
   await addApplication({ email, jobId: "j1", employerId: "e1", note: "周末可以", profile: APPLICATION_PAGE });
+  await saveResumeShare(email, RESUME, new Date("2026-10-17T00:00:00.000Z"));
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
   await renewJob(job.id, { expiresAt: "2026-12-01T00:00:00.000Z", status: "active", days: 30 });
   return { business, job };
 }
+
+const RESUME = parseResumeDoc({ zh: { name: "林晓" } })!;
 
 describe("exportAccountData (#54)", () => {
   it("has the account, the business and its jobs, chats, contact views and sessions, nothing of others", async () => {
@@ -118,6 +123,12 @@ describe("exportAccountData (#54)", () => {
         decision: null,
       },
     ]);
+    expect(data?.resumeShare).toEqual({
+      id: expect.any(String),
+      resume: RESUME,
+      createdAt: "2026-10-17T00:00:00.000Z",
+      updatedAt: "2026-10-17T00:00:00.000Z",
+    });
     expect(data?.chatStarts).toEqual([{ jobId: "j1", startedAt: expect.any(String) }]);
     expect(data?.jobAlerts).toEqual([
       { name: "全部新职位", query: "", paused: false, createdAt: "2026-10-16T00:00:00.000Z" },
@@ -156,6 +167,7 @@ describe("deleteAccount (#54)", () => {
       [t.contactViews, t.contactViews.viewerEmail],
       [t.savedJobs, t.savedJobs.email],
       [t.jobApplications, t.jobApplications.seekerEmail],
+      [t.resumeShares, t.resumeShares.email],
       [t.jobAlerts, t.jobAlerts.email],
       [t.jobAlertHits, t.jobAlertHits.email],
     ] as const) {
@@ -229,6 +241,7 @@ describe("deleteAccount (#54)", () => {
       "contact_views.viewer_email",
       "saved_jobs.email",
       "job_applications.seeker_email",
+      "resume_shares.email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",

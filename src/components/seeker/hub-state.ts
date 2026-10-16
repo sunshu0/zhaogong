@@ -1,6 +1,14 @@
 import type { DemoSession } from "@/components/seeker/session";
 import { parseStoredIdentities, scopeRole } from "@/components/seeker/identity-scope";
 import { parseResume, type Resume } from "@/lib/candidate-matching";
+import {
+  parseContactChoice,
+  parseEnglish,
+  parseWorkRights,
+  type ResumeContactChoice,
+  type ResumeText,
+  type WorkRights,
+} from "@/components/seeker/resume-doc";
 
 export type Profile = {
   avatar?: string;
@@ -13,6 +21,10 @@ export type Profile = {
   bio: string;
   resume?: Resume;
   privateDetails?: { phone: string; wechat: string; email: string };
+  /** For the 中英文简历 (#86): the English the person wrote, their visa as they state it, the contact lines. */
+  english?: Partial<ResumeText>;
+  workRights?: WorkRights;
+  resumeContact?: ResumeContactChoice;
 };
 
 export function initialProfile(session: DemoSession | null): Profile {
@@ -58,6 +70,12 @@ export function parseProfilePatch(value: unknown): Partial<Profile> | undefined 
   )
     patch.avatar = avatar;
   if (record.resume !== undefined) patch.resume = parseResume(record.resume);
+  const english = parseEnglish(record.english);
+  if (english) patch.english = english;
+  const workRights = parseWorkRights(record.workRights);
+  if (workRights) patch.workRights = workRights;
+  const resumeContact = parseContactChoice(record.resumeContact);
+  if (resumeContact) patch.resumeContact = resumeContact;
   if (record.privateDetails && typeof record.privateDetails === "object") {
     const details = record.privateDetails as Record<string, unknown>;
     patch.privateDetails = Object.fromEntries(
