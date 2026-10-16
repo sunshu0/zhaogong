@@ -22,6 +22,7 @@ import { CITY_LABELS, FIELD_LABELS, KIND_LABELS, NOT_STATED, payLabel, sourceLin
 import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
 import { TakedownNote } from "@/components/external/TakedownNote";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
@@ -61,6 +62,8 @@ export function ExternalSectionPage({
           。
         </p>
       </div>
+      {/* Without JavaScript the streamed list (and loading.tsx's skeleton) would stay hidden (#13). */}
+      <NoScriptStreams />
       <FinishSaveAfterSignIn />
       <Suspense fallback={<div className="h-60 animate-pulse rounded-md bg-surface" />}>
         <Results section={section} searchParams={searchParams} />

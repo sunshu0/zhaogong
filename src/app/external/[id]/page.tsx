@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { TakedownNote } from "@/components/external/TakedownNote";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { requestTime } from "@/components/seeker/request-time";
 import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { externalSaveKey } from "@/components/seeker/saved-jobs";
@@ -30,6 +31,7 @@ const decode = (id: string) => {
 export default function ExternalJobPage({ params }: PageProps<"/external/[id]">) {
   return (
     <div className={`${WIDE_ON_DESKTOP} space-y-4`}>
+      <NoScriptStreams />
       <FinishSaveAfterSignIn />
       <Suspense fallback={<div className="h-80 animate-pulse rounded-md bg-surface" />}>
         <ExternalJob params={params} />
