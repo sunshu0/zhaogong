@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import { EXTERNAL_COMPANIES, importAllowed, type ExternalCompany } from "@/config/external-companies";
 import { getExternalJob, listExternalJobs as listAll, setExternalReview } from "@/db/external-jobs";
 import { database } from "@/db/ready";
-import { importExternalJobs } from "@/lib/external-jobs/import";
+import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
 
@@ -223,6 +223,25 @@ describe("external job import (#111)", () => {
 
     expect(importAllowed({ ...KOWHAI, terms: { ...checked, allowsDisplay: false } })).toBe(false);
     expect(importAllowed({ ...KOWHAI, terms: { ...checked, checkedOn: "" } })).toBe(false);
+  });
+
+  it("takes down the jobs of a company taken off the list, but not the demo's made-up companies", async () => {
+    const { getJson } = both();
+    await importExternalJobs({ companies: [KOWHAI, TUI], getJson, now: () => days(5) });
+    const up = (id: string) => listAll({ companyId: id }).then((jobs) => jobs.filter((j) => j.removedAt == null));
+    const kowhai = (await up("kowhai")).length;
+    const tui = (await up("tui")).length;
+    const demo = (await up("demo-kowhai")).length + (await up("demo-tui")).length;
+    expect(Math.min(kowhai, tui, demo)).toBeGreaterThan(0);
+
+    expect(await takeDownUnlisted([TUI], days(5))).toEqual([
+      { company: "kowhai", status: "unlisted", takenDown: kowhai },
+    ]);
+    expect(await up("kowhai")).toEqual([]);
+    expect((await listAll({ companyId: "kowhai" })).every((j) => j.removedReason === "company_off")).toBe(true);
+    expect((await up("tui")).length).toBe(tui);
+    expect((await up("demo-kowhai")).length + (await up("demo-tui")).length).toBe(demo);
+    expect(await takeDownUnlisted([TUI], days(5))).toEqual([]);
   });
 
   it("can read a feed to look at the facts without storing anything (dry run)", async () => {

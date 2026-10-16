@@ -14,7 +14,7 @@ import { grantModerator, revokeModerator } from "@/db/moderators";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 import { ensureAccount } from "@/lib/data";
 import { isValidEmail } from "@/components/seeker/session";
-import { importExternalJobs } from "@/lib/external-jobs/import";
+import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { politeFetcher } from "@/lib/external-jobs/polite-fetch";
 
 const USAGE =
@@ -52,6 +52,7 @@ async function importExternal(args: string[]): Promise<number> {
   }
   const companies = ids.length > 0 ? EXTERNAL_COMPANIES.filter((c) => ids.includes(c.id)) : EXTERNAL_COMPANIES;
   const reports = await importExternalJobs({ companies, getJson: politeFetcher({ fetch }), dryRun });
+  if (ids.length === 0 && !dryRun) reports.push(...(await takeDownUnlisted(EXTERNAL_COMPANIES)));
   for (const r of reports) {
     if (r.status === "stopped") {
       console.log(
@@ -59,6 +60,8 @@ async function importExternal(args: string[]): Promise<number> {
       );
     } else if (r.status === "terms_not_checked") {
       console.log(`${r.company}: terms not checked, not read${r.takenDown ? `; took down ${r.takenDown}` : ""}`);
+    } else if (r.status === "unlisted") {
+      console.log(`${r.company}: no longer on the list, took down ${r.takenDown}`);
     } else if (r.status === "failed") {
       console.log(`${r.company}: could not read the feed (${r.error}); its jobs stay as they were`);
     } else if (r.status === "imported") {

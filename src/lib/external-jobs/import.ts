@@ -1,15 +1,23 @@
 // One import of external jobs (#111, ADR 0014): for each company on the list, read its public feed politely, keep
 // the facts of the software and electrical jobs in New Zealand, and store them. A company whose terms nobody has
 // checked is not read at all, and anything it had comes down. A feed that cannot be read leaves the company's jobs
-// as they were; they stop showing on their own once their last refresh is 2 days old. Server only.
+// as they were; they stop showing on their own once their last refresh is 2 days old. A company taken off the list
+// has its jobs taken down by a full import (takeDownUnlisted). Server only.
 import { importAllowed, type ExternalCompany } from "@/config/external-companies";
-import { listCompanyBlocks, saveCompanyFeed, takeDownCompany, type FeedResult } from "@/db/external-jobs";
+import {
+  listCompanyBlocks,
+  listExternalJobs,
+  saveCompanyFeed,
+  takeDownCompany,
+  type FeedResult,
+} from "@/db/external-jobs";
 import { factsOf } from "@/lib/external-jobs/facts";
 import { parsePostings, postingsUrl } from "@/lib/external-jobs/sources";
 import type { ExternalFacts } from "@/lib/external-jobs/types";
 
 export type CompanyReport =
   | { company: string; status: "terms_not_checked"; takenDown: number }
+  | { company: string; status: "unlisted"; takenDown: number }
   | { company: string; status: "stopped"; kind: "stopped" | "takedown" }
   | { company: string; status: "failed"; error: string }
   | ({ company: string; status: "imported"; inFeed: number; kept: number } & FeedResult)
@@ -60,6 +68,24 @@ export async function importExternalJobs({
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+  return reports;
+}
+
+/**
+ * Takes down the jobs of companies no longer on the list (ADR 0014, 2026-10-17 review). The import reads only the
+ * companies on the list, so without this a removed company's approved jobs would show until their last refresh is
+ * 2 days old. The demo's made-up companies (`demo-…`, src/mock/external-jobs.ts) are never on the list and stay.
+ */
+export async function takeDownUnlisted(listed: ExternalCompany[], now = new Date()): Promise<CompanyReport[]> {
+  const onList = new Set(listed.map((c) => c.id));
+  const up = (await listExternalJobs()).filter((job) => job.removedAt == null);
+  const unlisted = [...new Set(up.map((job) => job.companyId))].filter(
+    (id) => !onList.has(id) && !id.startsWith("demo-"),
+  );
+  const reports: CompanyReport[] = [];
+  for (const company of unlisted) {
+    reports.push({ company, status: "unlisted", takenDown: await takeDownCompany(company, now) });
   }
   return reports;
 }

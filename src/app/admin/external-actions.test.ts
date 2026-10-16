@@ -63,8 +63,8 @@ describe("外部职位 in /admin (#112)", () => {
     const q = await queue();
     expect(q.pending.map((j) => j.id)).toEqual(["demo-kowhai:4002", "demo-tui:6f1d3a0e-0002"]);
     expect(q.approved.map((j) => [j.id, j.shown])).toEqual(expect.arrayContaining([["demo-tui:6f1d3a0e-0001", true]]));
-    const rocketLab = q.companies.find((c) => c.id === "rocketlab");
-    expect(rocketLab).toMatchObject({ onList: true, terms: null, imported: false, pending: 0 });
+    const clearPoint = q.companies.find((c) => c.id === "clearpoint");
+    expect(clearPoint).toMatchObject({ onList: true, terms: { allowsDisplay: true }, imported: true, pending: 0 });
     expect(q.companies.find((c) => c.id === "demo-kowhai")).toMatchObject({
       name: "Kōwhai Robotics",
       onList: false,
