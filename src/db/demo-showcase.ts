@@ -27,7 +27,7 @@ export interface Showcase {
 /** The records, with dates counted from `now`. Ids follow the demo's own (j20…, r1…). */
 export function demoShowcase(now: number): Showcase {
   const at = (ms: number) => new Date(now + ms).toISOString();
-  const kitchen = { phone: "021 555 0101", wechat: "demo_chuanwei" };
+  const kitchen = { phone: "021 ••• 0101（演示）", wechat: "demo_chuanwei" };
 
   const closingSoon: Job = {
     id: "j20",
@@ -112,7 +112,7 @@ export function demoShowcase(now: number): Showcase {
     descriptionZh: "为客人洗头、做头部按摩，协助发型师。有美发店经验优先。",
     descriptionEn: "Washing hair and scalp massage for clients, helping the stylists. Salon experience preferred.",
     contactPublic: false,
-    contact: { phone: "021 555 0104" },
+    contact: { phone: "021 ••• 0104（演示）" },
     status: "pending_review",
     postedAt: at(-3 * HOUR),
     expiresAt: at(-3 * HOUR + 30 * DAY),
@@ -175,7 +175,7 @@ export function demoShowcase(now: number): Showcase {
         tradingName: "悦美发型工作室",
         contactName: "陈美玲",
         contactRole: "店主",
-        companyPhone: "09 555 0104",
+        companyPhone: "09 ••• 0104（演示）",
         website: "https://www.facebook.com/",
         submittedByEmail: "owner.yuemei@example.com",
         submittedAt: at(-20 * HOUR),
@@ -190,7 +190,7 @@ export function demoShowcase(now: number): Showcase {
         tradingName: "安居装修",
         contactName: "刘建国",
         contactRole: "董事",
-        companyPhone: "09 555 0105",
+        companyPhone: "09 ••• 0105（演示）",
         website: null,
         submittedByEmail: "owner.anju@example.com",
         submittedAt: at(-2 * DAY),

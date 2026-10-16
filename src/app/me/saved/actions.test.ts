@@ -81,7 +81,7 @@ describe("收藏和进度 on the server (#52)", () => {
             kind: "contact",
             from: "me",
             status: "accepted",
-            offered: { title: "联系方式", fields: [{ label: "电话", value: "021 000 0000" }] },
+            offered: { title: "联系方式", fields: [{ label: "电话", value: "09 000 0000" }] },
             createdAt: "2026-10-16T00:00:00.000Z",
           },
         ],

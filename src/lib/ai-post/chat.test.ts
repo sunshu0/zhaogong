@@ -301,7 +301,7 @@ describe("changing an answer, and answers it cannot read", () => {
   });
 
   it("answers the same way every time", async () => {
-    const script = ["招洗碗工", "25", "不固定", "Northcote", "兼职", "学签", "就这些", "都不包", "021 555 0199"];
+    const script = ["招洗碗工", "25", "不固定", "Northcote", "兼职", "学签", "就这些", "都不包", "09 055 0199"];
     expect(await say(startChat("NZ"), ...script)).toEqual(await say(startChat("NZ"), ...script));
   });
 });

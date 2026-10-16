@@ -66,7 +66,7 @@ describe("the employer's application (#78)", () => {
     nzbn: "9429 0000 0000 4",
     contactName: "陈美",
     contactRole: "店主",
-    companyPhone: "09 555 0104",
+    companyPhone: "09 055 0104",
   };
 
   it("needs the company, a name, a role and the company phone; the website is optional", () => {

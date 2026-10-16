@@ -20,7 +20,7 @@ const job: Job = {
   descriptionZh: "负责点单、上菜。\n周末晚班。",
   descriptionEn: "Take orders & serve <tables>.",
   contactPublic: true,
-  contact: { phone: "021 555 0101", wechat: "chuanwei", email: "boss@example.com" },
+  contact: { phone: "09 055 0101", wechat: "chuanwei", email: "boss@example.com" },
   status: "active",
   postedAt: "2026-10-10T09:00:00.000Z",
   expiresAt: "2026-11-09T09:00:00.000Z",
@@ -66,7 +66,7 @@ describe("jobPostingJsonLd", () => {
 
   it("never carries contact details", () => {
     const text = JSON.stringify(data);
-    for (const detail of ["021 555 0101", "chuanwei", "boss@example.com"]) expect(text).not.toContain(detail);
+    for (const detail of ["09 055 0101", "chuanwei", "boss@example.com"]) expect(text).not.toContain(detail);
   });
 });
 

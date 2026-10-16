@@ -34,7 +34,7 @@ const source: ResumeSource = {
   english: { name: "Xiao Lin", languages: "Mandarin, English" },
   workRights: { visa: "student", weeklyHours: 25 },
   resumeContact: { phone: true, wechat: false, email: true },
-  privateDetails: { phone: " 021 123 4567 ", wechat: "linxiao", email: "lin@example.com" },
+  privateDetails: { phone: " 09 023 4567 ", wechat: "linxiao", email: "lin@example.com" },
 };
 
 describe("中英文简历 (#86)", () => {
@@ -91,7 +91,7 @@ describe("中英文简历 (#86)", () => {
 
   it("puts on the page only the contact details ticked and filled in", () => {
     const doc = resumeDocFrom(source);
-    expect(doc.contact).toEqual({ phone: "021 123 4567", email: "lin@example.com" });
+    expect(doc.contact).toEqual({ phone: "09 023 4567", email: "lin@example.com" });
     expect(contactRows(doc.contact).map((r) => r.id)).toEqual(["phone", "email"]);
     expect(resumeDocFrom({ ...source, resumeContact: undefined }).contact).toEqual({});
     expect(parseContactChoice({ phone: true, wechat: "yes" })).toEqual({ phone: true, wechat: false, email: false });
@@ -99,7 +99,7 @@ describe("中英文简历 (#86)", () => {
 
   it("shares without the email, and the server drops an email a browser sends anyway", () => {
     const shared = shareCopy(resumeDocFrom(source));
-    expect(shared.contact).toEqual({ phone: "021 123 4567" });
+    expect(shared.contact).toEqual({ phone: "09 023 4567" });
     const parsed = parseResumeDoc({ ...resumeDocFrom(source), contact: { phone: "1", email: "x@example.com" } });
     expect(parsed?.contact).toEqual({ phone: "1" });
   });

@@ -26,7 +26,7 @@ async function shop() {
     legalName: `Check Shop ${n} Limited`,
     contactName: "王店主",
     contactRole: "董事",
-    companyPhone: "09 555 0199",
+    companyPhone: "09 055 0199",
   };
   return { email, employer, nzbn, application };
 }
@@ -83,9 +83,9 @@ describe("企业验证 applications (#78)", () => {
       rejectNote: "公司电话打了两次没人接。",
     });
     expect((await getEmployer(employer.id))?.verification).toBe("unverified");
-    const again = await submitVerification(employer, email, { ...application, companyPhone: "09 555 0200" }, T0);
+    const again = await submitVerification(employer, email, { ...application, companyPhone: "09 055 0200" }, T0);
     expect(again.status).toBe("submitted");
-    expect((await latestVerification(employer.id))?.companyPhone).toBe("09 555 0200");
+    expect((await latestVerification(employer.id))?.companyPhone).toBe("09 055 0200");
   });
 
   it("go into the applicant's data export, and lose the person when the account is deleted", async () => {

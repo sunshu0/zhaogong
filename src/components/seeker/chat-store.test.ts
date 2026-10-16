@@ -21,7 +21,7 @@ const employerDemo = chatDemo(true, true);
 // Data from before versioning holds the whole demo, so it is read against the demo accounts' one.
 const fullDemo = (isEmployer: boolean) => chatDemo(isEmployer, true);
 const at = "2026-10-15T01:00:00.000Z";
-const offered = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
+const offered = { title: "联系方式", fields: [{ label: "电话", value: "09 055 0001" }] };
 const report = {
   id: "r1",
   conversationId: "north-tea",

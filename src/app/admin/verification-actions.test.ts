@@ -52,7 +52,7 @@ async function applied(kind: "business_verified" | "accredited_employer" = "busi
     legalName: `Applicant ${n} Limited`,
     contactName: "李经理",
     contactRole: "经理",
-    companyPhone: "09 555 0300",
+    companyPhone: "09 055 0300",
   });
   if (result.status !== "submitted") throw new Error(result.status);
   return { id: result.request.id, employer, email };

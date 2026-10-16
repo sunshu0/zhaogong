@@ -9,7 +9,7 @@ it("publishes only company fields for the requested employer identity", () => {
     bio: "企业介绍",
     resume: { discoverable: true, skills: "private", employmentTypes: [], regionIds: [] },
     privateDetails: {
-      phone: "021 555 8888",
+      phone: "09 055 8888",
       wechat: "private",
       email: "private@example.com",
       address: "private location",

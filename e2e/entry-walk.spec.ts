@@ -392,7 +392,7 @@ test("企业验证: home → 工作台 → 企业验证 → 提交审核; a mode
   await page.getByRole("button", { name: "这是我的公司" }).click();
   await page.getByLabel(/联系人姓名/).fill("走查店主");
   await page.getByLabel(/你在公司的职务/).fill("店主");
-  await page.getByLabel(/^公司电话/).fill("09 555 0777");
+  await page.getByLabel(/^公司电话/).fill("09 055 0777");
   await page.getByRole("button", { name: "提交审核" }).click();
   await expect(page.getByRole("region", { name: "验证申请" })).toContainText("验证审核中");
 

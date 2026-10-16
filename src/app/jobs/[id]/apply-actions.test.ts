@@ -31,7 +31,7 @@ const PAGE = {
   languages: "普通话、英语",
   availability: "周末",
   bio: "做事细心。",
-  privateDetails: { phone: "021 555 0101", wechat: "linxiao", email: "lin.private@example.com" },
+  privateDetails: { phone: "09 055 0101", wechat: "linxiao", email: "lin.private@example.com" },
   resume: { discoverable: false, skills: "收银", employmentTypes: ["part_time"], regionIds: ["akl-cbd"] },
 };
 

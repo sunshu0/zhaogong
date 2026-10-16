@@ -8,7 +8,7 @@ import type { Exchange, ExchangeKind, ExchangePayload } from "@/lib/chat-consent
 export function demoExchangeRequests(isEmployer: boolean): Record<string, Exchange[]> {
   const requests: [string, ExchangeKind, ExchangePayload][] = isEmployer
     ? [
-        ["candidate-lin", "contact", contact("林晓的联系方式", "021 555 0901（演示）", "demo_chat_contact")],
+        ["candidate-lin", "contact", contact("林晓的联系方式", "021 ••• 0901（演示）", "demo_chat_contact")],
         [
           "candidate-chen",
           "resume",
@@ -22,7 +22,7 @@ export function demoExchangeRequests(isEmployer: boolean): Record<string, Exchan
         ],
       ]
     : [
-        ["north-tea", "contact", contact("北岸早茶酒家的联系方式", "021 555 0901（演示）", "demo_chat_contact")],
+        ["north-tea", "contact", contact("北岸早茶酒家的联系方式", "021 ••• 0901（演示）", "demo_chat_contact")],
         [
           "mt-eden",
           "resume",

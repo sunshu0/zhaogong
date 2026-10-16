@@ -10,7 +10,7 @@ import {
 import { initialProfile } from "@/components/seeker/hub-state";
 import { demoExchangeRequests } from "@/mock/chat-exchanges";
 
-const payload = { title: "我的联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
+const payload = { title: "我的联系方式", fields: [{ label: "电话", value: "09 055 0001" }] };
 const incoming: Exchange = {
   id: "x1",
   kind: "contact",
@@ -64,10 +64,10 @@ it("does not restore malformed accepted data as consent", () => {
 it("keeps contact details out of resume exchanges and has no address to offer", () => {
   const profile = {
     ...initialProfile({ email: "seeker@example.com", signedInAt: "", activeRole: "seeker" }),
-    privateDetails: { phone: "021 555 8888", wechat: "private", email: "" },
+    privateDetails: { phone: "09 055 8888", wechat: "private", email: "" },
   };
   expect(profilePayload(profile, "contact", false)?.fields.map((field) => field.value)).toEqual([
-    "021 555 8888",
+    "09 055 8888",
     "private",
   ]);
   expect(JSON.stringify(profilePayload(profile, "resume", false))).not.toContain("private");

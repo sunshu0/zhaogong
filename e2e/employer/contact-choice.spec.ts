@@ -28,7 +28,7 @@ test("contact details are private by default; an edit can make them public", asy
   await expect(page.getByRole("heading", { name: "编辑职位" })).toBeVisible();
   await page.getByRole("radio", { name: /^公开给登录的求职者/ }).check();
   await expect(page.getByText("没有识别到，请填写").filter({ visible: true })).toBeVisible();
-  await page.getByLabel("电话").fill("021 555 0199");
+  await page.getByLabel("电话").fill("09 055 0199");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.getByText("已保存").filter({ visible: true })).toBeVisible();
 

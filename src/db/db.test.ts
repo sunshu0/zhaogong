@@ -38,7 +38,7 @@ describe("database", () => {
       languages: ["mandarin"],
       descriptionZh: "点餐",
       descriptionEn: "Orders",
-      contact: { phone: "021 555 0101" },
+      contact: { phone: "09 055 0101" },
       status: "active",
       postedAt: "2026-10-10T00:00:00.000Z",
       expiresAt: "2026-11-09T00:00:00.000Z",
@@ -51,7 +51,7 @@ describe("database", () => {
       payMin: 2500,
       mealsIncluded: true,
       visaAccepted: ["student"],
-      contact: { phone: "021 555 0101" },
+      contact: { phone: "09 055 0101" },
     });
   });
 

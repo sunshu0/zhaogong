@@ -33,7 +33,7 @@ describe("parseApplicationProfile", () => {
     bio: "做事细心。",
     avatar: "data:image/png;base64,AAAA",
     contactName: "林小姐",
-    privateDetails: { phone: "021 555 0101", wechat: "linxiao", email: "lin@example.com" },
+    privateDetails: { phone: "09 055 0101", wechat: "linxiao", email: "lin@example.com" },
     resume: {
       candidateId: "abc",
       discoverable: true,

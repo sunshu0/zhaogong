@@ -32,5 +32,5 @@ test("an open job page carries JobPosting data without contact details", async (
     baseSalary: { currency: "NZD" },
   });
   expect(Date.parse(data.validThrough)).toBeGreaterThan(Date.now());
-  for (const detail of ["021 555 0101", "demo_chuanwei"]) expect(JSON.stringify(data)).not.toContain(detail);
+  for (const detail of ["021 ••• 0101", "demo_chuanwei"]) expect(JSON.stringify(data)).not.toContain(detail);
 });

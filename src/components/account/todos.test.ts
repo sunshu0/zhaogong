@@ -4,7 +4,7 @@ import { workspaceTodos, type TodoInput } from "./todos";
 
 const NOW = Date.parse("2026-10-15T00:00:00Z");
 const DAY = 86_400_000;
-const payload = { title: "联系方式", fields: [{ label: "电话", value: "021 000 000" }] };
+const payload = { title: "联系方式", fields: [{ label: "电话", value: "09 000 000" }] };
 const exchange = (over: Partial<Exchange>): Exchange => ({
   id: "x1",
   kind: "contact",

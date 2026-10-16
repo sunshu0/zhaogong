@@ -24,7 +24,7 @@ const RESUME = resumeDocFrom({
   availability: "周末",
   bio: "",
   resumeContact: { phone: true, wechat: true, email: true },
-  privateDetails: { phone: "021 555 0101", wechat: "linxiao", email: "lin.private@example.com" },
+  privateDetails: { phone: "09 055 0101", wechat: "linxiao", email: "lin.private@example.com" },
 });
 
 async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
@@ -51,7 +51,7 @@ describe("sharing the resume (#86)", () => {
     expect(shared.share.path).toMatch(/^\/resume\/[A-Za-z0-9_-]{24}$/);
     expect(await myResumeShareLink()).toEqual(shared.share);
     const stored = await sharedResume(idOf(shared.share.path));
-    expect(stored?.resume.contact).toEqual({ phone: "021 555 0101", wechat: "linxiao" });
+    expect(stored?.resume.contact).toEqual({ phone: "09 055 0101", wechat: "linxiao" });
     expect(JSON.stringify(stored)).not.toContain("lin.private@example.com");
     expect(JSON.stringify(stored)).not.toContain("resume.share@example.com");
 

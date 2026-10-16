@@ -34,7 +34,7 @@ describe("revealContact", () => {
   it("returns the contact details to the signed-in account and records who saw them", async () => {
     await signedIn("viewer.one@example.com");
     const contact = await revealContact("j1");
-    expect(contact).toEqual({ phone: "021 555 0101", wechat: "demo_chuanwei", email: undefined });
+    expect(contact).toEqual({ phone: "021 ••• 0101（演示）", wechat: "demo_chuanwei", email: undefined });
     const views = await listContactViews("j1");
     expect(views.filter((v) => v.viewerEmail === "viewer.one@example.com")).toHaveLength(1);
   });

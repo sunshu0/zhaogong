@@ -220,7 +220,7 @@ describe("managing published jobs", () => {
           nzbn: "9429999000555",
           contactName: "刘",
           contactRole: "董事",
-          companyPhone: "09 555 0105",
+          companyPhone: "09 055 0105",
         }),
       ),
     ).toEqual({ ok: false, error_zh: "账号已被停用，不能申请验证。" }); // #78
@@ -289,7 +289,7 @@ describe("business verification", () => {
     expect((await lookupBusiness("123")).error_zh).toContain("13 位");
   });
 
-  const form = { contactName: "陈美", contactRole: "店主", companyPhone: "09 555 0106" };
+  const form = { contactName: "陈美", contactRole: "店主", companyPhone: "09 055 0106" };
 
   it("applies for 已验证企业 and waits for a moderator: the badge does not change (#78)", async () => {
     const result = await as(E.e6, () => requestVerification({ ...form, nzbn: "9429 0000 0000 6" }));
@@ -494,7 +494,7 @@ describe("refused without the right session (#19)", () => {
         nzbn: "9429000000004",
         contactName: "冒名",
         contactRole: "店主",
-        companyPhone: "09 555 0000",
+        companyPhone: "09 055 0000",
       }),
       verification: await getMyVerification(),
     };

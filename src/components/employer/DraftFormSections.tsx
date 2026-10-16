@@ -7,7 +7,7 @@ import { Chip, Field, Group, Section, toggle, type FieldKit } from "@/components
 
 /** The three ways to be contacted: form key, label, input type, placeholder. */
 const CONTACT_FIELDS = [
-  ["phone", "电话", "tel", "021 123 4567"],
+  ["phone", "电话", "tel", "021 xxx xxxx"],
   ["wechat", "微信号", "text", ""],
   ["email", "邮箱", "email", "name@example.com"],
 ] as const;

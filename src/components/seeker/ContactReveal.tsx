@@ -7,6 +7,9 @@ import type { Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 
+/** A number a phone can call; the demo's masked numbers (021 ••• 0101（演示）) get no tel: link. */
+const DIALABLE = /^\+?[\d\s()-]+$/;
+
 type Loaded = { jobId: string; email: string; contact: Job["contact"] | null };
 
 /** Contact details for signed-in users; a sign-in prompt for everyone else. */
@@ -60,12 +63,16 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           <ul className="mt-2 divide-y divide-border text-sm">
             {current.contact.phone && (
               <ContactRow label="电话">
-                <a
-                  href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
-                  className="text-brand underline underline-offset-2"
-                >
-                  {current.contact.phone}
-                </a>
+                {DIALABLE.test(current.contact.phone) ? (
+                  <a
+                    href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
+                    className="text-brand underline underline-offset-2"
+                  >
+                    {current.contact.phone}
+                  </a>
+                ) : (
+                  <span>{current.contact.phone}</span>
+                )}
               </ContactRow>
             )}
             {current.contact.wechat && (

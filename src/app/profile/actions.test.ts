@@ -88,7 +88,7 @@ describe("推荐人才 from the accounts (#104)", () => {
   const listed = (name: string, discoverable = true) => ({
     name,
     headline: "前厅服务",
-    privateDetails: { phone: "021 555 0199", wechat: "wx-private", email: "private@example.com" },
+    privateDetails: { phone: "09 055 0199", wechat: "wx-private", email: "private@example.com" },
     resume: { candidateId: idOf(name), discoverable, skills: "收银", employmentTypes: [], regionIds: [] },
   });
 
@@ -107,7 +107,7 @@ describe("推荐人才 from the accounts (#104)", () => {
     expect(names).not.toContain("不公开的钱多");
     const one = answer!.candidates.find((c) => c.name === "公开的赵敏")!;
     expect(one).toMatchObject({ id: `local-${idOf("公开的赵敏")}`, headline: "前厅服务" });
-    expect(JSON.stringify(answer)).not.toMatch(/listed\.one|021 555 0199|wx-private|private@example/);
+    expect(JSON.stringify(answer)).not.toMatch(/listed\.one|09 055 0199|wx-private|private@example/);
   });
 
   it("leaves the employer's own job seeker page out, and stops showing a page once it is withdrawn", async () => {

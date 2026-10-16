@@ -28,7 +28,7 @@ const PAGE = {
   languages: "",
   availability: "周末",
   bio: "",
-  privateDetails: { phone: "021 555 0101", wechat: "linxiao", email: "lin.private@example.com" },
+  privateDetails: { phone: "09 055 0101", wechat: "linxiao", email: "lin.private@example.com" },
   resume: { discoverable: false, skills: "", employmentTypes: ["part_time"], regionIds: [] },
 };
 /** 川味小馆 (e1) is one account's business, so every test invites as it. */

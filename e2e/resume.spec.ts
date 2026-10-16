@@ -9,7 +9,7 @@ const sheet = (page: Page) => page.getByRole("article", { name: "中英文简历
 
 async function openResume(page: Page) {
   await signIn(page, "/profile", freshEmail("demo.resume")); // starts with 林晓's demo page (#125)
-  await page.getByLabel("交换用电话").fill("021 555 0186");
+  await page.getByLabel("交换用电话").fill("09 055 0186");
   await page.getByLabel("交换用邮箱").fill("lin.resume@example.com");
   await expectProfileSaved(page);
   await page.getByRole("link", { name: "生成简历" }).click();
@@ -44,10 +44,10 @@ test("prints the page in Chinese with the English written, states the visa, and 
   await expect(sheet(page)).toContainText("Student visa; may work up to 20 hours a week");
   await expect(sheet(page)).toContainText("签证情况由本人填写");
 
-  await expect(sheet(page)).not.toContainText("021 555 0186");
+  await expect(sheet(page)).not.toContainText("09 055 0186");
   await page.getByRole("checkbox", { name: /电话/ }).check();
   await page.getByRole("checkbox", { name: /邮箱/ }).check();
-  await expect(sheet(page)).toContainText("021 555 0186");
+  await expect(sheet(page)).toContainText("09 055 0186");
   await expect(sheet(page)).toContainText("lin.resume@example.com");
 
   // Kept in this browser with the rest of the page.
@@ -81,7 +81,7 @@ test("shares a link without the email, updates what it shows, and closes it", as
 
   let stranger = await asStranger(browser, path);
   await expect(sheet(stranger.page)).toContainText("林晓");
-  await expect(sheet(stranger.page)).toContainText("021 555 0186");
+  await expect(sheet(stranger.page)).toContainText("09 055 0186");
   await expect(sheet(stranger.page)).not.toContainText("lin.resume@example.com");
   await expect(sheet(stranger.page)).not.toContainText("邮箱");
   await stranger.close();

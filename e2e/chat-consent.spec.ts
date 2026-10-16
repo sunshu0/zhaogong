@@ -8,19 +8,19 @@ test("the side that asks offers first: the other side sees its details at once, 
 }, testInfo) => {
   // A demo account: it starts from 林晓's demo page (#125) and has the demo chats (#110).
   await signIn(page, "/profile", `demo.consent.${testInfo.project.name}.${Date.now()}@example.com`);
-  await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8801");
+  await page.getByLabel("交换用电话", { exact: true }).fill("09 055 8801");
   await page.getByLabel("交换用微信", { exact: true }).fill("private_seeker_wechat");
   await expect(page.getByLabel("交换用地址", { exact: true })).toHaveCount(0); // A24: no address exchange
   await page.goto("/messages?conversation=north-tea");
   // The employer asked, so its details are already here; mine are not.
   const contact = page.getByRole("region", { name: "联系方式交换请求", exact: true });
   await expect(contact).toContainText("对方已先提供自己的资料");
-  await expect(contact).toContainText("021 555 0901");
-  await expect(contact).not.toContainText("021 555 8801");
+  await expect(contact).toContainText("021 ••• 0901");
+  await expect(contact).not.toContainText("09 055 8801");
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("021 555 8801");
-  await expect(dialog).not.toContainText("021 555 0901");
+  await expect(dialog).toContainText("09 055 8801");
+  await expect(dialog).not.toContainText("021 ••• 0901");
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -29,7 +29,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
   await dialog.getByRole("button", { name: "同意并交换双方资料", exact: true }).click();
   await expect(contact).toContainText("双方已同意");
-  await expect(contact).toContainText("021 555 0901");
+  await expect(contact).toContainText("021 ••• 0901");
   await expect(contact).toContainText("private_seeker_wechat");
   await page.reload();
   await expect(contact).toContainText("双方已同意");
@@ -98,16 +98,16 @@ test("employers can report seekers and accepted private data stays out of public
 }, testInfo) => {
   const shop = await signUpEmployer(page, testInfo, "/profile", { demo: true });
   await page.getByLabel("企业介绍", { exact: true }).fill("餐饮企业的公开招聘介绍");
-  await page.getByLabel("交换用电话", { exact: true }).fill("021 555 8802");
+  await page.getByLabel("交换用电话", { exact: true }).fill("09 055 8802");
   await page.getByRole("link", { name: "查看公开主页", exact: true }).click();
   await expect(page).toHaveURL(/\/employers\//);
-  await expect(page.getByRole("main")).not.toContainText("021 555 8802");
+  await expect(page.getByRole("main")).not.toContainText("09 055 8802");
   await page.goto("/messages?conversation=candidate-lin");
   const contact = page.getByRole("region", { name: "联系方式交换请求", exact: true });
   await contact.getByRole("button", { name: "查看并同意", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "同意并交换双方资料", exact: true }).click();
-  await expect(contact).toContainText("021 555 8802");
+  await expect(contact).toContainText("09 055 8802");
   await (await chatMenuItem(page, "举报")).click();
   await expect(dialog).toContainText("林晓 · 求职者");
   await dialog.getByLabel("举报原因", { exact: true }).selectOption("other");
@@ -134,7 +134,7 @@ test("employers can report seekers and accepted private data stays out of public
     .click();
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await page.goto("/messages?conversation=north-tea");
-  await expect(page.getByRole("log")).not.toContainText("021 555 8802");
+  await expect(page.getByRole("log")).not.toContainText("09 055 8802");
   await expect(page.getByRole("region", { name: "联系方式交换请求", exact: true })).toContainText(
     "对方已先提供自己的资料",
   );

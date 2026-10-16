@@ -75,7 +75,7 @@ describe("team names (#87)", () => {
     expect(checkTeamName("一二三四五六七八九十一二三").ok).toBe(false);
     expect(checkTeamName("一二三四五六七八九十一二").ok).toBe(true);
     expect(checkTeamName("li@example.com").ok).toBe(false);
-    expect(checkTeamName("王 021234567").ok).toBe(false);
+    expect(checkTeamName("王 09034567").ok).toBe(false);
   });
 
   it("signs chats with the shop and, when there is one, the person", () => {

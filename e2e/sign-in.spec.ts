@@ -6,7 +6,7 @@ test("public contact details: shown after sign-in, never in the page HTML; the c
 }) => {
   const response = await page.goto("/jobs/j1"); // 川味小馆 made its contact details public
   const html = await response!.text();
-  expect(html).not.toContain("021 555 0101");
+  expect(html).not.toContain("021 ••• 0101");
   expect(html).not.toContain("demo_chuanwei");
 
   await expect(contactBlock(page)).toContainText("登录后可以查看雇主的电话、微信。");
@@ -37,7 +37,7 @@ test("public contact details: shown after sign-in, never in the page HTML; the c
   await page.getByRole("button", { name: "登录", exact: true }).click();
 
   await expect(page).toHaveURL("/jobs/j1");
-  await expect(contactBlock(page)).toContainText("021 555 0101");
+  await expect(contactBlock(page)).toContainText("021 ••• 0101");
   await expect(contactBlock(page)).toContainText("demo_chuanwei");
   await expect(page.getByRole("button", { name: "立即沟通", exact: true })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();

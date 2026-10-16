@@ -56,7 +56,7 @@ function jobFor(employerId: string): Omit<Job, "id"> {
     employerId,
     titleZh: "删除账号测试职位",
     contactPublic: true,
-    contact: { phone: "021 000 0000", email: "owner@example.com" },
+    contact: { phone: "09 000 0000", email: "owner@example.com" },
     status: "active",
   };
 }

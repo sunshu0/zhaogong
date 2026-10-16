@@ -198,7 +198,7 @@ describe("chat on the server (#10)", () => {
   it("answers a demo exchange with the account's offer, and builds a report's evidence from its own records", async () => {
     await signedIn("demo.answer@example.com");
     const demoId = chatDemo(false, true).exchanges["north-tea"][0].id;
-    const offer = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0001" }] };
+    const offer = { title: "联系方式", fields: [{ label: "电话", value: "09 055 0001" }] };
     const answered = await change({
       type: "answer",
       conversationId: "north-tea",

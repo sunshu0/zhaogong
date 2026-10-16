@@ -7,11 +7,11 @@ const MSG = {
   frontOfHouse: `【急招】Mt Eden 川菜馆招前厅服务员 2 名
 时薪 $25-27，每周 15-25 小时，周五至周日晚班
 包工作餐，学签可做，需会普通话和基本英语
-有意者请加微信 demo_chuanwei 或电话 021 555 0101`,
+有意者请加微信 demo_chuanwei 或电话 09 055 0101`,
   dimSum:
-    "北岸 Northcote 早茶酒家诚聘点心师傅，全职，需三年以上经验。时薪30-35刀，包两餐。接受开放工签及AEWV（本店为认证雇主）。联系电话：021-555-0102",
+    "北岸 Northcote 早茶酒家诚聘点心师傅，全职，需三年以上经验。时薪30-35刀，包两餐。接受开放工签及AEWV（本店为认证雇主）。联系电话：09-055-0102",
   grocery:
-    "Botany亚洲超市招理货员，早班7点到1点，每周20-30小时，$24/h，要能搬重物。学生签证、打工度假都可以，不包住。电话 0215550103",
+    "Botany亚洲超市招理货员，早班7点到1点，每周20-30小时，$24/h，要能搬重物。学生签证、打工度假都可以，不包住。电话 090550103",
   carpenter:
     "招聘装修木工两名，Albany 附近工地，需有 Site Safe 证，自备工具和车。时薪 32-40 看经验，全职，每周 40-50 小时。公民永居或开放工签。微信：anju_reno88",
   cleaner: "东区 Howick 家政公司招清洁工，时间灵活，$25 一小时起，需要有驾照和车。不需要英语。有意加V：demo_jiejing",
@@ -19,8 +19,8 @@ const MSG = {
   english:
     "Hiring kitchen hand at Sylvia Park, full time 40 hrs/week, $26 per hour. Mandarin or English. Open work visa or resident. Email: hr@example.com",
   driver:
-    "快达物流急聘送货司机，需 Class 2 驾照，全职，周一到周五，$27-30/小时，Mt Wellington 仓库出发。认证雇主，可接受 AEWV。联系 021 555 0107 / hr@example.com",
-  livein: "Manukau 餐馆招厨师一名，包吃住，周薪 1000，粤语优先。电话 09 123 4567",
+    "快达物流急聘送货司机，需 Class 2 驾照，全职，周一到周五，$27-30/小时，Mt Wellington 仓库出发。认证雇主，可接受 AEWV。联系 09 055 0107 / hr@example.com",
+  livein: "Manukau 餐馆招厨师一名，包吃住，周薪 1000，粤语优先。电话 09 023 4567",
   minimal: "招洗碗工，有意私聊",
 };
 
@@ -39,7 +39,7 @@ describe("parsePost", () => {
       shiftsZh: "周五至周日晚班",
       mealsIncluded: true,
       urgent: true,
-      contact: { wechat: "demo_chuanwei", phone: "021 555 0101" },
+      contact: { wechat: "demo_chuanwei", phone: "09 055 0101" },
     });
     expect(draft.visaAccepted).toEqual(["student"]);
     expect(draft.languages).toEqual(["mandarin", "english"]);
@@ -66,7 +66,7 @@ describe("parsePost", () => {
       regionId: "akl-northcote",
       pay: { min: 30, max: 35 },
       mealsIncluded: true,
-      contact: { phone: "021-555-0102" },
+      contact: { phone: "09-055-0102" },
     });
     expect(draft.visaAccepted).toEqual(["open_work", "aewv"]);
     expect(missing).toEqual([]);
@@ -84,7 +84,7 @@ describe("parsePost", () => {
       hoursPerWeek: { min: 20, max: 30 },
       employmentType: ["part_time"],
       accommodationIncluded: false,
-      contact: { phone: "0215550103" },
+      contact: { phone: "090550103" },
     });
     expect(draft.pay?.max).toBeUndefined();
     expect(draft.visaAccepted).toEqual(["student", "working_holiday"]);
@@ -162,7 +162,7 @@ describe("parsePost", () => {
       shiftsZh: "周一到周五",
       pay: { min: 27, max: 30 },
       regionId: "akl-mt-wellington",
-      contact: { phone: "021 555 0107", email: "hr@example.com" },
+      contact: { phone: "09 055 0107", email: "hr@example.com" },
     });
     expect(draft.visaAccepted).toEqual(["aewv"]);
   });
@@ -175,7 +175,7 @@ describe("parsePost", () => {
       regionId: "akl-manukau",
       mealsIncluded: true,
       accommodationIncluded: true,
-      contact: { phone: "09 123 4567" },
+      contact: { phone: "09 023 4567" },
     });
     expect(draft.pay).toBeUndefined();
     expect(draft.languages).toEqual(["cantonese"]);
@@ -190,9 +190,9 @@ describe("parsePost", () => {
   });
 
   it("reads full-width digits and letters but keeps the text as written", async () => {
-    const { draft } = await parsePost("招服务员，时薪２５刀，ＫＴＶ旁边，电话 ０２１ ５５５ ０１０９", "NZ");
+    const { draft } = await parsePost("招服务员，时薪２５刀，ＫＴＶ旁边，电话 ０９ ０５５ ０１０９", "NZ");
     expect(draft.pay).toEqual({ min: 25 });
-    expect(draft.contact).toEqual({ phone: "021 555 0109" });
+    expect(draft.contact).toEqual({ phone: "09 055 0109" });
     expect(draft.descriptionZh).toBe("招服务员，时薪２５刀，ＫＴＶ旁边");
   });
 

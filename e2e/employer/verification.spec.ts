@@ -11,7 +11,7 @@ function nzbnFor(testInfo: TestInfo): string {
 }
 
 /** On /employer/verify: find the company by NZBN, choose it and apply. */
-async function apply(page: Page, nzbn: string, phone = "09 555 0123") {
+async function apply(page: Page, nzbn: string, phone = "09 055 0123") {
   await page.getByLabel("公司名称或 NZBN").fill(nzbn);
   await page.getByRole("button", { name: "查询" }).click();
   await page.getByRole("button", { name: "这是我的公司" }).click();
@@ -74,7 +74,7 @@ test("a rejection reaches the employer with its reason, who corrects the details
 }, testInfo) => {
   const shop = await signUpEmployer(page, testInfo, "/employer/verify");
   const nzbn = nzbnFor(testInfo);
-  await apply(page, nzbn, "021 000 0000");
+  await apply(page, nzbn, "09 000 0000");
 
   const admin = await moderatorPage(browser, testInfo);
   const card = await cardFor(admin, shop);
@@ -100,8 +100,8 @@ test("a rejection reaches the employer with its reason, who corrects the details
   await page.getByRole("button", { name: "查询" }).click();
   await page.getByRole("button", { name: "这是我的公司" }).click();
   await expect(page.getByLabel(/联系人姓名/)).toHaveValue("王店主");
-  await page.getByLabel(/^公司电话/).fill("09 555 0456");
+  await page.getByLabel(/^公司电话/).fill("09 055 0456");
   await page.getByRole("button", { name: "提交审核" }).click();
   await expect(latest).toContainText("验证审核中");
-  await expect(latest).toContainText("09 555 0456");
+  await expect(latest).toContainText("09 055 0456");
 });

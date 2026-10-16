@@ -46,7 +46,7 @@ test("editing localStorage signs nobody in and makes nobody an employer", async 
   await page.reload();
   // The server has no session for this browser: the copy is cleared and the contact details stay hidden.
   await expect(contactBlock(page).getByRole("link", { name: "登录查看联系方式" })).toBeVisible();
-  await expect(contactBlock(page)).not.toContainText("021 555 0101");
+  await expect(contactBlock(page)).not.toContainText("021 ••• 0101");
   await expect.poll(() => page.evaluate(() => localStorage.getItem("zhaogong:session"))).toBeNull();
 });
 
@@ -55,12 +55,12 @@ test("the server's session wins over the browser's copy, and signing out removes
   context,
 }) => {
   const address = await signIn(page, "/jobs/j1", freshEmail("truth"));
-  await expect(contactBlock(page)).toContainText("021 555 0101");
+  await expect(contactBlock(page)).toContainText("021 ••• 0101");
 
   // Wipe the browser's copy: the cookie session still signs this browser in, and the copy comes back.
   await page.evaluate(() => localStorage.removeItem("zhaogong:session"));
   await page.reload();
-  await expect(contactBlock(page)).toContainText("021 555 0101");
+  await expect(contactBlock(page)).toContainText("021 ••• 0101");
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("zhaogong:session") ?? "null")?.email))
     .toBe(address);

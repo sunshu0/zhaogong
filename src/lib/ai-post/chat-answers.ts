@@ -211,7 +211,7 @@ function answerContact(s: ChatState, text: string): Answered {
   const found = readContact(text);
   if (!found.phone && !found.wechat && !found.email && /^[A-Za-z][-_A-Za-z0-9]{5,19}$/.test(text)) found.wechat = text;
   if (!found.phone && !found.wechat && !found.email) {
-    return { ok: false, retry: "没认出电话、微信号或邮箱，再发一次？例如 021 123 4567，或者微信号 abc_123。" };
+    return { ok: false, retry: "没认出电话、微信号或邮箱，再发一次？例如 021 xxx xxxx，或者微信号 abc_123。" };
   }
   d.contact = found;
   return {

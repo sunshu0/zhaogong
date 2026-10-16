@@ -1,4 +1,5 @@
-// Demo data for the frontend. Every business, phone number and WeChat ID here is invented.
+// Demo data for the frontend. Every business, phone number and WeChat ID here is invented. Phone numbers are
+// masked (021 ••• 0101) so none can ring a real person: New Zealand has no range kept for fiction (#132).
 import type { ContactView, Employer, Job } from "@/lib/types";
 
 export const MOCK_EMPLOYERS: Employer[] = [
@@ -85,7 +86,7 @@ export const MOCK_JOBS: Job[] = [
     descriptionEn:
       "Taking orders, serving and the till. Restaurant experience preferred; training provided. Mandarin and English needed to talk with customers.",
     contactPublic: true,
-    contact: { phone: "021 555 0101", wechat: "demo_chuanwei" },
+    contact: { phone: "021 ••• 0101（演示）", wechat: "demo_chuanwei" },
     status: "active",
     postedAt: days(1),
     expiresAt: expires(1),
@@ -136,7 +137,7 @@ export const MOCK_JOBS: Job[] = [
     descriptionEn:
       "Making the full dim sum menu. Three or more years of dim sum experience needed. Accredited employer.",
     contactPublic: true,
-    contact: { phone: "021 555 0102", email: "jobs@example.com" },
+    contact: { phone: "021 ••• 0102（演示）", email: "jobs@example.com" },
     status: "active",
     postedAt: days(2),
     expiresAt: expires(2),
@@ -330,7 +331,7 @@ export const MOCK_JOBS: Job[] = [
     descriptionZh: "按单拣货、打包。有叉车证优先。本公司为认证雇主。",
     descriptionEn: "Order picking and packing. Forklift licence a plus. Accredited employer.",
     contactPublic: true,
-    contact: { phone: "021 555 0107", email: "hr@example.com" },
+    contact: { phone: "021 ••• 0107（演示）", email: "hr@example.com" },
     status: "active",
     postedAt: days(3),
     expiresAt: expires(3),
