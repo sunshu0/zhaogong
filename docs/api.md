@@ -158,6 +158,14 @@
 | `addModerator(email)` | 已经登录过的账号的邮箱 | `{ ok: true, text }` | 「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个账号已经是审核员。」 |
 | `removeModerator(email)` | 审核员的邮箱 | `{ ok: true, text }` | 「至少要留一位审核员，不能移除最后一位。」「这个账号不是审核员。」 |
 
+审核数据（#70，PRD R-34，ADR 0010）在 `src/app/admin/stats-actions.ts`，同样先 `requireModerator()`：
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, weeks, untimed }`。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, total }`，多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数 | `{ refused, error_zh }` |
+
+举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
+
 ## 页面路由
 
 | 路由 | 内容 | 需要 |

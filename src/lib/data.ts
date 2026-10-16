@@ -153,9 +153,15 @@ export async function updateJob(id: string, patch: Partial<Omit<Job, "id" | "cou
   return getJob(id);
 }
 
-export async function updateReport(id: string, status: Report["status"]): Promise<Report | undefined> {
+/** Closes (or reopens) a report. Closing records when, for the moderation numbers (#70). */
+export async function updateReport(
+  id: string,
+  status: Report["status"],
+  now = new Date(),
+): Promise<Report | undefined> {
   const db = await database();
-  await db.update(t.reports).set({ status }).where(eq(t.reports.id, id));
+  const handledAt = status === "open" ? null : now.toISOString();
+  await db.update(t.reports).set({ status, handledAt }).where(eq(t.reports.id, id));
   const [row] = await db.select().from(t.reports).where(eq(t.reports.id, id));
   return row && toReport(row);
 }

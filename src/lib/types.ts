@@ -115,6 +115,8 @@ export interface Report {
   note?: string;
   createdAt: string;
   status: "open" | "actioned" | "dismissed";
+  /** When it was closed (#70). Reports closed before migration 0008 have none. */
+  handledAt?: string;
 }
 
 /** A signed-in job seeker revealed a job's contact details. */

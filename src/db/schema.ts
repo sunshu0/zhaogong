@@ -71,6 +71,8 @@ export const reports = sqliteTable("reports", {
   note: text("note"),
   createdAt: text("created_at").notNull(),
   status: text("status").$type<"open" | "actioned" | "dismissed">().notNull(),
+  /** When a moderator closed it (#70); null while open, and for reports closed before migration 0008. */
+  handledAt: text("handled_at"),
 });
 
 export const contactViews = sqliteTable("contact_views", {

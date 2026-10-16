@@ -57,6 +57,13 @@
       "when": 1792131082910,
       "tag": "0007_log_moderator",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792131824837,
+      "tag": "0008_report_handled_at",
+      "breakpoints": true
     }
   ]
 }

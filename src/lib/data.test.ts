@@ -78,8 +78,13 @@ describe("employer and moderation data", () => {
     await recordContactView("j1", "b@example.com");
     expect((await listContactViews("j1")).length).toBe(before + 2);
     const r = await submitReport("j2", "charges_fee");
-    await updateReport(r.id, "actioned");
-    expect((await listReports()).find((x) => x.id === r.id)?.status).toBe("actioned");
+    expect(r.handledAt).toBeUndefined();
+    await updateReport(r.id, "actioned", new Date("2026-10-16T01:00:00.000Z"));
+    expect((await listReports()).find((x) => x.id === r.id)).toMatchObject({
+      status: "actioned",
+      handledAt: "2026-10-16T01:00:00.000Z", // when it was closed (#70)
+    });
+    expect((await updateReport(r.id, "open"))?.handledAt).toBeUndefined();
   });
 });
 

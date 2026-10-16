@@ -38,11 +38,13 @@ describe("kept across a restart", () => {
     } catch {}
   });
 
-  it("keeps reports and their status", async () => {
+  it("keeps reports, their status and when they were closed", async () => {
     const report = await submitReport("j1", "charges_fee", "电话里说要交押金");
-    await updateReport(report.id, "actioned");
+    await updateReport(report.id, "actioned", new Date("2026-10-16T02:00:00.000Z"));
     restart();
-    expect(await listReports()).toEqual([{ ...report, status: "actioned" }]);
+    expect(await listReports()).toEqual([
+      { ...report, status: "actioned", handledAt: "2026-10-16T02:00:00.000Z" }, // #70
+    ]);
   });
 
   it("keeps moderation decisions and a ban, with the jobs it took down", async () => {

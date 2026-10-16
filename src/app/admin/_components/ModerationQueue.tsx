@@ -17,6 +17,12 @@ import {
 import { moderatorLabel } from "@/app/admin/moderation";
 import { Empty } from "@/app/admin/_components/Empty";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
+import {
+  ModerationSummary,
+  ModerationWeeks,
+  ModeratorWeeks,
+  useModerationStats,
+} from "@/app/admin/_components/ModerationStats";
 import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
 import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -26,7 +32,7 @@ import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "log" | "moderators";
+type Tab = "flagged" | "reported" | "log" | "stats" | "moderators";
 
 const time = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -44,6 +50,7 @@ export function ModerationQueue() {
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const stats = useModerationStats(version); // #70
 
   useEffect(() => {
     let live = true;
@@ -74,12 +81,14 @@ export function ModerationQueue() {
     { key: "flagged", label: "发布时被标记", count: queue?.flagged.length },
     { key: "reported", label: "被举报", count: queue?.reported.length },
     { key: "log", label: "操作记录", count: queue?.log.length },
+    { key: "stats", label: "审核数据" },
     { key: "moderators", label: "审核员" },
   ];
 
   return (
     <div className="space-y-4">
       <h1 className="text-title font-semibold">审核后台</h1>
+      <ModerationSummary stats={stats && !("refused" in stats) ? stats : undefined} />
       <TabList
         label="审核队列"
         idBase="admin"
@@ -104,6 +113,15 @@ export function ModerationQueue() {
       <TabPanel idBase="admin" value={tab}>
         {tab === "moderators" ? (
           <ModeratorList onDone={setResult} />
+        ) : tab === "stats" ? (
+          stats && !("refused" in stats) ? (
+            <div className="space-y-section">
+              <ModerationWeeks stats={stats} />
+              <ModeratorWeeks stats={stats} />
+            </div>
+          ) : (
+            <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
+          )
         ) : !queue ? (
           <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
         ) : tab === "log" ? (
