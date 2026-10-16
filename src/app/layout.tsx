@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
+import { Toaster } from "@/components/ui/Toast";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import "./globals.css";
 
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={<BottomNavShell />}>
           <BottomNav />
         </Suspense>
+        <Toaster />
       </body>
     </html>
   );

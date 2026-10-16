@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { chatEntry, fillSignInCode, freshEmail, siteNav } from "./helpers";
+import { chatEntry, chooseOption, fillSignInCode, freshEmail, siteNav } from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/interviews";
 import {
   CLEAN_MESSAGE,
@@ -571,7 +571,7 @@ test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 �
   await page.getByRole("link", { name: "实习", exact: true }).first().click();
   await expect(page).toHaveURL("/internships");
   const form = page.getByRole("form", { name: "筛选" });
-  await form.getByLabel("领域").selectOption({ label: "电子电气" });
+  await chooseOption(page, form, "领域", "电子电气");
   await form.getByRole("button", { name: "筛选" }).click();
   await expect(page).toHaveURL(/field=electrical/);
   await page.getByRole("button", { name: "保存为提醒" }).click();

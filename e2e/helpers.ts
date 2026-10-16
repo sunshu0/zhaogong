@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Types the sign-in code. Codes are random (A12-1); outside production the sign-in page shows the code, which is
@@ -91,4 +91,16 @@ export async function counterpartActs(page: Page, conversationId: string, act: {
   const response = await page.request.post("/api/dev/chat-reply", { data: { conversationId, ...act } });
   expect(response.ok()).toBe(true);
   await page.reload();
+}
+
+/**
+ * Picks an option of a Select (Round 19, src/components/ui/Select.tsx): opens it by its label, then taps the option,
+ * in the bottom sheet on a phone or the dropdown on a desktop.
+ */
+export async function chooseOption(page: Page, scope: Page | Locator, label: string, option: string) {
+  await scope.getByRole("button", { name: new RegExp(`^${label}`) }).click();
+  await page
+    .getByRole("listbox", { name: label, exact: true })
+    .getByRole("option", { name: option, exact: true })
+    .click();
 }

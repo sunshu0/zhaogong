@@ -20,7 +20,10 @@ import {
 } from "@/lib/external-jobs/filter";
 import { CITY_LABELS, FIELD_LABELS, KIND_LABELS, NOT_STATED, payLabel, sourceLine } from "@/lib/external-jobs/labels";
 import { Tag } from "@/components/ui/Tag";
+import { Button } from "@/components/ui/Button";
 import { TakedownNote } from "@/components/external/TakedownNote";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Select, type SelectOption } from "@/components/ui/Select";
 import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { externalSaveKey } from "@/components/seeker/saved-jobs";
@@ -78,7 +81,8 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
   const filtered = isExternalFiltered(filter);
   return (
     <div className="space-y-3 lg:grid lg:grid-cols-[15rem_minmax(0,45rem)] lg:items-start lg:gap-x-10 lg:space-y-0">
-      <FilterForm section={section} filter={filter} />
+      {/* Keyed by the filter: a link to the same list with other filters starts the form afresh. */}
+      <FilterForm key={externalFilterToQuery(filter)} section={section} filter={filter} />
       <section aria-label={`${SECTION_TITLES[section]}列表`} className="space-y-3">
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3">
           <p className="text-body text-muted">
@@ -142,81 +146,50 @@ function ExternalJobRow({ job }: { job: ExternalJob }) {
   );
 }
 
-function Select({
-  name,
-  label,
-  value,
-  options,
-}: {
-  name: string;
-  label: string;
-  value?: string;
-  options: [string, string][];
-}) {
-  return (
-    <label className="block space-y-1 text-body">
-      <span className="text-meta text-muted">{label}</span>
-      <select
-        name={name}
-        defaultValue={value ?? ""}
-        className="h-10 w-full rounded-md border border-border bg-surface px-2 text-body"
-      >
-        <option value="">不限</option>
-        {options.map(([v, text]) => (
-          <option key={v} value={v}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function FilterForm({ section, filter }: { section: ExternalSection; filter: ExternalFilter }) {
+  const options = (entries: [string, string][]): SelectOption[] => entries.map(([value, label]) => ({ value, label }));
   return (
     <form
       action={SECTION_PATHS[section]}
       aria-label="筛选"
-      className="grid grid-cols-2 gap-3 rounded-md border border-border bg-surface p-3 lg:grid-cols-1"
+      className="grid grid-cols-2 gap-3 rounded-card bg-surface p-3 shadow-card lg:grid-cols-1 lg:p-4"
     >
       <Select
         name="field"
         label="领域"
-        value={filter.field}
-        options={Object.entries(FIELD_LABELS) as [string, string][]}
+        defaultValue={filter.field}
+        options={options(Object.entries(FIELD_LABELS) as [string, string][])}
       />
       <Select
         name="kind"
         label="类型"
-        value={filter.kind}
-        options={[
+        defaultValue={filter.kind}
+        options={options([
           ...SECTION_KINDS[section].map((k): [string, string] => [k, KIND_LABELS[k]]),
           ...(section === "professional" ? [["unstated", NOT_STATED] as [string, string]] : []),
-        ]}
+        ])}
       />
       <Select
         name="experience"
         label="经验要求"
-        value={filter.experience}
-        options={Object.entries(EXPERIENCE_OPTIONS)}
+        defaultValue={filter.experience}
+        options={options(Object.entries(EXPERIENCE_OPTIONS))}
       />
-      <Select name="visa" label="签证" value={filter.visa} options={Object.entries(VISA_OPTIONS)} />
+      <Select name="visa" label="签证" defaultValue={filter.visa} options={options(Object.entries(VISA_OPTIONS))} />
       <Select
         name="city"
         label="地区"
-        value={filter.city}
-        options={Object.entries(CITY_LABELS) as [string, string][]}
+        defaultValue={filter.city}
+        options={options(Object.entries(CITY_LABELS) as [string, string][])}
       />
-      <label className="flex items-center gap-2 self-end pb-2 text-body">
-        <input type="checkbox" name="paid" value="1" defaultChecked={filter.paid} className="accent-brand" />
-        只看写了薪资的
-      </label>
-      <button
-        type="submit"
-        className="col-span-2 h-10 rounded-md bg-brand px-4 text-body font-medium text-white lg:col-span-1"
-      >
+      <div className="self-end">
+        <Checkbox name="paid" value="1" defaultChecked={filter.paid}>
+          只看写了薪资的
+        </Checkbox>
+      </div>
+      <Button type="submit" size="lg" className="col-span-2 rounded-control lg:col-span-1">
         筛选
-      </button>
+      </Button>
     </form>
   );
 }

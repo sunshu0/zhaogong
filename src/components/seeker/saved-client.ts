@@ -6,6 +6,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { mySavedJobIds, saveMyJob, unsaveMyJob } from "@/app/me/saved/actions";
 import { useSession } from "@/components/seeker/session-client";
+import { toast } from "@/components/ui/Toast";
 
 let ids: ReadonlySet<string> | null = null;
 let loading = false;
@@ -67,14 +68,16 @@ function setBusy(jobId: string, on: boolean) {
   for (const listener of listeners) listener();
 }
 
-/** Saves or removes a job; the buttons follow the server's answer. */
+/** Saves or removes a job; the buttons follow the server's answer, and a toast says what happened (Round 19). */
 export async function toggleSaved(jobId: string, save: boolean): Promise<void> {
   setBusy(jobId, true);
   try {
     const answer = await (save ? saveMyJob(jobId) : unsaveMyJob(jobId));
     set(answer ? new Set(answer) : null);
+    if (answer) toast(save ? "已收藏，可以在「收藏和进度」里查看" : "已取消收藏");
   } catch {
     // Unchanged: the button still shows what the server has.
+    toast(save ? "网络有问题，没有收藏上，请重试" : "网络有问题，没有取消，请重试");
   } finally {
     setBusy(jobId, false);
   }

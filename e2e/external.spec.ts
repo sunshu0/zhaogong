@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { chooseOption } from "./helpers";
 
 // 实习 and 专业职位 (#113): the demo external jobs (src/mock/external-jobs.ts) a moderator already approved.
 // Read-only, so both projects can share the server; other specs may approve more, so no counts are relied on.
@@ -32,8 +33,8 @@ test("专业职位 lists approved external jobs only, with the source, and filte
   await expectNoViolations(page, "/professional");
 
   const form = page.getByRole("form", { name: "筛选" });
-  await form.getByLabel("领域").selectOption({ label: "电子电气" });
-  await form.getByLabel("签证").selectOption({ label: "原文写明需要身份或工作权利" });
+  await chooseOption(page, form, "领域", "电子电气");
+  await chooseOption(page, form, "签证", "原文写明需要身份或工作权利");
   await form.getByRole("button", { name: "筛选" }).click();
   await expect(page).toHaveURL(/field=electrical/);
   await expect(list(page).getByRole("link", { name: "Power Electronics Engineer" })).toBeVisible();

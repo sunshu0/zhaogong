@@ -16,6 +16,17 @@
   --ok: #147638; /* 5.08:1 on --ok-soft (WCAG AA) */
   --ok-soft: #e8f5ec;
   --neutral-soft: #efefeb; /* grey tags and the unverified badge; --muted on it is 4.6:1 */
+
+  /*
+   * Round 19 (操作质感, an app's feel): how things move. A press answers in --duration-press, a menu or toast in
+   * --duration-ui, a bottom sheet in --duration-sheet, all on --ease-app (fast out, soft landing). Pressed things
+   * shrink to --press-scale. "Reduce motion" turns movement off below.
+   */
+  --duration-press: 120ms;
+  --duration-ui: 200ms;
+  --duration-sheet: 280ms;
+  --ease-app: cubic-bezier(0.2, 0, 0, 1);
+  --press-scale: 0.97;
 }
 
 @theme inline {
@@ -85,6 +96,90 @@
   --shadow-md: 0 0 #0000;
   --shadow-lg: 0 0 #0000;
   --shadow: 0 0 #0000;
+
+  /*
+   * Round 19: what the reworked pages use (docs/design-system.md). Cards: 16px corners and a soft shadow instead
+   * of a 1px border (rounded-card shadow-card); controls (buttons, inputs, Select): 12px (rounded-control); things
+   * that float above the page — bottom sheets, dropdowns, toasts — shadow-pop.
+   */
+  --radius-card: 16px;
+  --radius-control: 12px;
+  --shadow-card: 0 1px 2px rgb(28 28 26 / 0.04), 0 4px 14px rgb(28 28 26 / 0.06);
+  --shadow-pop: 0 10px 36px rgb(28 28 26 / 0.18);
+
+  --animate-sheet-up: sheet-up var(--duration-sheet) var(--ease-app);
+  --animate-fade-in: fade-in var(--duration-ui) var(--ease-app);
+  --animate-pop-in: pop-in var(--duration-ui) var(--ease-app);
+  --animate-toast-in: toast-in var(--duration-ui) var(--ease-app);
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  @keyframes shimmer {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+/*
+ * Round 19: anything that can be pressed answers. `pressable` shrinks a button, card or tag a little while it is
+ * pressed and springs back; `pressable-row` darkens a list row instead (a full-width row that shrinks looks broken).
+ * Disabled things do not move.
+ */
+@utility pressable {
+  transition-property: transform, opacity, background-color, border-color, color, box-shadow;
+  transition-duration: var(--duration-press);
+  transition-timing-function: var(--ease-app);
+  -webkit-tap-highlight-color: transparent;
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    transform: scale(var(--press-scale));
+  }
+}
+@utility pressable-row {
+  transition-property: background-color, color;
+  transition-duration: var(--duration-press);
+  transition-timing-function: var(--ease-app);
+  -webkit-tap-highlight-color: transparent;
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--neutral-soft);
+  }
+}
+
+/* "Reduce motion" in the system settings: nothing slides, grows or spins; a press only dims. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .pressable:active:not(:disabled, [aria-disabled="true"]) {
+    transform: none;
+    opacity: 0.8;
+  }
 }
 
 /*

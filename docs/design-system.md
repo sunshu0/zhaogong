@@ -1,6 +1,6 @@
 # 设计规范
 
-> 来源：第 11 轮视觉规则（用户 2026-10-14 批准）、第 13 轮新视觉「橱窗招工启事」（用户 2026-10-16 批准，设计稿在 `docs/design/2026-10-window-notice/`）和 `src/components/ui/` 的实现。规则改了先改这里，再改组件。
+> 来源：第 11 轮视觉规则（用户 2026-10-14 批准）、第 13 轮新视觉「橱窗招工启事」（用户 2026-10-16 批准，设计稿在 `docs/design/2026-10-window-notice/`）、第 19 轮「操作质感」（用户 2026-10-17 确认，偏 App 感，见文末）和 `src/components/ui/` 的实现。规则改了先改这里，再改组件。
 
 ## 原则
 
@@ -78,6 +78,8 @@
 页面左右留 16 px（`main` 的 `px-4`）。`Section` 在手机上贴边（向外伸出这 16 px，上下各一条线），640 px 起变成圆角面板。
 
 ## 圆角和阴影
+
+> 第 19 轮起，改版过的页面按文末「第 19 轮：操作质感」的圆角和阴影做（卡片 16 px 加柔和阴影，控件 12 px）。下面是还没改的页面现在的样子。
 
 - **圆角只有两档：** 标签 3 px（`rounded-sm`），其余（按钮、输入框、面板、菜单）6 px（`rounded-md`）。头像、未读数这类圆形元素用 `rounded-full`。
 - **不用阴影，也不用渐变。** 层次靠底色、细线和间距。
@@ -174,3 +176,58 @@
 ## 无障碍
 
 浏览器测试里的 axe 检查（WCAG 2.1 AA）不能有任何违规；触摸目标至少 44 px；只用颜色表达的状态要同时有文字（如资料完成度里每项的「已填 / 待填」）。
+
+## 第 19 轮：操作质感（偏 App 感）
+
+用户 10-17：「现在总感觉看起来是很廉价的网页」，要求打磨操作质感，风格偏 App。分三步：第一步是这一节的基础（令牌和共用组件，#140）；第二步拿职位列表和职位页做样板给用户看；第三步各线把自己的页面改过来。**品牌色、「找工」字标和时薪大字不变。**
+
+### 动效令牌
+
+在 `globals.css` 的 `:root` 里：
+
+| 变量 | 值 | 用在 |
+| --- | --- | --- |
+| `--duration-press` | 120 ms | 按下和松开 |
+| `--duration-ui` | 200 ms | 下拉、提示、淡入 |
+| `--duration-sheet` | 280 ms | 底部弹层滑上来 |
+| `--ease-app` | `cubic-bezier(0.2, 0, 0, 1)` | 都用这条：出得快，落得软 |
+| `--press-scale` | 0.97 | 按下时缩小到的比例 |
+
+Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animate-sheet-up`、`animate-pop-in`、`animate-fade-in`、`animate-toast-in`、`animate-shimmer`。**系统打开「减少动态效果」时**，所有动画和过渡都关掉，按下只变暗不缩放（`globals.css` 末尾的媒体查询）。不加动画库。
+
+### 按下有反应
+
+- 能点的东西都要有反应：`pressable`（按下缩到 0.97，松手回弹；按钮、卡片、标签、底部导航）或 `pressable-row`（按下变暗；整行宽的列表行，整行缩放看着像坏了）。禁用的不动。
+- 桌面上再加 hover（卡片阴影加深、按钮变浅、行变底色）。
+- `Button`、`ButtonLink`、`buttonClass()` 已经自带 `pressable`。
+
+### 圆角和阴影（改版页面）
+
+| 类 | 值 | 用在 |
+| --- | --- | --- |
+| `rounded-card` + `shadow-card` | 16 px，柔和两层阴影 | 卡片：去掉 1 px 硬边框，靠阴影和白底分出层次 |
+| `rounded-control` | 12 px | 按钮、输入框、Select、列表里的选项 |
+| `shadow-pop` | 较深的阴影 | 浮在页面上的东西：底部弹层、下拉、轻提示 |
+
+点按区域至少 44×44；一屏的主操作（底部操作栏）用 `Button size="lg"`，高 48 px。
+
+### 共用组件（`src/components/ui/`）
+
+| 组件 | 做什么 | 注意 |
+| --- | --- | --- |
+| `Button` | 按下、`loading`（转圈、`aria-busy`、不能重复点）、禁用 | 提交到服务器的按钮都传 `loading`，防止点两次 |
+| `Card`、`CardLink`、`cardClass()`、`rowClass()` | 卡片；`interactive` 的整张可点 | `CardLink` 里不要再放链接和按钮 |
+| `BottomSheet` | 手机从底部滑上来，768 px 起是居中面板 | 原生 `<dialog>`：焦点不出面板；点遮罩、下拉把手、Esc、「关闭」都能关；内容里 `data-autofocus` 的元素先拿到焦点 |
+| `Select` | 代替原生 `<select>`：手机用底部弹层，桌面用下拉 | 值放在同名的隐藏输入框里，GET 表单照常提交；JavaScript 跑起来之前（或没有 JavaScript）是原生下拉框。键盘：↑↓ 移动、Home / End、Enter 或空格选、Esc / Tab 关、按字母跳到下一个（`select-keys.ts`）。e2e 用 `chooseOption()` |
+| `Checkbox`、`Radio` | 原生控件换外观 | 整行都是标签，高 44 px；测试照样 `check()` |
+| `Skeleton`、`SkeletonCard`、`SkeletonList`、`ListPageSkeleton`、`DetailPageSkeleton` | 骨架屏，轻微明暗起伏 | 不用 `role="status"`（页面有自己的状态消息），外层 `aria-busy` 加一行屏幕阅读器文字 |
+| `toast()` 和 `Toaster` | 收藏、发送、保存后屏幕底部一句轻提示，3 秒后消失 | 同样的话再出现只留一条，最多同时 3 条；`Toaster` 在根布局里，只有 `aria-live`，不用 `role="status"` |
+
+### 加载
+
+- 求职者的主要页面有 `loading.tsx`（职位列表、职位页、实习、专业职位、外部职位页、收藏和进度、职位提醒）：点进去马上出现骨架屏，不闪白。各线铺开时给自己的路由补上。
+- 页面里慢的区块继续用 `Suspense` 加骨架屏。
+
+### 还要做（第二、三步）
+
+顶栏吸顶加半透明模糊、底部导航选中时图标变实心加轻微动效、页面切换的过渡（尽量用 View Transitions）、职位卡减负、底部操作栏一主一次。做到哪条，在这里补上规则。
