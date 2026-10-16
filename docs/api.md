@@ -58,7 +58,8 @@
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
 | `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0 | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
-| `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿） | — |
+| `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿）。生产环境由 Claude 回答（#102，`src/lib/ai-post/model/`）：模型用结构化输出交回下一句话、快捷回复和草稿字段，服务器再用 `sanitizeDraft` 清洗、跑合规规则。没配 key、超时或出错时 `unavailable: true`，对话里说明「暂时不可用」 | — |
+| `chatAssistantKind()` | — | 谁在回答：`claude`、`unavailable`（生产环境没配 key）、`script`（开发环境的规则脚本，页面标明不是 AI）、`fake`（开发和测试用的固定回答模型，浏览器带 `zg_ai_fake=1` cookie 时） | — |
 | `publishJob(input)` | 职位草稿，服务器重新清洗和检查 | `{ ok: true, job }`，状态是 `active`，命中需人工审核的规则时是 `pending_review` | `{ ok: false, reason, findings, missing }`：`signed_out`、`no_identity`、`banned`、`not_ready`（有拦截或必须改写的问题，或必填项没填） |
 | `editMyJob(jobId, input)` | 修改后的草稿 | `{ ok: true, job }`；在线的职位改出需审核的内容会回到审核 | `{ ok: false, error_zh, findings? }`：「这个职位已被下架，不能修改。」「还有问题没处理或必填项没填。」 |
 | `closeMyJob(jobId, hires?)` | `hires`：`{ hired: true, count: 1–20 }` 或 `{ hired: false }`，可省略 | `{ ok: true, job }`，状态 `expired` | 「这个职位已经结束或已被下架。」「人数请填 1 到 20。」 |

@@ -49,6 +49,8 @@ export interface ChatState {
   noted: string[];
   /** The employer chose 预览并发布. */
   ready: boolean;
+  /** The model could not answer this turn (#102): the chat says so and offers the form. */
+  unavailable?: boolean;
 }
 
 export type TextField = "titleZh" | "titleEn" | "descriptionZh" | "shiftsZh" | "address";

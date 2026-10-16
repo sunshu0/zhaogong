@@ -4,9 +4,9 @@
 // server (getAccountEmployer); nothing the browser sends says who is acting.
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
+import { cookies } from "next/headers";
 import {
   missingFields,
-  nextTurn,
   parsePost,
   restoreChat,
   type ChatState,
@@ -14,6 +14,8 @@ import {
   type RequiredField,
 } from "@/lib/ai-post";
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
+import { claudeSend } from "@/lib/ai-post/model/client";
+import { assistantKind, FAKE_COOKIE, postingModel, postingTurn, type AssistantKind } from "@/lib/ai-post/model";
 import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
 import {
   createJob,
@@ -111,10 +113,24 @@ export async function parseDraft(text: string): Promise<ParsedPost> {
 export async function chatTurn(state: unknown, message: string): Promise<ChatState> {
   const employer = await postingEmployer();
   const restored = restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY));
-  return nextTurn(
+  // #102: Claude in production; the script (or the fake model) only outside it.
+  const turn = await postingTurn(
     { ...restored, ...(typeof employer !== "string" && { employer: { verification: employer.verification } }) },
     String(message ?? ""),
+    {
+      kind: await chatAssistantKind(),
+      model: postingModel(process.env),
+      claude: claudeSend,
+      sanitize: (d) => sanitizeDraft(d, DEFAULT_COUNTRY),
+    },
   );
+  return turn.state;
+}
+
+/** Which assistant the posting chat talks to, so the page can say when it is not the AI (#102). */
+export async function chatAssistantKind(): Promise<AssistantKind> {
+  const fake = (await cookies()).get(FAKE_COOKIE)?.value === "1";
+  return assistantKind(process.env, fake);
 }
 
 export type PublishResult =

@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"e2e/**/*.ts\" \"*.{ts,mts,mjs}\"",
     "db:generate": "drizzle-kit generate",
     "db:reset": "node scripts/db-reset.mjs",
+    "ai:smoke": "tsx scripts/ai-post-smoke.mjs",
     "db:migrate": "tsx src/db/cli.ts migrate",
     "db:seed": "tsx src/db/cli.ts seed",
     "admin:grant": "tsx src/db/cli.ts admin:grant",
@@ -35,6 +36,7 @@
     }
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@libsql/client": "^0.18.0",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.55.0",

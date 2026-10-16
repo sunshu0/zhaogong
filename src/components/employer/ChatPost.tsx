@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import type { ChatState } from "@/lib/ai-post";
 import type { CountryCode } from "@/lib/types";
-import { chatTurn } from "@/app/employer/actions";
+import { chatAssistantKind, chatTurn } from "@/app/employer/actions";
+import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { buttonClass } from "@/components/ui/Button";
@@ -30,6 +31,12 @@ export function ChatPost({
   const [sending, setSending] = useState<string>();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  // #102: who answers. Outside production it may be the rule-based script, and the page says so.
+  const [kind, setKind] = useState<AssistantKind>();
+  useEffect(() => {
+    chatAssistantKind().then(setKind, () => undefined);
+  }, []);
+  const unavailable = kind === "unavailable" || chat.unavailable;
   const input = useRef<HTMLTextAreaElement>(null);
   const lastMessage = useRef<HTMLLIElement>(null);
   const last = chat.messages[chat.messages.length - 1];
@@ -80,6 +87,7 @@ export function ChatPost({
           <h1 id="chat-heading" ref={headingRef} tabIndex={-1} className="mb-3 text-title font-semibold outline-none">
             和发帖助手一起写招聘
           </h1>
+          {kind === "script" && <p className="-mt-2 mb-3 text-meta text-muted">开发环境：脚本助手，不是 AI。</p>}
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
           {/* As tall as the conversation: no empty block before the first answers. */}
           <div role="log" aria-live="polite" aria-label="和发帖助手的对话">
@@ -132,6 +140,18 @@ export function ChatPost({
                   </button>
                 ))}
               </div>
+            )}
+            {unavailable && !pending && (
+              <p className="rounded-md bg-warn-soft px-3 py-2 text-body text-warn">
+                AI 发帖助手暂时不可用。
+                <button
+                  type="button"
+                  onClick={onUseForm}
+                  className="ml-1 font-medium text-brand underline underline-offset-4"
+                >
+                  改用直接填表
+                </button>
+              </p>
             )}
             {error && (
               <p role="alert" className="text-body text-danger">
