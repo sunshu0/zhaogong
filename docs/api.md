@@ -276,7 +276,7 @@
 | 路由 | 内容 | 需要 |
 | --- | --- | --- |
 | `/` | 介绍页 | — |
-| `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里）、职位详情 | — |
+| `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里：`region`、`industry`、`role`（岗位类别编号，见 `docs/job-roles.md`，#96）、`type`、`minPay`、`visa`、`meals`、`housing`、`q`；职位提醒存的就是这串参数）、职位详情 | — |
 | `/employers/[id]` | 企业公开主页 | — |
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
 | `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |

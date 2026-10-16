@@ -37,6 +37,14 @@ describe("job filter", () => {
     expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: 川味小馆's, from #88
   });
 
+  it("filters by 岗位类别: the employer's choice, else what the title names (#96)", () => {
+    const job = MOCK_JOBS.find((j) => j.id === "j3")!;
+    const chosen = { ...job, roles: ["cook" as const] };
+    expect(matchesFilter(chosen, { country: "NZ", roles: ["cook", "cleaner"] })).toBe(true);
+    expect(matchesFilter(chosen, { country: "NZ", roles: ["front_of_house"] })).toBe(false);
+    expect(matchesFilter({ ...job, roles: [] }, { country: "NZ", roles: ["dim_sum"] })).toBe(true);
+  });
+
   it("matches the query in either language", () => {
     const job = MOCK_JOBS.find((j) => j.id === "j3")!;
     expect(matchesFilter(job, { country: "NZ", query: "点心" })).toBe(true);

@@ -10,6 +10,7 @@ import { fromJob, jobPatch, toAccount, toContactView, toEmployer, toJob, toLogEn
 import * as t from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import { isOpenJob } from "@/lib/job-expiry";
+import { jobRoles } from "@/lib/job-roles";
 import type {
   Account,
   ContactView,
@@ -53,6 +54,7 @@ export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
   if (f.regionIds?.length && !f.regionIds.includes(job.regionId)) return false;
   if (f.industries?.length && !f.industries.includes(job.industry)) return false;
+  if (f.roles?.length && !jobRoles(job).some((id) => f.roles!.includes(id))) return false;
   if (f.employmentTypes?.length && !job.employmentType.some((type) => f.employmentTypes!.includes(type))) return false;
   if (f.minPay != null && (job.pay.max ?? job.pay.min) < f.minPay) return false;
   if (f.visa && !job.visaAccepted.includes(f.visa)) return false;

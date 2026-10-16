@@ -475,3 +475,49 @@ test("中英文简历: home → 我的主页 → 生成简历 → 打印 / 存�
   await page.getByRole("button", { name: "生成分享链接" }).click();
   await expect(page.locator("#resume-share").getByRole("link", { name: /\/resume\// })).toBeVisible();
 });
+
+test("岗位类别（发帖）: home → 发布招聘 → 直接填表 → 岗位类别, preselected from the title → 发布 (#96)", async ({
+  page,
+}, testInfo) => {
+  const run = `${isPhone(testInfo) ? "M" : "D"}${testInfo.workerIndex}${Date.now() % 1_000_000}`;
+  await page.getByRole("banner").getByRole("link", { name: "发布招聘" }).click();
+  await page.getByLabel("邮箱", { exact: true }).fill(`walk.roles.${run}@example.com`);
+  await page.getByRole("button", { name: "获取验证码" }).click();
+  await fillSignInCode(page);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  await page.getByLabel("店名", { exact: true }).fill(`类别走查店${run}`);
+  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(page).toHaveURL("/employer/post");
+  await openTheForm(page);
+  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await page.getByRole("button", { name: "整理成职位" }).click();
+  await page.getByLabel("职位名称（中文）").fill(uniqueTitle("走查前台", testInfo));
+  const roles = page.getByRole("group", { name: "岗位类别" });
+  await expect(roles.getByLabel("前厅服务")).toBeChecked();
+  await roles.getByLabel("收银", { exact: true }).check();
+  await page.getByRole("button", { name: "预览", exact: true }).click();
+  await page.getByRole("button", { name: "发布", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
+});
+
+test("想做的岗位: home → 我的主页 → 想做的岗位 (#96)", async ({ page }, testInfo) => {
+  await signInByClicks(page, testInfo);
+  await openMine(page, testInfo, "我的主页");
+  await expect(page).toHaveURL("/profile");
+  const roles = page.getByRole("group", { name: "想做的岗位" });
+  await roles.getByLabel("前厅服务").check();
+  await expect(roles.getByLabel("前厅服务")).toBeChecked();
+});
+
+test("按岗位类别筛选: home → 查看全部职位 → 岗位类别 → 前厅服务 (#96)", async ({ page }, testInfo) => {
+  await toJobList(page);
+  if (isPhone(testInfo)) await page.getByRole("button", { name: /^筛选/ }).click();
+  await page.getByRole("button", { name: "岗位类别" }).click();
+  await page.getByRole("group", { name: "岗位类别" }).getByText("前厅服务", { exact: true }).click();
+  if (isPhone(testInfo)) await page.getByRole("button", { name: "查看职位" }).click();
+  await expect(page).toHaveURL("/jobs?role=front_of_house");
+  await expect(page.getByRole("link", { name: "去掉条件：前厅服务" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^前厅服务员/ }).first()).toBeVisible();
+});

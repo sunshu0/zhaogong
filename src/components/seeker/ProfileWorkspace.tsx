@@ -16,7 +16,12 @@ import {
   SeekerRequiredFields,
   type UpdateProfileField,
 } from "@/components/seeker/ProfileFields";
-import { DiscoverableToggle, ResumeKeyFields, ResumeMoreFields } from "@/components/seeker/ResumeEditor";
+import {
+  DiscoverableToggle,
+  ResumeKeyFields,
+  ResumeMoreFields,
+  ResumeRoleField,
+} from "@/components/seeker/ResumeEditor";
 import { useSession } from "@/components/seeker/session-client";
 import { Group, Section } from "@/components/ui/Section";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
@@ -133,6 +138,7 @@ export function ProfileWorkspace() {
             <>
               <SeekerRequiredFields profile={profile} update={update} />
               <ResumeKeyFields value={profile.resume} onChange={(resume) => update("resume", resume)} />
+              <ResumeRoleField value={profile.resume} onChange={(resume) => update("resume", resume)} />
             </>
           )}
         </Group>

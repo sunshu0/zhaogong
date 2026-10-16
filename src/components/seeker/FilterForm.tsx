@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { COUNTRIES } from "@/config/countries";
+import { JOB_ROLE_IDS, JOB_ROLES } from "@/config/job-roles";
 import { useHydrated } from "@/components/seeker/session-client";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
@@ -171,6 +172,13 @@ function Form({
             {(Object.keys(INDUSTRY_LABELS) as Industry[]).map((id) => (
               <Chip key={id} type="checkbox" name="industry" value={id} checked={filter.industries?.includes(id)}>
                 {INDUSTRY_LABELS[id].zh}
+              </Chip>
+            ))}
+          </Group>
+          <Group title="岗位类别" {...group("role")}>
+            {JOB_ROLE_IDS.map((id) => (
+              <Chip key={id} type="checkbox" name="role" value={id} checked={filter.roles?.includes(id)}>
+                {JOB_ROLES[id].zh}
               </Chip>
             ))}
           </Group>

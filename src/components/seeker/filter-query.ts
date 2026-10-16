@@ -1,6 +1,7 @@
 // The job list's filters live in the URL so a filtered list can be shared. This module turns a query
 // into a JobFilter and back, keeping only values the app knows and writing them in a fixed order.
 import { COUNTRIES } from "@/config/countries";
+import { JOB_ROLE_IDS, JOB_ROLES } from "@/config/job-roles";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { CountryCode, EmploymentType, Industry, JobFilter } from "@/lib/types";
 
@@ -52,6 +53,8 @@ export function parseFilter(params: SearchParams, country: CountryCode): JobFilt
   if (regionIds) filter.regionIds = regionIds;
   const industries = list(params, "industry", Object.keys(INDUSTRY_LABELS) as Industry[]);
   if (industries) filter.industries = industries;
+  const roles = list(params, "role", JOB_ROLE_IDS);
+  if (roles) filter.roles = roles;
   const employmentTypes = list(params, "type", Object.keys(EMPLOYMENT_TYPE_LABELS) as EmploymentType[]);
   if (employmentTypes) filter.employmentTypes = employmentTypes;
 
@@ -76,6 +79,7 @@ export function filterToQuery(filter: JobFilter): string {
   // Ids are plain ASCII, so lists are written as is to keep shared links readable.
   if (filter.regionIds?.length) parts.push(`region=${filter.regionIds.join(",")}`);
   if (filter.industries?.length) parts.push(`industry=${filter.industries.join(",")}`);
+  if (filter.roles?.length) parts.push(`role=${filter.roles.join(",")}`);
   if (filter.employmentTypes?.length) parts.push(`type=${filter.employmentTypes.join(",")}`);
   if (filter.minPay != null) parts.push(`minPay=${filter.minPay}`);
   if (filter.visa) parts.push(`visa=${filter.visa}`);
@@ -109,6 +113,7 @@ export function filterChips(filter: JobFilter): FilterChip[] {
     add(`region:${id}`, regions.find((r) => r.id === id)?.nameZh ?? id, { regionIds: drop(filter.regionIds!, id) });
   for (const id of filter.industries ?? [])
     add(`industry:${id}`, INDUSTRY_LABELS[id].zh, { industries: drop(filter.industries!, id) });
+  for (const id of filter.roles ?? []) add(`role:${id}`, JOB_ROLES[id].zh, { roles: drop(filter.roles!, id) });
   for (const id of filter.employmentTypes ?? [])
     add(`type:${id}`, EMPLOYMENT_TYPE_LABELS[id].zh, { employmentTypes: drop(filter.employmentTypes!, id) });
   if (filter.minPay != null)
@@ -121,7 +126,7 @@ export function filterChips(filter: JobFilter): FilterChip[] {
 }
 
 /** The filter panel's groups, each a row that opens to show its choices (#63). */
-export type FilterGroup = "region" | "industry" | "type" | "minPay" | "visa" | "food";
+export type FilterGroup = "region" | "industry" | "role" | "type" | "minPay" | "visa" | "food";
 
 /**
  * What a closed group shows after its name: the one choice made in it (「Albany」「$30 起」), 「已选 N」 for several,

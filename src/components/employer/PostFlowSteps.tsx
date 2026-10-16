@@ -1,6 +1,6 @@
 "use client";
 // The pieces of /employer/post, one per step, plus the step list and the mode switch (bars: PostFlowBars.tsx).
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { SAMPLE_POST } from "@/lib/ai-post";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import type { DraftFormState } from "@/components/employer/use-draft-form";
@@ -146,6 +146,7 @@ export function PreviewStep({
   previewAt,
   needsReview,
   banned,
+  roles,
 }: {
   headingRef: HeadingRef;
   preview: Job;
@@ -153,6 +154,8 @@ export function PreviewStep({
   previewAt: number;
   needsReview: boolean;
   banned: boolean;
+  /** 岗位类别 to confirm, for a job that came from the chat. */
+  roles?: ReactNode;
 }) {
   return (
     <section onFocus={keepFocusClear} className={`space-y-4 ${CLEAR_OF_STICKY_BARS}`}>
@@ -168,6 +171,7 @@ export function PreviewStep({
           这个职位会先经过人工审核，通过后才公开。
         </p>
       )}
+      {roles && <div className="rounded-md border border-border bg-surface p-4">{roles}</div>}
       <JobDetail job={preview} employer={employer} now={previewAt}>
         <section className="rounded-md border border-border bg-surface p-4">
           <h2 className="text-subtitle font-semibold">联系方式</h2>

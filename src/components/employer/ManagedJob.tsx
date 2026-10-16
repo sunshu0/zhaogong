@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
+import { jobRoles } from "@/lib/job-roles";
 import { closeMyJob, confirmHires, renewMyJob, type ChangeResult } from "@/app/employer/actions";
 import {
   canEdit,
@@ -170,6 +171,15 @@ function JobSummary({
         )}
         {hires && <span className="font-medium text-ok">{hires}</span>}
       </p>
+      {/* #96: a job from before 岗位类别 whose title named none is 待选 until the employer picks. */}
+      {phase !== "removed" && jobRoles(job).length === 0 && (
+        <p className="mt-2 text-body text-warn">
+          岗位类别待选，推荐人才时这一项不算分。
+          <Link href={`/employer/jobs/${job.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
+            去选
+          </Link>
+        </p>
+      )}
     </>
   );
 }

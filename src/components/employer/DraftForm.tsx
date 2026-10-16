@@ -16,6 +16,7 @@ import {
   type FieldKit,
 } from "@/components/employer/DraftFormParts";
 import { ContactSection, DescriptionSection, RequirementsSection } from "@/components/employer/DraftFormSections";
+import { JobRolesField } from "@/components/employer/JobRolesField";
 import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
 
 type Props = {
@@ -82,6 +83,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
           ))}
         </select>
       </Field>
+      <JobRolesField form={form} set={set} />
       <EmploymentTypeGroup kit={kit} />
       <Chip type="checkbox" checked={form.urgent} onChange={() => set({ urgent: !form.urgent })}>
         急招

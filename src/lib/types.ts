@@ -95,6 +95,8 @@ export interface JobFilter {
   country: CountryCode;
   regionIds?: string[];
   industries?: Industry[];
+  /** 岗位类别 (#96): a job matches when its categories and these share one. */
+  roles?: JobRoleId[];
   employmentTypes?: EmploymentType[];
   minPay?: number;
   visa?: VisaAccepted;

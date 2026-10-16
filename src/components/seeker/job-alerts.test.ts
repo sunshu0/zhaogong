@@ -30,6 +30,13 @@ describe("job alerts (#53)", () => {
     expect(alertFilter({ country: "NZ", query: "" })).toEqual({ country: "NZ" });
   });
 
+  it("keeps 岗位类别 and names the alert after it (#96)", () => {
+    const alert = { country: "NZ" as const, query: "role=front_of_house&industry=hospitality" };
+    expect(alertFilter(alert).roles).toEqual(["front_of_house"]);
+    expect(defaultAlertName(alert)).toBe("餐饮、前厅服务");
+    expect(normalizeAlertQuery("role=cleaner,astronaut", "NZ")).toBe("role=cleaner");
+  });
+
   it("names an alert after its conditions, shortened to fit", () => {
     const alert = { country: "NZ" as const, query: "industry=hospitality&meals=1" };
     expect(alertConditions(alert)).toEqual(["餐饮", "包餐"]);

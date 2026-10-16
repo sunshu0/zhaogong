@@ -6,6 +6,7 @@ import { completeJob } from "@/components/employer/post-form";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { usePosting, type Posting as PostingController } from "@/components/employer/post-flow-state";
 import { BottomBar, FormBar, PreviewBar } from "@/components/employer/PostFlowBars";
+import { JobRolesField } from "@/components/employer/JobRolesField";
 import { FormStep, ModeSwitch, PasteStep, PreviewStep, StepList } from "@/components/employer/PostFlowSteps";
 import { Published } from "@/components/employer/Published";
 import { useEmployerProfile } from "@/components/employer/use-employer";
@@ -112,6 +113,8 @@ function Preview({ view }: { view: PostingView }) {
       previewAt={posting.previewAt}
       needsReview={view.needsReview}
       banned={view.banned}
+      // 对话发布 has no form, so its categories (preselected from the title) are confirmed here (#96).
+      roles={posting.mode === "chat" && <JobRolesField form={posting.form.form} set={posting.form.update} />}
     />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { COUNTRIES } from "@/config/countries";
+import { JOB_ROLE_IDS, JOB_ROLES } from "@/config/job-roles";
 import { EMPLOYMENT_TYPE_LABELS } from "@/i18n/labels";
 import { EMPTY_RESUME, type Resume } from "@/lib/candidate-matching";
 import type { EmploymentType } from "@/lib/types";
@@ -56,6 +57,35 @@ export function ResumeKeyFields(props: ResumeProps) {
   );
 }
 
+/** 想做的岗位 (#96): the categories recommendations compare with a job's, any number. */
+export function ResumeRoleField(props: ResumeProps) {
+  const value = props.value ?? EMPTY_RESUME;
+  const update = resumeUpdater(props);
+  const roles = value.roles ?? [];
+  return (
+    <fieldset>
+      <legend className="mb-1 text-body font-medium">想做的岗位</legend>
+      <p className="mb-2 text-meta text-muted">可多选。雇主找人时按岗位类别匹配，前台、服务员、接待都算前厅服务。</p>
+      <div className="flex flex-wrap gap-2">
+        {JOB_ROLE_IDS.map((id) => (
+          <label
+            key={id}
+            className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-body ${roles.includes(id) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
+          >
+            <input
+              type="checkbox"
+              className="size-4 accent-brand"
+              checked={roles.includes(id)}
+              onChange={() => update({ roles: toggle(roles, id) })}
+            />
+            {JOB_ROLES[id].zh}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 /** The rest of the resume: skills, employment types, weekly hours and the regions you can work in. */
 export function ResumeMoreFields(props: ResumeProps) {
   const value = props.value ?? EMPTY_RESUME;
@@ -63,7 +93,7 @@ export function ResumeMoreFields(props: ResumeProps) {
   return (
     <div className="space-y-4">
       <label className="block text-body">
-        <span className="mb-1 block font-medium">工作技能</span>
+        <span className="mb-1 block font-medium">工作技能（补充说明）</span>
         <input
           value={value.skills}
           onChange={(event) => update({ skills: event.target.value })}

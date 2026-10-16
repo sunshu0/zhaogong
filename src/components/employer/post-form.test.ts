@@ -5,6 +5,7 @@ import {
   editPatch,
   emptyForm,
   formFromDraft,
+  formRoles,
   sanitizeDraft,
 } from "@/components/employer/post-form";
 import type { JobDraft } from "@/lib/compliance";
@@ -57,6 +58,18 @@ describe("form ⇄ draft", () => {
     const draft = draftFromForm({ ...emptyForm(), payMin: 25, payMax: 25, hoursMin: 20, hoursMax: 10 }, "NZ");
     expect(draft.pay).toEqual({ min: 25 });
     expect(draft.hoursPerWeek).toEqual({ min: 20 });
+  });
+
+  it("ticks the title's 岗位类别 until the employer picks, and keeps the pick both ways (#96)", () => {
+    const form = { ...emptyForm(), titleZh: "前台接待", titleEn: "Receptionist", industry: "hospitality" as const };
+    expect(formRoles(form)).toEqual(["front_of_house"]);
+    expect(draftFromForm(form, "NZ").roles).toBeUndefined();
+    expect(formRoles({ ...form, industry: "office" })).toEqual(["office"]);
+    const picked = { ...form, roles: ["cashier" as const] };
+    expect(formRoles(picked)).toEqual(["cashier"]);
+    expect(formFromDraft(draftFromForm(picked, "NZ")).roles).toEqual(["cashier"]);
+    expect(formRoles({ ...form, roles: [] })).toEqual([]);
+    expect(draftFromForm({ ...form, roles: [] }, "NZ").roles).toBeUndefined();
   });
 });
 

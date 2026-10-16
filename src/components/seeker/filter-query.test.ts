@@ -39,6 +39,20 @@ describe("parseFilter", () => {
 
   it("drops values it does not know", () => {
     expect(parse("region=akl-nowhere&industry=mining&type=gig&visa=tourist")).toEqual({ country: "NZ" });
+    expect(parse("role=astronaut")).toEqual({ country: "NZ" });
+  });
+
+  it("reads 岗位类别 (#96) in table order and writes it after the industry", () => {
+    const filter = parse("role=kitchen_hand,front_of_house&industry=hospitality");
+    expect(filter.roles).toEqual(["front_of_house", "kitchen_hand"]);
+    expect(filterToQuery(filter)).toBe("industry=hospitality&role=front_of_house,kitchen_hand");
+    expect(filterChips(filter).map((c) => [c.label, c.query])).toEqual([
+      ["餐饮", "role=front_of_house,kitchen_hand"],
+      ["前厅服务", "industry=hospitality&role=kitchen_hand"],
+      ["后厨帮工", "industry=hospitality&role=front_of_house"],
+    ]);
+    expect(filterGroupSummary(filter, "role")).toBe("已选 2");
+    expect(filterGroupSummary(parse("role=cleaner"), "role")).toBe("清洁");
   });
 
   it("ignores a minimum pay that is not a positive number", () => {
@@ -137,7 +151,7 @@ describe("filterGroupSummary", () => {
 
   it("is empty for a group with nothing chosen, whatever the other groups hold", () => {
     const filter = parse("region=akl-cbd&q=奶茶");
-    for (const group of ["industry", "type", "minPay", "visa", "food"] as const)
+    for (const group of ["industry", "role", "type", "minPay", "visa", "food"] as const)
       expect(filterGroupSummary(filter, group)).toBeUndefined();
   });
 });

@@ -4,6 +4,7 @@ import { checkJob, publishDecision, type JobDraft, type PostingEmployer } from "
 import type { CountryCode } from "@/lib/types";
 import { draftChecklist, type ChecklistItem } from "@/components/employer/draft-checklist";
 import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
+import { roleNames, suggestJobRoles } from "@/lib/job-roles";
 
 /**
  * The job as the conversation has filled it so far: what it is, then one progress line that opens into
@@ -36,6 +37,7 @@ export function DraftCard({
     <section aria-label="职位卡，随对话更新" className="rounded-md border border-border bg-surface p-4 text-body">
       <DraftTitle draft={draft} />
       {summary && <p className="mt-1 text-muted">{summary}</p>}
+      <DraftRoles draft={draft} />
       {/* #85: once the chat knows the pay and the industry, what the same industry pays on the platform. */}
       {draft.industry && draft.pay?.min != null && (
         <div className="mt-2">
@@ -74,6 +76,18 @@ export function DraftCard({
       )}
       {reviewNeeded && <p className="mt-2 text-meta text-warn">这个职位发布后要人工审核。</p>}
     </section>
+  );
+}
+
+/** 岗位类别 (#96): preselected from the title once the chat knows it and the industry; changed on 预览. */
+function DraftRoles({ draft }: { draft: JobDraft }) {
+  if (!draft.titleZh || !draft.industry) return null;
+  const roles = draft.roles?.length ? draft.roles : suggestJobRoles(draft);
+  return (
+    <p className="mt-1 text-meta text-muted">
+      岗位类别：{roles.length ? roleNames(roles) : "待选"}
+      {roles.length ? "（按职位名预选，预览时可以改）" : "（预览时选）"}
+    </p>
   );
 }
 

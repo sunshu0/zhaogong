@@ -7,6 +7,7 @@ import type { CountryCode, Industry, Job, LanguageRequirement, VisaAccepted } fr
 import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { JOB_LIFETIME_DAYS } from "@/components/employer/job-status";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
+import type { JobRoleId } from "@/config/job-roles";
 import { parseJobRoles, suggestJobRoles } from "@/lib/job-roles";
 
 /** What the form edits. Text is kept as typed; numbers are undefined while empty. */
@@ -14,6 +15,8 @@ export interface PostForm {
   titleZh: string;
   titleEn: string;
   industry?: Industry;
+  /** 岗位类别 (#96): the employer's pick; undefined until they pick, when the title's categories are shown. */
+  roles?: JobRoleId[];
   employmentType?: Job["employmentType"];
   regionId?: string;
   address: string;
@@ -63,6 +66,7 @@ export function formFromDraft(draft: JobDraft): PostForm {
     titleZh: draft.titleZh ?? "",
     titleEn: draft.titleEn ?? "",
     industry: draft.industry,
+    roles: draft.roles,
     employmentType: draft.employmentType,
     regionId: draft.regionId,
     address: draft.address ?? "",
@@ -85,6 +89,11 @@ export function formFromDraft(draft: JobDraft): PostForm {
   };
 }
 
+/** The categories the form shows ticked: the employer's pick, else what the title names in the job's industry. */
+export function formRoles(form: PostForm): JobRoleId[] {
+  return form.roles ?? suggestJobRoles(form);
+}
+
 const text = (s: string) => s.trim() || undefined;
 const range = (min?: number, max?: number) =>
   min == null || Number.isNaN(min)
@@ -99,6 +108,7 @@ export function draftFromForm(form: PostForm, country: CountryCode): JobDraft {
     titleZh: text(form.titleZh),
     titleEn: text(form.titleEn),
     industry: form.industry,
+    roles: form.roles?.length ? form.roles : undefined,
     employmentType: form.employmentType,
     regionId: form.regionId,
     address: text(form.address),
