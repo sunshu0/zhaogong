@@ -22,6 +22,7 @@ import { formatPay } from "@/components/seeker/format";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 import { cardClass } from "@/components/ui/Card";
+import { Skeleton, SkeletonList } from "@/components/ui/Skeleton";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
 const DESCRIPTION =
@@ -60,6 +61,10 @@ export default function Home({ searchParams }: PageProps<"/">) {
         <LegacyListLink searchParams={searchParams} />
       </Suspense>
       <NoScriptLanding />
+      {/* Without JavaScript nothing replaces the skeletons below (#167): hide them; NoScriptLanding has the data. */}
+      <noscript>
+        <style>{"[data-nojs-hide]{display:none!important}"}</style>
+      </noscript>
 
       <section aria-labelledby="hero-heading" className={`${FULL_BLEED} bg-background`}>
         <div
@@ -119,12 +124,18 @@ export default function Home({ searchParams }: PageProps<"/">) {
               </Link>
               （来自公司官网）
             </p>
-            <Suspense fallback={<p className="mt-4 h-6" />}>
+            <Suspense
+              fallback={
+                <div data-nojs-hide="">
+                  <Skeleton className="mt-4 h-6 w-72 max-w-full" />
+                </div>
+              }
+            >
               <HeroCount />
             </Suspense>
           </div>
 
-          <Suspense fallback={<div className="h-72 lg:h-[26rem]" />}>
+          <Suspense fallback={<NoticesSkeleton />}>
             <HeroNotices />
           </Suspense>
         </div>
@@ -132,7 +143,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
 
       <FeaturesBand />
 
-      <Suspense fallback={<div className={`${FULL_BLEED} h-96`} />}>
+      <Suspense fallback={<FeaturedSkeleton />}>
         <FeaturedBand />
       </Suspense>
 
@@ -275,6 +286,40 @@ async function FeaturedBand() {
         </ul>
       </div>
     </section>
+  );
+}
+
+/**
+ * While the window notices come (#167): two notice-sized grey cards where they will be, the same height as the
+ * notices, so nothing below moves. Hidden without JavaScript, where the streamed notices show instead (#13).
+ */
+function NoticesSkeleton() {
+  return (
+    <div data-nojs-hide="" aria-hidden="true" className="flex h-72 gap-4 overflow-hidden pt-3 lg:h-[26rem] lg:pt-8">
+      {[0, 1].map((i) => (
+        <div key={i} className="w-[15rem] shrink-0 space-y-3 rounded-card bg-surface p-4 shadow-card lg:h-64">
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** While 精选工作 comes (#167): its heading and three job cards in grey, like the job list's loading page. */
+function FeaturedSkeleton() {
+  return (
+    <div data-nojs-hide="" className={FULL_BLEED}>
+      <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="mt-2 h-4 w-64 max-w-full" />
+        <div className="mt-6 lg:max-w-3xl">
+          <SkeletonList count={3} label="正在加载精选工作" />
+        </div>
+      </div>
+    </div>
   );
 }
 
