@@ -80,4 +80,4 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 ## 测试
 
 - `npm run check`：Prettier、`tsc`、ESLint、Vitest（逻辑都写单测，`*.test.ts` 和代码放一起）、生产构建。
-- `npm run test:e2e`：Playwright，复用正在运行的开发服务器（`E2E_PORT`），手机和桌面两个项目，含 axe 无障碍检查。测试用 `signIn()` 真实登录（读开发环境返回的验证码），用 `/api/dev/chat-reply` 模拟对方回复。
+- 浏览器测试（Playwright，手机和桌面两个项目，含 axe 无障碍检查）跑在**测试构建**上，不用 `next dev`（#139）：`npm run e2e:build` 用 `ZG_E2E=1` 做一次生产构建（放在 `.next-e2e`，用 `tsconfig.e2e.json`），`npm run e2e:start -- <端口>` 启动，再 `E2E_SERVER=start E2E_PORT=<端口> npx playwright test --workers=1`。`ZG_E2E` 在构建时写死（`next.config.ts`），只有这个构建保留测试要用的开发功能（登录页显示验证码、`/api/dev/*`、脚本发帖助手、`zg_ai_fake`），部署构建里设了它会直接报错（`src/lib/test-build.ts` 和它的单测）。全套 e2e 在 next dev 上会涨到 3–5 GB，在测试构建上峰值约 1.3 GB。测试用 `signIn()` 真实登录（读开发环境返回的验证码），用 `/api/dev/chat-reply` 模拟对方回复。

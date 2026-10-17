@@ -1,9 +1,11 @@
-// Browser tests for the job seekers' pages (line A). Run with `npm run test:e2e`; not part of `npm run check`.
-// Uses a dev server on E2E_PORT (default 8702, line A's), starting one if none is running;
-// line B runs its own specs with E2E_PORT=8703. Specs must not depend on how many jobs exist, since others publish.
+// Browser tests. Run with `npm run test:e2e`; not part of `npm run check`. Uses the server on E2E_PORT (default 8702,
+// line A's; each clone has its own port), starting one if none is running. With E2E_SERVER=start that is the browser
+// tests' build (`npm run e2e:build` first; #139), which needs a fraction of next dev's memory: the full run uses it.
+// Otherwise next dev. Specs must not depend on how many jobs exist, since others publish.
 import { defineConfig } from "@playwright/test";
 
 const PORT = Number(process.env.E2E_PORT) || 8702;
+const ON_TEST_BUILD = process.env.E2E_SERVER === "start";
 
 export default defineConfig({
   testDir: "e2e",
@@ -36,7 +38,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `node node_modules/next/dist/bin/next dev -p ${PORT}`,
+    command: ON_TEST_BUILD
+      ? `node scripts/e2e-server.mjs start ${PORT}`
+      : `node node_modules/next/dist/bin/next dev -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     env: { NEXT_TELEMETRY_DISABLED: "1" },
     reuseExistingServer: true,

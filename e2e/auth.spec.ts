@@ -12,7 +12,8 @@ test("the session lives in an httpOnly, SameSite=Lax cookie for 30 days, out of 
   expect(cookie).toBeDefined();
   expect(cookie!.httpOnly).toBe(true);
   expect(cookie!.sameSite).toBe("Lax");
-  expect(cookie!.secure).toBe(false); // plain http on localhost; Secure is set in production
+  // Secure is set in production builds, the browser tests' build included (E2E_SERVER=start, #139); not on next dev.
+  expect(cookie!.secure).toBe(process.env.E2E_SERVER === "start");
   expect(cookie!.path).toBe("/");
   const days = (cookie!.expires * 1000 - Date.now()) / 86_400_000;
   expect(days).toBeGreaterThan(29.9);

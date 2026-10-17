@@ -6,7 +6,22 @@ import type { NextConfig } from "next";
 const HTML_LIMITED_BOTS =
   /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|MicroMessenger|QQ\/|MQQBrowser|Weibo|xiaohongshu|XHS/i;
 
+// The browser tests' build (#139): ZG_E2E=1 at `next build` turns on the development helpers (src/lib/test-build.ts).
+// `env` writes the value into the code at build time, so a deployment built without it cannot turn them on later.
+// The build goes to its own folder, apart from the development server's and the deployment's.
+const testBuild = process.env.ZG_E2E === "1";
+// OpenNext builds the Cloudflare deployment in standalone mode: a shell that still has ZG_E2E set stops here.
+if (testBuild && process.env.NEXT_PRIVATE_STANDALONE === "true")
+  throw new Error("ZG_E2E=1 is for the browser tests' build only. Unset it before building the deployment.");
+
 const nextConfig: NextConfig = {
+  env: { ZG_E2E: testBuild ? "1" : "0" },
+  // tsconfig.e2e.json already lists the folder's types, so the build leaves tsconfig.json as it is; `npm run check`
+  // type-checks the same code.
+  ...(testBuild && {
+    distDir: ".next-e2e",
+    typescript: { tsconfigPath: "tsconfig.e2e.json", ignoreBuildErrors: true },
+  }),
   // The frontend uses local icons and browser-generated avatars; serve them without an image service.
   images: { unoptimized: true },
   cacheComponents: true,

@@ -153,7 +153,7 @@ export async function chatTurn(state: unknown, message: string): Promise<ChatSta
 /** Which assistant the posting chat talks to, so the page can say when it is not the AI (#102). */
 export async function chatAssistantKind(): Promise<AssistantKind> {
   const fake = (await cookies()).get(FAKE_COOKIE)?.value === "1";
-  return assistantKind(process.env, fake);
+  return assistantKind({ ...process.env, ZG_E2E: process.env.ZG_E2E }, fake);
 }
 
 export type PublishResult =

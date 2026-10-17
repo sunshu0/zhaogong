@@ -1,12 +1,16 @@
 // One-time sign-in codes: six random digits, stored as an HMAC, one live code per email.
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { authStore } from "@/lib/auth/store";
-import { authSecret, CODE_TTL_MS, isProduction, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
+import { authSecret, CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { canSendCodes, sendSignInCode } from "@/lib/auth/delivery";
+import { devHelpersEnabled } from "@/lib/test-build";
 import { normalizeEmail } from "@/components/seeker/session";
 
 export type RequestCodeResult =
-  | { ok: true; /** Only outside production, for the sign-in page to show. */ devCode?: string }
+  | {
+      ok: true;
+      /** Only outside production (and in the browser tests' build, #139), for the sign-in page to show. */ devCode?: string;
+    }
   | { ok: false; reason: "throttled"; retryAfterSec: number }
   | { ok: false; reason: "no_mailer" };
 
@@ -52,7 +56,7 @@ export async function requestCode(email: string, now = new Date()): Promise<Requ
     createdAt: now.toISOString(),
   });
   await sendSignInCode(address, code);
-  return isProduction() ? { ok: true } : { ok: true, devCode: code };
+  return devHelpersEnabled() ? { ok: true, devCode: code } : { ok: true };
 }
 
 /**

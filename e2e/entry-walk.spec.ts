@@ -567,6 +567,7 @@ test("专业职位: home → 专业职位 → a job → 去官网申请 (#113)",
 test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 → 收藏和进度 (#131)", async ({ page }, testInfo) => {
   await signInByClicks(page, testInfo);
   await page.getByRole("link", { name: "找工" }).first().click();
+  await expect(page).toHaveURL("/"); // else 实习 can resolve on the page being left (slower on the test build, #139)
   await page.getByRole("link", { name: "实习", exact: true }).first().click();
   await expect(page).toHaveURL("/internships");
   const form = page.getByRole("form", { name: "筛选" });
@@ -583,6 +584,9 @@ test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 �
 
   const list = page.getByRole("region", { name: "实习列表" }).filter({ visible: true });
   await list.getByRole("link", { name: "Firmware Intern (Summer 2026/27)" }).click();
+  // The list's card has a 收藏 button of the same name: wait for the job page, or the click can land on the card's
+  // button just as the list hides (the test build navigates more slowly than next dev, #139).
+  await expect(page).toHaveURL(/\/external\//);
   const save = page.getByRole("button", { name: "收藏：Firmware Intern (Summer 2026/27)" }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveText("已收藏");

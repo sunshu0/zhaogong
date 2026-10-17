@@ -15,8 +15,12 @@ export const FAKE_COOKIE = "zg_ai_fake";
 
 type Env = Record<string, string | undefined>;
 
+/**
+ * `env.ZG_E2E` is the browser tests' build (#139): there the posting chat behaves as in development. Callers pass
+ * `process.env.ZG_E2E` spelled out, so the build fixes it (test-build.ts).
+ */
 export function assistantKind(env: Env, fakeCookie = false): AssistantKind {
-  const production = env.NODE_ENV === "production";
+  const production = env.NODE_ENV === "production" && env.ZG_E2E !== "1";
   const hasKey = !!env.ANTHROPIC_API_KEY?.trim();
   if (production) return hasKey ? "claude" : "unavailable";
   if (fakeCookie || env.AI_POST_FAKE === "1") return "fake";

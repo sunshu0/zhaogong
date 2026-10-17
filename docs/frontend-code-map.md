@@ -34,4 +34,4 @@
 
 ## 验证
 
-`npm run check` 检查格式、类型、lint、单元测试和构建。浏览器验收复用当前开发服务器：PowerShell 中设置 `$env:E2E_PORT='8701'`，然后运行 `npm run test:e2e`。
+`npm run check` 检查格式、类型、lint、单元测试和构建。浏览器验收跑在测试构建上（#139）：`npm run e2e:build`，`npm run e2e:start -- 8701`，再在 Git Bash 里 `E2E_SERVER=start E2E_PORT=8701 npx playwright test --workers=1`，跑完关掉服务器。不要用 `next dev` 跑 e2e。

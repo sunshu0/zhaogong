@@ -1,10 +1,11 @@
 // The other side of a demo conversation, for development and the browser tests only: the demo counterparts are
 // not real accounts, so their replies and read receipts are written here (POST /api/dev/chat-reply). Never in
-// production. Server only.
+// production; on in the browser tests' build (#139). Server only.
 import type { ChatRecord, Message } from "@/components/seeker/chat-store";
+import { devHelpersEnabled } from "@/lib/test-build";
 
 export function devRepliesEnabled(): boolean {
-  return process.env.NODE_ENV !== "production";
+  return devHelpersEnabled();
 }
 
 /** The counterpart reads what the user sent in that conversation so far, then optionally replies. */
