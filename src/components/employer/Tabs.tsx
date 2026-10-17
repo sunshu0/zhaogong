@@ -1,5 +1,6 @@
 "use client";
 import type { KeyboardEvent, ReactNode } from "react";
+import { nextTabIndex } from "@/components/employer/tab-keys";
 
 export interface TabItem<K extends string> {
   key: K;
@@ -41,11 +42,14 @@ export function TabList<K extends string>({
   tabClassName: (selected: boolean) => string;
 }) {
   function onKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
-    const i = tabs.findIndex((t) => t.key === value);
-    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    const next = nextTabIndex(
+      e.key,
+      tabs.findIndex((t) => t.key === value),
+      tabs.length,
+    );
     if (next == null) return;
     e.preventDefault();
-    const key = tabs[(next + tabs.length) % tabs.length].key;
+    const key = tabs[next].key;
     onChange(key);
     document.getElementById(tabIds(idBase, key).tab)?.focus();
   }

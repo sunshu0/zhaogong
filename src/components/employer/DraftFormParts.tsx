@@ -9,9 +9,9 @@ import type { CountryCode, VisaAccepted } from "@/lib/types";
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
 import { ChoicePill } from "@/components/employer/ChoicePill";
-import type { FieldTone } from "@/components/ui/input-class";
+import { fieldTone, type FieldState } from "@/components/employer/field-tone";
 
-export type FieldState = { missing: boolean; findings: Finding[] };
+export type { FieldState };
 
 /** The form, how to change it, and each field's state and box style. */
 export type FieldKit = {
@@ -44,20 +44,6 @@ export function fieldKit({
   });
   const box = (field: keyof JobDraft) => `w-full rounded-control border bg-background px-3 ${fieldTone(state(field))}`;
   return { form, set, config: COUNTRIES[country], state, box, visaChoices };
-}
-
-/** The tone of a field's box: red for a problem that holds publishing, amber for one the parser could not fill. */
-export function selectTone(state: FieldState): FieldTone | undefined {
-  if (state.findings.some((f) => f.level !== "review")) return "danger";
-  if (state.missing) return "warn";
-  return undefined;
-}
-
-/** Red for a problem that holds publishing, amber for a field the parser could not fill, else plain. */
-function fieldTone({ findings, missing }: FieldState): string {
-  if (findings.some((f) => f.level !== "review")) return "border-danger";
-  if (missing) return "border-warn bg-warn-soft/40";
-  return "border-border";
 }
 
 export const toggle = <T,>(list: T[], value: T) =>

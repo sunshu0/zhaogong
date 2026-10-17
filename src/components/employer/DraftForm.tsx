@@ -9,7 +9,6 @@ import {
   Chip,
   Field,
   fieldKit,
-  selectTone,
   Group,
   RangeInputs,
   Section,
@@ -17,6 +16,7 @@ import {
   type FieldKit,
 } from "@/components/employer/DraftFormParts";
 import { ContactSection, DescriptionSection, RequirementsSection } from "@/components/employer/DraftFormSections";
+import { selectTone } from "@/components/employer/field-tone";
 import { JobRolesField } from "@/components/employer/JobRolesField";
 import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
 import { Select } from "@/components/ui/Select";
