@@ -1,7 +1,11 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { chatMenuItem, exchangeTool, signIn } from "./helpers";
+import { chatMenuItem, chooseOption, exchangeTool, signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
+
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
 
 test("the side that asks offers first: the other side sees its details at once, and gives its own only by agreeing", async ({
   page,
@@ -66,7 +70,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   await (await chatMenuItem(page, "举报")).click();
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("请选择举报原因");
-  await dialog.getByLabel("举报原因", { exact: true }).selectOption("privacy");
+  await chooseOption(page, dialog, "举报原因", "泄露隐私或冒用身份");
   await dialog.getByLabel("补充说明（选填）", { exact: true }).fill("对方在未经同意时要求获取其他资料。");
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog).toContainText("举报已记录");
@@ -110,11 +114,13 @@ test("employers can report seekers and accepted private data stays out of public
   await expect(contact).toContainText("09 055 8802");
   await (await chatMenuItem(page, "举报")).click();
   await expect(dialog).toContainText("林晓 · 求职者");
-  await dialog.getByLabel("举报原因", { exact: true }).selectOption("other");
+  await chooseOption(page, dialog, "举报原因", "其他问题");
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("请补充说明具体问题");
-  await dialog.getByLabel("举报原因", { exact: true }).selectOption("harassment");
-  await dialog.getByLabel("举报范围", { exact: true }).selectOption("1");
+  await chooseOption(page, dialog, "举报原因", "骚扰、辱骂或威胁");
+  // 举报范围 lists the other side's messages as 「n. text」; the second message of the thread is 「2. …」.
+  await dialog.getByRole("button", { name: /^举报范围/ }).click();
+  await page.getByRole("listbox", { name: "举报范围", exact: true }).getByRole("option", { name: /^2\. / }).click();
   await page.screenshot({ path: testInfo.outputPath("report-dialog.png"), fullPage: true });
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();

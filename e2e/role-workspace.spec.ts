@@ -3,6 +3,10 @@ import { chatEntry, exchangeTool, expectProfileSaved, freshEmail, openOptionalPr
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 async function switchRole(page: Page, name: string) {
   // Every page load checks the account with a Server Function; a navigation started while that is in flight can
   // be dropped by Next (the page stays put under load), so let it finish first.

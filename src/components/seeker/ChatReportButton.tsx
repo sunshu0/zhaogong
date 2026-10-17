@@ -6,6 +6,9 @@ import { useChat, type Conversation } from "@/components/seeker/chat-client";
 import { useSession } from "@/components/seeker/session-client";
 import { CHAT_REPORT_REASONS, type ChatReportReason } from "@/lib/chat-report";
 import { ChatDialog, CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
+import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Select";
+import { toast } from "@/components/ui/Toast";
 
 /**
  * 举报聊天. With `messageIndex` and `label` it is a text button under one received message (a compliance
@@ -32,8 +35,8 @@ export function ChatReportButton({
         onClick={() => setOpen(true)}
         className={
           label
-            ? "inline-flex min-h-11 items-center text-sm font-medium text-danger underline underline-offset-2"
-            : "flex size-11 shrink-0 items-center justify-center rounded-md text-danger hover:bg-danger-soft"
+            ? "pressable inline-flex min-h-11 items-center text-body font-medium text-danger underline underline-offset-2"
+            : "pressable flex size-11 shrink-0 items-center justify-center rounded-full text-danger hover:bg-danger-soft"
         }
       >
         {label ?? <Flag aria-hidden="true" className="size-5" />}
@@ -78,6 +81,7 @@ export function ChatReportDialog({
     const ok = reportConversation(conversation.id, reason, note, range === "" ? undefined : Number(range));
     if (!ok) return setError("举报未保存，请重试");
     setSent(true);
+    toast("举报已记录");
   }
   return (
     <ChatDialog title="举报聊天对方" onClose={onClose}>
@@ -86,71 +90,57 @@ export function ChatReportDialog({
           <p role="status" className="font-medium text-ok">
             举报已记录
           </p>
-          <p className="text-sm text-muted">前端演示：举报及聊天证据已保存到本机，尚未送交平台处理；不会通知对方。</p>
+          <p className="text-body text-muted">前端演示：举报及聊天证据已保存到本机，尚未送交平台处理；不会通知对方。</p>
           <button type="button" className={CHAT_COMMAND_CLASS} onClick={onClose}>
             关闭
           </button>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4" noValidate>
-          <p className="text-sm">
+          <p className="text-body">
             举报对象：{conversation.person} · {isEmployer ? "求职者" : "雇主"}
           </p>
-          <label className="block text-sm">
-            举报原因
-            <select
-              aria-label="举报原因"
-              value={reason}
-              onChange={(event) => {
-                setReason(event.target.value as ChatReportReason);
-                setError("");
-              }}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3"
-            >
-              <option value="">请选择</option>
-              {Object.entries(CHAT_REPORT_REASONS).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            举报范围
-            <select
-              aria-label="举报范围"
-              value={range}
-              onChange={(event) => setRange(event.target.value)}
-              className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3"
-            >
-              <option value="">整段聊天（最近 100 条）</option>
-              {thread.map((message, index) =>
-                message.from === "them" ? (
-                  <option key={index} value={index}>
-                    {index + 1}. {message.text.slice(0, 60)}
-                  </option>
-                ) : null,
-              )}
-            </select>
-          </label>
+          <Select
+            name="report-reason"
+            label="举报原因"
+            placeholder="请选择"
+            options={Object.entries(CHAT_REPORT_REASONS).map(([value, label]) => ({ value, label }))}
+            defaultValue={reason}
+            onChange={(value) => {
+              setReason(value as ChatReportReason | "");
+              setError("");
+            }}
+          />
+          <Select
+            name="report-range"
+            label="举报范围"
+            placeholder="整段聊天（最近 100 条）"
+            options={thread.flatMap((message, index) =>
+              message.from === "them"
+                ? [{ value: String(index), label: `${index + 1}. ${message.text.slice(0, 60)}` }]
+                : [],
+            )}
+            defaultValue={range}
+            onChange={setRange}
+          />
           {range !== "" && (
-            <p className="whitespace-pre-line break-words border-l-2 border-border pl-3 text-sm text-muted">
+            <p className="rounded-control bg-background px-3 py-2 text-body break-words whitespace-pre-line text-muted">
               {thread[Number(range)]?.text}
             </p>
           )}
-          <label className="block text-sm">
-            补充说明{reason === "other" ? "（必填）" : "（选填）"}
+          <label className="block space-y-1 text-body">
+            <span className="block text-meta text-muted">补充说明{reason === "other" ? "（必填）" : "（选填）"}</span>
             <textarea
               rows={3}
               maxLength={1000}
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="mt-1 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 text-base"
+              className="w-full resize-y rounded-control border border-border bg-surface px-3 py-2 text-base focus:border-brand"
             />
           </label>
-          <p className="text-xs text-muted">举报会附带所选聊天内容，仅用于处理举报。前端演示记录保存在本机。</p>
+          <p className="text-meta text-muted">举报会附带所选聊天内容，仅用于处理举报。前端演示记录保存在本机。</p>
           {error && (
-            <p role="alert" className="text-sm text-danger">
+            <p role="alert" className="text-body text-danger">
               {error}
             </p>
           )}
@@ -158,9 +148,9 @@ export function ChatReportDialog({
             <button type="button" className={CHAT_COMMAND_CLASS} onClick={onClose}>
               取消
             </button>
-            <button type="submit" className="min-h-11 rounded-md bg-danger px-4 text-sm font-medium text-white">
+            <Button type="submit" variant="danger">
               提交举报
-            </button>
+            </Button>
           </div>
           {history.length > 0 && (
             <details className="border-t border-border pt-3">

@@ -33,9 +33,8 @@ function workspaceNav(isEmployer: boolean): NavItem[] {
   ];
 }
 
-// The current page: brand and semibold with a short 3px line on its left, like the bottom bar (Round 13).
-const ACTIVE =
-  "relative font-semibold text-brand before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-brand";
+// The current page: brand and semibold on the brand's soft colour (Round 19, like a chosen option).
+const ACTIVE = "bg-brand-soft font-semibold text-brand";
 
 export function WorkspaceNav({ pathname, isEmployer }: { pathname: string; isEmployer: boolean }) {
   const { unread: notificationUnread } = useNotifications();

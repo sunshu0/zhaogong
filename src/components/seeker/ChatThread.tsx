@@ -86,7 +86,7 @@ function ThreadHeader({
         onClick={onBack}
         aria-label="返回会话列表"
         title="返回会话列表"
-        className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-background lg:hidden"
+        className="pressable -ml-2 flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-background lg:hidden"
       >
         <ArrowLeft aria-hidden="true" className="size-5" />
       </button>
@@ -104,7 +104,7 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // Only when there is no job strip under the header (it names the job already).
   const job = conversation.job ? null : (
-    <p className="truncate text-xs text-muted">
+    <p className="truncate text-meta text-muted">
       {isEmployer ? "应聘" : "招聘"}：{conversation.title}
     </p>
   );
@@ -113,7 +113,7 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
         <div className="min-w-0">
-          <h2 className="truncate font-medium">{conversation.person}</h2>
+          <h2 className="truncate text-subtitle font-semibold">{conversation.person}</h2>
           {job}
         </div>
       </div>
@@ -124,11 +124,11 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
       href={profileHref}
       aria-label={`查看${conversation.person}的主页`}
       title={`查看${conversation.person}的主页`}
-      className="group flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-brand"
+      className="group pressable flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-brand"
     >
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
       <div className="min-w-0">
-        <h2 className="break-words font-medium leading-snug group-hover:text-brand group-hover:underline sm:truncate">
+        <h2 className="text-subtitle leading-snug font-semibold break-words group-hover:text-brand group-hover:underline sm:truncate">
           {conversation.person}
         </h2>
         {job}
@@ -164,18 +164,18 @@ function MessageComposer({
         placeholder="输入消息…"
         rows={3}
         aria-describedby={warning ? "message-draft-warning" : undefined}
-        className="min-h-11 min-w-0 flex-1 resize-none rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+        className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
       />
       <button
         type="submit"
         disabled={!draft.trim()}
-        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+        className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-brand px-5 py-2 text-body font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
         <Send aria-hidden="true" className="size-4" />
         发送
       </button>
       {warning && (
-        <p id="message-draft-warning" role="status" className="basis-full text-xs leading-relaxed text-warn">
+        <p id="message-draft-warning" role="status" className="basis-full text-meta leading-relaxed text-warn">
           {warning}
         </p>
       )}

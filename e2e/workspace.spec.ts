@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 import { chatEntry, freshEmail, signIn, siteNav } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 test("workspace navigation stays visible across its pages", async ({ page }, testInfo) => {
   await signIn(page, "/workspace", freshEmail("workspace"));
   await expect(chatEntry(page)).toBeVisible();

@@ -12,6 +12,7 @@ import { workspaceTitle } from "@/components/seeker/workspace";
 import { ButtonLink } from "@/components/ui/Button";
 import { LinkList } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 /** 总览 (/workspace): only what needs doing, most urgent first; one sentence and one button when nothing does. */
 export function WorkspaceDashboard() {
@@ -55,16 +56,16 @@ export function WorkspaceDashboard() {
         </p>
       </header>
       {loading ? (
-        <div className="h-40 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />
+        <SkeletonList count={2} label="正在读取待办" />
       ) : todos.length ? (
-        <Section id="todos" title="待办">
+        <Section look="app" id="todos" title="待办">
           <LinkList
             label="待办"
             items={todos.map((todo) => ({ href: todo.href, label: todo.title, detail: todo.detail }))}
           />
         </Section>
       ) : (
-        <Section>
+        <Section look="app">
           <div className="py-10 text-center">
             <p className="text-subtitle">都处理完了</p>
             <p className="mt-1 text-meta text-muted">

@@ -12,6 +12,7 @@ import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { Pay } from "@/components/ui/Pay";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
@@ -37,12 +38,7 @@ export function CandidatePublicPage() {
     ? `/messages?conversation=${encodeURIComponent(context.conversationId)}`
     : "/messages";
 
-  if (!hydrated || (!candidate && !loaded))
-    return (
-      <p role="status" className="py-8 text-body text-muted">
-        正在加载主页…
-      </p>
-    );
+  if (!hydrated || (!candidate && !loaded)) return <SkeletonList count={2} label="正在加载主页…" />;
   if (!candidate)
     return (
       <div className="space-y-4">
@@ -59,7 +55,7 @@ export function CandidatePublicPage() {
       ) : (
         <BackToChat href={chatHref} />
       )}
-      <Section>
+      <Section look="app">
         <Group>
           <header className="flex items-start gap-4">
             <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={`${candidate.name}头像`} large />
@@ -82,14 +78,14 @@ export function CandidatePublicPage() {
           </dl>
         </Group>
       </Section>
-      <Section id="candidate-about" title="个人介绍">
+      <Section look="app" id="candidate-about" title="个人介绍">
         <Group>
           <p className="whitespace-pre-line break-words text-body leading-relaxed">
             {candidate.bio || "尚未填写个人介绍。"}
           </p>
         </Group>
       </Section>
-      <Section id="candidate-preferences" title="公开求职资料">
+      <Section look="app" id="candidate-preferences" title="公开求职资料">
         <Group>
           <dl className="grid gap-4 text-body sm:grid-cols-2">
             <Fact term="技能" value={candidate.resume.skills} />
@@ -127,11 +123,14 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
   const { openCandidateChat } = useChat();
   const [opening, setOpening] = useState(false);
   return (
-    <Section>
+    <Section look="app">
       <div className="flex flex-wrap items-center justify-between gap-3 py-group">
         <div className="min-w-0">
           <p className="text-meta text-muted">应聘职位</p>
-          <Link href={`/jobs/${job.id}`} className="block truncate text-subtitle font-semibold hover:underline">
+          <Link
+            href={`/jobs/${job.id}`}
+            className="pressable block truncate text-subtitle font-semibold hover:underline"
+          >
             {job.titleZh}
           </Link>
           <p>
@@ -142,7 +141,7 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
           <ButtonLink href={chatHref}>回到聊天</ButtonLink>
         ) : (
           <Button
-            disabled={opening}
+            loading={opening}
             onClick={async () => {
               setOpening(true);
               const id = await openCandidateChat(candidate, job);
@@ -160,7 +159,7 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
 
 function BackToChat({ href }: { href: string }) {
   return (
-    <Link href={href} className="inline-flex min-h-11 items-center gap-2 text-body text-brand">
+    <Link href={href} className="pressable inline-flex min-h-11 items-center gap-2 text-body text-brand">
       <ArrowLeft aria-hidden="true" className="size-4" />
       回到聊天
     </Link>

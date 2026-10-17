@@ -27,7 +27,7 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
       className="h-80 min-h-0 flex-1 space-y-4 overflow-y-auto bg-background/60 px-4 py-5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand lg:h-auto lg:px-6"
       aria-live="polite"
     >
-      {!thread?.length && <p className="text-center text-sm text-muted">尚未发送消息</p>}
+      {!thread?.length && <p className="text-center text-body text-muted">尚未发送消息</p>}
       {thread?.map((message, index) => (
         <MessageBubble key={`${message.time}-${index}`} message={message} index={index} conversation={conversation} />
       ))}
@@ -51,10 +51,12 @@ function MessageBubble({
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[85%] break-words rounded-md px-4 py-3 text-sm leading-relaxed lg:max-w-[75%] lg:text-base ${mine ? "bg-brand text-white" : "border border-border bg-surface"}`}
+        className={`max-w-[85%] animate-pop-in rounded-card px-4 py-2.5 text-body leading-relaxed break-words lg:max-w-[75%] ${mine ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm bg-surface shadow-card"}`}
       >
         <p>{message.text}</p>
-        <p className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${mine ? "text-white" : "text-muted"}`}>
+        <p
+          className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta ${mine ? "text-white" : "text-muted"}`}
+        >
           {/* Who in the business's team sent it (#87): the team sees the name, the job seeker 「店名 · 名字」 (#110). */}
           {message.by && (
             <span data-message-by="">{mine ? message.by : teamSignature(conversation?.person ?? "", message.by)}</span>
@@ -69,7 +71,7 @@ function MessageBubble({
         <div
           role="note"
           aria-label="合规提醒"
-          className="mt-1.5 max-w-[85%] space-y-1 rounded-md bg-warn-soft px-3 py-2 text-xs leading-relaxed text-warn lg:max-w-[75%]"
+          className="mt-1.5 max-w-[85%] space-y-1 rounded-control bg-warn-soft px-3 py-2 text-meta leading-relaxed text-warn lg:max-w-[75%]"
         >
           {warnings.map((warning) => (
             <p key={warning.rule} className="flex gap-1.5">

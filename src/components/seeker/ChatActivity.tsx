@@ -59,12 +59,12 @@ export function EmployerActivitySummary({ employerId }: { employerId: string }) 
   const now = useActivityClock();
   const activity = demoChatActivity(employerId, false);
   return (
-    <div aria-label="雇主沟通情况" className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+    <div aria-label="雇主沟通情况" className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-body text-muted">
       <span>{now ? lastActiveLabel(activity?.lastActiveAt, now) : "最近上线时间加载中"}</span>
       <span>
         {activity && now ? `今日已回复 ${demoEmployerReplyCount(activity, now)} 位求职者` : "今日回复人数暂无记录"}
       </span>
-      <span className="text-xs">演示状态</span>
+      <span className="text-meta">演示状态</span>
     </div>
   );
 }
@@ -73,7 +73,7 @@ export function EmployerJobActivity({ employerId }: { employerId: string }) {
   const now = useActivityClock();
   const activity = demoChatActivity(employerId, false);
   return (
-    <div aria-label="雇主招聘沟通情况" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+    <div aria-label="雇主招聘沟通情况" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-meta text-muted">
       <span>{now ? `最近在线：${lastActiveLabel(activity?.lastActiveAt, now)}` : "最近上线时间加载中"}</span>
       <span>
         {activity && now ? `今日已回复 ${demoEmployerReplyCount(activity, now)} 位求职者` : "今日回复人数暂无记录"}

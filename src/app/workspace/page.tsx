@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "工作台", robots: { index: false }
 
 export default function Workspace() {
   return (
-    <WorkHubFrame>
+    <WorkHubFrame look="app">
       <WorkspaceOverview />
     </WorkHubFrame>
   );

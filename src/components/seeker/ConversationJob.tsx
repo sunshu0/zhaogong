@@ -26,7 +26,7 @@ export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallb
     <Link
       href={`/jobs/${jobId}`}
       aria-label={`聊的职位：${job?.title ?? fallbackTitle}${job ? `，${job.pay}` : ""}，查看职位详情`}
-      className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2 text-body hover:bg-background lg:px-6"
+      className="pressable-row flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-4 py-2 text-body hover:bg-background lg:px-6"
     >
       <span className="shrink-0 text-meta text-muted">职位</span>
       <span className="min-w-0 truncate font-medium">{job?.title ?? fallbackTitle}</span>

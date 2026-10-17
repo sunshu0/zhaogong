@@ -3,6 +3,10 @@ import { expectProfileSaved, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 test("chat header avatar and employer name both open the company home", async ({ page }, testInfo) => {
   await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.chat-profile"));
   const header = page.getByRole("region", { name: "与北岸早茶酒家的聊天" });

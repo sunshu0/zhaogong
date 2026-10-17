@@ -14,7 +14,7 @@ export function ResumeSheet({ doc }: { doc: ResumeDoc }) {
     <article
       id={RESUME_SHEET_ID}
       aria-label="中英文简历"
-      className="mx-auto w-full max-w-[210mm] border border-border bg-white px-5 py-6 text-[#1f2421] sm:px-10 sm:py-9 print:max-w-none print:border-0 print:p-0"
+      className="mx-auto w-full max-w-[210mm] rounded-card bg-white px-5 py-6 text-[#1f2421] shadow-card sm:px-10 sm:py-9 print:max-w-none print:rounded-none print:p-0 print:shadow-none"
     >
       <header className="border-b-2 border-brand pb-3">
         <h2 className="text-2xl font-semibold leading-tight">{doc.zh.name}</h2>

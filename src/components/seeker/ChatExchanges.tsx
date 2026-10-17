@@ -54,7 +54,7 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
         aria-controls={`exchange-tools-${conversationId}`}
         title="交换资料或联系方式"
         onClick={() => setOpen((value) => !value)}
-        className="flex size-11 items-center justify-center rounded-md border border-border hover:border-brand aria-expanded:border-brand aria-expanded:text-brand"
+        className="pressable flex size-11 items-center justify-center rounded-full bg-background hover:text-brand aria-expanded:bg-brand-soft aria-expanded:text-brand"
       >
         <Plus aria-hidden="true" className="size-5" />
       </button>
@@ -63,7 +63,7 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
         hidden={!open}
         role="group"
         aria-label="沟通工具"
-        className="absolute bottom-full left-0 z-10 mb-2 w-max space-y-1 rounded-md border border-border bg-surface p-2"
+        className="absolute bottom-full left-0 z-10 mb-2 w-max animate-pop-in space-y-1 rounded-control bg-surface p-2 shadow-pop"
       >
         {TOOLS.map((tool) => {
           const { kind } = tool;
@@ -118,7 +118,7 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
           <section
             key={item.id}
             aria-label={`${EXCHANGE_LABELS[item.kind]}交换请求`}
-            className="mx-auto max-w-2xl space-y-3 rounded-md border border-border bg-surface p-4 text-sm"
+            className="mx-auto max-w-2xl space-y-3 rounded-card bg-surface p-4 text-body shadow-card"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">

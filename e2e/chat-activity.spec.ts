@@ -3,6 +3,10 @@ import { chatMenuItem, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 test("seeker sees employer activity and receipts only change when the counterpart reads", async ({
   page,
 }, testInfo) => {

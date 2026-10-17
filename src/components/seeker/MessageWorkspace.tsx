@@ -29,16 +29,16 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{isEmployer ? "招聘聊天" : "求职聊天"}</h1>
-        <p role="status" className="text-sm text-muted">
+        <h1 className="text-title font-semibold">{isEmployer ? "招聘聊天" : "求职聊天"}</h1>
+        <p role="status" className="text-meta text-muted">
           {totalUnread ? `${totalUnread} 条未读消息` : "消息已全部读完"}
-          {demoAccount && <span className="ml-2 text-xs">演示数据</span>}
+          {demoAccount && <span className="ml-2">演示数据</span>}
         </p>
       </header>
 
       <div
         data-chat-workspace=""
-        className="grid h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] overflow-hidden rounded-md border border-border bg-surface lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]"
+        className="grid h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] overflow-hidden rounded-card bg-surface shadow-card lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]"
       >
         <ConversationList
           conversations={conversations}
@@ -60,7 +60,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
           <NoConversationSelected totalUnread={totalUnread} />
         )}
       </div>
-      <p className="text-xs text-muted">
+      <p className="text-meta text-muted">
         {demoAccount
           ? "演示账号：这里的联系人和他们的回复都是演示内容。"
           : "消息保存在服务器上，双方都能看到；对方的新消息在这个页面上 10 秒内出现。"}
@@ -103,18 +103,18 @@ function ConversationList({
       aria-label="聊天列表"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="font-medium">最近联系</h2>
-        <span className="text-xs text-muted">{conversations.length} 个会话</span>
+        <h2 className="text-subtitle font-semibold">最近联系</h2>
+        <span className="text-meta text-muted">{conversations.length} 个会话</span>
       </div>
       {conversations.length === 0 && (
-        <p className="px-4 py-6 text-sm text-muted">
+        <p className="px-4 py-6 text-body text-muted">
           还没有聊天。
           {isEmployer
             ? "在申请人列表或推荐人才里点「发起聊天」，就会出现在这里。"
             : "在职位详情里点「立即沟通」，就会出现在这里。"}
         </p>
       )}
-      <ul className="divide-y divide-border">
+      <ul className="space-y-0.5 p-1.5">
         {conversations.map((conversation) => (
           <li key={conversation.id}>
             <ConversationRow
@@ -152,15 +152,19 @@ function ConversationRow({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex w-full gap-3 px-4 py-4 text-left hover:bg-background ${selected ? "bg-brand-soft" : ""}`}
+      className={`pressable-row flex w-full items-center gap-3 rounded-control px-3 py-3 text-left hover:bg-background ${selected ? "bg-brand-soft hover:bg-brand-soft" : ""}`}
     >
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium">{conversation.person}</span>
-          <span className="shrink-0 text-[11px] text-muted">{conversation.time}</span>
+          <span className={`truncate text-body ${unreadCount ? "font-semibold" : "font-medium"}`}>
+            {conversation.person}
+          </span>
+          <span className="shrink-0 text-meta text-muted">{conversation.time}</span>
         </span>
-        <span className="mt-1 block truncate text-sm text-muted">{preview}</span>
+        <span className={`mt-0.5 block truncate text-meta ${unreadCount ? "text-foreground" : "text-muted"}`}>
+          {preview}
+        </span>
       </span>
       <UnreadBadge count={unreadCount} />
     </button>
@@ -174,8 +178,8 @@ function NoConversationSelected({ totalUnread }: { totalUnread: number }) {
       aria-label="选择会话"
     >
       <MessageSquare aria-hidden="true" className="size-12 text-brand" />
-      <h2 className="text-lg font-medium">选择一位联系人</h2>
-      <p className="text-sm text-muted">{totalUnread ? `你有 ${totalUnread} 条未读消息` : "暂无未读消息"}</p>
+      <h2 className="text-subtitle font-semibold">选择一位联系人</h2>
+      <p className="text-body text-muted">{totalUnread ? `你有 ${totalUnread} 条未读消息` : "暂无未读消息"}</p>
     </section>
   );
 }

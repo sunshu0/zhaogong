@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { sharedResume } from "@/db/resume-shares";
+import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { PrintButton } from "@/components/seeker/PrintButton";
+import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { ResumePrintStyle, ResumeSheet } from "@/components/seeker/ResumeSheet";
 
 // A shared 中英文简历 (#86): read-only, for people who are not on the platform, so no sign-in. The link is the only
@@ -12,15 +14,12 @@ export const metadata: Metadata = { title: "中英文简历 · Resume", robots: 
 
 export default function SharedResumePage({ params }: PageProps<"/resume/[id]">) {
   return (
-    <Suspense
-      fallback={
-        <p role="status" className="py-12 text-muted">
-          正在加载简历…
-        </p>
-      }
-    >
-      <SharedResume params={params} />
-    </Suspense>
+    <div className="type-app">
+      <Suspense fallback={<DetailPageSkeleton label="正在加载简历…" />}>
+        <SharedResume params={params} />
+      </Suspense>
+      <NoScriptStreams />
+    </div>
   );
 }
 

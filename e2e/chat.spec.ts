@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 import { chatEntry, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 test("chat is prominent, unread counts sync and the composer stays visible", async ({ page }, testInfo) => {
   await signIn(page, "/jobs", freshEmail("demo.chat"));
   const entry = chatEntry(page);

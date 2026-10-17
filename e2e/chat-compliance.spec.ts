@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { counterpartActs, freshEmail, signIn } from "./helpers";
+import { counterpartActs, freshEmail, selectTrigger, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
+
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
 
 // A26: reminders when a chat message asks for fees, sells visas or picks people by ethnicity.
 test("a received message asking for a deposit gets a reminder and a report link; my own draft gets a hint", async ({
@@ -20,7 +24,7 @@ test("a received message asking for a deposit gets a reminder and a report link;
 
   await note.getByRole("button", { name: "举报这条消息" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByLabel("举报原因", { exact: true })).toHaveValue("fees");
+  await expect(selectTrigger(dialog, "举报原因")).toHaveAccessibleName("举报原因 收取押金、介绍费或其他费用");
   await expect(dialog).toContainText("入职前要先交 200 元押金");
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog).toContainText("举报已记录");
