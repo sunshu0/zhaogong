@@ -5,6 +5,7 @@ import { MessageSquare } from "lucide-react";
 import { useChat, useChatRefresh, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
+import { RetryBoundary } from "@/components/seeker/RetryBoundary";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { useSession } from "@/components/seeker/session-client";
 import { isDemoAccount } from "@/lib/demo-accounts";
@@ -49,13 +50,16 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
           onSelect={select}
         />
         {selected ? (
-          <ChatThread
-            conversation={selected}
-            isEmployer={isEmployer}
-            draft={draft}
-            onDraftChange={setDraft}
-            onBack={() => setSelectedId(null)}
-          />
+          // #178: if the open chat fails, the list and the unsent draft (state up here) stay; 重试 redraws the chat.
+          <RetryBoundary key={selected.id} title="这段聊天没显示出来" note="没发出去的话还在输入框里，点重试再打开。">
+            <ChatThread
+              conversation={selected}
+              isEmployer={isEmployer}
+              draft={draft}
+              onDraftChange={setDraft}
+              onBack={() => setSelectedId(null)}
+            />
+          </RetryBoundary>
         ) : (
           <NoConversationSelected totalUnread={totalUnread} />
         )}

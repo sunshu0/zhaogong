@@ -87,9 +87,16 @@ export async function publishJob(page: Page, title: string, message = CLEAN_MESS
   return publishFromPreview(page, /KTV|按摩/.test(message) ? "提交审核" : "发布");
 }
 
-/** /employer/post opens in chat mode; the paste → form flow is behind 直接填表. */
+/**
+ * /employer/post opens in chat mode; the paste → form flow is behind 直接填表. Since #178 the tab keeps the last
+ * draft and a second visit resumes it, so 清空重来 drops it first.
+ */
 export async function openTheForm(page: Page) {
-  await page.getByRole("button", { name: "直接填表", exact: true }).click();
+  const startOver = page.getByRole("button", { name: "清空重来", exact: true });
+  const formMode = page.getByRole("button", { name: "直接填表", exact: true });
+  await expect(startOver.or(formMode).first()).toBeVisible();
+  if (await startOver.isVisible()) await startOver.click();
+  await formMode.click();
   await expect(page.getByLabel(/把微信群里的招聘消息粘贴进来/)).toBeVisible();
 }
 

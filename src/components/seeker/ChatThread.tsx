@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { crashForTests } from "@/lib/test-crash";
 import { ArrowLeft, Send } from "lucide-react";
 import { conversationProfileHref, useChat, type Conversation } from "@/components/seeker/chat-client";
 import { ChatActivity } from "@/components/seeker/ChatActivity";
@@ -26,6 +27,7 @@ export function ChatThread({
   onDraftChange: (draft: string) => void;
   onBack: () => void;
 }) {
+  crashForTests("chat");
   const { messages, conversations, send } = useChat();
 
   function submit(event: FormEvent) {

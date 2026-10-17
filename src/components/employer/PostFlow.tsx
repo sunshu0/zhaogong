@@ -11,6 +11,9 @@ import { FormStep, ModeSwitch, PasteStep, PreviewStep, StepList } from "@/compon
 import { Published } from "@/components/employer/Published";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
+import { noticeClass } from "@/components/employer/app-style";
+import { RetryBoundary } from "@/components/seeker/RetryBoundary";
+import { crashForTests } from "@/lib/test-crash";
 
 /** /employer/post: the employer identity first, then the chat or the form. */
 export function PostFlow({ country }: { country: CountryCode }) {
@@ -49,8 +52,19 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
       {posting.error && (
         <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{posting.error}</p>
       )}
-      <CurrentStep view={view} />
-      <StepBar view={view} />
+      {posting.restored && (
+        <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
+          接着上次没写完的继续（草稿只存在这个标签页里）。
+          <button type="button" onClick={posting.startOver} className="pressable min-h-11 underline">
+            清空重来
+          </button>
+        </p>
+      )}
+      {/* #178: a step that fails shows 重试 in its place; the posting state is up here, so nothing typed is lost. */}
+      <RetryBoundary title="这一步没显示出来" note="你填的内容还在，点重试接着填。">
+        <CurrentStep view={view} />
+        <StepBar view={view} />
+      </RetryBoundary>
     </div>
   );
 }
@@ -71,6 +85,7 @@ type PostingView = {
 /** The body of the current step: the chat, the paste box, the form or the preview. */
 function CurrentStep({ view }: { view: PostingView }) {
   const { posting, country, heading } = view;
+  crashForTests("post");
   switch (posting.step) {
     case "chat":
       return (

@@ -1,13 +1,21 @@
 "use client";
 // State and steps of /employer/post. Each handler is its own function over the state, so the page
 // component only lays things out.
-import { useState, useTransition, type Dispatch, type SetStateAction, type TransitionStartFunction } from "react";
+import {
+  useEffect,
+  useState,
+  useTransition,
+  type Dispatch,
+  type SetStateAction,
+  type TransitionStartFunction,
+} from "react";
 import { resumeChat, startChat, type ChatState } from "@/lib/ai-post";
 import type { CountryCode, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/employer/actions";
 import { emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useDraftForm, type DraftFormState } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
+import { clearPost, loadPost, savePost, type SavedPost } from "@/components/employer/post-draft-store";
 
 export type Step = "chat" | "paste" | "form" | "preview" | "done";
 export type Mode = "chat" | "form";
@@ -42,21 +50,50 @@ export interface PostingState {
   setError: Setter<string | undefined>;
   pending: boolean;
   startTransition: TransitionStartFunction;
+  /** The page opened on a draft left in this tab (#178). */
+  restored: boolean;
+  setRestored: Setter<boolean>;
+}
+
+/** Where a kept draft picks up: a preview goes back to its chat or its form, which a preview is made from. */
+function resumeFrom(saved: SavedPost): { step: Step; chat: ChatState } {
+  if (saved.step !== "preview") return { step: saved.step, chat: saved.chat };
+  return saved.mode === "chat" ? { step: "chat", chat: resumeChat(saved.chat) } : { step: "form", chat: saved.chat };
 }
 
 function usePostingState(country: CountryCode, email: string): PostingState {
-  const [mode, setMode] = useState<Mode>("chat");
-  const [step, setStep] = useState<Step>("chat");
-  const [chat, setChat] = useState<ChatState>(() => startChat(country));
-  const [text, setText] = useState("");
+  // The page renders in the browser only (EmployerGate waits for the session), so this tab's storage is there.
+  const [saved] = useState(() => loadPost(sessionStorage, email));
+  const [resumed] = useState(() => (saved ? resumeFrom(saved) : undefined));
+  const [restored, setRestored] = useState(!!saved);
+  const [mode, setMode] = useState<Mode>(saved?.mode ?? "chat");
+  const [step, setStep] = useState<Step>(resumed?.step ?? "chat");
+  const [chat, setChat] = useState<ChatState>(() => resumed?.chat ?? startChat(country));
+  const [text, setText] = useState(saved?.text ?? "");
   // The badge decides which visas the form offers; it comes from the server, not the session.
   const { profile } = useEmployerProfile(email);
-  const form = useDraftForm(country, {}, profile);
-  const [notes, setNotes] = useState<string[]>([]);
+  const form = useDraftForm(country, saved ? { form: saved.form, englishByHand: saved.englishByHand } : {}, profile);
+  const [notes, setNotes] = useState<string[]>(saved?.notes ?? []);
   const [previewAt, setPreviewAt] = useState(0);
   const [published, setPublished] = useState<Job>();
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+
+  // Keep the draft in this tab as it changes; a published job (step "done") is no longer a draft.
+  useEffect(() => {
+    if (step === "done") return clearPost(sessionStorage);
+    savePost(sessionStorage, {
+      email,
+      mode,
+      step,
+      chat,
+      text,
+      form: form.form,
+      englishByHand: form.englishByHand,
+      notes,
+    });
+  }, [email, mode, step, chat, text, form.form, form.englishByHand, notes]);
+
   return {
     country,
     mode,
@@ -78,6 +115,8 @@ function usePostingState(country: CountryCode, email: string): PostingState {
     setError,
     pending,
     startTransition,
+    restored,
+    setRestored,
   };
 }
 
@@ -168,8 +207,9 @@ function startEmptyForm(state: PostingState) {
   state.setStep("form");
 }
 
-/** 再发一条: back to a fresh chat. */
+/** 再发一条, and 清空重来 on a kept draft: back to a fresh chat (the empty draft is then not kept). */
 function startOver(state: PostingState) {
+  state.setRestored(false);
   state.setText("");
   state.form.reset(emptyForm());
   state.setChat(startChat(state.country));

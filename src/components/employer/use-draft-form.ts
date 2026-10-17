@@ -49,6 +49,7 @@ export function useDraftForm(
 
   return {
     form,
+    englishByHand,
     update,
     reset,
     regenerateEnglish,

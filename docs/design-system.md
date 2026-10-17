@@ -259,6 +259,7 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
   - 各列表、空状态、登录提示都是卡片；输入框用 `inputClass()`，「进度」「持有的签证」换成 `Select`。e2e 里看 Select 当前的值用 `selectTrigger(范围, "标签")` 的名字（「进度 已面试」）。
   - 新加 `loading.tsx`：雇主主页、浏览与举报、我的主页、中英文简历。
 - **找不到页面和出错页（#161）：** `StatusCard`：一张居中的卡，图标、标题、一句原因、一个主按钮（最多再加一个次按钮）。全站的 404（`src/app/not-found.tsx`，以前是 Next 自带的英文页）、出错页（`error.tsx`「重试」，根布局出错时 `global-error.tsx`），以及职位、雇主的 404 都用它。
+- **长流程里的出错（#178）：** 发布的每一步、打开的聊天外面包一层 `RetryBoundary`（`src/components/seeker`，用 Next 16 的 `catchError`）：出错时只把这一块换成浅黄图标、一句说明和「重试」，用户填的内容放在边界外面的状态里，重试后还在。发布草稿另外存在本标签页的 `sessionStorage`（`post-draft-store.ts`）。整页出错时，`/employer/post`、`/messages` 有自己的 `error.tsx`，在 #161 的卡片上说清楚草稿 / 没送到的消息还在。测试构建里用 `localStorage` 的 `zg-e2e-crash` 让某一块出错（`src/lib/test-crash.ts`）。
 - **共用的：** `SoftTag`（浅底圆角标签，`urgent` / `brand` / `neutral`），`linkCardClass()`（整张卡是一个链接时用）。
 
 ### 雇主后台（第三步，#148）
