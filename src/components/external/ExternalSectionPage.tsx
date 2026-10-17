@@ -31,6 +31,7 @@ import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJo
 import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { externalSaveKey } from "@/components/seeker/saved-jobs";
 import { externalFilterToQuery } from "@/lib/external-jobs/alerts";
+import { FORWARD, PageTransition } from "@/components/ui/PageTransition";
 
 type Query = Record<string, string | string[] | undefined>;
 
@@ -48,36 +49,38 @@ export function ExternalSectionPage({
 }) {
   const other: ExternalSection = section === "internship" ? "professional" : "internship";
   return (
-    <div className="type-app space-y-4">
-      <div className="space-y-1">
-        <h1 className="text-title font-semibold">{SECTION_TITLES[section]}</h1>
-        <p className="text-body text-muted">
-          {INTRO[section]}这些是<strong className="font-medium text-foreground">外部职位</strong>
-          ：不是雇主在找工发布的，我们只整理事实，申请请到公司官网。也看看{" "}
-          <Link href={SECTION_PATHS[other]} className="text-brand underline underline-offset-2">
-            {SECTION_TITLES[other]}
-          </Link>
-          、
-          <Link href="/jobs" className="text-brand underline underline-offset-2">
-            普通工作
-          </Link>
-          。
-        </p>
+    <PageTransition>
+      <div className="type-app space-y-4">
+        <div className="space-y-1">
+          <h1 className="text-title font-semibold">{SECTION_TITLES[section]}</h1>
+          <p className="text-body text-muted">
+            {INTRO[section]}这些是<strong className="font-medium text-foreground">外部职位</strong>
+            ：不是雇主在找工发布的，我们只整理事实，申请请到公司官网。也看看{" "}
+            <Link href={SECTION_PATHS[other]} className="text-brand underline underline-offset-2">
+              {SECTION_TITLES[other]}
+            </Link>
+            、
+            <Link href="/jobs" className="text-brand underline underline-offset-2">
+              普通工作
+            </Link>
+            。
+          </p>
+        </div>
+        {/* Without JavaScript the streamed list (and loading.tsx's skeleton) would stay hidden (#13). */}
+        <NoScriptStreams />
+        <FinishSaveAfterSignIn />
+        <Suspense
+          fallback={
+            <div data-nojs-hide="">
+              <SkeletonList label="正在加载职位" />
+            </div>
+          }
+        >
+          <Results section={section} searchParams={searchParams} />
+        </Suspense>
+        <TakedownNote />
       </div>
-      {/* Without JavaScript the streamed list (and loading.tsx's skeleton) would stay hidden (#13). */}
-      <NoScriptStreams />
-      <FinishSaveAfterSignIn />
-      <Suspense
-        fallback={
-          <div data-nojs-hide="">
-            <SkeletonList label="正在加载职位" />
-          </div>
-        }
-      >
-        <Results section={section} searchParams={searchParams} />
-      </Suspense>
-      <TakedownNote />
-    </div>
+    </PageTransition>
   );
 }
 
@@ -136,7 +139,11 @@ function ExternalJobRow({ job }: { job: ExternalJob }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id={`x-${job.id}`} lang="en" className="text-subtitle font-semibold break-words group-hover:text-brand">
-            <Link href={externalJobHref(job.id)} className="outline-none after:absolute after:inset-0">
+            <Link
+              href={externalJobHref(job.id)}
+              transitionTypes={FORWARD}
+              className="outline-none after:absolute after:inset-0"
+            >
               {job.title}
             </Link>
           </h2>

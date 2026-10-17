@@ -27,6 +27,7 @@ import { isExpired } from "@/components/seeker/job-facts";
 import { jobPostingJsonLd, jsonLdText } from "@/lib/job-posting";
 import { siteOrigin } from "@/lib/site";
 import type { Employer, Job as JobRecord } from "@/lib/types";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Promise<Metadata> {
   const job = await getJob((await params).id);
@@ -39,15 +40,17 @@ export async function generateMetadata({ params }: PageProps<"/jobs/[id]">): Pro
 // Round 19 sample (操作质感): with the job list, the first page in the new type (`type-app`) and cards.
 export default function JobPage({ params }: PageProps<"/jobs/[id]">) {
   return (
-    <div className={`${WIDE_ON_DESKTOP} type-app`}>
-      <div className="mb-2">
-        <BackLink />
+    <PageTransition>
+      <div className={`${WIDE_ON_DESKTOP} type-app`}>
+        <div className="mb-2">
+          <BackLink />
+        </div>
+        <NoScriptStreams />
+        <Suspense fallback={<JobDetailSkeleton />}>
+          <Job params={params} />
+        </Suspense>
       </div>
-      <NoScriptStreams />
-      <Suspense fallback={<JobDetailSkeleton />}>
-        <Job params={params} />
-      </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 

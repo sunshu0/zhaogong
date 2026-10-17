@@ -1,0 +1,83 @@
+/*
+ * Round 19 page transitions (#171, PageTransition.tsx). The browser's View Transitions draw the old page and the
+ * new one as snapshots; these rules say how they move.
+ */
+
+/* Clicks during a transition reach the page underneath instead of the snapshots. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Whatever is not a page's content (the footer, the background) swaps at once instead of crossfading. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* The header and the bottom bar are the fixed points: only the content moves (StickyHeader, BottomNav). */
+::view-transition-group(site-header),
+::view-transition-group(bottom-nav) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header),
+::view-transition-old(bottom-nav) {
+  display: none;
+}
+::view-transition-new(site-header),
+::view-transition-new(bottom-nav) {
+  animation: none;
+}
+
+/* Into a detail page: the old page leaves to the left, the new one comes from the right. Back: the other way. */
+::view-transition-old(.nav-forward) {
+  --page-slide: -24px;
+  animation:
+    var(--duration-press) ease-in both page-fade reverse,
+    var(--duration-sheet) var(--ease-app) both page-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --page-slide: 24px;
+  animation:
+    var(--duration-ui) ease-out var(--duration-press) both page-fade,
+    var(--duration-sheet) var(--ease-app) both page-slide;
+}
+::view-transition-old(.nav-back) {
+  --page-slide: 24px;
+  animation:
+    var(--duration-press) ease-in both page-fade reverse,
+    var(--duration-sheet) var(--ease-app) both page-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --page-slide: -24px;
+  animation:
+    var(--duration-ui) ease-out var(--duration-press) both page-fade,
+    var(--duration-sheet) var(--ease-app) both page-slide;
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes page-slide {
+  from {
+    translate: var(--page-slide);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+/* "Reduce motion" in the system settings: no animation at all, the new page simply replaces the old one. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

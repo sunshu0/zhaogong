@@ -12,6 +12,7 @@ import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { ApplyRowButton } from "@/components/seeker/ApplyJob";
 import { cardPoints, cardStatus, cardTags } from "@/components/seeker/job-card-parts";
+import { FORWARD } from "@/components/ui/PageTransition";
 
 /** At most this many tags on a row; the job page shows everything. */
 const CARD_TAGS = 3;
@@ -49,7 +50,11 @@ export function JobCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Heading className="break-words text-subtitle font-semibold group-hover:text-brand">
-            <Link href={`/jobs/${job.id}`} className="outline-none after:absolute after:inset-0">
+            <Link
+              href={`/jobs/${job.id}`}
+              transitionTypes={FORWARD}
+              className="outline-none after:absolute after:inset-0"
+            >
               {job.titleZh}
             </Link>
           </Heading>
@@ -128,7 +133,11 @@ function AppJobCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Heading className="line-clamp-2 text-subtitle font-semibold break-words group-hover:text-brand">
-            <Link href={`/jobs/${job.id}`} className="outline-none after:absolute after:inset-0">
+            <Link
+              href={`/jobs/${job.id}`}
+              transitionTypes={FORWARD}
+              className="outline-none after:absolute after:inset-0"
+            >
               {job.titleZh}
             </Link>
           </Heading>

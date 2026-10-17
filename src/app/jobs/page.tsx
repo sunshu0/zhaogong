@@ -15,6 +15,7 @@ import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { buttonClass } from "@/components/ui/Button";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 export const metadata: Metadata = { title: "奥克兰中文工作" };
 
@@ -22,25 +23,27 @@ export const metadata: Metadata = { title: "奥克兰中文工作" };
 // pages follow once the user has seen it.
 export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
   return (
-    <div className={`${WIDE_ON_DESKTOP} type-app`}>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h1 className="text-title font-semibold">奥克兰中文工作</h1>
-        {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
-        <nav aria-label="外部职位分区" className="flex gap-2">
-          <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
-            实习
-          </Link>
-          <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
-            专业职位
-          </Link>
-        </nav>
+    <PageTransition>
+      <div className={`${WIDE_ON_DESKTOP} type-app`}>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h1 className="text-title font-semibold">奥克兰中文工作</h1>
+          {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
+          <nav aria-label="外部职位分区" className="flex gap-2">
+            <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
+              实习
+            </Link>
+            <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
+              专业职位
+            </Link>
+          </nav>
+        </div>
+        <NoScriptStreams />
+        <FinishSaveAfterSignIn />
+        <Suspense fallback={<JobListSkeleton look="app" />}>
+          <Results searchParams={searchParams} />
+        </Suspense>
       </div>
-      <NoScriptStreams />
-      <FinishSaveAfterSignIn />
-      <Suspense fallback={<JobListSkeleton look="app" />}>
-        <Results searchParams={searchParams} />
-      </Suspense>
-    </div>
+    </PageTransition>
   );
 }
 

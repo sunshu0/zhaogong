@@ -42,7 +42,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
     <nav
       id="bottom-nav"
       aria-label="底部导航"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border/70 bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md backdrop-saturate-150 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 [view-transition-name:bottom-nav] border-t border-border/70 bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md backdrop-saturate-150 md:hidden"
     >
       <ul className="flex h-14">
         {bottomNavItems(role).map((item) => {

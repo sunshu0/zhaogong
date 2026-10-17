@@ -23,6 +23,7 @@ import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 import { cardClass } from "@/components/ui/Card";
 import { Skeleton, SkeletonList } from "@/components/ui/Skeleton";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
 const DESCRIPTION =
@@ -56,99 +57,101 @@ const FEATURED_COUNT = 6;
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
     // The bands meet the header and the footer: cancel main's vertical padding.
-    <div className="type-app -mt-4 -mb-4">
-      <Suspense fallback={null}>
-        <LegacyListLink searchParams={searchParams} />
-      </Suspense>
-      <NoScriptLanding />
-      {/* Without JavaScript nothing replaces the skeletons below (#167): hide them; NoScriptLanding has the data. */}
-      <noscript>
-        <style>{"[data-nojs-hide]{display:none!important}"}</style>
-      </noscript>
+    <PageTransition>
+      <div className="type-app -mt-4 -mb-4">
+        <Suspense fallback={null}>
+          <LegacyListLink searchParams={searchParams} />
+        </Suspense>
+        <NoScriptLanding />
+        {/* Without JavaScript nothing replaces the skeletons below (#167): hide them; NoScriptLanding has the data. */}
+        <noscript>
+          <style>{"[data-nojs-hide]{display:none!important}"}</style>
+        </noscript>
 
-      <section aria-labelledby="hero-heading" className={`${FULL_BLEED} bg-background`}>
-        <div
-          className={`${SITE_CONTAINER} grid gap-6 pt-6 pb-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-14 lg:pb-6`}
-        >
-          <div>
-            <h1 id="hero-heading" className="text-[1.75rem] leading-tight font-black lg:text-[3.25rem]">
-              奥克兰的中文工作，
-              <br />
-              时薪写在最前面。
-            </h1>
-            <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">
-              餐饮、零售、清洁、装修。每个职位发布前都核对过最低工资，雇主有没有通过验证、接受哪些签证，都写得清清楚楚。
-            </p>
-            <form
-              action={jobsHref("")}
-              role="search"
-              className="mt-5 flex h-14 max-w-xl items-center gap-2 rounded-control bg-surface p-1.5 pl-3.5 shadow-card focus-within:ring-2 focus-within:ring-brand/40"
-            >
-              <input
-                type="search"
-                name="q"
-                maxLength={50}
-                enterKeyHint="search"
-                placeholder="服务员、厨师、Mt Eden…"
-                aria-label="搜索职位"
-                className="h-full min-w-0 flex-1 bg-transparent text-base outline-none"
-              />
-              <button
-                type="submit"
-                className="pressable h-full shrink-0 rounded-[0.5rem] bg-brand px-4 font-bold text-white hover:opacity-90"
+        <section aria-labelledby="hero-heading" className={`${FULL_BLEED} bg-background`}>
+          <div
+            className={`${SITE_CONTAINER} grid gap-6 pt-6 pb-2 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center lg:gap-10 lg:pt-14 lg:pb-6`}
+          >
+            <div>
+              <h1 id="hero-heading" className="text-[1.75rem] leading-tight font-black lg:text-[3.25rem]">
+                奥克兰的中文工作，
+                <br />
+                时薪写在最前面。
+              </h1>
+              <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">
+                餐饮、零售、清洁、装修。每个职位发布前都核对过最低工资，雇主有没有通过验证、接受哪些签证，都写得清清楚楚。
+              </p>
+              <form
+                action={jobsHref("")}
+                role="search"
+                className="mt-5 flex h-14 max-w-xl items-center gap-2 rounded-control bg-surface p-1.5 pl-3.5 shadow-card focus-within:ring-2 focus-within:ring-brand/40"
               >
-                找工作
-              </button>
-            </form>
-            <ul aria-label="快捷筛选" className="mt-3 flex flex-wrap gap-2">
-              {QUICK_FILTERS.map((quick) => (
-                <li key={quick.label}>
-                  <Link
-                    href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
-                    className="pressable inline-flex min-h-9 items-center rounded-full bg-brand-soft px-3.5 text-body text-brand hover:bg-brand hover:text-white"
-                  >
-                    {quick.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            {/* Round 18 (#113): external jobs from companies' own sites. */}
-            <p className="mt-3 text-body">
-              找软件、电子电气方向的工作？看{" "}
-              <Link href="/internships" className="font-medium text-brand underline underline-offset-2">
-                实习
-              </Link>{" "}
-              和{" "}
-              <Link href="/professional" className="font-medium text-brand underline underline-offset-2">
-                专业职位
-              </Link>
-              （来自公司官网）
-            </p>
-            <Suspense
-              fallback={
-                <div data-nojs-hide="">
-                  <Skeleton className="mt-4 h-6 w-72 max-w-full" />
-                </div>
-              }
-            >
-              <HeroCount />
+                <input
+                  type="search"
+                  name="q"
+                  maxLength={50}
+                  enterKeyHint="search"
+                  placeholder="服务员、厨师、Mt Eden…"
+                  aria-label="搜索职位"
+                  className="h-full min-w-0 flex-1 bg-transparent text-base outline-none"
+                />
+                <button
+                  type="submit"
+                  className="pressable h-full shrink-0 rounded-[0.5rem] bg-brand px-4 font-bold text-white hover:opacity-90"
+                >
+                  找工作
+                </button>
+              </form>
+              <ul aria-label="快捷筛选" className="mt-3 flex flex-wrap gap-2">
+                {QUICK_FILTERS.map((quick) => (
+                  <li key={quick.label}>
+                    <Link
+                      href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
+                      className="pressable inline-flex min-h-9 items-center rounded-full bg-brand-soft px-3.5 text-body text-brand hover:bg-brand hover:text-white"
+                    >
+                      {quick.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {/* Round 18 (#113): external jobs from companies' own sites. */}
+              <p className="mt-3 text-body">
+                找软件、电子电气方向的工作？看{" "}
+                <Link href="/internships" className="font-medium text-brand underline underline-offset-2">
+                  实习
+                </Link>{" "}
+                和{" "}
+                <Link href="/professional" className="font-medium text-brand underline underline-offset-2">
+                  专业职位
+                </Link>
+                （来自公司官网）
+              </p>
+              <Suspense
+                fallback={
+                  <div data-nojs-hide="">
+                    <Skeleton className="mt-4 h-6 w-72 max-w-full" />
+                  </div>
+                }
+              >
+                <HeroCount />
+              </Suspense>
+            </div>
+
+            <Suspense fallback={<NoticesSkeleton />}>
+              <HeroNotices />
             </Suspense>
           </div>
+        </section>
 
-          <Suspense fallback={<NoticesSkeleton />}>
-            <HeroNotices />
-          </Suspense>
-        </div>
-      </section>
+        <FeaturesBand />
 
-      <FeaturesBand />
+        <Suspense fallback={<FeaturedSkeleton />}>
+          <FeaturedBand />
+        </Suspense>
 
-      <Suspense fallback={<FeaturedSkeleton />}>
-        <FeaturedBand />
-      </Suspense>
-
-      <EmployerBand />
-    </div>
+        <EmployerBand />
+      </div>
+    </PageTransition>
   );
 }
 

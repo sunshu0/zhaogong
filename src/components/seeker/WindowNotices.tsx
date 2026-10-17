@@ -5,6 +5,7 @@ import type { Employer, Job } from "@/lib/types";
 import { formatHours } from "@/components/seeker/format";
 import { Pay } from "@/components/ui/Pay";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
+import { FORWARD } from "@/components/ui/PageTransition";
 
 // Where each notice sits on desktop: a little out of line and turned ±2°, the third one over the other two's
 // lower edges. Phones scroll them sideways instead, straight.
@@ -52,7 +53,7 @@ function Notice({ job, employer }: { job: Job; employer?: Employer }) {
         招
       </span>
       <h3 className="pr-10 text-title font-black group-hover:text-brand">
-        <Link href={`/jobs/${job.id}`} className="outline-none after:absolute after:inset-0">
+        <Link href={`/jobs/${job.id}`} transitionTypes={FORWARD} className="outline-none after:absolute after:inset-0">
           {job.titleZh}
         </Link>
       </h3>

@@ -15,6 +15,7 @@ import { getExternalJob } from "@/db/external-jobs";
 import { SECTION_PATHS, SECTION_TITLES } from "@/lib/external-jobs/filter";
 import { factLines, FIELD_LABELS, sourceLine } from "@/lib/external-jobs/labels";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
+import { BACK, PageTransition } from "@/components/ui/PageTransition";
 
 // An external job (#113, ADR 0014): its facts, where they come from and when they were read, and 去官网申请. No
 // apply, chat or contact details here (Round 18 draft 3.8), no company logo, nobody's name. Kept out of search
@@ -33,14 +34,16 @@ const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
 
 export default function ExternalJobPage({ params }: PageProps<"/external/[id]">) {
   return (
-    <div className={`${WIDE_ON_DESKTOP} type-app space-y-4`}>
-      <NoScriptStreams />
-      <FinishSaveAfterSignIn />
-      <Suspense fallback={<DetailPageSkeleton />}>
-        <ExternalJob params={params} />
-      </Suspense>
-      <TakedownNote />
-    </div>
+    <PageTransition>
+      <div className={`${WIDE_ON_DESKTOP} type-app space-y-4`}>
+        <NoScriptStreams />
+        <FinishSaveAfterSignIn />
+        <Suspense fallback={<DetailPageSkeleton />}>
+          <ExternalJob params={params} />
+        </Suspense>
+        <TakedownNote />
+      </div>
+    </PageTransition>
   );
 }
 
@@ -54,7 +57,11 @@ async function ExternalJob({ params }: Pick<PageProps<"/external/[id]">, "params
   return (
     <article aria-labelledby="external-title" className="space-y-3 pb-24 md:pb-0 lg:max-w-3xl">
       <p className="text-meta">
-        <Link href={SECTION_PATHS[section]} className="pressable inline-flex min-h-11 items-center text-brand">
+        <Link
+          href={SECTION_PATHS[section]}
+          transitionTypes={BACK}
+          className="pressable inline-flex min-h-11 items-center text-brand"
+        >
           ← {SECTION_TITLES[section]}
         </Link>
       </p>

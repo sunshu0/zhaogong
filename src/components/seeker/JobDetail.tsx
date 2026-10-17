@@ -14,6 +14,7 @@ import { STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
+import { FORWARD } from "@/components/ui/PageTransition";
 
 /** Round 19 (操作质感): the page's blocks are cards, 16px corners and a soft shadow, no border. */
 const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
@@ -141,6 +142,7 @@ export function JobDetail({
           </div>
           <Link
             href={`/employers/${employer.id}`}
+            transitionTypes={FORWARD}
             className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
           >
             查看雇主主页 →
