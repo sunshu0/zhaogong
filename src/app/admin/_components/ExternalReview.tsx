@@ -12,13 +12,15 @@ import {
   type ExternalJobItem,
   type ExternalReviewQueue,
 } from "@/app/admin/external-actions";
-import { Empty } from "@/app/admin/_components/Empty";
+import { Cancel } from "@/app/admin/_components/Cancel";
+import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { HIDE_REASONS, type HideReason } from "@/lib/external-jobs/review";
+import { Button } from "@/components/ui/Button";
+import { Checkbox, Radio } from "@/components/ui/Checkbox";
+import { inputClass } from "@/components/ui/input-class";
 import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
-
-const button = "h-9 rounded-md border px-3 text-body disabled:opacity-40";
 
 /** The external jobs and companies, loaded again whenever `version` changes; the count is for the tab. */
 export function useExternalReview(version: number) {
@@ -46,17 +48,14 @@ export function ExternalReview({
   queue?: ExternalReviewQueue | Refused;
   onDone: (result: AdminResult) => void;
 }) {
-  if (!queue)
-    return (
-      <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
-    );
+  if (!queue) return <Loading />;
   if ("refused" in queue) return <Empty>{queue.error_zh}</Empty>;
   return (
     <div className="space-y-4">
       <p className="text-meta text-muted">
         外部职位从公司招聘系统的公开接口导入，只存事实，审核通过后才出现在「实习」「专业职位」里。请点「看官网原文」对照：事实提取错了、不是软件或电子电气岗位、或有按国籍或种族招人的要求，就选「不显示」。
       </p>
-      <Section title={`待审核 ${queue.pending.length}`}>
+      <Section look="app" title={`待审核 ${queue.pending.length}`}>
         {queue.pending.length === 0 ? (
           <p className="py-group text-body text-muted">没有待审核的外部职位。</p>
         ) : (
@@ -69,7 +68,7 @@ export function ExternalReview({
           </ul>
         )}
       </Section>
-      <Section title={`已通过 ${queue.approved.length}`}>
+      <Section look="app" title={`已通过 ${queue.approved.length}`}>
         {queue.approved.length === 0 ? (
           <p className="py-group text-body text-muted">还没有通过的外部职位。</p>
         ) : (
@@ -83,6 +82,7 @@ export function ExternalReview({
         )}
       </Section>
       <Section
+        look="app"
         title="公司"
         description="名单在 src/config/external-companies.ts，有人核对过条款、条款允许展示的公司才会导入。停用或记录删除请求后，这家的职位马上全部下架。"
       >
@@ -123,10 +123,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
         {approved && !job.shown && "（超过 2 天没刷新到，或已过截止日）"}
       </p>
       {job.flags.length > 0 && (
-        <div
-          role="alert"
-          className="space-y-1 rounded-md border border-danger bg-danger-soft p-3 text-body text-danger"
-        >
+        <div role="alert" className="space-y-1 rounded-control bg-danger-soft p-3 text-body text-danger">
           <p className="font-medium">需要核对原文：</p>
           <ul className="list-disc pl-5">
             {job.flags.map((flag) => (
@@ -134,19 +131,15 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
             ))}
           </ul>
           {!approved && (
-            <label className="flex items-start gap-2 pt-1 text-body text-foreground">
-              <input
-                type="checkbox"
-                checked={flagsChecked}
-                onChange={(e) => setFlagsChecked(e.target.checked)}
-                className="mt-1 accent-brand"
-              />
-              <span>我看过原文：这是岗位依法需要的要求（如出口管制），不是按国籍或种族挑人</span>
-            </label>
+            <div className="px-2 pt-1 text-foreground">
+              <Checkbox checked={flagsChecked} onChange={(e) => setFlagsChecked(e.target.checked)}>
+                我看过原文：这是岗位依法需要的要求（如出口管制），不是按国籍或种族挑人
+              </Checkbox>
+            </div>
           )}
         </div>
       )}
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border p-3 text-body">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-control bg-background p-3 text-body">
         {factLines(job).map((line) => (
           <div key={line.label} className="contents">
             <dt className="text-muted">{line.label}</dt>
@@ -161,20 +154,13 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
       </p>
 
       {hiding ? (
-        <fieldset className="space-y-2 rounded-md border border-danger/40 p-3">
+        <fieldset className="space-y-2 rounded-control border border-danger/40 p-3">
           <legend className="px-1 text-body font-medium">不显示的理由</legend>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-x-4 px-2 sm:grid-cols-2">
             {(Object.keys(HIDE_REASONS) as HideReason[]).map((r) => (
-              <label key={r} className="inline-flex items-center gap-1.5 text-body">
-                <input
-                  type="radio"
-                  name={`${id}-reason`}
-                  checked={reason === r}
-                  onChange={() => setReason(r)}
-                  className="accent-brand"
-                />
+              <Radio key={r} name={`${id}-reason`} checked={reason === r} onChange={() => setReason(r)}>
                 {HIDE_REASONS[r]}
-              </label>
+              </Radio>
             ))}
           </div>
           <label htmlFor={`${id}-note`} className="block text-body">
@@ -185,37 +171,34 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-body"
+            className={inputClass({ multiline: true })}
           />
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={pending || !reason || (reason === "other" && !note.trim())}
+            <Button
+              variant="danger"
+              disabled={!reason || (reason === "other" && !note.trim())}
+              loading={pending}
               onClick={() => run(() => hideExternalJob(job.id, reason, note))}
-              className="h-9 rounded-md border border-danger bg-danger px-3 text-body text-white disabled:opacity-40"
             >
               确定不显示
-            </button>
-            <button type="button" onClick={() => setHiding(false)} className="h-9 px-2 text-body text-muted underline">
-              取消
-            </button>
+            </Button>
+            <Cancel onClick={() => setHiding(false)} />
           </div>
         </fieldset>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           {!approved && (
-            <button
-              type="button"
-              disabled={pending || (job.flags.length > 0 && !flagsChecked)}
+            <Button
+              disabled={job.flags.length > 0 && !flagsChecked}
+              loading={pending}
               onClick={() => run(() => approveExternalJob(job.id, flagsChecked))}
-              className={`${button} border-ok text-ok`}
             >
               通过
-            </button>
+            </Button>
           )}
-          <button type="button" onClick={() => setHiding(true)} className={`${button} border-danger text-danger`}>
+          <Button variant="danger-secondary" onClick={() => setHiding(true)}>
             {approved ? "撤下，不再显示" : "不显示"}
-          </button>
+          </Button>
         </div>
       )}
     </article>
@@ -261,7 +244,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
       </div>
       <p className="text-meta text-muted">{status}</p>
       {form ? (
-        <fieldset className="space-y-2 rounded-md border border-border p-3">
+        <fieldset className="space-y-2 rounded-control border border-border p-3">
           <legend className="px-1 text-body font-medium">
             {form === "stop" ? "停用这家公司" : form === "takedown" ? "记录公司的删除请求" : "恢复导入"}
           </legend>
@@ -274,7 +257,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
                 id={`${id}-requester`}
                 value={requester}
                 onChange={(e) => setRequester(e.target.value)}
-                className="h-9 w-full rounded-md border border-border bg-surface px-2 text-body"
+                className={inputClass()}
               />
             </>
           )}
@@ -286,12 +269,13 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-body"
+            className={inputClass({ multiline: true })}
           />
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={pending || !note.trim() || (form === "takedown" && !requester.trim())}
+            <Button
+              variant={form === "resume" ? "primary" : "danger"}
+              disabled={!note.trim() || (form === "takedown" && !requester.trim())}
+              loading={pending}
               onClick={() =>
                 run(() =>
                   form === "stop"
@@ -301,37 +285,26 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
                       : resumeExternalCompany(company.id, note),
                 )
               }
-              className={`${button} ${form === "resume" ? "border-ok text-ok" : "border-danger bg-danger text-white"}`}
             >
               {form === "stop" ? "确定停用并下架" : form === "takedown" ? "记录并全部下架" : "确定恢复"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setForm(undefined)}
-              className="h-9 px-2 text-body text-muted underline"
-            >
-              取消
-            </button>
+            </Button>
+            <Cancel onClick={() => setForm(undefined)} />
           </div>
         </fieldset>
       ) : (
         <div className="flex flex-wrap gap-2">
           {company.block ? (
-            <button type="button" onClick={() => setForm("resume")} className={`${button} border-border`}>
+            <Button variant="secondary" onClick={() => setForm("resume")}>
               恢复导入
-            </button>
+            </Button>
           ) : (
             <>
-              <button type="button" onClick={() => setForm("stop")} className={`${button} border-border`}>
+              <Button variant="secondary" onClick={() => setForm("stop")}>
                 停用
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm("takedown")}
-                className={`${button} border-danger text-danger`}
-              >
+              </Button>
+              <Button variant="danger-secondary" onClick={() => setForm("takedown")}>
                 公司要求删除
-              </button>
+              </Button>
             </>
           )}
         </div>

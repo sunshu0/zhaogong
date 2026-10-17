@@ -2,9 +2,10 @@
 import { useCallback, useEffect, useState, useTransition, type FormEvent } from "react";
 import { addModerator, getModerators, removeModerator, type AdminResult, type Refused } from "@/app/admin/actions";
 import type { Moderator } from "@/db/moderators";
-import { Empty } from "@/app/admin/_components/Empty";
+import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { inputClass } from "@/components/ui/input-class";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 
 /** Who added a moderator: another moderator, the command line (null), or an account deleted since (#54). */
@@ -49,16 +50,14 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
     );
   };
 
-  if (!answer)
-    return (
-      <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
-    );
+  if (!answer) return <Loading />;
   if ("refused" in answer) return <Empty>{answer.error_zh}</Empty>;
   const only = answer.moderators.length <= 1;
 
   return (
     <div className="space-y-section">
       <Section
+        look="app"
         title={`审核员 · ${answer.moderators.length} 位`}
         description="审核员可以处理被标记和被举报的职位、封禁雇主，也可以增删审核员。"
       >
@@ -75,11 +74,11 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
                 </p>
               </div>
               <Button
-                variant="secondary"
+                variant="danger-secondary"
                 disabled={pending || only}
                 title={only ? "至少要留一位审核员" : undefined}
                 onClick={() => run(() => removeModerator(m.email))}
-                className="shrink-0 text-danger"
+                className="shrink-0"
                 aria-label={`移除审核员 ${m.email}`}
               >
                 移除
@@ -88,7 +87,7 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
           ))}
         </ul>
       </Section>
-      <Section title="添加审核员">
+      <Section look="app" title="添加审核员">
         <form onSubmit={add} className="space-y-2 py-group">
           <label htmlFor="moderator-email" className="block text-body font-semibold">
             邮箱
@@ -101,9 +100,9 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="对方登录用的邮箱"
-              className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-body"
+              className={`${inputClass()} min-w-0 flex-1`}
             />
-            <Button type="submit" disabled={pending || !email.trim()}>
+            <Button type="submit" disabled={!email.trim()} loading={pending}>
               添加
             </Button>
           </div>

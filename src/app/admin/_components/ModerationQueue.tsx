@@ -15,7 +15,8 @@ import {
   type Refused,
 } from "@/app/admin/actions";
 import { moderatorLabel } from "@/app/admin/moderation";
-import { Empty } from "@/app/admin/_components/Empty";
+import { Cancel } from "@/app/admin/_components/Cancel";
+import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { useVerificationQueue, VerificationQueue } from "@/app/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/admin/_components/ExternalReview";
@@ -28,8 +29,15 @@ import {
 } from "@/app/admin/_components/ModerationStats";
 import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
 import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
+
+export const TITLE = "text-[1.75rem] leading-tight font-black";
+
+/** The queue's tabs (Round 19): the employer pages' underlined tabs, darkening while pressed. */
+const adminTab = (selected: boolean) => `${underlineTab(selected)} pressable-row rounded-t-control px-1`;
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { StatusTag } from "@/components/employer/StatusTag";
+import { Button } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
 import { Pay } from "@/components/ui/Pay";
 import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
@@ -75,7 +83,7 @@ export function ModerationQueue() {
   if (answer && "refused" in answer) {
     return (
       <div className="space-y-4">
-        <h1 className="text-title font-semibold">审核后台</h1>
+        <h1 className={TITLE}>审核后台</h1>
         <Empty>{answer.error_zh}</Empty>
       </div>
     );
@@ -102,7 +110,7 @@ export function ModerationQueue() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-title font-semibold">审核后台</h1>
+      <h1 className={TITLE}>审核后台</h1>
       <ModerationSummary stats={stats && !("refused" in stats) ? stats : undefined} />
       <TabList
         label="审核队列"
@@ -111,7 +119,7 @@ export function ModerationQueue() {
         value={tab}
         onChange={setTab}
         className={UNDERLINE_TABS}
-        tabClassName={underlineTab}
+        tabClassName={adminTab}
       />
 
       {result && (
@@ -119,7 +127,7 @@ export function ModerationQueue() {
           ref={resultRef}
           tabIndex={-1}
           role="status"
-          className={`rounded-md px-3 py-2 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+          className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
         >
           {result.ok ? `已处理：${result.text}` : result.error_zh}
         </p>
@@ -140,15 +148,15 @@ export function ModerationQueue() {
               <AiPostingUsage stats={stats} />
             </div>
           ) : (
-            <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
+            <Loading />
           )
         ) : !queue ? (
-          <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
+          <Loading />
         ) : tab === "log" ? (
           queue.log.length === 0 ? (
             <Empty>还没有处理记录。</Empty>
           ) : (
-            <Section>
+            <Section look="app">
               <ol className="divide-y divide-border">
                 {queue.log.map((e) => (
                   <li key={e.id} className="flex gap-3 py-3 text-body">
@@ -192,15 +200,13 @@ function QueueList({
 }) {
   if (items.length === 0) return <Empty>{empty}</Empty>;
   return (
-    <Section>
-      <ul className="divide-y divide-border">
-        {items.map((entry) => (
-          <li key={entry.job.id}>
-            <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
-          </li>
-        ))}
-      </ul>
-    </Section>
+    <ul className="space-y-3">
+      {items.map((entry) => (
+        <li key={entry.job.id}>
+          <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -215,12 +221,17 @@ function QueueCard({
 }) {
   const { job, employer, findings } = item;
   const [pending, startTransition] = useTransition();
+  // Which button was pressed, so only that one shows it is on its way.
+  const [pressed, setPressed] = useState<string>();
   const [confirmBan, setConfirmBan] = useState(false);
-  const run = (action: () => Promise<AdminResult>) => startTransition(async () => onDone(await action()));
-  const button = "h-9 rounded-md border px-3 text-body disabled:opacity-40";
+  const run = (key: string, action: () => Promise<AdminResult>) => {
+    setPressed(key);
+    startTransition(async () => onDone(await action()));
+  };
+  const busy = (key: string) => pending && pressed === key;
 
   return (
-    <article className="py-4">
+    <article className={cardClass()}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="break-words text-subtitle font-semibold">{job.titleZh}</h2>
@@ -251,7 +262,7 @@ function QueueCard({
           <h3 className="text-body font-medium">{reports.length} 条举报</h3>
           <ul className="space-y-1.5">
             {reports.map((r) => (
-              <li key={r.id} className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">
+              <li key={r.id} className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
                 <span className="font-medium">{REPORT_REASON_LABELS[r.reason].zh}</span>
                 {r.note && <span>：{r.note}</span>}
                 <span className="ml-1 text-meta">{time.format(new Date(r.createdAt))}</span>
@@ -273,60 +284,49 @@ function QueueCard({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
         {reports ? (
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             disabled={pending}
-            onClick={() => run(() => dismissReports(job.id))}
-            className={`${button} border-border`}
+            loading={busy("dismiss")}
+            onClick={() => run("dismiss", () => dismissReports(job.id))}
           >
             驳回举报
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => run(() => approveJob(job.id))}
-            className={`${button} border-ok text-ok`}
-          >
+          <Button disabled={pending} loading={busy("approve")} onClick={() => run("approve", () => approveJob(job.id))}>
             没问题，通过
-          </button>
+          </Button>
         )}
-        <button
-          type="button"
+        <Button
+          variant="danger-secondary"
           disabled={pending || job.status === "removed"}
-          onClick={() => run(() => takeDownJob(job.id))}
-          className={`${button} border-danger text-danger`}
+          loading={busy("takedown")}
+          onClick={() => run("takedown", () => takeDownJob(job.id))}
         >
           下架
-        </button>
+        </Button>
         {/* Without the employer's record there is nobody to name or ban. */}
         {employer &&
           !employer.bannedAt &&
           (confirmBan ? (
             <>
-              <button
-                type="button"
+              <Button
+                variant="danger"
                 disabled={pending}
-                onClick={() => run(() => banJobEmployer(job.id))}
+                loading={busy("ban")}
+                onClick={() => run("ban", () => banJobEmployer(job.id))}
                 autoFocus
-                className={`${button} border-danger bg-danger text-white`}
               >
                 确定封禁「{employer.name}」并下架全部职位
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmBan(false)}
-                className="h-9 px-2 text-body text-muted underline"
-              >
-                取消
-              </button>
+              </Button>
+              <Cancel onClick={() => setConfirmBan(false)} />
             </>
           ) : (
-            <button type="button" onClick={() => setConfirmBan(true)} className={`${button} border-border text-danger`}>
+            <Button variant="danger-secondary" onClick={() => setConfirmBan(true)}>
               封禁雇主
-            </button>
+            </Button>
           ))}
       </div>
     </article>

@@ -5,6 +5,7 @@ import type { Refused } from "@/app/admin/actions";
 import { AI_DAYS, WEEKS, waitZh, type ModerationStats } from "@/app/admin/moderation-stats";
 import { moderatorLabel } from "@/app/admin/moderation";
 import { getModerationStats } from "@/app/admin/stats-actions";
+import { Loading } from "@/app/admin/_components/Empty";
 import { Section } from "@/components/ui/Section";
 
 const weekLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "long", day: "numeric" });
@@ -36,13 +37,10 @@ export function useModerationStats(version: number): ModerationStats | Refused |
 
 /** The queue now, above the tabs: what waits for review, and for how long. */
 export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
-  if (!stats)
-    return (
-      <div className="-mx-4 h-20 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
-    );
+  if (!stats) return <Loading cards={1} height="h-20" />;
   const waited = (since?: string) => (since ? `最早的等了 ${waitZh(stats.at - Date.parse(since))}` : "没有在等的");
   return (
-    <Section>
+    <Section look="app">
       <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group sm:grid-cols-4">
         <div>
           <dt className="text-meta text-muted">待审核的职位</dt>
@@ -74,6 +72,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
   const most = Math.max(1, ...stats.weeks.map((w) => w.reported));
   return (
     <Section
+      look="app"
       title={`最近 ${WEEKS} 周`}
       description="按新西兰时间，每周从周一算起。处理：下架、驳回或封禁时关闭的举报；用时是从提交到关闭的中位数。下架含封禁时一起下架的职位。"
     >
@@ -152,7 +151,11 @@ const DECISIONS = [
 /** Decisions per moderator over the same eight weeks (#60 names who acted), most first. */
 export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
   return (
-    <Section title="按审核员" description={`最近 ${WEEKS} 周每位审核员做的处理。封禁一次算一次，不按下架的职位数算。`}>
+    <Section
+      look="app"
+      title="按审核员"
+      description={`最近 ${WEEKS} 周每位审核员做的处理。封禁一次算一次，不按下架的职位数算。`}
+    >
       {stats.byModerator.length === 0 ? (
         <p className="py-group text-body text-muted">最近 {WEEKS} 周没有处理记录。</p>
       ) : (
@@ -205,6 +208,7 @@ export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
   ];
   return (
     <Section
+      look="app"
       title="AI 发帖用量"
       description={`最近 ${AI_DAYS} 天对话发布调用模型的次数，按新西兰时间。token 含输入、输出和缓存；失败是出错、被拒或读不出答案；超限是每个账号每分钟 6 次、每天 100 次的上限挡下的，没有调用模型。`}
     >
