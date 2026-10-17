@@ -204,19 +204,36 @@ export const sessions = sqliteTable(
 // ---- reserved: chats and exchanges on the server (A12-2) ----
 
 /** A chat between a job seeker and a business, usually about one job. */
-export const conversations = sqliteTable("conversations", {
-  id: text("id").primaryKey(),
-  seekerEmail: text("seeker_email")
-    .notNull()
-    .references(() => accounts.email),
-  employerId: text("employer_id")
-    .notNull()
-    .references(() => employers.id),
-  jobId: text("job_id").references(() => jobs.id),
-  /** Who opened it: a seeker from a job, or an employer from a recommended candidate. */
-  startedBy: text("started_by").$type<AccountRole>().notNull(),
-  createdAt: text("created_at").notNull(),
-});
+/**
+ * A chat a job seeker account and a business share (#110, ADR 0015): one per job seeker, business and job. Everyone in
+ * the business's team reads and writes it.
+ */
+export const conversations = sqliteTable(
+  "conversations",
+  {
+    id: text("id").primaryKey(),
+    seekerEmail: text("seeker_email")
+      .notNull()
+      .references(() => accounts.email),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    jobId: text("job_id").references(() => jobs.id),
+    /** Who opened it: a seeker from a job, or an employer from an applicant or a recommended candidate. */
+    startedBy: text("started_by").$type<AccountRole>().notNull(),
+    /** The job seeker's name as the business first saw it, until the job seeker has a page on their account. */
+    seekerName: text("seeker_name"),
+    /** How far each side has read. */
+    seekerReadAt: text("seeker_read_at"),
+    employerReadAt: text("employer_read_at"),
+    /** The newest message or exchange, for the order of the list. */
+    updatedAt: text("updated_at"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("conversations_seeker_employer_job_idx").on(table.seekerEmail, table.employerId, table.jobId),
+  ],
+);
 
 export const messages = sqliteTable("messages", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -226,7 +243,10 @@ export const messages = sqliteTable("messages", {
   from: text("from_role").$type<AccountRole>().notNull(),
   text: text("text").notNull(),
   sentAt: text("sent_at").notNull(),
+  /** Unused: each side's read time is on the conversation. */
   readAt: text("read_at"),
+  /** Who in the business's team sent it (ADR 0012); null for the job seeker's. */
+  byName: text("by_name"),
 });
 
 /** A request to swap contact details or profiles: the side that asks offers its own first (A24). */
@@ -248,8 +268,8 @@ export const exchanges = sqliteTable("exchanges", {
 
 /**
  * One row per identity (identityScope: email, role and business). #10 keeps every identity's own copy of its chats,
- * so this holds JSON: the ChatRecord, the notifications read, and the newest change tickets applied. The
- * conversations, messages and exchanges tables above stay for a later chat both sides share.
+ * so this holds JSON: the ChatRecord, the notifications read, and the newest change tickets applied. Chats both sides
+ * share (#110) are in the conversations, messages and exchanges tables above.
  */
 export const chatRecords = sqliteTable(
   "chat_records",

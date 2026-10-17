@@ -339,6 +339,34 @@
           "notNull": true,
           "autoincrement": false
         },
+        "seeker_name": {
+          "name": "seeker_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "seeker_read_at": {
+          "name": "seeker_read_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "employer_read_at": {
+          "name": "employer_read_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -347,7 +375,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "conversations_seeker_employer_job_idx": {
+          "name": "conversations_seeker_employer_job_idx",
+          "columns": [
+            "seeker_email",
+            "employer_id",
+            "job_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "conversations_seeker_email_accounts_email_fk": {
           "name": "conversations_seeker_email_accounts_email_fk",
@@ -1667,6 +1705,13 @@
         },
         "read_at": {
           "name": "read_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "by_name": {
+          "name": "by_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -148,6 +148,13 @@
       "when": 1792187190487,
       "tag": "0021_external_saved_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792197960701,
+      "tag": "0017_shared_conversations",
+      "breakpoints": true
     }
   ]
 }
