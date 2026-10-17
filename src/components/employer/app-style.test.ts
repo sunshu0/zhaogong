@@ -24,6 +24,11 @@ describe("the employer pages' Round 19 classes", () => {
     expect(classes(pillTab(true))).toContain("rounded-full");
   });
 
+  it("make a pill tab a 44px target too", () => {
+    expect(classes(pillTab(true))).toContain("h-11");
+    expect(classes(pillTab(false))).toContain("h-11");
+  });
+
   it("fill the chosen pill tab in brand colour and leave the others white", () => {
     expect(classes(pillTab(true))).toEqual(expect.arrayContaining(["bg-brand", "text-white"]));
     expect(classes(pillTab(false))).toEqual(expect.arrayContaining(["bg-surface", "text-muted"]));

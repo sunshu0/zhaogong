@@ -15,8 +15,9 @@ import {
   setMyTeamName,
   type MyTeam,
 } from "@/app/employer/team-actions";
+import { inputClass } from "@/components/ui/input-class";
 
-const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
+const INPUT = inputClass();
 
 type Done = { ok: true } | { ok: false; error_zh: string };
 

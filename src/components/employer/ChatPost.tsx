@@ -134,7 +134,7 @@ export function ChatPost({
                     key={q.label}
                     type="button"
                     onClick={() => send(q.value ?? q.label)}
-                    className="pressable min-h-10 rounded-full bg-surface px-4 text-body text-brand shadow-card hover:bg-brand-soft"
+                    className="pressable min-h-11 rounded-full bg-surface px-4 text-body text-brand shadow-card hover:bg-brand-soft"
                   >
                     {q.label}
                   </button>
@@ -170,7 +170,7 @@ export function ChatPost({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="输入回复，回车发送（Shift + 回车换行）"
-                className="min-h-11 flex-1 resize-y rounded-control border border-border bg-surface px-3 py-2 text-body"
+                className="min-h-11 flex-1 resize-y rounded-control border border-border bg-surface px-3 py-2 text-base"
               />
               <Button type="submit" loading={pending} disabled={!text.trim()}>
                 发送
