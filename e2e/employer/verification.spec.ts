@@ -2,6 +2,10 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { moderatorPage, signUpEmployer } from "./helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 // 企业验证 by a person (#78, PRD R-16): the employer applies, a moderator works through the checklist and approves
 // or rejects with a reason. Each test applies with an NZBN of its own from the demo register's range 9429999xxxxxx.
 

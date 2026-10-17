@@ -8,6 +8,8 @@ import type { ApplicationFunnel } from "@/db/job-applications";
 import type { Job } from "@/lib/types";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { Section } from "@/components/ui/Section";
+import { BACK_LINK } from "@/components/employer/app-style";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 const shortDay = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "UTC",
@@ -42,11 +44,10 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     };
   }, [jobId, me.email]);
 
-  if (loaded?.email !== me.email)
-    return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
+  if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface px-4 py-8 text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
         找不到这个职位，或者它不属于你登录的店铺。
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           回到职位管理
@@ -62,14 +63,14 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   return (
     <div className="space-y-section">
       <div>
-        <Link href="/employer/jobs" className="text-meta text-brand underline-offset-4 hover:underline">
+        <Link href="/employer/jobs" className={BACK_LINK}>
           ← 职位管理
         </Link>
         <h1 className="mt-1 text-title font-semibold">职位数据</h1>
         <p className="text-body text-muted">{job.titleZh} · 最近 14 天</p>
       </div>
 
-      <Section>
+      <Section look="app">
         <dl className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
@@ -86,7 +87,11 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section title="申请到录用" description="从发布到现在。约面试不算已取消的；录用是在申请人里标了「已录用」的人。">
+      <Section
+        look="app"
+        title="申请到录用"
+        description="从发布到现在。约面试不算已取消的；录用是在申请人里标了「已录用」的人。"
+      >
         <dl aria-label="申请到录用" className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
@@ -103,7 +108,11 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section title="按天" description="浏览：同一个浏览器一天只算一次。发起聊天：求职者第一次就这个职位发消息。">
+      <Section
+        look="app"
+        title="按天"
+        description="浏览：同一个浏览器一天只算一次。发起聊天：求职者第一次就这个职位发消息。"
+      >
         <table className="w-full text-body">
           <caption className="sr-only">最近 14 天每天的浏览、发起聊天和查看联系方式次数</caption>
           <thead>

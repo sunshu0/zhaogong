@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { EditJob } from "@/components/employer/EditJob";
+import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 
 export const metadata: Metadata = { title: "编辑职位", robots: { index: false } };
 
 export default function EditJobPage({ params }: PageProps<"/employer/jobs/[id]">) {
   return (
-    <Suspense fallback={<div className="h-40 animate-pulse rounded-md border border-border bg-surface" />}>
+    <Suspense fallback={<DetailPageSkeleton />}>
       <Edit params={params} />
     </Suspense>
   );

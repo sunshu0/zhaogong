@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { LanguageRequirement, VisaAccepted } from "@/lib/types";
 import { Chip, Field, Group, Section, toggle, type FieldKit } from "@/components/employer/DraftFormParts";
+import { CHOICE_DOT } from "@/components/employer/app-style";
 
 /** The three ways to be contacted: form key, label, input type, placeholder. */
 const CONTACT_FIELDS = [
@@ -105,14 +106,14 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
         {CONTACT_CHOICES.map(([value, label, note]) => (
           <label
             key={label}
-            className="flex cursor-pointer items-start gap-2 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
+            className="pressable-row flex cursor-pointer items-start gap-3 rounded-control bg-background p-3 has-checked:bg-brand-soft"
           >
             <input
               type="radio"
               name="contactPublic"
               checked={form.contactPublic === value}
               onChange={() => set({ contactPublic: value })}
-              className="mt-1 accent-brand"
+              className={`mt-0.5 ${CHOICE_DOT}`}
             />
             <span>
               <span className="block text-body">{label}</span>

@@ -10,7 +10,8 @@ import type { Mode, Step } from "@/components/employer/post-flow-state";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { contactKinds } from "@/components/seeker/job-facts";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
-import { buttonClass } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
+import { pillTab } from "@/components/employer/Tabs";
 
 type HeadingRef = RefObject<HTMLHeadingElement | null>;
 
@@ -56,7 +57,7 @@ export function ModeSwitch({ mode, onSwitch }: { mode: Mode; onSwitch: (mode: Mo
           type="button"
           aria-pressed={mode === key}
           onClick={() => onSwitch(key)}
-          className={`h-9 rounded-md border px-4 text-body ${mode === key ? "border-brand bg-brand-soft font-semibold text-brand" : "border-border bg-surface text-muted"}`}
+          className={pillTab(mode === key)}
         >
           {label}
         </button>
@@ -94,22 +95,21 @@ export function PasteStep({
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={SAMPLE_POST}
-        className="w-full rounded-md border border-border bg-surface p-3 leading-relaxed placeholder:text-muted/60"
+        className="w-full rounded-control border border-border bg-surface p-3 leading-relaxed placeholder:text-muted/60 focus:border-brand"
       />
       <div className="flex flex-wrap items-center gap-3">
+        <Button size="lg" loading={pending} disabled={!text.trim()} onClick={onParse} className="flex-1">
+          {pending ? "整理中…" : "整理成职位"}
+        </Button>
         <button
           type="button"
-          disabled={!text.trim() || pending}
-          onClick={onParse}
-          className={`${buttonClass("primary")} flex-1`}
+          onClick={() => setText(SAMPLE_POST)}
+          className="pressable min-h-11 text-body text-brand underline"
         >
-          {pending ? "整理中…" : "整理成职位"}
-        </button>
-        <button type="button" onClick={() => setText(SAMPLE_POST)} className="text-body text-brand underline">
           用示例试试
         </button>
       </div>
-      <button type="button" onClick={onEmptyForm} className="text-body text-muted underline">
+      <button type="button" onClick={onEmptyForm} className="pressable min-h-11 text-body text-muted underline">
         不用粘贴，直接填表
       </button>
     </section>
@@ -162,18 +162,18 @@ export function PreviewStep({
       <h1
         ref={headingRef}
         tabIndex={-1}
-        className="rounded-md bg-brand-soft px-3 py-2 text-body font-normal text-brand outline-none"
+        className="rounded-control bg-brand-soft px-3 py-2 text-body font-normal text-brand outline-none"
       >
         预览：这是求职者看到的样子。确认无误就可以发布了。
       </h1>
       {needsReview && (
-        <p className="rounded-md bg-warn-soft px-3 py-2 text-body text-warn">
+        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
           这个职位会先经过人工审核，通过后才公开。
         </p>
       )}
-      {roles && <div className="rounded-md border border-border bg-surface p-4">{roles}</div>}
+      {roles && <div className="rounded-card bg-surface p-4 shadow-card">{roles}</div>}
       <JobDetail job={preview} employer={employer} now={previewAt}>
-        <section className="rounded-md border border-border bg-surface p-4">
+        <section className="rounded-card bg-surface p-4 shadow-card">
           <h2 className="text-subtitle font-semibold">联系方式</h2>
           <p className="mt-1 text-body text-muted">
             {preview.contactPublic
@@ -183,7 +183,7 @@ export function PreviewStep({
         </section>
       </JobDetail>
       {banned && (
-        <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">
+        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
           这个雇主账号已被停用，职位已全部下架，不能再发布。
         </p>
       )}

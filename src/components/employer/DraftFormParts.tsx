@@ -8,6 +8,8 @@ import type { Finding, JobDraft } from "@/lib/compliance";
 import type { CountryCode, VisaAccepted } from "@/lib/types";
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
+import { ChoicePill } from "@/components/employer/ChoicePill";
+import type { FieldTone } from "@/components/ui/input-class";
 
 export type FieldState = { missing: boolean; findings: Finding[] };
 
@@ -40,8 +42,15 @@ export function fieldKit({
     missing: (missing as (keyof JobDraft)[]).includes(field),
     findings: findings.filter((f) => f.field === field),
   });
-  const box = (field: keyof JobDraft) => `w-full rounded-md border bg-background px-3 ${fieldTone(state(field))}`;
+  const box = (field: keyof JobDraft) => `w-full rounded-control border bg-background px-3 ${fieldTone(state(field))}`;
   return { form, set, config: COUNTRIES[country], state, box, visaChoices };
+}
+
+/** The tone of a field's box: red for a problem that holds publishing, amber for one the parser could not fill. */
+export function selectTone(state: FieldState): FieldTone | undefined {
+  if (state.findings.some((f) => f.level !== "review")) return "danger";
+  if (state.missing) return "warn";
+  return undefined;
 }
 
 /** Red for a problem that holds publishing, amber for a field the parser could not fill, else plain. */
@@ -58,8 +67,8 @@ const numberOrUndefined = (value: string) => (value === "" ? undefined : Number(
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-4 rounded-md border border-border bg-surface p-4">
-      <h2 className="font-medium">{title}</h2>
+    <section className="space-y-4 rounded-card bg-surface p-4 shadow-card lg:p-5">
+      <h2 className="text-subtitle font-semibold">{title}</h2>
       {children}
     </section>
   );
@@ -107,26 +116,8 @@ export function Group({ name, legend, required, hint, children, ...state }: Labe
   );
 }
 
-export function Chip({
-  type,
-  name,
-  checked,
-  onChange,
-  children,
-}: {
-  type: "radio" | "checkbox";
-  name?: string;
-  checked: boolean;
-  onChange: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 text-body has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand">
-      <input type={type} name={name} checked={checked} onChange={onChange} className="accent-brand" />
-      {children}
-    </label>
-  );
-}
+/** A choice chip of the form: the Round 19 pill (ChoicePill). */
+export const Chip = ChoicePill;
 
 export function RangeInputs({
   min,

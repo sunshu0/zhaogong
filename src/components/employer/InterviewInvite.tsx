@@ -15,8 +15,11 @@ import {
   type InterviewView,
 } from "@/components/seeker/interviews";
 import { Button } from "@/components/ui/Button";
+import { Radio } from "@/components/ui/Checkbox";
+import { Select } from "@/components/ui/Select";
+import { toast } from "@/components/ui/Toast";
 
-const inputClass = "w-full rounded-md border border-border bg-background px-3 text-body focus:border-brand";
+const inputClass = "w-full rounded-control border border-border bg-background px-3 text-body focus:border-brand";
 
 /**
  * 约面试 on an applicant (#103): the business's invitation as it stands, and the form to send or change it. Any
@@ -77,6 +80,7 @@ export function InterviewInvite({
             if (!result.ok) return setError(result.error);
             onChange(result.interview);
             setOpenAt(null);
+            toast("邀约已发出");
           }}
         />
       ) : (
@@ -139,7 +143,7 @@ function InviteForm({
   return (
     <form
       aria-label={`约${name}面试`}
-      className="space-y-3 rounded-md bg-background p-3"
+      className="space-y-3 rounded-card bg-background p-4"
       onSubmit={(event) => {
         event.preventDefault();
         send();
@@ -147,15 +151,13 @@ function InviteForm({
     >
       <fieldset>
         <legend className="mb-1 text-body font-medium">面试时间</legend>
-        <div className="flex flex-wrap gap-x-5">
-          <label className="flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" checked={!callFirst} onChange={() => setCallFirst(false)} className="accent-brand" />
+        <div className="flex flex-wrap gap-x-5 px-2">
+          <Radio checked={!callFirst} onChange={() => setCallFirst(false)}>
             给具体时间
-          </label>
-          <label className="flex min-h-11 items-center gap-2 text-body">
-            <input type="radio" checked={callFirst} onChange={() => setCallFirst(true)} className="accent-brand" />
+          </Radio>
+          <Radio checked={callFirst} onChange={() => setCallFirst(true)}>
             电话联系后再定
-          </label>
+          </Radio>
         </div>
         {!callFirst && (
           <div className="mt-1 space-y-2">
@@ -179,7 +181,7 @@ function InviteForm({
                     type="button"
                     aria-label={`删除时间 ${i + 1}`}
                     onClick={() => setTimes(times.filter((_, j) => j !== i))}
-                    className="min-h-11 px-2 text-meta text-muted hover:text-danger"
+                    className="pressable min-h-11 px-2 text-meta text-muted hover:text-danger"
                   >
                     删除
                   </button>
@@ -195,23 +197,19 @@ function InviteForm({
         )}
       </fieldset>
       <div className="grid gap-3 sm:grid-cols-2">
+        <Select
+          name="interview-mode"
+          label="面试方式（选填）"
+          placeholder="不填"
+          options={(Object.entries(INTERVIEW_MODES) as [InterviewMode, string][]).map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          defaultValue={mode}
+          onChange={(value) => setMode(value as InterviewMode | "")}
+        />
         <label className="block text-body">
-          <span className="mb-1 block font-medium">面试方式（选填）</span>
-          <select
-            value={mode}
-            onChange={(event) => setMode(event.target.value as InterviewMode | "")}
-            className={`${inputClass} h-11`}
-          >
-            <option value="">不填</option>
-            {(Object.entries(INTERVIEW_MODES) as [InterviewMode, string][]).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-body">
-          <span className="mb-1 block font-medium">地点或说明（选填）</span>
+          <span className="mb-1 block text-meta text-muted">地点或说明（选填）</span>
           <input
             value={place}
             maxLength={PLACE_MAX}
@@ -222,7 +220,7 @@ function InviteForm({
         </label>
       </div>
       <label className="block text-body">
-        <span className="mb-1 block font-medium">附言（选填）</span>
+        <span className="mb-1 block text-meta text-muted">附言（选填）</span>
         <textarea
           rows={2}
           value={note}
@@ -238,7 +236,7 @@ function InviteForm({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           {initial ? "发出新的邀约" : "发出邀约"}
         </Button>
         <Button variant="link" onClick={onCancel}>

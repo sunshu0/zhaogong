@@ -11,6 +11,10 @@ import {
   moderatorPage,
 } from "./helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
 async function expectNoViolations(page: Page, state: string) {

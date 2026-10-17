@@ -29,14 +29,14 @@ export default function EmployerHome() {
           ))}
         </ul>
         <div>
-          <ButtonLink href="/employer/post" block>
+          <ButtonLink href="/employer/post" block size="lg">
             一分钟发布招聘
           </ButtonLink>
           <p className="mt-2 text-center text-meta text-muted">用邮箱开通雇主身份，不用设密码，开通后马上开始写。</p>
         </div>
       </section>
 
-      <Section>
+      <Section look="app">
         <LinkList
           label="雇主常用"
           items={[

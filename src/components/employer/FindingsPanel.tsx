@@ -27,7 +27,7 @@ export const LEVEL_STYLES: Record<FindingLevel, { label: string; className: stri
 export function FindingItem({ finding }: { finding: Finding }) {
   const style = LEVEL_STYLES[finding.level];
   return (
-    <p className={`rounded-md px-3 py-2 text-body leading-relaxed ${style.className}`}>
+    <p className={`rounded-control px-3 py-2 text-body leading-relaxed ${style.className}`}>
       <span className="font-medium">{style.label}：</span>
       {finding.message_zh}
     </p>
@@ -38,7 +38,7 @@ export function FindingItem({ finding }: { finding: Finding }) {
 export function FindingsPanel({ findings, missing }: { findings: Finding[]; missing: RequiredField[] }) {
   const clean = findings.length === 0 && missing.length === 0;
   return (
-    <section className="rounded-md border border-border bg-surface p-4">
+    <section className="rounded-card bg-surface p-4 shadow-card">
       <h2 className="font-medium">发布前检查</h2>
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {clean
@@ -46,19 +46,19 @@ export function FindingsPanel({ findings, missing }: { findings: Finding[]; miss
           : `发布前检查：${[findings.length && `${findings.length} 个问题`, missing.length && `${missing.length} 项没填`].filter(Boolean).join("，")}`}
       </p>
       {clean ? (
-        <p className="mt-2 rounded-md bg-ok-soft px-3 py-2 text-body text-ok">没有发现问题，可以预览发布。</p>
+        <p className="mt-2 rounded-control bg-ok-soft px-3 py-2 text-body text-ok">没有发现问题，可以预览发布。</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {findings.map((f, i) => (
             <li key={`${f.rule}-${f.field}-${i}`}>
-              <a href={`#field-${f.field}`} className="block">
+              <a href={`#field-${f.field}`} className="pressable block">
                 <span className="mb-1 block text-meta text-muted">{FIELD_LABELS[f.field] ?? f.field}</span>
                 <FindingItem finding={f} />
               </a>
             </li>
           ))}
           {missing.length > 0 && (
-            <li className="rounded-md border border-dashed border-warn px-3 py-2 text-body">
+            <li className="rounded-control bg-warn-soft/60 px-3 py-2 text-body">
               <span className="font-medium text-warn">还没填：</span>
               {missing.map((field, i) => (
                 <span key={field}>

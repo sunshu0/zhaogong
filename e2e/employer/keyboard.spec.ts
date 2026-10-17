@@ -14,9 +14,16 @@ async function focused(page: Page): Promise<Focused> {
     const visible =
       (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow !== "none" && s.boxShadow !== "");
     const labelled = el.id ? document.querySelector(`label[for="${el.id}"]`)?.textContent : undefined;
+    // A Select's button (Round 19) is named by its label and its value: aria-labelledby.
+    const labelledBy = el
+      .getAttribute("aria-labelledby")
+      ?.split(" ")
+      .map((id) => document.getElementById(id)?.textContent ?? "")
+      .join(" ");
     const label = (
       el.getAttribute("aria-label") ||
       labelled ||
+      labelledBy ||
       el.closest("label")?.textContent ||
       el.textContent ||
       el.tagName
@@ -70,10 +77,8 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
   for (const field of [
     "职位名称（中文） *",
     "职位名称（英文） *",
-    "行业 *",
     "兼职",
     "急招",
-    "地区 *",
     "地址（可不填）",
     "最低",
     "最高（可不填）",
@@ -89,6 +94,9 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
   ]) {
     expect.soft(stops, `Tab never reaches ${field}`).toContain(field);
   }
+  // 行业 and 地区 are Selects (Round 19), named by their label and value.
+  expect.soft(stops.some((label) => label.startsWith("行业 "))).toBe(true);
+  expect.soft(stops.some((label) => label.startsWith("地区 "))).toBe(true);
   // The contact choice is one radio group (private by default), reached by Tab like the rest.
   expect.soft(stops.some((label) => label.startsWith("不公开，求职者在聊天中申请交换"))).toBe(true);
 
@@ -136,8 +144,12 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   // The optional hires question opens with focus on its first choice; Space answers, Tab moves on.
   await expect(card.getByLabel("招到了")).toBeFocused();
   await page.keyboard.press("Space");
-  await tabUntil(page, (f) => f.label === "招到的人数");
+  // 招到的人数 is a Select (Round 19): ↓ opens its options, ↓ moves to 2 人, Enter picks it.
+  await tabUntil(page, (f) => f.label.startsWith("招到的人数"));
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("listbox", { name: "招到的人数" })).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
   await tabUntil(page, (f) => f.label === "确定结束招聘");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("status")).toBeFocused();

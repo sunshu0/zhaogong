@@ -10,6 +10,10 @@ import { useEmployerProfile, useMyTeam, useMyVerification } from "@/components/e
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { canApplyFor, KIND_LABELS, REJECT_REASONS, type VerifyKind } from "@/components/employer/verification";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
+import { Button, buttonClass } from "@/components/ui/Button";
+import { Radio } from "@/components/ui/Checkbox";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { BACK_LINK, noticeClass } from "@/components/employer/app-style";
 
 const when = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -19,7 +23,7 @@ const when = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit",
 });
 
-const INPUT = "h-11 w-full rounded-md border border-border bg-surface px-3";
+const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
 /**
  * 企业验证 (#78): find the company in the business register, say who is applying and give the company's phone, then
@@ -67,21 +71,12 @@ function Verify({ me }: { me: EmployerIdentity }) {
       </header>
 
       {message && (
-        <p
-          ref={messageRef}
-          tabIndex={-1}
-          role="status"
-          className={`rounded-md px-3 py-2 text-body outline-none ${message.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
-        >
+        <p ref={messageRef} tabIndex={-1} role="status" className={noticeClass(message.ok)}>
           {message.text}
         </p>
       )}
 
-      {request === undefined ? (
-        <div className="h-24 animate-pulse rounded-md border border-border bg-surface" />
-      ) : (
-        request && <LatestRequest request={request} />
-      )}
+      {request === undefined ? <SkeletonCard /> : request && <LatestRequest request={request} />}
 
       {employer.bannedAt && <p className="text-body text-danger">账号已被停用，不能申请验证。</p>}
       {request !== undefined && kinds.length === 0 && (
@@ -91,7 +86,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
       <BadgeMeaning />
 
       {canApply && isMember && (
-        <p className="rounded-md border border-border bg-surface p-4 text-body">
+        <p className="rounded-card bg-surface p-4 text-body shadow-card">
           只有团队管理员能申请企业验证。请找你们店的管理员（{adminNames(team)}）。
         </p>
       )}
@@ -106,7 +101,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
       )}
 
       <p className="text-meta text-muted">
-        <Link href="/employer/jobs" className="text-brand underline">
+        <Link href="/employer/jobs" className={BACK_LINK}>
           回到职位管理
         </Link>
       </p>
@@ -118,13 +113,9 @@ function Verify({ me }: { me: EmployerIdentity }) {
 function LatestRequest({ request }: { request: MyVerification }) {
   if (request.status === "withdrawn") return null;
   const tone =
-    request.status === "pending"
-      ? "border-warn/40 bg-warn-soft"
-      : request.status === "approved"
-        ? "border-ok/40 bg-ok-soft"
-        : "border-danger/40 bg-danger-soft";
+    request.status === "pending" ? "bg-warn-soft" : request.status === "approved" ? "bg-ok-soft" : "bg-danger-soft";
   return (
-    <section aria-label="验证申请" className={`space-y-2 rounded-md border p-4 text-body ${tone}`}>
+    <section aria-label="验证申请" className={`space-y-2 rounded-card p-4 text-body ${tone}`}>
       <h2 className="font-semibold">
         {request.status === "pending"
           ? "验证审核中"
@@ -210,15 +201,11 @@ function ApplyForm({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="例如：Demo Yuemei 或 9429000000004"
-            className="h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3"
+            className="h-11 min-w-0 flex-1 rounded-control border border-border bg-surface px-3"
           />
-          <button
-            type="submit"
-            disabled={pending || !query.trim()}
-            className="h-11 rounded-md bg-brand px-4 font-medium text-white disabled:opacity-40"
-          >
+          <Button type="submit" loading={pending && !chosen} disabled={pending || !query.trim()}>
             查询
-          </button>
+          </Button>
         </div>
         <p className="text-meta text-muted">演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。</p>
       </form>
@@ -227,7 +214,7 @@ function ApplyForm({
       {found && found.results.length > 0 && !chosen && (
         <ul className="space-y-2">
           {found.results.map((entry) => (
-            <li key={entry.nzbn} className="rounded-md border border-border bg-surface p-4">
+            <li key={entry.nzbn} className="rounded-card bg-surface p-4 shadow-card">
               <p className="font-medium" lang="en">
                 {entry.legalName}
               </p>
@@ -241,7 +228,7 @@ function ApplyForm({
                 type="button"
                 disabled={entry.status !== "registered" || pending}
                 onClick={() => setChosen(entry)}
-                className="mt-3 h-10 w-full rounded-md border border-brand text-body font-medium text-brand disabled:border-border disabled:text-muted"
+                className={`${buttonClass("secondary", { block: true })} mt-3`}
               >
                 这是我的公司
               </button>
@@ -251,32 +238,29 @@ function ApplyForm({
       )}
 
       {chosen && (
-        <form onSubmit={submit} className="space-y-3 rounded-md border border-border bg-surface p-4">
+        <form onSubmit={submit} className="space-y-3 rounded-card bg-surface p-4 shadow-card">
           <h2 ref={detailsHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
             2. 谁在申请
           </h2>
           <p className="text-body">
             <span lang="en">{chosen.legalName}</span> · NZBN {chosen.nzbn}
-            <button type="button" onClick={() => setChosen(undefined)} className="ml-2 text-meta text-brand underline">
+            <button
+              type="button"
+              onClick={() => setChosen(undefined)}
+              className="pressable ml-2 min-h-11 text-meta text-brand underline"
+            >
               换一家
             </button>
           </p>
           {kinds.length > 1 && (
-            <fieldset className="space-y-1">
-              <legend className="text-body font-medium">申请哪个标识</legend>
+            <fieldset className="space-y-1 px-2">
+              <legend className="-ml-2 text-body font-medium">申请哪个标识</legend>
               {kinds.map((k) => (
-                <label key={k} className="flex items-center gap-2 text-body">
-                  <input
-                    type="radio"
-                    name="verify-kind"
-                    checked={kind === k}
-                    onChange={() => setKind(k)}
-                    className="accent-brand"
-                  />
+                <Radio key={k} name="verify-kind" checked={kind === k} onChange={() => setKind(k)}>
                   {k === "business_verified"
                     ? "已验证企业：公司在企业登记里真实存在"
                     : "认证雇主：公司在移民局公开的认证雇主名单（Accredited Employer）上"}
-                </label>
+                </Radio>
               ))}
             </fieldset>
           )}
@@ -305,13 +289,9 @@ function ApplyForm({
             required={false}
             placeholder="https://"
           />
-          <button
-            type="submit"
-            disabled={pending}
-            className="h-11 w-full rounded-md bg-brand font-semibold text-white disabled:opacity-40"
-          >
+          <Button type="submit" size="lg" block loading={pending}>
             {pending ? "提交中…" : "提交审核"}
-          </button>
+          </Button>
         </form>
       )}
     </div>
@@ -364,7 +344,7 @@ function Field({
 
 function BadgeMeaning() {
   return (
-    <section className="space-y-3 rounded-md border border-border bg-surface p-4 text-body leading-relaxed">
+    <section className="space-y-3 rounded-card bg-surface p-4 shadow-card text-body leading-relaxed">
       <div>
         <h2 className="font-medium text-ok">「已验证企业」是什么</h2>
         <p className="mt-1">

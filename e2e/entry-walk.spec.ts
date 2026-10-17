@@ -291,7 +291,7 @@ test("已录用和职位结束: the employer 职位管理 → 申请人 → 已�
   await (await cardMenuItem(card(), "结束招聘")).click();
   const question = card().getByRole("group", { name: /通过找工招到人了吗/ });
   await question.getByLabel("招到了").check();
-  await question.getByLabel("招到的人数").selectOption("1");
+  await chooseOption(page, question, "招到的人数", "1 人");
   await question.getByRole("button", { name: "确定结束招聘" }).click();
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 1 人`);
 

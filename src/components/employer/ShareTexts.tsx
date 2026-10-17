@@ -3,7 +3,7 @@ import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import type { Employer, Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { SHARE_PLATFORMS, shareTexts, type SharePlatform } from "@/components/employer/share-texts";
-import { TabList, TabPanel, underlineTab } from "@/components/employer/Tabs";
+import { TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 
 const noop = () => () => {};
 
@@ -20,7 +20,7 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
   const id = useId();
 
   return (
-    <section className="space-y-3 border-t border-dashed border-border pt-3">
+    <section className="space-y-3 border-t border-border pt-4">
       <h2 className="text-body font-semibold">发到其他平台</h2>
       <TabList
         label="平台"
@@ -28,8 +28,8 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
         tabs={SHARE_PLATFORMS.map((p) => ({ key: p.key, label: p.label }))}
         value={platform}
         onChange={setPlatform}
-        className="flex gap-4 border-b border-border"
-        tabClassName={(selected) => `${underlineTab(selected)} flex-1`}
+        className="flex gap-2"
+        tabClassName={(selected) => `${pillTab(selected)} flex-1 px-2`}
       />
       <TabPanel idBase={id} value={platform} className="space-y-2">
         <p className="text-meta text-muted">
@@ -43,9 +43,14 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
           value={texts[platform]}
           rows={platform === "wechat" ? 7 : 12}
           aria-label={`${current.label}文案`}
-          className="w-full rounded-md border border-border bg-background p-3 text-body leading-relaxed"
+          className="w-full rounded-control border border-border bg-background p-3 text-body leading-relaxed"
         />
-        <CopyButton text={texts[platform]} label={`复制${current.label}文案`} size="md" className="w-full" />
+        <CopyButton
+          text={texts[platform]}
+          label={`复制${current.label}文案`}
+          size="md"
+          className="w-full rounded-control"
+        />
       </TabPanel>
     </section>
   );

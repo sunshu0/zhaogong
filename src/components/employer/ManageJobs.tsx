@@ -6,13 +6,14 @@ import type { ChangeResult } from "@/app/employer/actions";
 import { jobPhase, type Phase } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";
-import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
+import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { NO_NUMBERS } from "@/components/employer/job-card";
+import { APP_CARD, noticeClass } from "@/components/employer/app-style";
 import { ButtonLink } from "@/components/ui/Button";
-import { Section } from "@/components/ui/Section";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 
 type TabKey = "all" | Phase;
@@ -61,7 +62,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
       <ManageHeader name={employer?.name ?? me.employerName} employer={employer} />
       <StatusTabs ready={ready} value={tab} onChange={setTab} />
       {employer?.bannedAt && (
-        <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">
+        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
           这个雇主账号已被停用，职位已全部下架，不能再发布。
         </p>
       )}
@@ -99,8 +100,8 @@ function StatusTabs({ ready, value, onChange }: { ready?: Loaded; value: TabKey;
       tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${tabCount(t.key, ready, counts)}` }))}
       value={value}
       onChange={onChange}
-      className={UNDERLINE_TABS}
-      tabClassName={underlineTab}
+      className={PILL_TABS}
+      tabClassName={pillTab}
     />
   );
 }
@@ -123,12 +124,7 @@ function tabCount(key: TabKey, ready: Loaded | undefined, counts: Map<string, nu
 
 function NoticeLine({ notice, noticeRef }: { notice: Notice; noticeRef: RefObject<HTMLParagraphElement | null> }) {
   return (
-    <p
-      ref={noticeRef}
-      tabIndex={-1}
-      role="status"
-      className={`rounded-md px-3 py-2 text-body outline-none ${notice.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
-    >
+    <p ref={noticeRef} tabIndex={-1} role="status" className={noticeClass(notice.ok)}>
       {notice.text}
     </p>
   );
@@ -145,39 +141,33 @@ function JobsInTab({
   employer?: Employer;
   onDone: JobChangeDone;
 }) {
-  if (!ready)
-    return (
-      <div className="-mx-4 h-40 animate-pulse border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border" />
-    );
+  if (!ready) return <SkeletonList count={3} label="正在加载职位" />;
 
   const shown = ready.jobs.filter((job: Job) => tab === "all" || jobPhase(job, ready.now) === tab);
   if (shown.length === 0) {
     return (
-      <Section>
-        <p className="py-8 text-center text-body text-muted">
-          {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
-        </p>
-      </Section>
+      <p className={`${APP_CARD} py-10 text-center text-body text-muted`}>
+        {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
+      </p>
     );
   }
 
   return (
-    <Section>
-      <ul className="divide-y divide-border">
-        {shown.map((job) => (
-          <li key={job.id}>
-            <ManagedJob
-              job={job}
-              employer={employer}
-              numbers={ready.numbers[job.id] ?? NO_NUMBERS}
-              renewals={ready.renewals[job.id]}
-              applications={ready.applications[job.id]}
-              now={ready.now}
-              onDone={onDone}
-            />
-          </li>
-        ))}
-      </ul>
-    </Section>
+    // Round 19: each job is a card of its own (16px corners, soft shadow), 12px apart.
+    <ul className="space-y-3">
+      {shown.map((job) => (
+        <li key={job.id} className={APP_CARD}>
+          <ManagedJob
+            job={job}
+            employer={employer}
+            numbers={ready.numbers[job.id] ?? NO_NUMBERS}
+            renewals={ready.renewals[job.id]}
+            applications={ready.applications[job.id]}
+            now={ready.now}
+            onDone={onDone}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

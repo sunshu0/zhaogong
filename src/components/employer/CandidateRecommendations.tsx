@@ -17,8 +17,11 @@ import {
   type MatchFactor,
 } from "@/lib/candidate-matching";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { Pay } from "@/components/ui/Pay";
+import { Select } from "@/components/ui/Select";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { Section } from "@/components/ui/Section";
+import { APP_CARD } from "@/components/employer/app-style";
+import { Pay } from "@/components/ui/Pay";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import { regionById } from "@/config/countries";
 import type { Job } from "@/lib/types";
@@ -43,12 +46,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
   const [jobId, setJobId] = useState("");
   const [query, setQuery] = useState("");
   const [minimum, setMinimum] = useState("0");
-  if (!ready)
-    return (
-      <p role="status" className="py-12 text-muted">
-        加载招聘职位…
-      </p>
-    );
+  if (!ready) return <SkeletonList count={3} label="加载招聘职位…" />;
   const jobs = ready.jobs.filter((job) => job.status === "active" && Date.parse(job.expiresAt) > ready.now);
   const job = jobs.find((item) => item.id === jobId) ?? jobs[0];
   const matches = job
@@ -68,7 +66,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
         <p className="mt-1 text-body text-muted">演示候选资料 · 匹配分仅供参考，班次与实际经验需双方确认。</p>
       </header>
       {!job ? (
-        <Section>
+        <Section look="app">
           <div className="space-y-3 py-10 text-center">
             <h2 className="text-subtitle font-semibold">暂无招聘中的职位</h2>
             <ButtonLink href="/employer/post">发布招聘</ButtonLink>
@@ -81,24 +79,18 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
         </Section>
       ) : (
         <>
-          <section
-            aria-label="推荐条件"
-            className="-mx-4 space-y-4 border-y border-border bg-surface px-4 py-group sm:mx-0 sm:rounded-md sm:border sm:px-5"
-          >
-            <label className="block text-body font-semibold">
-              招聘职位
-              <select
-                className="mt-2 h-11 w-full rounded-md border border-border bg-surface px-3 font-normal"
-                value={job.id}
-                onChange={(event) => setJobId(event.target.value)}
-              >
-                {jobs.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.titleZh} · {regionById(item.country, item.regionId)?.nameZh}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <section aria-label="推荐条件" className={`${APP_CARD} space-y-4`}>
+            <Select
+              name="job"
+              label="招聘职位"
+              required
+              options={jobs.map((item) => ({
+                value: item.id,
+                label: `${item.titleZh} · ${regionById(item.country, item.regionId)?.nameZh ?? ""}`,
+              }))}
+              defaultValue={job.id}
+              onChange={setJobId}
+            />
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 text-body text-muted">
               <Pay pay={job.pay} country={job.country} />
               <span>{formatEmploymentTypes(job.employmentType)}</span>
@@ -112,30 +104,31 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               </Link>
             </div>
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
-              <label className="text-body font-semibold">
-                搜索求职者
+              <label className="block space-y-1 text-body">
+                <span className="block text-meta text-muted">搜索求职者</span>
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="姓名、技能或经验"
-                  className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3 font-normal"
+                  className="h-11 w-full rounded-control border border-border bg-surface px-3 focus:border-brand"
                 />
               </label>
-              <label className="text-body font-semibold">
-                最低匹配分
-                <select
-                  value={minimum}
-                  onChange={(event) => setMinimum(event.target.value)}
-                  className="mt-1 h-11 w-full rounded-md border border-border bg-surface px-3 font-normal"
-                >
-                  <option value="0">全部</option>
-                  <option value="60">60 分及以上</option>
-                  <option value="80">80 分及以上</option>
-                </select>
-              </label>
+              <Select
+                name="minimum"
+                label="最低匹配分"
+                required
+                options={[
+                  { value: "0", label: "全部" },
+                  { value: "60", label: "60 分及以上" },
+                  { value: "80", label: "80 分及以上" },
+                ]}
+                defaultValue={minimum}
+                onChange={setMinimum}
+              />
             </div>
           </section>
           <Section
+            look="app"
             title={`推荐求职者 · ${matches.length} 人`}
             action={<span className="text-meta text-muted">匹配分从高到低</span>}
           >
@@ -173,7 +166,7 @@ function MatchList({ matches, job }: { matches: CandidateMatch[]; job: Job }) {
             aria-expanded={showLow}
             aria-controls={`low-${job.id}`}
             onClick={() => setShowLow((v) => !v)}
-            className="flex min-h-11 w-full items-center justify-between py-3 text-body text-muted"
+            className="pressable-row -mx-4 flex min-h-11 w-[calc(100%+2rem)] items-center justify-between px-4 py-3 text-body text-muted lg:-mx-5 lg:w-[calc(100%+2.5rem)] lg:px-5"
           >
             另外 {low.length} 位匹配度较低
             {showLow ? (
@@ -244,7 +237,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
             onClick={() => setExpanded(!expanded)}
             aria-expanded={expanded}
             aria-controls={`resume-${candidate.id}`}
-            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 text-body"
+            className="pressable inline-flex min-h-11 items-center gap-2 rounded-control border border-border px-3 text-body hover:border-muted"
           >
             <FileText aria-hidden="true" className="size-4" />
             {expanded ? "收起简历" : "简历与匹配分析"}
@@ -256,7 +249,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
           </button>
           <Button
             variant="secondary"
-            disabled={opening}
+            loading={opening}
             onClick={async () => {
               setOpening(true);
               const id = await openCandidateChat(candidate, job);
@@ -303,7 +296,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
                         {item.status === "not_required" ? "不计分" : `${Math.round(item.earned)} / ${item.weight}`}
                       </span>
                     </p>
-                    <span className={`shrink-0 rounded px-2 py-1 text-meta ${STATUS[item.status].style}`}>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-meta ${STATUS[item.status].style}`}>
                       {STATUS[item.status].label}
                     </span>
                   </div>

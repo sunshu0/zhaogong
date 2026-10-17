@@ -3,7 +3,7 @@
 // downloads as a calendar file.
 import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { freshEmail, signIn } from "./helpers";
+import { chooseOption, freshEmail, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { instantToAuckland } from "../src/components/seeker/interviews";
 
@@ -46,7 +46,7 @@ test("the employer offers two times; the job seeker confirms one and saves it to
   await form.getByLabel("时间 1", { exact: true }).fill(first.local);
   await form.getByRole("button", { name: "再加一个时间" }).click();
   await form.getByLabel("时间 2", { exact: true }).fill(second.local);
-  await form.getByLabel("面试方式（选填）").selectOption({ label: "到店面试" });
+  await chooseOption(page, form, "面试方式（选填）", "到店面试");
   await form.getByLabel("地点或说明（选填）").fill("到店找王经理");
   await form.getByLabel("附言（选填）").fill("带上简历");
   await expect(form).toContainText("邀约里不带你的联系方式");

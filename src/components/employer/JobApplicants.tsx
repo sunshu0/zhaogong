@@ -14,10 +14,13 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { DECISION_LABELS, type ApplicationDecision } from "@/components/seeker/applications";
 import { useChat } from "@/components/seeker/chat-client";
 import { Section } from "@/components/ui/Section";
+import { BACK_LINK } from "@/components/employer/app-style";
+import { toast } from "@/components/ui/Toast";
 import { Tag } from "@/components/ui/Tag";
 import { buttonClass } from "@/components/ui/Button";
 import { InterviewInvite } from "@/components/employer/InterviewInvite";
 import type { InterviewView } from "@/components/seeker/interviews";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 const appliedAt = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -55,11 +58,10 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     };
   }, [jobId, me.email]);
 
-  if (loaded?.email !== me.email)
-    return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
+  if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface px-4 py-8 text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
         找不到这个职位，或者它不属于你登录的店铺。
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           回到职位管理
@@ -88,6 +90,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     setError("");
     const ok = await decideMyApplicant(id, decision).catch(() => false);
     if (!ok) return setError("没有保存，请再试一次。");
+    toast(decision ? `已标记「${DECISION_LABELS[decision]}」` : "已取消标记");
     setLoaded((current) =>
       current?.data
         ? {
@@ -104,7 +107,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   return (
     <div className="space-y-section">
       <div>
-        <Link href="/employer/jobs" className="text-meta text-brand underline-offset-4 hover:underline">
+        <Link href="/employer/jobs" className={BACK_LINK}>
           ← 职位管理
         </Link>
         <h1 className="mt-1 text-title font-semibold">申请人</h1>
@@ -123,7 +126,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
       )}
 
       {applicants.length === 0 ? (
-        <Section>
+        <Section look="app">
           <p className="py-group text-center text-body text-muted">还没有人申请这个职位。</p>
         </Section>
       ) : (
@@ -159,7 +162,7 @@ function ApplicantCard({
   const { openApplicantChat } = useChat();
   const [opening, setOpening] = useState(false);
   return (
-    <article aria-label={`申请人 ${a.profile.name}`} className="rounded-md border border-border bg-surface p-4 lg:p-5">
+    <article aria-label={`申请人 ${a.profile.name}`} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
@@ -180,7 +183,7 @@ function ApplicantCard({
           </div>
         ))}
       </dl>
-      {a.note && <p className="mt-2 rounded-md bg-background px-3 py-2 text-body">附言：{a.note}</p>}
+      {a.note && <p className="mt-3 rounded-control bg-background px-3 py-2 text-body">附言：{a.note}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button

@@ -1,6 +1,9 @@
 "use client";
 import { useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
+import { Radio } from "@/components/ui/Checkbox";
+import { SkeletonList } from "@/components/ui/Skeleton";
+import { noticeClass } from "@/components/employer/app-style";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useMyTeam } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -13,7 +16,7 @@ import {
   type MyTeam,
 } from "@/app/employer/team-actions";
 
-const INPUT = "h-11 w-full rounded-md border border-border bg-surface px-3";
+const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
 type Done = { ok: true } | { ok: false; error_zh: string };
 
@@ -39,7 +42,7 @@ function Team({ me }: { me: EmployerIdentity }) {
       if (result.ok) (after ?? reload)();
     });
 
-  if (team === undefined) return <p className="text-body text-muted">正在读取团队…</p>;
+  if (team === undefined) return <SkeletonList count={2} label="正在读取团队" />;
   if (team === null) return <p className="text-body">需要先开通雇主身份。</p>;
   const isAdmin = team.me.role === "admin";
 
@@ -63,12 +66,7 @@ function Team({ me }: { me: EmployerIdentity }) {
       </header>
 
       {message && (
-        <p
-          ref={messageRef}
-          tabIndex={-1}
-          role={message.ok ? "status" : "alert"}
-          className={`text-body ${message.ok ? "text-ok" : "text-danger"}`}
-        >
+        <p ref={messageRef} tabIndex={-1} role={message.ok ? "status" : "alert"} className={noticeClass(message.ok)}>
           {message.text}
         </p>
       )}
@@ -84,7 +82,7 @@ function Team({ me }: { me: EmployerIdentity }) {
         <h2 id="team-members" className="font-semibold">
           成员（{team.members.length}）
         </h2>
-        <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+        <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
           {team.members.map((member) => (
             <MemberRow
               key={member.email}
@@ -131,7 +129,11 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
     onSave(name);
   };
   return (
-    <form onSubmit={submit} aria-labelledby="team-my-name" className="space-y-2 rounded-md border border-border p-4">
+    <form
+      onSubmit={submit}
+      aria-labelledby="team-my-name"
+      className="space-y-2 rounded-card bg-surface p-4 shadow-card"
+    >
       <h2 id="team-my-name" className="font-semibold">
         我的称呼
       </h2>
@@ -169,7 +171,7 @@ function MemberRow({
   const [confirming, setConfirming] = useState(false);
   const label = member.name ?? "（还没有称呼）";
   return (
-    <li aria-label={`${label}，${TEAM_ROLE_LABEL[member.role]}`} className="space-y-2 p-3">
+    <li aria-label={`${label}，${TEAM_ROLE_LABEL[member.role]}`} className="space-y-2 px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-medium">
           {label}
@@ -245,7 +247,7 @@ function Invite({
       <h2 id="team-invite" className="font-semibold">
         邀请成员
       </h2>
-      <form onSubmit={submit} className="space-y-2 rounded-md border border-border p-4">
+      <form onSubmit={submit} className="space-y-2 rounded-card bg-surface p-4 shadow-card">
         <p className="text-meta text-muted">
           对方要先用这个邮箱登录过找工，并且还没有自己的企业。对方在「我的」里接受后加入。
         </p>
@@ -260,13 +262,12 @@ function Invite({
             required
           />
         </label>
-        <fieldset className="flex flex-wrap gap-4 text-body">
-          <legend className="mb-1">身份</legend>
+        <fieldset className="flex flex-wrap gap-x-5 px-2 text-body">
+          <legend className="-ml-2 mb-1">身份</legend>
           {(["member", "admin"] as const).map((r) => (
-            <label key={r} className="flex min-h-11 items-center gap-2">
-              <input type="radio" name="team-role" checked={role === r} onChange={() => setRole(r)} />
+            <Radio key={r} name="team-role" checked={role === r} onChange={() => setRole(r)}>
               {TEAM_ROLE_LABEL[r]}
-            </label>
+            </Radio>
           ))}
         </fieldset>
         <Button type="submit" disabled={disabled || !email.trim()}>
@@ -278,9 +279,9 @@ function Invite({
           <h3 id="team-pending" className="text-body font-medium">
             等对方回复
           </h3>
-          <ul className="divide-y divide-border rounded-md border border-border bg-surface">
+          <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
             {team.invites.map((invite) => (
-              <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+              <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span className="text-body break-all">
                   {invite.email} · {TEAM_ROLE_LABEL[invite.role]}
                 </span>

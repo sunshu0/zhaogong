@@ -20,7 +20,7 @@ export function Published({
   const live = job.status === "active";
   return (
     <section className="space-y-4">
-      <div className={`rounded-md px-4 py-5 ${live ? "bg-ok-soft" : "bg-warn-soft"}`}>
+      <div className={`animate-pop-in rounded-card px-4 py-5 ${live ? "bg-ok-soft" : "bg-warn-soft"}`}>
         <h1
           ref={headingRef}
           tabIndex={-1}
@@ -32,7 +32,10 @@ export function Published({
           {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「职位管理」里看到进度。"}
         </p>
         {live && (
-          <Link href={`/jobs/${job.id}`} className="mt-3 inline-block text-body text-brand underline">
+          <Link
+            href={`/jobs/${job.id}`}
+            className="pressable mt-2 inline-flex min-h-11 items-center text-body text-brand underline"
+          >
             看看职位页面 →
           </Link>
         )}
@@ -45,10 +48,10 @@ export function Published({
         </p>
       )}
       <div className="flex gap-3">
-        <button type="button" onClick={onAgain} className={`${buttonClass("secondary")} flex-1`}>
+        <button type="button" onClick={onAgain} className={`${buttonClass("secondary", { size: "lg" })} flex-1`}>
           再发一条
         </button>
-        <Link href="/employer/jobs" className={`${buttonClass("primary")} flex-1`}>
+        <Link href="/employer/jobs" className={`${buttonClass("primary", { size: "lg" })} flex-1`}>
           职位管理
         </Link>
       </div>

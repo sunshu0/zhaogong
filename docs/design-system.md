@@ -260,6 +260,15 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
   - 新加 `loading.tsx`：雇主主页、浏览与举报、我的主页、中英文简历。
 - **共用的：** `SoftTag`（浅底圆角标签，`urgent` / `brand` / `neutral`），`linkCardClass()`（整张卡是一个链接时用）。
 
+### 雇主后台（第三步，#148）
+
+- **整个 `/employer`** 由 `src/app/employer/layout.tsx` 套上 `type-app`，每个路由有 `loading.tsx`（列表用 `ListPageSkeleton`，其余用 `DetailPageSkeleton`）；布局里放了 `NoScriptStreams`，没有 JavaScript 时内容照常显示。
+- **页面里的块：** ui `Section look="app"`（#152）。其余零件在 `src/components/employer/app-style.ts`：`APP_CARD`、`ACTION_BUTTON`（卡片里的小操作，44 高）、`STICKY_BAR`（表单底部的半透明操作栏）、`BAR_TEXT_ACTION`（栏里的「取消」「上一步」）、`BACK_LINK`（标题上面的「← 职位管理」）、`noticeClass()`（保存成功 / 失败的提示行）。
+- **状态切换**（职位管理的「全部 / 招聘中…」、发布方式、发到哪个平台）：一排胶囊 `PILL_TABS` + `pillTab()`，选中的填品牌色。
+- **短选项**（工作类型、签证、语言、岗位类别、续期多久、招到了吗）：`ChoicePill`，圆角胶囊里是新样式的单选圆点或复选框，选中填浅品牌色；长一点的单选（联系方式怎么给、面试时间、身份）用 ui `Radio`。
+- **下拉框** 一律是 ui `Select`；发布表单的「行业」「地区」是受控的（`value`），标签由表单画（`id` + `hideLabel`），缺项 / 不合规时 `tone` 变黄 / 红（`selectTone()`）。
+- **提交**：发布、保存、整理、发出邀约、提交审核的按钮传 `loading`；保存类的结果照旧写在页面的状态行里（读屏软件会念，测试也看它），只在没有状态行的地方（标记申请人、发出邀约）出 `toast()`。
+
 ### 还要做（第三步）
 
 页面切换的过渡（尽量用 View Transitions），以及各线把自己的页面照样板改过来。做到哪条，在这里补上规则。

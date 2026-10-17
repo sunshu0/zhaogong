@@ -7,7 +7,7 @@ import { TEAM_NAME_MAX, TEAM_ROLE_LABEL } from "@/components/employer/team";
 import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/employer/team-actions";
 import { setIdentity } from "@/components/seeker/session-client";
 
-const INPUT = "h-11 w-full rounded-md border border-border bg-surface px-3";
+const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
 /**
  * 团队邀请 on 我的 (#87): businesses that invited this account. Accepting, with the name the team will see, opens the
@@ -95,7 +95,7 @@ function InviteCard({
     <form
       onSubmit={submit}
       aria-label={`${invite.employerName} 的邀请`}
-      className="space-y-2 rounded-md border border-border bg-surface p-3"
+      className="space-y-2 rounded-card bg-surface p-4 shadow-card"
     >
       <p className="text-body">
         <span className="font-medium">{invite.employerName}</span> 邀请你加入团队，做{TEAM_ROLE_LABEL[invite.role]}

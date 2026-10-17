@@ -6,7 +6,7 @@ import { chatAssistantKind, chatTurn } from "@/app/employer/actions";
 import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
-import { buttonClass } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 
 /**
  * Posting by conversation: the assistant asks one thing at a time, quick replies are buttons, and
@@ -99,9 +99,9 @@ export function ChatPost({
                   className={m.from === "assistant" ? "mr-8" : "ml-8 flex justify-end"}
                 >
                   <p
-                    className={`rounded-md px-3 py-2 text-body leading-relaxed whitespace-pre-line ${
+                    className={`animate-pop-in rounded-card px-3.5 py-2.5 text-body leading-relaxed whitespace-pre-line ${
                       m.from === "assistant"
-                        ? "rounded-tl-sm bg-surface border border-border"
+                        ? "rounded-tl-sm bg-surface shadow-card"
                         : "rounded-tr-sm bg-brand text-white"
                     }`}
                   >
@@ -112,7 +112,7 @@ export function ChatPost({
               ))}
               {sending && (
                 <li ref={lastMessage} className="ml-8 flex justify-end">
-                  <p className="rounded-md bg-brand/80 px-3 py-2 text-body whitespace-pre-line text-white">
+                  <p className="rounded-card rounded-tr-sm bg-brand/80 px-3.5 py-2.5 text-body whitespace-pre-line text-white">
                     <span className="sr-only">你：</span>
                     {sending}
                   </p>
@@ -126,7 +126,7 @@ export function ChatPost({
             </p>
           )}
 
-          <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 border-t border-border bg-background px-4 py-3 lg:mx-0 lg:px-0">
+          <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 bg-background/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:mx-0 lg:px-0">
             {replies.length > 0 && !pending && (
               <div role="group" aria-label="快捷回复" className="flex flex-wrap gap-2">
                 {replies.map((q) => (
@@ -134,7 +134,7 @@ export function ChatPost({
                     key={q.label}
                     type="button"
                     onClick={() => send(q.value ?? q.label)}
-                    className="h-9 rounded-md border border-brand/35 bg-surface px-3 text-body text-brand hover:bg-brand-soft"
+                    className="pressable min-h-10 rounded-full bg-surface px-4 text-body text-brand shadow-card hover:bg-brand-soft"
                   >
                     {q.label}
                   </button>
@@ -142,7 +142,7 @@ export function ChatPost({
               </div>
             )}
             {unavailable && !pending && (
-              <p className="rounded-md bg-warn-soft px-3 py-2 text-body text-warn">
+              <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
                 AI 发帖助手暂时不可用。
                 <button
                   type="button"
@@ -170,13 +170,13 @@ export function ChatPost({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder="输入回复，回车发送（Shift + 回车换行）"
-                className="min-h-11 flex-1 resize-y rounded-md border border-border bg-surface px-3 py-2 text-body"
+                className="min-h-11 flex-1 resize-y rounded-control border border-border bg-surface px-3 py-2 text-body"
               />
-              <button type="submit" disabled={pending || !text.trim()} className={buttonClass("primary")}>
+              <Button type="submit" loading={pending} disabled={!text.trim()}>
                 发送
-              </button>
+              </Button>
             </form>
-            <button type="button" onClick={onUseForm} className="text-meta text-muted underline">
+            <button type="button" onClick={onUseForm} className="pressable min-h-11 text-meta text-muted underline">
               在表单里改
             </button>
           </div>

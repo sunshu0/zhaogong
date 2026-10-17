@@ -34,7 +34,7 @@ export function DraftCard({
     .join(" · ");
 
   return (
-    <section aria-label="职位卡，随对话更新" className="rounded-md border border-border bg-surface p-4 text-body">
+    <section aria-label="职位卡，随对话更新" className="rounded-card bg-surface p-4 shadow-card text-body">
       <DraftTitle draft={draft} />
       {summary && <p className="mt-1 text-muted">{summary}</p>}
       <DraftRoles draft={draft} />
@@ -49,7 +49,7 @@ export function DraftCard({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((o) => !o)}
-        className="mt-3 block w-full text-left"
+        className="pressable mt-3 block min-h-11 w-full text-left"
       >
         <span className="flex items-center justify-between gap-2 text-meta">
           <span className={list.ready ? "text-ok" : "text-foreground"}>
@@ -60,7 +60,7 @@ export function DraftCard({
         </span>
         <span aria-hidden="true" className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-background">
           <span
-            className={`block h-full rounded-full ${list.ready ? "bg-ok" : "bg-brand"}`}
+            className={`block h-full rounded-full transition-[width] duration-(--duration-ui) ease-(--ease-app) ${list.ready ? "bg-ok" : "bg-brand"}`}
             style={{ width: `${Math.round((list.done / list.total) * 100)}%` }}
           />
         </span>
@@ -113,7 +113,7 @@ function ChecklistRow({ item, enabled, onAsk }: { item: ChecklistItem; enabled: 
       type="button"
       disabled={!enabled}
       onClick={() => onAsk(item.ask)}
-      className="flex min-h-11 w-full items-center gap-3 py-1.5 text-left enabled:hover:bg-background disabled:cursor-default"
+      className="pressable-row -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-3 rounded-control px-2 py-1.5 text-left enabled:hover:bg-background disabled:cursor-default"
     >
       <span className="w-16 shrink-0 text-muted">{item.label}</span>
       <span className={`min-w-0 flex-1 ${tone}`}>{item.value ?? (item.required ? "待填" : "可不填")}</span>

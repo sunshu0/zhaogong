@@ -12,6 +12,9 @@ import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJob } from "@/components/employer/use-my-jobs";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
 /** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
 export function EditJob({ jobId, country }: { jobId: string; country: CountryCode }) {
@@ -26,10 +29,10 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
   const email = me.email;
   const job = useMyJob(jobId, email);
 
-  if (job === undefined) return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
+  if (job === undefined) return <SkeletonList count={2} />;
   if (!job || !canEdit(job)) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface px-4 py-8 text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
         {job ? "这个职位已被后台下架，不能修改。" : "找不到这个职位，或者它不属于你登录的店铺。"}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           回到职位管理
@@ -63,7 +66,9 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
   if (saved) {
     return (
       <section className="space-y-4">
-        <div className={`rounded-md px-4 py-5 ${saved.status === "pending_review" ? "bg-warn-soft" : "bg-ok-soft"}`}>
+        <div
+          className={`animate-pop-in rounded-card px-4 py-5 ${saved.status === "pending_review" ? "bg-warn-soft" : "bg-ok-soft"}`}
+        >
           <h1
             ref={heading}
             tabIndex={-1}
@@ -77,19 +82,13 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
           </p>
         </div>
         <div className="flex gap-3">
-          <Link
-            href="/employer/jobs"
-            className="flex h-11 flex-1 items-center justify-center rounded-md bg-brand font-medium text-white"
-          >
+          <ButtonLink href="/employer/jobs" size="lg" className="flex-1">
             回到职位管理
-          </Link>
+          </ButtonLink>
           {saved.status === "active" && (
-            <Link
-              href={`/jobs/${saved.id}`}
-              className="flex h-11 flex-1 items-center justify-center rounded-md border border-brand font-medium text-brand"
-            >
+            <ButtonLink href={`/jobs/${saved.id}`} variant="secondary" size="lg" className="flex-1">
               查看职位
-            </Link>
+            </ButtonLink>
           )}
         </div>
       </section>
@@ -99,13 +98,13 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
   return (
     <div className="space-y-4 pb-24">
       <h1 className="text-title font-semibold">编辑职位</h1>
-      {error && <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
+      {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <DraftEditor state={state} country={country} />
       </div>
-      <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface px-4 py-3 ${WIDE_ON_DESKTOP}`}>
+      <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">
-          <Link href="/employer/jobs" className="text-body text-muted underline">
+          <Link href="/employer/jobs" className={BAR_TEXT_ACTION}>
             取消
           </Link>
           <p className="flex-1 text-meta text-muted">
@@ -115,14 +114,9 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
                 : "可以保存"
               : holdReason(state.findings.length, state.missing.length)}
           </p>
-          <button
-            type="button"
-            disabled={!state.ready || pending}
-            onClick={save}
-            className="h-11 rounded-md bg-brand px-5 font-semibold text-white disabled:opacity-40"
-          >
+          <Button size="lg" loading={pending} disabled={!state.ready} onClick={save} className="px-6">
             {pending ? "保存中…" : "保存"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

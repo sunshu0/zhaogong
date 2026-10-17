@@ -9,6 +9,7 @@ import {
   Chip,
   Field,
   fieldKit,
+  selectTone,
   Group,
   RangeInputs,
   Section,
@@ -18,6 +19,7 @@ import {
 import { ContactSection, DescriptionSection, RequirementsSection } from "@/components/employer/DraftFormSections";
 import { JobRolesField } from "@/components/employer/JobRolesField";
 import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
+import { Select } from "@/components/ui/Select";
 
 type Props = {
   form: PostForm;
@@ -69,19 +71,16 @@ function JobSection({ kit }: { kit: FieldKit }) {
         />
       </Field>
       <Field name="industry" label="行业" required {...state("industry")}>
-        <select
+        <Select
           id="in-industry"
+          label="行业"
+          hideLabel
+          placeholder="请选择"
+          options={Object.entries(INDUSTRY_LABELS).map(([value, l]) => ({ value, label: l.zh }))}
           value={form.industry ?? ""}
-          onChange={(e) => set({ industry: (e.target.value || undefined) as Industry | undefined })}
-          className={`h-11 ${box("industry")}`}
-        >
-          <option value="">请选择</option>
-          {Object.entries(INDUSTRY_LABELS).map(([value, l]) => (
-            <option key={value} value={value}>
-              {l.zh}
-            </option>
-          ))}
-        </select>
+          onChange={(value) => set({ industry: (value || undefined) as Industry | undefined })}
+          tone={selectTone(state("industry"))}
+        />
       </Field>
       <JobRolesField form={form} set={set} />
       <EmploymentTypeGroup kit={kit} />
@@ -122,19 +121,16 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
   return (
     <Section title="地点和时间">
       <Field name="regionId" label="地区" required {...state("regionId")}>
-        <select
+        <Select
           id="in-regionId"
+          label="地区"
+          hideLabel
+          placeholder="请选择"
+          options={config.regions.map((r) => ({ value: r.id, label: r.nameZh }))}
           value={form.regionId ?? ""}
-          onChange={(e) => set({ regionId: e.target.value || undefined })}
-          className={`h-11 ${box("regionId")}`}
-        >
-          <option value="">请选择</option>
-          {config.regions.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.nameZh}
-            </option>
-          ))}
-        </select>
+          onChange={(regionId) => set({ regionId: regionId || undefined })}
+          tone={selectTone(state("regionId"))}
+        />
       </Field>
       <Field name="address" label="地址（可不填）" {...state("address")}>
         <input

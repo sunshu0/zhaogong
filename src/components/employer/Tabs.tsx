@@ -11,6 +11,11 @@ export const UNDERLINE_TABS = "-mx-4 flex gap-4 overflow-x-auto border-b border-
 export const underlineTab = (selected: boolean) =>
   `-mb-px h-11 shrink-0 border-b-2 text-body ${selected ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`;
 
+/** Round 19 tabs (操作质感): a row of pills that scrolls sideways on phones; the chosen one is filled in brand colour. */
+export const PILL_TABS = "-mx-4 flex gap-2 overflow-x-auto px-4 py-1 sm:mx-0 sm:flex-wrap sm:px-0";
+export const pillTab = (selected: boolean) =>
+  `pressable h-10 shrink-0 rounded-full px-4 text-body ${selected ? "bg-brand font-medium text-white" : "bg-surface text-muted shadow-card hover:text-foreground"}`;
+
 /** Ids that tie the tabs to their panel. */
 export const tabIds = (base: string, key: string) => ({ tab: `${base}-tab-${key}`, panel: `${base}-panel` });
 

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle, cardMenuItem } from "./helpers";
+import { chooseOption } from "../helpers";
 
 test("manage → end a job → it leaves the list; renew → it is back (#69)", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo);
@@ -45,9 +46,10 @@ test("ending a job asks how many were hired; the count shows and can be correcte
   await (await cardMenuItem(card, "结束招聘")).click();
   const question = card.getByRole("group", { name: /通过找工招到人了吗/ });
   await expect(question).toContainText("（可不填）");
-  await expect(question.getByLabel("招到的人数")).toBeDisabled();
+  // How many shows once 招到了 is chosen (Round 19: a Select).
+  await expect(question.getByRole("button", { name: /^招到的人数/ })).toHaveCount(0);
   await question.getByLabel("招到了").check();
-  await question.getByLabel("招到的人数").selectOption("2");
+  await chooseOption(page, question, "招到的人数", "2 人");
   await question.getByRole("button", { name: "确定结束招聘" }).click();
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 2 人`);
   await expect(card).toContainText("已结束");
@@ -55,7 +57,7 @@ test("ending a job asks how many were hired; the count shows and can be correcte
 
   await (await cardMenuItem(card, "更正招到人数")).click();
   const correction = card.getByRole("group", { name: /通过找工招到人了吗/ });
-  await expect(correction.getByLabel("招到的人数")).toHaveValue("2");
+  await expect(correction.getByRole("button", { name: /^招到的人数/ })).toContainText("2 人");
   await correction.getByLabel("没有 / 不确定").check();
   await correction.getByRole("button", { name: "保存" }).click();
   await expect(page.getByRole("status")).toHaveText(`${title}：已记录，没有通过找工招到人`);

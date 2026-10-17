@@ -1,7 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "../helpers";
+import { chooseOption, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "../helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
+/** 招聘职位 is a Select (Round 19): its options read 「title · region」, so pick the one starting with `title`. */
+async function chooseJob(page: Page, title: string) {
+  await page.getByRole("button", { name: /^招聘职位/ }).click();
+  await page
+    .getByRole("listbox", { name: "招聘职位", exact: true })
+    .getByRole("option", { name: new RegExp(`^${title}`) })
+    .click();
+}
 
 test("recommends by selected job, explains matches and opens a persistent role-specific chat", async ({
   page,
@@ -25,7 +38,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
       .last(),
   ).toBeVisible();
   await page.goto("/employer/candidates");
-  await page.getByLabel("招聘职位").selectOption(id!);
+  await chooseJob(page, title);
   // Since #104 the job seekers who allowed it are listed from their accounts, and other tests make some side by
   // side: the counts here are of the six demo candidates only.
   const rows = page
@@ -50,21 +63,16 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await page.screenshot({ path: testInfo.outputPath("candidates.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
-  await page.getByLabel("最低匹配分").selectOption("80");
+  await chooseOption(page, page, "最低匹配分", "80 分及以上");
   await expect(rows).toHaveCount(2);
   await expect(rows.filter({ has: page.getByRole("heading", { name: "王宁", exact: true }) })).toHaveCount(0);
   await page.getByLabel("搜索求职者").fill("无此求职者");
   await expect(page.getByText("暂无符合条件的求职者")).toBeVisible();
   await page.getByLabel("搜索求职者").fill("");
-  await page.getByLabel("最低匹配分").selectOption("0");
-  const kitchen = await page
-    .getByLabel("招聘职位")
-    .locator("option")
-    .filter({ hasText: "厨房帮工" })
-    .getAttribute("value");
-  await page.getByLabel("招聘职位").selectOption(kitchen!);
+  await chooseOption(page, page, "最低匹配分", "全部");
+  await chooseJob(page, "厨房帮工");
   await expect(rows.first().getByRole("heading", { name: "王宁" })).toBeVisible();
-  await page.getByLabel("招聘职位").selectOption(id!);
+  await chooseJob(page, title);
   await rows.first().getByRole("button", { name: "发起聊天" }).click();
   await expect(page).toHaveURL(/\/messages\?conversation=/);
   const log = page.getByRole("log", { name: "消息记录" });
@@ -82,7 +90,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await expect(log).toContainText("方便聊聊吗");
   await expect(page.getByRole("link", { name: /^聊的职位：/ })).toHaveAttribute("href", `/jobs/${id}`);
   await page.goto("/employer/candidates");
-  await page.getByLabel("招聘职位").selectOption(id!);
+  await chooseJob(page, title);
   await rows.first().getByRole("button", { name: "发起聊天" }).click();
   if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "返回会话列表", exact: true }).click();
   await expect(page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ })).toHaveCount(

@@ -2,6 +2,7 @@
 import { JOB_ROLE_IDS, JOB_ROLES, MAX_JOB_ROLES } from "@/config/job-roles";
 import { roleFitsIndustry, roleNames, suggestJobRoles } from "@/lib/job-roles";
 import { formRoles, type PostForm } from "@/components/employer/post-form";
+import { ChoicePill } from "@/components/employer/ChoicePill";
 
 /**
  * 岗位类别 (#96, ADR 0013): at most two. Until the employer picks, the categories the title names are ticked; the
@@ -19,20 +20,16 @@ export function JobRolesField({ form, set }: { form: PostForm; set: (patch: Part
       <legend className="mb-1.5 text-body font-medium">岗位类别</legend>
       <div className="flex flex-wrap gap-2">
         {offered.map((id) => (
-          <label
+          <ChoicePill
             key={id}
-            className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-background px-3 text-body has-checked:border-brand has-checked:bg-brand-soft has-checked:text-brand has-disabled:cursor-default has-disabled:opacity-50"
+            type="checkbox"
+            name="roles"
+            checked={chosen.includes(id)}
+            disabled={full && !chosen.includes(id)}
+            onChange={() => toggle(id)}
           >
-            <input
-              type="checkbox"
-              name="roles"
-              checked={chosen.includes(id)}
-              disabled={full && !chosen.includes(id)}
-              onChange={() => toggle(id)}
-              className="accent-brand"
-            />
             {JOB_ROLES[id].zh}
-          </label>
+          </ChoicePill>
         ))}
       </div>
       <p className="text-meta text-muted">

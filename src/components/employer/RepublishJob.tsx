@@ -15,8 +15,11 @@ import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJob } from "@/components/employer/use-my-jobs";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { Button } from "@/components/ui/Button";
+import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
-const BOX = "rounded-md border border-dashed border-border bg-surface px-4 py-8 text-center text-body text-muted";
+const BOX = "rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted";
 
 /**
  * 重新发布 (#69): a job that closed more than 14 days ago, as a new draft with its content. It goes through the same
@@ -36,7 +39,7 @@ function Load({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
   // The time the page opened decides whether the job may be published again; it stays fixed while the form is open.
   const [openedAt] = useState(() => Date.now());
 
-  if (job === undefined) return <div className="h-40 animate-pulse rounded-md border border-border bg-surface" />;
+  if (job === undefined) return <SkeletonList count={2} />;
   if (!job || !canRepublish(job, openedAt)) {
     return (
       <div className={BOX}>
@@ -91,13 +94,13 @@ function RepublishForm({ job, email, country }: { job: Job; email: string; count
           截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。
         </p>
       </div>
-      {error && <p className="rounded-md bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
+      {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <DraftEditor state={state} country={country} />
       </div>
-      <div className={`sticky bottom-0 -mx-4 border-t border-border bg-surface px-4 py-3 ${WIDE_ON_DESKTOP}`}>
+      <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">
-          <Link href="/employer/jobs" className="text-body text-muted underline">
+          <Link href="/employer/jobs" className={BAR_TEXT_ACTION}>
             取消
           </Link>
           <p className="flex-1 text-meta text-muted">
@@ -107,14 +110,9 @@ function RepublishForm({ job, email, country }: { job: Job; email: string; count
                 : "可以发布"
               : holdReason(state.findings.length, state.missing.length)}
           </p>
-          <button
-            type="button"
-            disabled={!state.ready || pending}
-            onClick={publish}
-            className="h-11 rounded-md bg-brand px-5 font-semibold text-white disabled:opacity-40"
-          >
+          <Button size="lg" loading={pending} disabled={!state.ready} onClick={publish} className="px-6">
             {pending ? "发布中…" : "发布"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -2,6 +2,10 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { MODERATOR_EMAIL, moderatorPage, openReportForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
+// Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
+// not one caught mid-animation with half-faded colours.
+test.use({ reducedMotion: "reduce" });
+
 // 审核数据 (#70, PRD R-34). Other specs report and take down jobs on the same server at the same time, so the
 // numbers are compared as "at least one more", never exactly.
 
