@@ -68,6 +68,6 @@ test("实习 shows internships and graduate programmes; a job page has facts, �
 
   // A job waiting for review has no page (the not-found page streams in after the shell, so the status stays 200).
   await page.goto(`/external/${encodeURIComponent("demo-kowhai:4002")}`);
-  await expect(page.getByText("This page could not be found.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "这个页面不存在" })).toBeVisible();
   await expect(page.getByText("Senior Electronics Engineer")).toHaveCount(0);
 });

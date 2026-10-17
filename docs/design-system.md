@@ -258,6 +258,7 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
   - `WorkHubFrame look="app"` 给内容加 `type-app`；桌面左栏的工作台导航是一张卡，行按下变暗。B、C 线的工作台页面改好后也传 `look="app"`。
   - 各列表、空状态、登录提示都是卡片；输入框用 `inputClass()`，「进度」「持有的签证」换成 `Select`。e2e 里看 Select 当前的值用 `selectTrigger(范围, "标签")` 的名字（「进度 已面试」）。
   - 新加 `loading.tsx`：雇主主页、浏览与举报、我的主页、中英文简历。
+- **找不到页面和出错页（#161）：** `StatusCard`：一张居中的卡，图标、标题、一句原因、一个主按钮（最多再加一个次按钮）。全站的 404（`src/app/not-found.tsx`，以前是 Next 自带的英文页）、出错页（`error.tsx`「重试」，根布局出错时 `global-error.tsx`），以及职位、雇主的 404 都用它。
 - **共用的：** `SoftTag`（浅底圆角标签，`urgent` / `brand` / `neutral`），`linkCardClass()`（整张卡是一个链接时用）。
 
 ### 雇主后台（第三步，#148）

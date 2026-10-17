@@ -1,12 +1,15 @@
-import Link from "next/link";
+import { Store } from "lucide-react";
+import { ButtonLink } from "@/components/ui/Button";
+import { StatusCard } from "@/components/seeker/StatusCard";
 
 export default function EmployerNotFound() {
   return (
-    <div className="py-12 text-center">
-      <h1 className="text-lg font-semibold">这个雇主不存在或已停用</h1>
-      <Link href="/jobs" className="mt-4 inline-flex min-h-11 items-center text-sm text-brand underline">
-        看看其他职位
-      </Link>
-    </div>
+    <StatusCard
+      icon={Store}
+      title="这个雇主不存在或已停用"
+      actions={<ButtonLink href="/jobs">看看其他职位</ButtonLink>}
+    >
+      链接可能有误，或者这家雇主已经不在找工上招聘。
+    </StatusCard>
   );
 }
