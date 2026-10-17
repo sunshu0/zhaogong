@@ -19,8 +19,10 @@ import {
   type ExternalSection,
 } from "@/lib/external-jobs/filter";
 import { CITY_LABELS, FIELD_LABELS, KIND_LABELS, NOT_STATED, payLabel, sourceLine } from "@/lib/external-jobs/labels";
-import { Tag } from "@/components/ui/Tag";
+import { SoftTag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
+import { cardClass, linkCardClass } from "@/components/ui/Card";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -46,7 +48,7 @@ export function ExternalSectionPage({
 }) {
   const other: ExternalSection = section === "internship" ? "professional" : "internship";
   return (
-    <div className="space-y-4">
+    <div className="type-app space-y-4">
       <div className="space-y-1">
         <h1 className="text-title font-semibold">{SECTION_TITLES[section]}</h1>
         <p className="text-body text-muted">
@@ -65,7 +67,13 @@ export function ExternalSectionPage({
       {/* Without JavaScript the streamed list (and loading.tsx's skeleton) would stay hidden (#13). */}
       <NoScriptStreams />
       <FinishSaveAfterSignIn />
-      <Suspense fallback={<div className="h-60 animate-pulse rounded-md bg-surface" />}>
+      <Suspense
+        fallback={
+          <div data-nojs-hide="">
+            <SkeletonList label="正在加载职位" />
+          </div>
+        }
+      >
         <Results section={section} searchParams={searchParams} />
       </Suspense>
       <TakedownNote />
@@ -83,7 +91,7 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
   const jobs = filterExternalJobs(shown, section, filter);
   const filtered = isExternalFiltered(filter);
   return (
-    <div className="space-y-3 lg:grid lg:grid-cols-[15rem_minmax(0,45rem)] lg:items-start lg:gap-x-10 lg:space-y-0">
+    <div className="space-y-3 lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:items-start lg:gap-x-10 lg:space-y-0">
       {/* Keyed by the filter: a link to the same list with other filters starts the form afresh. */}
       <FilterForm key={externalFilterToQuery(filter)} section={section} filter={filter} />
       <section aria-label={`${SECTION_TITLES[section]}列表`} className="space-y-3">
@@ -94,7 +102,7 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
           <SaveAlert key={externalFilterToQuery(filter)} query={externalFilterToQuery(filter)} section={section} />
         </div>
         {jobs.length === 0 ? (
-          <div className="space-y-2 rounded-md border border-border bg-surface p-4 text-body">
+          <div className={`space-y-2 text-body ${cardClass()}`}>
             <p>{filtered ? "没有符合这些条件的职位。" : "现在还没有职位。"}</p>
             {filtered && (
               <Link href={SECTION_PATHS[section]} className="text-brand underline underline-offset-2">
@@ -103,7 +111,7 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
             )}
           </div>
         ) : (
-          <ul className="-mx-4 divide-y divide-border border-y border-border bg-surface sm:mx-0 sm:rounded-md sm:border">
+          <ul className="space-y-3">
             {jobs.map((job) => (
               <li key={job.id}>
                 <ExternalJobRow job={job} />
@@ -123,28 +131,37 @@ function ExternalJobRow({ job }: { job: ExternalJob }) {
     ? `截止 ${new Intl.DateTimeFormat("zh-CN", { timeZone: "Pacific/Auckland", month: "numeric", day: "numeric" }).format(new Date(job.closesAt))}`
     : `截止日期：${NOT_STATED}`;
   return (
-    <article aria-labelledby={`x-${job.id}`} className="space-y-1.5 px-4 py-3 sm:px-5">
-      <div className="flex items-start justify-between gap-2">
-        <h2 id={`x-${job.id}`} lang="en" className="text-subtitle font-semibold">
-          <Link href={externalJobHref(job.id)} className="hover:text-brand">
-            {job.title}
-          </Link>
-        </h2>
+    // Round 19: a card like the job list's; the title's link opens it from anywhere on the card.
+    <article aria-labelledby={`x-${job.id}`} className={linkCardClass()}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id={`x-${job.id}`} lang="en" className="text-subtitle font-semibold break-words group-hover:text-brand">
+            <Link href={externalJobHref(job.id)} className="outline-none after:absolute after:inset-0">
+              {job.title}
+            </Link>
+          </h2>
+          <p className="truncate text-body">
+            <span lang="en">{job.companyName}</span> · {CITY_LABELS[job.city]}
+          </p>
+        </div>
         <SaveJobButton jobId={externalSaveKey(job.id)} title={job.title} />
       </div>
-      <p className="text-body">
-        <span lang="en">{job.companyName}</span> · {CITY_LABELS[job.city]}
-      </p>
-      <p className="flex flex-wrap gap-1.5">
-        <Tag kind="neutral">外部职位</Tag>
-        <Tag kind="perk">{FIELD_LABELS[job.field]}</Tag>
-        <Tag kind="neutral">{job.kind ? KIND_LABELS[job.kind] : `类型：${NOT_STATED}`}</Tag>
-      </p>
-      <p className="text-meta text-muted">
+      <p className="mt-2 text-body text-muted">
         {closes}
         {job.pay && ` · ${payLabel(job.pay)}`}
       </p>
-      <p className="text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt)}</p>
+      <ul aria-label="标签" className="mt-2 flex flex-wrap gap-1.5">
+        <li>
+          <SoftTag tone="neutral">外部职位</SoftTag>
+        </li>
+        <li>
+          <SoftTag tone="brand">{FIELD_LABELS[job.field]}</SoftTag>
+        </li>
+        <li>
+          <SoftTag tone="neutral">{job.kind ? KIND_LABELS[job.kind] : `类型：${NOT_STATED}`}</SoftTag>
+        </li>
+      </ul>
+      <p className="mt-2 text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt)}</p>
     </article>
   );
 }

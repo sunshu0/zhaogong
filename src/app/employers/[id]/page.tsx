@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { getEmployer, listJobsByEmployer } from "@/lib/data";
 import { requestTime } from "@/components/seeker/request-time";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { EmployerPublicPage } from "@/components/seeker/EmployerPublicPage";
 
 export async function generateMetadata({ params }: PageProps<"/employers/[id]">): Promise<Metadata> {
@@ -16,13 +17,7 @@ export default function EmployerPage({ params }: PageProps<"/employers/[id]">) {
   return (
     <div className={WIDE_ON_DESKTOP}>
       <NoScriptStreams />
-      <Suspense
-        fallback={
-          <p data-nojs-hide="" role="status" className="py-12 text-muted">
-            加载雇主主页…
-          </p>
-        }
-      >
+      <Suspense fallback={<DetailPageSkeleton label="加载雇主主页…" />}>
         <PublicEmployer params={params} />
       </Suspense>
     </div>

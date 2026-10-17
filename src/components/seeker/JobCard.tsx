@@ -3,7 +3,8 @@ import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
 import { formatHours, jobTags } from "@/components/seeker/format";
-import { Tag } from "@/components/ui/Tag";
+import { SoftTag, Tag } from "@/components/ui/Tag";
+import { linkCardClass } from "@/components/ui/Card";
 import { Pay } from "@/components/ui/Pay";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
@@ -108,7 +109,7 @@ function AppJobCard({ job, employer, headingLevel }: { job: Job; employer?: Empl
   const tags = cardTags(job);
 
   return (
-    <article className="group relative h-full rounded-card bg-surface px-4 py-3.5 shadow-card transition-[scale,box-shadow] duration-(--duration-press) ease-(--ease-app) hover:shadow-pop has-[a:active]:scale-(--press-scale) has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand lg:p-5">
+    <article className={`${linkCardClass()} h-full`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Heading className="line-clamp-2 text-subtitle font-semibold break-words group-hover:text-brand">
@@ -177,17 +178,6 @@ function AppJobCard({ job, employer, headingLevel }: { job: Job; employer?: Empl
 }
 
 /** A tag on a light fill, no border (Round 19). */
-function SoftTag({ tone, children }: { tone: "urgent" | "brand"; children: string }) {
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-meta leading-5 ${
-        tone === "urgent" ? "bg-danger-soft font-semibold text-danger" : "bg-brand-soft text-brand"
-      }`}
-    >
-      {children}
-    </span>
-  );
-}
 
 /** A grey label and its value, e.g. 「地区 北岸」. */
 function Fact({ label, children }: { label: string; children: string }) {

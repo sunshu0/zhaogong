@@ -16,6 +16,15 @@ export function cardClass({ interactive = false, padded = true } = {}) {
     .join(" ");
 }
 
+/**
+ * A card that one link opens (a job in a list): give it `group relative`, and stretch the link over it
+ * (`after:absolute after:inset-0`); other buttons in it need `relative z-10`. It gives a little while the link is
+ * pressed, its shadow deepens on hover, and it shows the link's focus ring.
+ */
+export function linkCardClass() {
+  return "group relative rounded-card bg-surface px-4 py-3.5 shadow-card transition-[scale,box-shadow] duration-(--duration-press) ease-(--ease-app) hover:shadow-pop has-[a:active]:scale-(--press-scale) has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand lg:p-5";
+}
+
 /** A row of a list (notifications, settings, saved searches): full width, darkens while pressed. */
 export function rowClass() {
   return "pressable-row flex min-h-12 w-full items-center gap-3 px-4 text-left hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand";

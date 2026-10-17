@@ -21,6 +21,7 @@ import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay } from "@/components/seeker/format";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
+import { cardClass } from "@/components/ui/Card";
 
 const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
 const DESCRIPTION =
@@ -54,7 +55,7 @@ const FEATURED_COUNT = 6;
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
     // The bands meet the header and the footer: cancel main's vertical padding.
-    <div className="-mt-4 -mb-4">
+    <div className="type-app -mt-4 -mb-4">
       <Suspense fallback={null}>
         <LegacyListLink searchParams={searchParams} />
       </Suspense>
@@ -73,7 +74,11 @@ export default function Home({ searchParams }: PageProps<"/">) {
             <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">
               餐饮、零售、清洁、装修。每个职位发布前都核对过最低工资，雇主有没有通过验证、接受哪些签证，都写得清清楚楚。
             </p>
-            <form action={jobsHref("")} role="search" className="mt-5 flex max-w-xl">
+            <form
+              action={jobsHref("")}
+              role="search"
+              className="mt-5 flex h-14 max-w-xl items-center gap-2 rounded-control bg-surface p-1.5 pl-3.5 shadow-card focus-within:ring-2 focus-within:ring-brand/40"
+            >
               <input
                 type="search"
                 name="q"
@@ -81,11 +86,11 @@ export default function Home({ searchParams }: PageProps<"/">) {
                 enterKeyHint="search"
                 placeholder="服务员、厨师、Mt Eden…"
                 aria-label="搜索职位"
-                className="min-w-0 flex-1 rounded-l-md border border-r-0 border-brand bg-surface px-3.5 py-3 text-base outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                className="h-full min-w-0 flex-1 bg-transparent text-base outline-none"
               />
               <button
                 type="submit"
-                className="shrink-0 rounded-r-md bg-brand px-4 font-bold text-white hover:bg-brand/90"
+                className="pressable h-full shrink-0 rounded-[0.5rem] bg-brand px-4 font-bold text-white hover:opacity-90"
               >
                 找工作
               </button>
@@ -95,7 +100,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
                 <li key={quick.label}>
                   <Link
                     href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
-                    className="inline-block rounded-sm bg-brand-soft px-2.5 py-1.5 text-body text-brand hover:bg-brand hover:text-white"
+                    className="pressable inline-flex min-h-9 items-center rounded-full bg-brand-soft px-3.5 text-body text-brand hover:bg-brand hover:text-white"
                   >
                     {quick.label}
                   </Link>
@@ -152,7 +157,7 @@ async function NoScriptLanding() {
   return (
     <noscript>
       <div className={`${SITE_CONTAINER} py-4`}>
-        <div className="rounded-md border border-border bg-surface p-4 text-sm">
+        <div className={`text-body ${cardClass()}`}>
           {stats.length > 0 && (
             <section aria-labelledby="no-js-stats-heading">
               <h2 id="no-js-stats-heading" className="font-semibold">
@@ -179,10 +184,7 @@ async function NoScriptLanding() {
               <ul className="mt-2 grid grid-cols-1 gap-2">
                 {jobs.map((job) => (
                   <li key={job.id}>
-                    <Link
-                      href={`/jobs/${job.id}`}
-                      className="block rounded-lg border border-border p-3 hover:border-brand"
-                    >
+                    <Link href={`/jobs/${job.id}`} className="block rounded-control bg-background p-3 hover:text-brand">
                       <span className="block font-medium">{job.titleZh}</span>
                       <span className="block text-xs text-muted">
                         {formatPay(job.pay, job.country)} · {regionById(job.country, job.regionId)?.nameZh ?? "奥克兰"}
@@ -258,16 +260,16 @@ async function FeaturedBand() {
             <h2 id="featured-heading" className="text-2xl font-bold">
               精选工作
             </h2>
-            <p className="mt-1 text-sm text-muted">来自已验证雇主、正在招聘的职位，时薪高的在前。</p>
+            <p className="mt-1 text-body text-muted">来自已验证雇主、正在招聘的职位，时薪高的在前。</p>
           </div>
-          <Link href={jobsHref("")} className="font-medium text-brand">
+          <Link href={jobsHref("")} className="pressable inline-flex min-h-11 items-center font-medium text-brand">
             查看全部职位 →
           </Link>
         </div>
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-6 space-y-3 lg:max-w-3xl">
           {jobs.map((job) => (
             <li key={job.id}>
-              <JobCard job={job} employer={employers.get(job.employerId)} headingLevel={3} />
+              <JobCard look="app" job={job} employer={employers.get(job.employerId)} headingLevel={3} />
             </li>
           ))}
         </ul>
@@ -280,38 +282,38 @@ async function FeaturedBand() {
 async function FeaturesBand() {
   const replay = await buildReplay();
   return (
-    <section aria-labelledby="features-heading" className={`${FULL_BLEED} border-y border-border bg-surface`}>
+    <section aria-labelledby="features-heading" className={`${FULL_BLEED} bg-background`}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <h2 id="features-heading" className="text-2xl font-bold">
           功能展示
         </h2>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <article aria-labelledby="ai-feature-heading" className="border-t-2 border-brand pt-4">
+          <article aria-labelledby="ai-feature-heading" className={cardClass()}>
             <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand text-white">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand text-white">
                 <FeatureIconSvg name="chat" />
               </span>
               <div>
                 <h3 id="ai-feature-heading" className="font-semibold">
                   {AI_FEATURE.title}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted">{AI_FEATURE.text}</p>
+                <p className="mt-1 text-body leading-relaxed text-muted">{AI_FEATURE.text}</p>
               </div>
             </div>
             <div className="mt-4">
               <ChatReplay messages={replay} />
             </div>
           </article>
-          {/* Thin lines between the features (Round 13), no cards. */}
-          <ul className="divide-y divide-border border-y border-border">
+          {/* Round 19: each feature a card of its own. */}
+          <ul className="space-y-3">
             {FEATURES.map((feature) => (
-              <li key={feature.title} className="flex items-start gap-3 py-5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
+              <li key={feature.title} className={`flex items-start gap-3 ${cardClass()}`}>
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
                   <FeatureIconSvg name={feature.icon} />
                 </span>
                 <div>
                   <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{feature.text}</p>
+                  <p className="mt-1 text-body leading-relaxed text-muted">{feature.text}</p>
                 </div>
               </li>
             ))}
@@ -331,11 +333,11 @@ async function EmployerBand() {
         className={`${SITE_CONTAINER} grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:py-16`}
       >
         <div>
-          <p className="text-sm text-white/75">给雇主</p>
+          <p className="text-body text-white/75">给雇主</p>
           <h2 id="employer-heading" className="mt-1 text-2xl font-bold">
             招人？一分钟发布招聘
           </h2>
-          <ul className="mt-4 space-y-2 text-sm text-white/90">
+          <ul className="mt-4 space-y-2 text-body text-white/90">
             {EMPLOYER_POINTS.map((point) => (
               <li key={point} className="flex items-start gap-2">
                 <CheckIcon className="mt-0.5 size-4" />
@@ -344,10 +346,13 @@ async function EmployerBand() {
             ))}
           </ul>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <PostJobLink className="inline-block rounded-lg bg-white px-5 py-2.5 font-semibold text-foreground hover:bg-white/90">
+            <PostJobLink className="pressable inline-flex min-h-12 items-center rounded-control bg-white px-5 font-semibold text-foreground hover:bg-white/90">
               注册雇主 →
             </PostJobLink>
-            <Link href="/employer" className="text-sm text-white underline underline-offset-4 hover:no-underline">
+            <Link
+              href="/employer"
+              className="pressable inline-flex min-h-11 items-center text-body text-white underline underline-offset-4 hover:no-underline"
+            >
               看看雇主能做什么
             </Link>
           </div>
