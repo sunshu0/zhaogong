@@ -116,12 +116,15 @@ export function EmployerPublicPage({ employer, jobs }: { employer: Employer; job
         {jobs.length ? (
           <ul className="mt-3 grid grid-cols-1 items-stretch gap-3 lg:max-w-3xl">
             {jobs.map((job) => (
-              // The card opens the job; 立即沟通 under it starts a chat about this job.
-              <li key={job.id} className="flex min-w-0 flex-col gap-2">
-                <JobCard look="app" job={job} employer={{ ...employer, name }} headingLevel={3} />
-                <div className="flex justify-end">
-                  <StartEmployerChat employer={employer} job={job} />
-                </div>
+              // The card opens the job; 立即沟通 in its bottom row starts a chat about this job.
+              <li key={job.id} className="min-w-0">
+                <JobCard
+                  look="app"
+                  job={job}
+                  employer={{ ...employer, name }}
+                  headingLevel={3}
+                  action={<StartEmployerChat employer={employer} job={job} />}
+                />
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
@@ -27,14 +28,17 @@ export function JobCard({
   employer,
   headingLevel = 2,
   look = "classic",
+  action,
 }: {
   job: Job;
   employer?: Employer;
   headingLevel?: 2 | 3;
   /** "app": the Round 19 sample (the job list only, until the user approves it for the other lists). */
   look?: "classic" | "app";
+  /** "app" only: one more control at the end of the bottom row, e.g. 立即沟通 on an employer's page. */
+  action?: ReactNode;
 }) {
-  if (look === "app") return <AppJobCard job={job} employer={employer} headingLevel={headingLevel} />;
+  if (look === "app") return <AppJobCard job={job} employer={employer} headingLevel={headingLevel} action={action} />;
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const region = regionById(job.country, job.regionId)?.nameZh;
   const hours = [formatEmploymentTypes(job.employmentType), formatHours(job.hoursPerWeek)].filter(Boolean).join("，");
@@ -100,9 +104,20 @@ export function JobCard({
  * The Round 19 card (操作质感, an app's feel): a white card with 16px corners and a soft shadow, no border. The title
  * and the pay lead; under them one light line of points (job-card-parts.ts), one status and at most two soft tags,
  * then the employer with 收藏 / 申请. The whole card opens the job (the title's link is stretched over it) and
- * gives a little when pressed; 收藏 and 申请 sit above the link.
+ * gives a little when pressed; 收藏, 申请 and an `action` (立即沟通 on an employer's page) sit above the link, so
+ * no button has to hang under the card.
  */
-function AppJobCard({ job, employer, headingLevel }: { job: Job; employer?: Employer; headingLevel: 2 | 3 }) {
+function AppJobCard({
+  job,
+  employer,
+  headingLevel,
+  action,
+}: {
+  job: Job;
+  employer?: Employer;
+  headingLevel: 2 | 3;
+  action?: ReactNode;
+}) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const points = cardPoints(job, regionById(job.country, job.regionId)?.nameZh);
   const status = cardStatus(job, employer);
@@ -171,6 +186,7 @@ function AppJobCard({ job, employer, headingLevel }: { job: Job; employer?: Empl
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <SaveJobButton jobId={job.id} title={job.titleZh} />
           <ApplyRowButton jobId={job.id} title={job.titleZh} />
+          {action && <div className="relative z-10 ml-1">{action}</div>}
         </div>
       </div>
     </article>
