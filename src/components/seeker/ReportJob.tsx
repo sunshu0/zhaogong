@@ -9,6 +9,10 @@ import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/repor
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import type { DemoSession } from "@/components/seeker/session";
+import { Button } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { Radio } from "@/components/ui/Checkbox";
+import { inputClass } from "@/components/ui/input-class";
 
 /** "举报这个职位" → reasons + optional note → thank-you. */
 export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
@@ -23,14 +27,9 @@ function ClosedReport({ disabled = false, onOpen }: { disabled?: boolean; onOpen
   return (
     <div className="flex items-center justify-between gap-3 px-1 text-sm text-muted">
       <span>职位信息有问题？</span>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onOpen}
-        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-danger hover:border-danger"
-      >
+      <Button variant="danger-secondary" disabled={disabled} onClick={onOpen}>
         举报这个职位
-      </button>
+      </Button>
     </div>
   );
 }
@@ -63,7 +62,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
 
   if (state === "sent") {
     return (
-      <section role="status" className="rounded-xl border border-ok/30 bg-ok-soft p-4">
+      <section role="status" className="rounded-card bg-ok-soft p-4 lg:p-5">
         <h2 className="font-medium text-ok">谢谢你的举报</h2>
         <p className="mt-1 text-sm">我们会尽快核查这个职位。在此之前，如果雇主要求你付钱或交出证件，请不要照做。</p>
         <p className="mt-2 text-xs text-muted">
@@ -86,19 +85,15 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   }
 
   return (
-    <form onSubmit={submit} noValidate className="rounded-xl border border-border bg-surface p-4">
+    <form onSubmit={submit} noValidate className={cardClass()}>
       <fieldset>
         <legend className="font-medium">举报这个职位</legend>
         <p className="mt-1 text-sm text-muted">请选择最符合的原因。举报不会告诉雇主是谁发的。</p>
         <div className="mt-3 space-y-1">
           {REPORT_REASONS.map((reason) => (
-            <label
-              key={reason}
-              className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-background"
-            >
-              <input type="radio" name="reason" value={reason} className="size-4 accent-brand" />
-              <span className="text-sm">{REPORT_REASON_LABELS[reason].zh}</span>
-            </label>
+            <Radio key={reason} name="reason" value={reason}>
+              {REPORT_REASON_LABELS[reason].zh}
+            </Radio>
           ))}
         </div>
       </fieldset>
@@ -110,7 +105,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
           rows={3}
           maxLength={NOTE_MAX}
           placeholder="例如：电话里要求先交 200 元押金"
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand"
+          className={inputClass({ multiline: true })}
         />
       </label>
 
@@ -121,23 +116,19 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
       )}
 
       <div className="mt-3 flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          className="flex-1"
           onClick={() => {
             setState("closed");
             setError(null);
           }}
-          className="flex-1 rounded-lg border border-border px-3 py-2.5 text-sm"
         >
           取消
-        </button>
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-[2] rounded-lg bg-danger px-3 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {pending ? "正在提交…" : "提交举报"}
-        </button>
+        </Button>
+        <Button type="submit" variant="danger" loading={pending} className="flex-[2]">
+          提交举报
+        </Button>
       </div>
     </form>
   );

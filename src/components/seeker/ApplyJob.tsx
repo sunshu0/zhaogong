@@ -20,6 +20,7 @@ import {
 } from "@/components/seeker/applications";
 import { useProfile } from "@/components/seeker/hub-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
+import { inputClass } from "@/components/ui/input-class";
 import { buttonClass, type ButtonSize } from "@/components/ui/Button";
 import { candidateFacts } from "@/lib/candidate-matching";
 
@@ -166,7 +167,7 @@ function ApplyDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-md border border-border bg-surface p-4 md:rounded-md"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-card bg-surface p-4 shadow-pop md:rounded-card md:p-5"
       >
         <h2 id={titleId} className="text-subtitle font-semibold">
           {mine ? "我的申请" : "申请这个职位"}
@@ -175,7 +176,7 @@ function ApplyDialog({
 
         {mine ? (
           <div className="mt-3 space-y-3">
-            <p role="status" className="rounded-md bg-brand-soft px-3 py-2 text-body text-brand">
+            <p role="status" className="rounded-control bg-brand-soft px-3 py-2 text-body text-brand">
               {mine.status}
             </p>
             {mine.note && <p className="text-body">附言：{mine.note}</p>}
@@ -202,7 +203,7 @@ function ApplyDialog({
               void submit();
             }}
           >
-            <section aria-label="雇主会看到的资料" className="rounded-md border border-border bg-background p-3">
+            <section aria-label="雇主会看到的资料" className="rounded-control bg-background p-3">
               <p className="text-meta text-muted">雇主会看到你的主页（不含联系方式）：</p>
               {page ? (
                 <>
@@ -238,7 +239,7 @@ function ApplyDialog({
                 rows={3}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="比如：周末都能上班，做过两年奶茶店"
-                className="mt-1 w-full rounded-md border border-border bg-surface px-3 py-2 text-base outline-none focus:border-brand"
+                className={`mt-1 ${inputClass({ multiline: true })}`}
               />
               <p className="text-right text-meta text-muted">
                 {[...note].length} / {NOTE_MAX}
@@ -285,7 +286,7 @@ export function ApplyRowButton({ jobId, title }: { jobId: string; title: string 
       disabled={!hydrated}
       aria-label={`申请：${title}`}
       onClick={() => router.push(session ? `/jobs/${jobId}?${APPLY_PARAM}=1` : applyAfterSignInHref(jobId))}
-      className="relative z-10 hidden min-h-8 items-center gap-1 rounded-md px-1.5 text-meta text-muted hover:text-brand disabled:opacity-60 md:inline-flex"
+      className="relative z-10 hidden min-h-8 items-center gap-1 rounded-control px-1.5 text-meta text-muted after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 md:inline-flex"
     >
       <Send aria-hidden="true" className="size-4" />
       申请

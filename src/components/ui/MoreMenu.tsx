@@ -82,7 +82,7 @@ export function MoreMenu({
   }
 
   const itemClass = (item: MoreMenuItem) =>
-    `flex min-h-11 w-full items-center rounded-sm px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none aria-disabled:opacity-50 ${
+    `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none aria-disabled:opacity-50 ${
       item.danger ? "text-danger" : ""
     }`;
 
@@ -97,7 +97,7 @@ export function MoreMenu({
         aria-label={showLabel ? undefined : label}
         onClick={() => (open ? close(false) : openAt(0))}
         onKeyDown={onButtonKeyDown}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md px-2 text-body text-muted hover:bg-background hover:text-foreground"
+        className="pressable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-control px-2 text-body text-muted hover:bg-background hover:text-foreground"
       >
         <MoreHorizontal aria-hidden="true" className="size-5" />
         {showLabel && label}
@@ -108,7 +108,7 @@ export function MoreMenu({
           role="menu"
           aria-label={label}
           onKeyDown={onMenuKeyDown}
-          className={`absolute top-full z-30 mt-1 min-w-40 rounded-md border border-border bg-surface p-1 ${
+          className={`absolute top-full z-30 mt-1 min-w-40 animate-pop-in rounded-control bg-surface p-1 shadow-pop ${
             align === "end" ? "right-0" : "left-0"
           }`}
         >

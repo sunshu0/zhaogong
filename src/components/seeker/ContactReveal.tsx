@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { revealContact } from "@/app/jobs/[id]/actions";
 import type { Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
+import { buttonClass } from "@/components/ui/Button";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 
 /** A number a phone can call; the demo's masked numbers (021 ••• 0101（演示）) get no tel: link. */
@@ -49,7 +50,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`}
-            className="mt-3 block rounded-lg bg-brand px-4 py-2.5 text-center text-sm font-medium text-white"
+            className={`mt-3 ${buttonClass("primary", { block: true })}`}
           >
             登录查看联系方式
           </Link>

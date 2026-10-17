@@ -191,7 +191,7 @@ export function HeaderPostJob() {
   // Employers post from the bottom bar on phones, so there it is only the visitors' way in.
   return (
     <PostJobLink
-      className={`${role === "employer" ? "hidden md:inline-flex" : "inline-flex"} min-h-11 items-center rounded-md bg-brand px-3.5 font-semibold text-white hover:opacity-90`}
+      className={`${role === "employer" ? "hidden md:inline-flex" : "inline-flex"} pressable min-h-11 items-center rounded-control bg-brand px-3.5 font-semibold text-white hover:opacity-90`}
     />
   );
 }

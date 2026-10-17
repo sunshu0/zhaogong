@@ -3,13 +3,18 @@
 import { COUNTRIES } from "@/config/countries";
 import { JOB_ROLE_IDS, JOB_ROLES } from "@/config/job-roles";
 import { EMPLOYMENT_TYPE_LABELS } from "@/i18n/labels";
+import { ChoicePill } from "@/components/employer/ChoicePill";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { inputClass as sharedInputClass } from "@/components/ui/input-class";
 import { EMPTY_RESUME, type Resume } from "@/lib/candidate-matching";
 import type { EmploymentType } from "@/lib/types";
 
 const toggle = <T,>(values: T[], value: T) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 const numberOrEmpty = (value: string) => (value === "" ? undefined : Number(value));
-const inputClass = "h-11 w-full rounded-md border border-border bg-background px-3 text-body focus:border-brand";
+// Round 19 (#174): the shared inputs (16px text, so phones do not zoom in) and B's choice pills, so 想做的岗位
+// looks like 岗位类别 in the post form. ChoicePill stays in components/employer until it moves to ui.
+const inputClass = sharedInputClass();
 
 type ResumeProps = { value?: Resume; onChange: (value: Resume) => void };
 
@@ -68,18 +73,14 @@ export function ResumeRoleField(props: ResumeProps) {
       <p className="mb-2 text-meta text-muted">可多选。雇主找人时按岗位类别匹配，前台、服务员、接待都算前厅服务。</p>
       <div className="flex flex-wrap gap-2">
         {JOB_ROLE_IDS.map((id) => (
-          <label
+          <ChoicePill
             key={id}
-            className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-body ${roles.includes(id) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
+            type="checkbox"
+            checked={roles.includes(id)}
+            onChange={() => update({ roles: toggle(roles, id) })}
           >
-            <input
-              type="checkbox"
-              className="size-4 accent-brand"
-              checked={roles.includes(id)}
-              onChange={() => update({ roles: toggle(roles, id) })}
-            />
             {JOB_ROLES[id].zh}
-          </label>
+          </ChoicePill>
         ))}
       </div>
     </fieldset>
@@ -105,18 +106,14 @@ export function ResumeMoreFields(props: ResumeProps) {
         <legend className="mb-2 text-body font-medium">期望用工形式</legend>
         <div className="flex flex-wrap gap-2">
           {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string }][]).map(([type, label]) => (
-            <label
+            <ChoicePill
               key={type}
-              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-body ${value.employmentTypes.includes(type) ? "border-brand bg-brand-soft text-brand" : "border-border"}`}
+              type="checkbox"
+              checked={value.employmentTypes.includes(type)}
+              onChange={() => update({ employmentTypes: toggle(value.employmentTypes, type) })}
             >
-              <input
-                type="checkbox"
-                className="size-4 accent-brand"
-                checked={value.employmentTypes.includes(type)}
-                onChange={() => update({ employmentTypes: toggle(value.employmentTypes, type) })}
-              />
               {label.zh}
-            </label>
+            </ChoicePill>
           ))}
         </div>
       </fieldset>
@@ -153,15 +150,13 @@ export function ResumeMoreFields(props: ResumeProps) {
         <legend className="mb-2 text-body font-medium">可工作地区</legend>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNTRIES.NZ.regions.map((region) => (
-            <label key={region.id} className="flex min-h-11 cursor-pointer items-center gap-2 text-body">
-              <input
-                type="checkbox"
-                className="size-4 shrink-0 accent-brand"
-                checked={value.regionIds.includes(region.id)}
-                onChange={() => update({ regionIds: toggle(value.regionIds, region.id) })}
-              />
+            <Checkbox
+              key={region.id}
+              checked={value.regionIds.includes(region.id)}
+              onChange={() => update({ regionIds: toggle(value.regionIds, region.id) })}
+            >
               {region.nameZh}
-            </label>
+            </Checkbox>
           ))}
         </div>
       </fieldset>
@@ -174,14 +169,12 @@ export function DiscoverableToggle(props: ResumeProps) {
   const value = props.value ?? EMPTY_RESUME;
   const update = resumeUpdater(props);
   return (
-    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-body font-medium">
-      <input
-        type="checkbox"
-        className="size-4 shrink-0 accent-brand"
-        checked={value.discoverable}
-        onChange={(event) => update({ discoverable: event.target.checked })}
-      />
+    <Checkbox
+      className="font-medium"
+      checked={value.discoverable}
+      onChange={(event) => update({ discoverable: event.target.checked })}
+    >
       允许向雇主推荐我的求职主页
-    </label>
+    </Checkbox>
   );
 }

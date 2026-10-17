@@ -97,7 +97,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
                 />
                 <button
                   type="submit"
-                  className="pressable h-full shrink-0 rounded-[0.5rem] bg-brand px-4 font-bold text-white hover:opacity-90"
+                  className="pressable h-full shrink-0 rounded-control bg-brand px-4 font-bold text-white hover:opacity-90"
                 >
                   找工作
                 </button>
@@ -107,7 +107,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
                   <li key={quick.label}>
                     <Link
                       href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
-                      className="pressable inline-flex min-h-9 items-center rounded-full bg-brand-soft px-3.5 text-body text-brand hover:bg-brand hover:text-white"
+                      className="pressable inline-flex min-h-11 items-center rounded-full bg-brand-soft px-4 text-body text-brand hover:bg-brand hover:text-white md:min-h-9 md:px-3.5"
                     >
                       {quick.label}
                     </Link>

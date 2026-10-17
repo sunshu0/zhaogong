@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 /**
  * The Clipboard API needs a secure, focused page; plain http on a phone (testing over the LAN) and some
@@ -31,10 +32,8 @@ async function writeClipboard(text: string): Promise<boolean> {
   }
 }
 
-const SIZES = {
-  sm: "rounded-md px-2 py-1 text-xs",
-  md: "rounded-lg px-3 py-2 text-sm",
-};
+/** Round 19 (#174): both sizes are the secondary Button now, 44px high; `sm` stays for the callers that pass it. */
+const SIZES = { sm: "", md: "" };
 
 export function CopyButton({
   text,
@@ -58,7 +57,7 @@ export function CopyButton({
     <button
       type="button"
       onClick={copy}
-      className={`border border-border bg-surface hover:border-brand hover:text-brand ${SIZES[size]} ${className}`}
+      className={`${buttonClass("secondary")} whitespace-nowrap ${SIZES[size]} ${className}`.trim()}
     >
       <span aria-live="polite">{state === "copied" ? "已复制" : state === "failed" ? "复制失败" : label}</span>
     </button>

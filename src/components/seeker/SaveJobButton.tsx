@@ -32,7 +32,7 @@ export function SaveJobButton({ jobId, title }: { jobId: string; title: string }
         if (!session) router.push(saveAfterSignInHref(`${location.pathname}${location.search}`, jobId));
         else void toggleSaved(jobId, !on);
       }}
-      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-meta hover:text-brand disabled:opacity-60 ${
+      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-control px-1.5 text-meta after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 ${
         on ? "text-brand" : "text-muted"
       }`}
     >
