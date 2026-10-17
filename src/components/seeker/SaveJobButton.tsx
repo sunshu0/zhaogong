@@ -21,18 +21,22 @@ export function SaveJobButton({ jobId, title }: { jobId: string; title: string }
   if (hydrated && session?.activeRole === "employer") return null;
   const on = Boolean(session && saved?.has(jobId));
 
+  // While the server answers, the button is aria-disabled, not disabled: a disabled button loses the focus in
+  // Chromium, so a keyboard user would be thrown to the top of the page after each 收藏 (#179).
   return (
     <button
       type="button"
-      disabled={!hydrated || busy}
+      disabled={!hydrated}
+      aria-disabled={busy || undefined}
       aria-busy={busy || undefined}
       aria-pressed={session ? on : undefined}
       aria-label={`收藏：${title}`}
       onClick={() => {
+        if (busy) return;
         if (!session) router.push(saveAfterSignInHref(`${location.pathname}${location.search}`, jobId));
         else void toggleSaved(jobId, !on);
       }}
-      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-control px-1.5 text-meta after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 ${
+      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-control px-1.5 text-meta after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 aria-disabled:opacity-60 ${
         on ? "text-brand" : "text-muted"
       }`}
     >
