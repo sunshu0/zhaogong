@@ -20,6 +20,26 @@
 
 聊天状态与动作仍集中在 `chat-client.ts`，资料和通知在 `hub-client.ts`。身份隔离由 `identity-scope.ts` 负责；双方交换规则在 `src/lib/chat-consent.ts`，阅读与回复计数规则在 `src/lib/chat-activity.ts`。
 
+## 共用组件和页面外观（Round 19）
+
+做法见 ADR 0021 和 `docs/design-system.md` 的 Round 19 一节。共用组件在 `src/components/ui/`，只由 A 线改：
+
+| 功能 | 主要文件 | 职责 |
+| --- | --- | --- |
+| 卡片 | `Card.tsx` | `cardClass()`、`Card`、`CardLink`；整张卡一个链接时用 `linkCardClass()`，卡里的按钮加 `relative z-10`；列表行 `rowClass()` |
+| 按钮 | `Button.tsx` | `Button`、`ButtonLink`、`buttonClass()`：按下有反馈，`loading` 转圈，`danger` / `danger-secondary`，`pill`，默认 12 px 圆角 |
+| 下拉 | `Select.tsx`、`select-keys.ts` | 手机底部弹层、768 px 起下拉，键盘操作；JavaScript 之前是原生下拉框 |
+| 弹层 | `BottomSheet.tsx`、`sheet-drag.ts` | 手机从底部滑上来（可以下拉关闭），768 px 起是居中面板；`footer` 放在滚动区外面 |
+| 选择框 | `Checkbox.tsx` | `Checkbox`、`Radio` |
+| 骨架屏 | `Skeleton.tsx` | `Skeleton`、`SkeletonList`、`ListPageSkeleton`、`DetailPageSkeleton`，各路由的 `loading.tsx` 用它们 |
+| 轻提示 | `Toast.tsx`、`toast-queue.ts` | `toast()` 和全站一个 `Toaster` |
+| 区块和列表 | `Section.tsx`、`LinkList.tsx` | `Section look="app"` 是卡片；`LinkList` 一行一个去处，按下变暗 |
+| 标签 | `Tag.tsx`、`tag-kind.ts` | `Tag`，浅底的 `SoftTag` |
+| 输入框 | `input-class.ts` | `inputClass()`、`fieldBorder()` |
+| 顶栏和底部导航 | `StickyHeader.tsx`、`HeaderNav.tsx`、`BottomNav.tsx` | 吸顶、半透明；当前项图标变实心 |
+
+求职者这边（`src/components/seeker/`）：职位卡 `JobCard.tsx`（`look="app"` 是 Round 19 的卡，`action` 放卡片底部那一行的额外按钮，要点、状态、标签在 `job-card-parts.ts`）；「我的」几页的框架 `WorkHub.tsx` 的 `WorkHubFrame look="app"`；找不到和出错的卡 `StatusCard.tsx`（`src/app/not-found.tsx`、`error.tsx`、`global-error.tsx` 用它）。雇主后台补充的样式在 `src/components/employer/app-style.ts`。
+
 ## 雇主发帖与管理
 
 这些文件位于 `src/components/employer/`：
