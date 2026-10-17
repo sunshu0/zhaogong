@@ -27,10 +27,10 @@ export default function JobsPage({ searchParams }: PageProps<"/jobs">) {
         <h1 className="text-title font-semibold">奥克兰中文工作</h1>
         {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
         <nav aria-label="外部职位分区" className="flex gap-2">
-          <Link href="/internships" className={`${buttonClass("secondary")} min-h-9 rounded-full px-3.5`}>
+          <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
             实习
           </Link>
-          <Link href="/professional" className={`${buttonClass("secondary")} min-h-9 rounded-full px-3.5`}>
+          <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
             专业职位
           </Link>
         </nav>
@@ -74,7 +74,7 @@ async function Results({ searchParams }: Pick<PageProps<"/jobs">, "searchParams"
           employers={employers}
           empty={
             filtered && (
-              <Link href={jobsHref("")} className={`${buttonClass("primary")} rounded-control`}>
+              <Link href={jobsHref("")} className={buttonClass("primary")}>
                 清除筛选，看全部职位
               </Link>
             )

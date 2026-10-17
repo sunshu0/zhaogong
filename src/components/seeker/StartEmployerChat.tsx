@@ -24,7 +24,7 @@ export function StartEmployerChat({
   closed?: boolean;
   size?: ButtonSize;
 }) {
-  const chatButton = `${buttonClass("primary", { size })} rounded-control font-semibold whitespace-nowrap`;
+  const chatButton = `${buttonClass("primary", { size })} font-semibold whitespace-nowrap`;
   const session = useSession();
   const hydrated = useHydrated();
   const router = useRouter();

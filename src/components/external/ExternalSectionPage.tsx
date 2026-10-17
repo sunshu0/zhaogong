@@ -190,7 +190,7 @@ function FilterForm({ section, filter }: { section: ExternalSection; filter: Ext
           只看写了薪资的
         </Checkbox>
       </div>
-      <Button type="submit" size="lg" className="col-span-2 rounded-control lg:col-span-1">
+      <Button type="submit" size="lg" className="col-span-2 lg:col-span-1">
         筛选
       </Button>
     </form>

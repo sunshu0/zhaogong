@@ -87,12 +87,14 @@
 
 ## 按钮
 
-`Button`（按钮）、`ButtonLink`（看起来像按钮的链接）、`buttonClass()`（给不能用组件的地方），高度 44 px（触摸目标），圆角 6 px，无阴影。输入框也是 6 px 圆角、高 44 px。
+`Button`（按钮）、`ButtonLink`（看起来像按钮的链接）、`buttonClass()`（给不能用组件的地方），高度 44 px（触摸目标），圆角 12 px（`rounded-control`，第 19 轮起是默认，不用再补；`pill` 是全圆），无阴影。输入框用 `inputClass()`：12 px 圆角、高 44 px。
 
 | 级别 | 样式 | 规则 |
 | --- | --- | --- |
 | `primary` | 实心品牌色 | 一屏最多一个 |
 | `secondary` | 描边 | |
+| `danger` | 实心红色 | 确认删除、封禁、驳回、下架这一步的按钮 |
+| `danger-secondary` | 红色描边 | 通往这类操作的按钮（比如「删除账号」打开确认） |
 | `link` | 文字链接 | |
 
 其余动作收进 `MoreMenu`（「更多」）。危险操作（结束招聘、举报）在菜单里显示为红色。`MoreMenu` 按 WAI-ARIA 菜单按钮模式实现：Enter、空格或 ↓ 打开到第一项，↑ 打开到最后一项；方向键、Home、End 移动；Esc 关闭并回到按钮；Tab 关闭。
@@ -217,10 +219,13 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 
 | 组件 | 做什么 | 注意 |
 | --- | --- | --- |
-| `Button` | 按下、`loading`（转圈、`aria-busy`、不能重复点）、禁用 | 提交到服务器的按钮都传 `loading`，防止点两次 |
+| `Button` | 按下、`loading`（转圈、`aria-busy`、不能重复点）、禁用；`danger`、`danger-secondary`；`pill` | 提交到服务器的按钮都传 `loading`，防止点两次。圆角默认 12 px，`className` 里不用再写 `rounded-control` |
+| `inputClass()`、`fieldBorder()` | 输入框和多行输入框（`multiline`）：高 44 px、12 px 圆角、16 px 字（手机聚焦不放大）、聚焦时品牌色描边 | `tone: "warn"`（缺项、没识别到）或 `"danger"`（不合规）把边框变黄 / 红；`Select` 的 `tone` 也是这个 |
+| `Section look="app"` | 白底卡片（`rounded-card shadow-card`），没有边框，手机上也是卡片，不贴边 | 改版页面用它；里面照旧放 `Group`、`LinkList`，不再套卡片 |
+| `LinkList` | 一行一个入口（我的、待办） | 按下整行变暗，伸到 `Section` 的左右边 |
 | `Card`、`CardLink`、`cardClass()`、`rowClass()` | 卡片；`interactive` 的整张可点 | `CardLink` 里不要再放链接和按钮 |
 | `BottomSheet` | 手机从底部滑上来，768 px 起是居中面板 | 原生 `<dialog>`：焦点不出面板；点遮罩、下拉把手、Esc、「关闭」都能关；内容里 `data-autofocus` 的元素先拿到焦点 |
-| `Select` | 代替原生 `<select>`：手机用底部弹层，桌面用下拉 | 值放在同名的隐藏输入框里，GET 表单照常提交；JavaScript 跑起来之前（或没有 JavaScript）是原生下拉框。键盘：↑↓ 移动、Home / End、Enter 或空格选、Esc / Tab 关、按字母跳到下一个（`select-keys.ts`）。e2e 用 `chooseOption()` |
+| `Select` | 代替原生 `<select>`：手机用底部弹层，桌面用下拉 | 值放在同名的隐藏输入框里，GET 表单照常提交（没有 `name` 就不放）；传 `value` 就是受控的，由 `onChange` 更新（整张表单会被替换的地方，比如 AI 整理后的发布表单）；表单自己画标签时传 `id`（给触发按钮，`<label htmlFor>` 指向它）和 `hideLabel`（标签只给读屏）；JavaScript 跑起来之前（或没有 JavaScript）是原生下拉框。键盘：↑↓ 移动、Home / End、Enter 或空格选、Esc / Tab 关、按字母跳到下一个（`select-keys.ts`）。e2e 用 `chooseOption()` |
 | `Checkbox`、`Radio` | 原生控件换外观 | 整行都是标签，高 44 px；测试照样 `check()` |
 | `Skeleton`、`SkeletonCard`、`SkeletonList`、`ListPageSkeleton`、`DetailPageSkeleton` | 骨架屏，轻微明暗起伏 | 不用 `role="status"`（页面有自己的状态消息），外层 `aria-busy` 加一行屏幕阅读器文字 |
 | `toast()` 和 `Toaster` | 收藏、发送、保存后屏幕底部一句轻提示，3 秒后消失 | 同样的话再出现只留一条，最多同时 3 条；`Toaster` 在根布局里，只有 `aria-live`，不用 `role="status"` |

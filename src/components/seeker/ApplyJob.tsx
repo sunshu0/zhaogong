@@ -41,7 +41,7 @@ export function ApplyJob({
   /** "lg" in the job page's action bar (Round 19), where 申请 is the secondary action. */
   size?: ButtonSize;
 }) {
-  const applyButton = `${buttonClass("secondary", { size })} rounded-control whitespace-nowrap`;
+  const applyButton = `${buttonClass("secondary", { size })} whitespace-nowrap`;
   const hydrated = useHydrated();
   const session = useSession();
   const router = useRouter();

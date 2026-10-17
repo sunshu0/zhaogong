@@ -254,7 +254,7 @@ function Form({
             <div className="flex gap-2">
               <Button
                 variant="secondary"
-                className="flex-1 rounded-control"
+                className="flex-1"
                 onClick={(e) => {
                   // Clear every field in the sheet; a reset button would only go back to the values from the URL.
                   const form = e.currentTarget.form!;
@@ -267,7 +267,7 @@ function Form({
               >
                 清空条件
               </Button>
-              <Button type="submit" size="lg" loading={pending} className="flex-[2] rounded-control">
+              <Button type="submit" size="lg" loading={pending} className="flex-[2]">
                 {pending ? "正在查找…" : "查看职位"}
               </Button>
             </div>

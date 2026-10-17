@@ -3,6 +3,7 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { fieldBorder, type FieldTone } from "@/components/ui/input-class";
 import { listboxKey, shownLabel, typeAhead } from "@/components/ui/select-keys";
 
 export type SelectOption = { value: string; label: string };
@@ -24,27 +25,41 @@ const useHydrated = () =>
  * form as a hidden input named `name`, so a GET form submits it as it did a <select>. Before JavaScript runs (and
  * without it) it is a plain <select>, so the form still works.
  * `placeholder` is the empty choice (不限) and comes first unless `required`.
+ * With `value` it is controlled (a form that replaces its values at once): the parent keeps the value and updates it
+ * in `onChange`. Without `name` nothing goes into the form. A form that draws its own labels passes `id` (it goes on
+ * the trigger, so `<label htmlFor>` points at it) and `hideLabel`: the label is then only read out, never shown twice.
  */
 export function Select({
   name,
   label,
   options,
+  value: controlled,
   defaultValue = "",
   placeholder = "不限",
   required = false,
   onChange,
+  id: triggerId,
+  hideLabel = false,
+  tone,
 }: {
-  name: string;
+  name?: string;
   label: string;
   options: SelectOption[];
+  value?: string;
   defaultValue?: string;
   placeholder?: string;
   required?: boolean;
   onChange?: (value: string) => void;
+  id?: string;
+  hideLabel?: boolean;
+  /** The trigger's border: a value is missing or unclear (`warn`), or not allowed (`danger`). */
+  tone?: FieldTone;
 }) {
   const hydrated = useHydrated();
   const id = useId();
-  const [value, setValue] = useState(defaultValue);
+  const [own, setOwn] = useState(defaultValue);
+  const value = controlled ?? own;
+  const labelClass = hideLabel ? "sr-only" : "block text-meta text-muted";
   const [open, setOpen] = useState<"sheet" | "dropdown" | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
@@ -63,12 +78,13 @@ export function Select({
   if (!hydrated) {
     return (
       <label className="block space-y-1 text-body">
-        <span className="text-meta text-muted">{label}</span>
+        <span className={labelClass}>{label}</span>
         <select
+          id={triggerId}
           name={name}
-          defaultValue={defaultValue}
+          defaultValue={value}
           required={required}
-          className="h-11 w-full rounded-control border border-border bg-surface px-3 text-body"
+          className={`h-11 w-full rounded-control border bg-surface px-3 text-body ${fieldBorder(tone)}`}
         >
           {choices.map((option) => (
             <option key={option.value} value={option.value}>
@@ -85,7 +101,7 @@ export function Select({
     if (focusTrigger) trigger.current?.focus();
   };
   const pick = (next: string) => {
-    setValue(next);
+    setOwn(next);
     if (next !== value) onChange?.(next);
     close();
   };
@@ -97,16 +113,16 @@ export function Select({
 
   return (
     <div ref={box} className="relative space-y-1 text-body">
-      <span id={`${id}-label`} className="block text-meta text-muted">
+      <span id={`${id}-label`} className={labelClass}>
         {label}
       </span>
       <button
         ref={trigger}
-        id={`${id}-trigger`}
+        id={triggerId ?? `${id}-trigger`}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open !== null}
-        aria-labelledby={`${id}-label ${id}-trigger`}
+        aria-labelledby={`${id}-label ${triggerId ?? `${id}-trigger`}`}
         onClick={() => (open ? close() : show())}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -114,7 +130,7 @@ export function Select({
             show();
           }
         }}
-        className="pressable flex h-11 w-full items-center justify-between gap-2 rounded-control border border-border bg-surface px-3 text-left hover:border-muted focus-visible:outline-2 focus-visible:outline-brand aria-expanded:border-brand"
+        className={`pressable flex h-11 w-full items-center justify-between gap-2 rounded-control border bg-surface px-3 text-left focus-visible:outline-2 focus-visible:outline-brand aria-expanded:border-brand ${fieldBorder(tone)}`}
       >
         <span className={`truncate ${value ? "" : "text-muted"}`}>{shownLabel(choices, value, placeholder)}</span>
         <ChevronDown
@@ -122,7 +138,7 @@ export function Select({
           className={`size-4 shrink-0 text-muted transition-transform duration-(--duration-ui) ${open ? "rotate-180" : ""}`}
         />
       </button>
-      <input type="hidden" name={name} value={value} />
+      {name && <input type="hidden" name={name} value={value} />}
       {open === "dropdown" && (
         <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 animate-pop-in overflow-y-auto rounded-control bg-surface p-1 shadow-pop">
           {list}
