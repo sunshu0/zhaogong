@@ -9,7 +9,9 @@ import {
   openReportForm,
   cardMenuItem,
   moderatorPage,
+  setJobClosing,
 } from "./helpers";
+import { freshEmail, signIn } from "../helpers";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -107,6 +109,73 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await page.goto("/employer/team");
   await expect(page.getByRole("button", { name: "发送邀请" })).toBeVisible();
   await expectNoViolations(page, "/employer/team");
+});
+
+// #170: a job's own pages, the empty back office and a shared résumé.
+test("before the first job, then a job's own pages: edit, applicants and the interview form, numbers, republish", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo, "/employer");
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: /^职位管理/ })
+      .filter({ visible: true }),
+  ).toBeVisible();
+  await expectNoViolations(page, "/employer before the first job");
+  await page.goto("/employer/jobs");
+  await expect(page.getByRole("heading", { name: "职位管理", level: 1 })).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(0);
+  await expectNoViolations(page, "/employer/jobs before the first job");
+
+  const jobId = (await publishJob(page, uniqueTitle("前厅服务员", testInfo)))!;
+  // A demo job seeker (林晓's page, #125) applies, so 申请人 has someone.
+  const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.a11y"));
+  await seeker.getByRole("button", { name: "申请", exact: true }).click();
+  const form = seeker.getByRole("dialog", { name: /申请这个职位|我的申请/ });
+  await form.getByRole("button", { name: "提交申请" }).click();
+  await expect(form.getByRole("status")).toHaveText("已申请，等雇主查看");
+  await seeker.context().close();
+
+  await page.goto(`/employer/jobs/${jobId}`);
+  await expect(page.getByRole("heading", { name: "编辑职位", level: 1 })).toBeVisible();
+  await expect(page.getByLabel("职位名称（中文）")).toBeVisible();
+  await expectNoViolations(page, "/employer/jobs/[id] edit");
+
+  await page.goto(`/employer/jobs/${jobId}/applicants`);
+  const applicant = page.getByRole("article", { name: "申请人 林晓" });
+  await expect(applicant).toBeVisible();
+  await expectNoViolations(page, "/employer/jobs/[id]/applicants");
+  await applicant.getByRole("button", { name: "约面试" }).click();
+  await expect(applicant.getByRole("form", { name: "约林晓面试" })).toBeVisible();
+  await expectNoViolations(page, "/employer/jobs/[id]/applicants with the interview form");
+
+  await page.goto(`/employer/jobs/${jobId}/stats`);
+  await expect(page.getByRole("heading", { name: "职位数据", level: 1 })).toBeVisible();
+  await expectNoViolations(page, "/employer/jobs/[id]/stats");
+
+  await setJobClosing(page, jobId, -20);
+  await page.goto(`/employer/jobs/${jobId}/republish`);
+  await expect(page.getByRole("heading", { name: "重新发布" })).toBeVisible();
+  await expect(page.getByLabel("职位名称（中文）")).not.toHaveValue("");
+  await expectNoViolations(page, "/employer/jobs/[id]/republish");
+});
+
+test("a shared résumé, as someone who is not signed in sees it", async ({ page, browser }, testInfo) => {
+  await signIn(page, "/profile/resume", `demo.a11y.resume.${testInfo.project.name}.${Date.now()}@example.com`);
+  await page.getByRole("button", { name: "生成分享链接" }).click();
+  const link = page.locator("#resume-share").getByRole("link", { name: /\/resume\// });
+  await expect(link).toBeVisible();
+  const stranger = await (await browser.newContext({ ...testInfo.project.use, reducedMotion: "reduce" })).newPage();
+  await stranger.goto(new URL((await link.textContent())!).pathname);
+  await expect(stranger.getByText("林晓").first()).toBeVisible();
+  await expectNoViolations(stranger, "/resume/[id] shared");
+  await stranger.goto("/resume/no-such-share-link-000000");
+  await expect(stranger.getByRole("heading", { name: "这份简历的分享链接已关闭或不存在" })).toBeVisible();
+  await expectNoViolations(stranger, "/resume/[id] closed or missing");
+  await stranger.context().close();
 });
 
 test("moderation queue, each tab", async ({ browser, page }, testInfo) => {
