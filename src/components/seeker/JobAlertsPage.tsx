@@ -8,6 +8,9 @@ import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
+import { cardClass } from "@/components/ui/Card";
+import { inputClass } from "@/components/ui/input-class";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { SECTION_TITLES } from "@/lib/external-jobs/filter";
 
 const SMALL =
@@ -48,13 +51,12 @@ export function JobAlertsPage() {
     }
   }
 
-  if (!hydrated || (signedIn && alerts === undefined && !error))
-    return <div className="h-48 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />;
+  if (!hydrated || (signedIn && alerts === undefined && !error)) return <SkeletonList count={2} label="正在加载提醒" />;
 
   if (!session) {
     return (
-      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
-        <p className="font-medium">登录后可以保存筛选条件，有新职位时提醒你</p>
+      <div className={`py-10 text-center ${cardClass()}`}>
+        <p className="text-body font-medium">登录后可以保存筛选条件，有新职位时提醒你</p>
         <ButtonLink href={`/login?next=${encodeURIComponent(ALERTS_PATH)}`} className="mt-4">
           登录
         </ButtonLink>
@@ -73,7 +75,7 @@ export function JobAlertsPage() {
         </p>
       )}
       {alerts && alerts.length > 0 ? (
-        <Section title={`我的提醒（${alerts.length}/${ALERT_LIMIT}）`}>
+        <Section look="app" title={`我的提醒（${alerts.length}/${ALERT_LIMIT}）`}>
           {alerts.map((alert) => (
             <AlertRow
               key={alert.id}
@@ -86,8 +88,8 @@ export function JobAlertsPage() {
         </Section>
       ) : (
         alerts && (
-          <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
-            <p className="font-medium">还没有职位提醒</p>
+          <div className={`py-10 text-center ${cardClass()}`}>
+            <p className="text-body font-medium">还没有职位提醒</p>
             <p className="mt-1 text-body text-muted">
               在职位列表选好地区、行业等条件，点「保存为提醒」。「实习」「专业职位」也可以设提醒。
             </p>
@@ -144,7 +146,7 @@ function AlertRow({
               maxLength={ALERT_NAME_MAX}
               required
               autoFocus
-              className="min-h-11 min-w-0 flex-1 rounded-md border border-border px-3 text-body"
+              className={`${inputClass()} min-w-0 flex-1`}
             />
             <Button type="submit" disabled={busy}>
               保存

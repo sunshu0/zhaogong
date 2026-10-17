@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "我的主页", robots: { index: fals
 
 export default function Profile() {
   return (
-    <WorkHubFrame>
+    <WorkHubFrame look="app">
       <ProfilePage />
     </WorkHubFrame>
   );

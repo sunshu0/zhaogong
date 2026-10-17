@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { expectProfileSaved, freshEmail, signIn, siteNav } from "./helpers";
+import { chooseOption, expectProfileSaved, freshEmail, selectTrigger, signIn, siteNav } from "./helpers";
 
 // 中英文简历 (#86, R-37): made from the job seeker's page; the English side is only what they wrote; prints as one
 // A4 page; a share link (off by default, no email on it) can be updated and closed.
@@ -38,7 +38,7 @@ test("prints the page in Chinese with the English written, states the visa, and 
   await expect(sheet(page)).toContainText("Mandarin, English");
   await expect(page.getByRole("note")).not.toContainText("语言");
 
-  await page.getByLabel("持有的签证").selectOption({ label: "持学签" });
+  await chooseOption(page, page, "持有的签证", "持学签");
   await page.getByLabel("每周可工作（小时，选填）").fill("20");
   await expect(sheet(page)).toContainText("持学签，每周可工作 20 小时");
   await expect(sheet(page)).toContainText("Student visa; may work up to 20 hours a week");
@@ -53,7 +53,7 @@ test("prints the page in Chinese with the English written, states the visa, and 
   // Kept in this browser with the rest of the page.
   await page.reload();
   await expect(sheet(page)).toContainText("Xiao Lin");
-  await expect(page.getByLabel("持有的签证")).toHaveValue("student");
+  await expect(selectTrigger(page, "持有的签证")).toHaveAccessibleName("持有的签证 持学签");
 
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 

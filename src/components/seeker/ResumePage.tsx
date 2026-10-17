@@ -30,8 +30,9 @@ import { useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
 import type { VisaAccepted } from "@/lib/types";
+import { inputClass } from "@/components/ui/input-class";
+import { Select } from "@/components/ui/Select";
 
-const inputClass = "w-full rounded-md border border-border bg-background px-3 text-body focus:border-brand";
 const LONG_FIELDS: ResumeTextField[] = ["skills", "bio"];
 
 /** The share copy as the server keeps it, to tell whether an open link still shows the page as it is now. */
@@ -59,7 +60,7 @@ export function ResumePage() {
       <ProfileChoice />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href="/profile" className="text-meta text-brand underline-offset-4 hover:underline">
+          <Link href="/profile" className="pressable inline-flex min-h-11 items-center text-meta text-brand">
             ← 我的主页
           </Link>
           <h1 className="mt-1 text-title font-semibold">中英文简历</h1>
@@ -71,7 +72,7 @@ export function ResumePage() {
       </header>
 
       {missing.length > 0 && (
-        <p role="note" className="rounded-md border border-warn/40 bg-warn-soft px-3 py-2 text-body">
+        <p role="note" className="rounded-control bg-warn-soft px-3 py-2 text-body">
           英文还缺 {missing.length} 项：{missing.map((field) => TEXT_LABELS[field].zh).join("、")}。缺的项只印中文，
           <a href="#resume-english" className="text-brand underline underline-offset-4">
             去补填英文
@@ -83,6 +84,7 @@ export function ResumePage() {
       <ResumeSheet doc={doc} />
 
       <Section
+        look="app"
         id="resume-english"
         title="英文资料"
         description="简历的英文部分只用你在这里写的英文，平台不翻译。中文在「我的主页」里改。"
@@ -103,6 +105,7 @@ export function ResumePage() {
       </Section>
 
       <Section
+        look="app"
         id="resume-visa"
         title="签证"
         description="只写事实：你持有的签证，以及签证上写的每周可工作时间。不填就不印。"
@@ -113,6 +116,7 @@ export function ResumePage() {
       </Section>
 
       <Section
+        look="app"
         id="resume-contact"
         title="印上联系方式"
         description="勾选的会印在简历上。号码在主页的「私密交换资料」里填写。"
@@ -165,7 +169,7 @@ function EnglishField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           aria-describedby={`${id}-hint`}
-          className={`${inputClass} py-2`}
+          className={`resize-y ${inputClass({ multiline: true })}`}
         />
       ) : (
         <input
@@ -174,7 +178,7 @@ function EnglishField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           aria-describedby={`${id}-hint`}
-          className={`${inputClass} h-11`}
+          className={inputClass()}
         />
       )}
       <p id={`${id}-hint`} className="mt-1 line-clamp-2 text-meta text-muted">
@@ -188,26 +192,29 @@ function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value:
   const rights = profile.workRights;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <label className="block text-body">
-        <span className="mb-1 block font-medium">持有的签证</span>
-        <select
+      {/* The label looks like the other fields'; Select's own is only read out. */}
+      <div className="text-body">
+        <label htmlFor="resume-visa-held" className="mb-1 block font-medium">
+          持有的签证
+        </label>
+        <Select
+          id="resume-visa-held"
+          label="持有的签证"
+          hideLabel
+          placeholder="不填"
           value={rights?.visa ?? ""}
-          onChange={(event) => {
-            const visa = event.target.value as VisaAccepted | "";
+          options={(Object.entries(HELD_VISA_LABELS) as [VisaAccepted, { zh: string }][]).map(([visa, label]) => ({
+            value: visa,
+            label: label.zh,
+          }))}
+          onChange={(value) => {
+            const visa = value as VisaAccepted | "";
             onChange(
               visa ? { visa, weeklyHours: visa === "citizen_resident" ? undefined : rights?.weeklyHours } : undefined,
             );
           }}
-          className={`${inputClass} h-11`}
-        >
-          <option value="">不填</option>
-          {(Object.entries(HELD_VISA_LABELS) as [VisaAccepted, { zh: string }][]).map(([visa, label]) => (
-            <option key={visa} value={visa}>
-              {label.zh}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
       {rights && rights.visa !== "citizen_resident" && (
         <label className="block text-body">
           <span className="mb-1 block font-medium">每周可工作（小时，选填）</span>
@@ -221,7 +228,7 @@ function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value:
               onChange({ visa: rights.visa, weeklyHours: event.target.value ? Number(event.target.value) : undefined })
             }
             placeholder="按签证上写的填"
-            className={`${inputClass} h-11`}
+            className={inputClass()}
           />
         </label>
       )}
@@ -252,7 +259,7 @@ function ContactChoice({
                 checked={choice[key] && Boolean(value)}
                 disabled={!value}
                 onChange={(event) => onChange({ ...choice, [key]: event.target.checked })}
-                className="size-4 accent-brand"
+                className="size-5 accent-brand"
               />
               {CONTACT_LABELS[key]}
               <span className="text-meta text-muted">{value || "未填写"}</span>
@@ -304,6 +311,7 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
 
   return (
     <Section
+      look="app"
       id="resume-share"
       title="分享链接"
       description="默认不公开。打开后，拿到链接的人不用登录就能看这份简历（不含邮箱），比如不在平台上的雇主。可以随时关闭。"

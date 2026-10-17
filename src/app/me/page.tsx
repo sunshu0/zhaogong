@@ -11,8 +11,8 @@ export default function Me() {
     <>
       {/* Outside the frame, which remounts its content when the identity changes. */}
       <RedirectEmployer to={MANAGE_JOBS_PATH} />
-      <WorkHubFrame>
-        <h1 className="mb-3 text-lg font-semibold">浏览与举报</h1>
+      <WorkHubFrame look="app">
+        <h1 className="mb-3 text-title font-semibold">浏览与举报</h1>
         <MePage />
       </WorkHubFrame>
     </>

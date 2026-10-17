@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "中英文简历", robots: { index: f
 
 export default function Resume() {
   return (
-    <WorkHubFrame>
+    <WorkHubFrame look="app">
       <SignInGate message="登录后用自己的主页资料生成简历">
         <ResumePage />
       </SignInGate>

@@ -97,6 +97,11 @@ export async function counterpartActs(page: Page, conversationId: string, act: {
  * Picks an option of a Select (Round 19, src/components/ui/Select.tsx): opens it by its label, then taps the option,
  * in the bottom sheet on a phone or the dropdown on a desktop.
  */
+/** A Select's trigger (Round 19): its name is the label, then what it shows, e.g. 「进度 已面试」. */
+export function selectTrigger(scope: Page | Locator, label: string) {
+  return scope.getByRole("button", { name: new RegExp(`^${label} `) });
+}
+
 export async function chooseOption(page: Page, scope: Page | Locator, label: string, option: string) {
   await scope.getByRole("button", { name: new RegExp(`^${label}`) }).click();
   await page

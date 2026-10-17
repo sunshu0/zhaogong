@@ -7,27 +7,29 @@ import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/
 import { formatDateZh } from "@/components/seeker/job-facts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { ManageJobs } from "@/components/employer/ManageJobs";
+import { ButtonLink } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { SkeletonList } from "@/components/ui/Skeleton";
 
-/** /me (浏览与举报): jobs viewed and reports sent from this device. Account and sign-out are on 我的 (/account). */
+/**
+ * /me (浏览与举报): jobs viewed and reports sent from this device. Account and sign-out are on 我的 (/account).
+ * Round 19: the sample's type, each list a card, rows that darken while pressed.
+ */
 export function MePage() {
   const hydrated = useHydrated();
   const session = useSession();
   const views = useViewedJobs();
   const reports = useSentReports();
 
-  if (!hydrated)
-    return <div className="h-48 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />;
+  if (!hydrated) return <SkeletonList count={2} label="正在加载浏览记录" />;
 
   if (!session) {
     return (
-      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
-        <p className="font-medium">登录后可以查看浏览记录和举报记录</p>
-        <Link
-          href="/login?next=%2Fme"
-          className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-medium text-white"
-        >
+      <div className={`py-10 text-center ${cardClass()}`}>
+        <p className="text-body font-medium">登录后可以查看浏览记录和举报记录</p>
+        <ButtonLink href="/login?next=%2Fme" className="mt-4">
           登录
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
@@ -36,7 +38,7 @@ export function MePage() {
     <div className="space-y-3">
       {session.activeRole === "employer" ? (
         <section className="space-y-3" aria-label="招聘记录">
-          <h2 className="text-lg font-semibold">招聘记录</h2>
+          <h2 className="text-subtitle font-semibold">招聘记录</h2>
           <ManageJobs />
         </section>
       ) : (
@@ -45,7 +47,11 @@ export function MePage() {
           count={views.length}
           action={
             views.length > 0 && (
-              <button type="button" onClick={forgetViews} className="text-xs text-muted underline underline-offset-2">
+              <button
+                type="button"
+                onClick={forgetViews}
+                className="pressable inline-flex min-h-11 items-center text-meta text-muted underline underline-offset-2"
+              >
                 清除浏览记录
               </button>
             )
@@ -62,14 +68,17 @@ export function MePage() {
             <ul className="divide-y divide-border">
               {views.map((v) => (
                 <li key={v.jobId}>
-                  <Link href={`/jobs/${v.jobId}`} className="flex items-baseline justify-between gap-3 py-2.5">
+                  <Link
+                    href={`/jobs/${v.jobId}`}
+                    className={`${ROW} flex min-h-14 items-center justify-between gap-3 py-2.5`}
+                  >
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{v.title}</span>
-                      <span className="block truncate text-xs text-muted">
+                      <span className="block truncate text-body font-medium">{v.title}</span>
+                      <span className="block truncate text-meta text-muted">
                         {v.pay} · {v.region}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs text-muted">{formatDateZh(v.at, "NZ")}</span>
+                    <span className="shrink-0 text-meta text-muted">{formatDateZh(v.at, "NZ")}</span>
                   </Link>
                 </li>
               ))}
@@ -84,21 +93,23 @@ export function MePage() {
         ) : (
           <ul className="divide-y divide-border">
             {reports.map((r) => (
-              <li key={r.reportId} className="py-2.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <Link href={`/jobs/${r.jobId}`} className="min-w-0 truncate text-sm font-medium">
-                    {r.jobTitle}
-                  </Link>
-                  <span className="shrink-0 text-xs text-muted">{formatDateZh(r.at, "NZ")}</span>
-                </div>
-                <p className="text-xs text-muted">{REPORT_REASON_LABELS[r.reason].zh} · 已提交，等待核查</p>
+              <li key={r.reportId}>
+                <Link href={`/jobs/${r.jobId}`} className={`${ROW} block py-2.5`}>
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="min-w-0 truncate text-body font-medium">{r.jobTitle}</span>
+                    <span className="shrink-0 text-meta text-muted">{formatDateZh(r.at, "NZ")}</span>
+                  </span>
+                  <span className="block text-meta text-muted">
+                    {REPORT_REASON_LABELS[r.reason].zh} · 已提交，等待核查
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
         )}
       </Panel>
 
-      <p className="px-1 text-xs text-muted">演示版：这些记录只保存在这台设备上。</p>
+      <p className="px-1 text-meta text-muted">演示版：这些记录只保存在这台设备上。</p>
     </div>
   );
 }
@@ -116,11 +127,11 @@ function Panel({
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className="rounded-md border border-border bg-surface p-4">
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 id={headingId} className="font-medium">
+    <section aria-labelledby={headingId} className={cardClass()}>
+      <div className="mb-1 flex min-h-11 items-center justify-between gap-3">
+        <h2 id={headingId} className="text-subtitle font-semibold">
           {title}
-          {count > 0 && <span className="ml-1.5 text-sm font-normal text-muted">{count}</span>}
+          {count > 0 && <span className="ml-1.5 text-body font-normal text-muted">{count}</span>}
         </h2>
         {action}
       </div>
@@ -130,5 +141,8 @@ function Panel({
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-3 text-sm text-muted">{children}</p>;
+  return <p className="py-3 text-body text-muted">{children}</p>;
 }
+
+/** A row of a card's list: darkens while pressed, out to the card's edges. */
+const ROW = "pressable-row -mx-4 px-4 hover:bg-background lg:-mx-5 lg:px-5";

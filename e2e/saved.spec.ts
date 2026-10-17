@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { freshEmail, signIn, fillSignInCode } from "./helpers";
+import { chooseOption, fillSignInCode, freshEmail, selectTrigger, signIn } from "./helpers";
 
 // #52 收藏和进度: saved per account on the server, stages only the account sees.
 const saveButton = (page: import("@playwright/test").Page, title: string) =>
@@ -31,11 +31,13 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
   await expect(list.getByRole("article")).toHaveCount(2);
   await expect(list.getByRole("heading", { level: 2 })).toHaveText(["点心师傅", "超市理货员"]);
   const dimSum = list.getByRole("article", { name: "点心师傅" });
-  await expect(dimSum.getByLabel("进度")).toHaveValue("saved");
-  await dimSum.getByLabel("进度").selectOption({ label: "已面试" });
-  await expect(dimSum.getByLabel("进度")).toHaveValue("interviewed");
+  await expect(selectTrigger(dimSum, "进度")).toHaveAccessibleName("进度 已收藏");
+  await chooseOption(page, dimSum, "进度", "已面试");
+  await expect(selectTrigger(dimSum, "进度")).toHaveAccessibleName("进度 已面试");
   await page.reload();
-  await expect(list.getByRole("article", { name: "点心师傅" }).getByLabel("进度")).toHaveValue("interviewed");
+  await expect(selectTrigger(list.getByRole("article", { name: "点心师傅" }), "进度")).toHaveAccessibleName(
+    "进度 已面试",
+  );
 
   // Removing it from the list un-saves it on the job list too.
   await list.getByRole("article", { name: "超市理货员" }).getByRole("button", { name: "取消收藏" }).click();
@@ -60,7 +62,7 @@ test("a job whose chat swapped contact details shows 已联系; other accounts s
 
   await page.goto("/me/saved");
   const dimSum = page.getByRole("list", { name: "收藏的职位" }).getByRole("article", { name: "点心师傅" });
-  await expect(dimSum.getByLabel("进度")).toHaveValue("contacted");
+  await expect(selectTrigger(dimSum, "进度")).toHaveAccessibleName("进度 已联系");
   await expect(dimSum).toContainText("聊天里交换过联系方式");
   await expect(page.getByText("只有你自己看得到，雇主看不到。")).toBeVisible();
 

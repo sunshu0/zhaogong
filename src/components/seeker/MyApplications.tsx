@@ -10,6 +10,7 @@ import { formatDateZh } from "@/components/seeker/job-facts";
 import { useSession } from "@/components/seeker/session-client";
 import { Pay } from "@/components/ui/Pay";
 import { Tag } from "@/components/ui/Tag";
+import { cardClass } from "@/components/ui/Card";
 
 /**
  * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
@@ -99,7 +100,7 @@ function ApplicationCard({
 }) {
   const open = a.stage === "open";
   return (
-    <article aria-label={a.titleZh} className="rounded-md border border-border bg-surface p-4 lg:p-5">
+    <article aria-label={a.titleZh} className={cardClass()}>
       <div className="flex items-start justify-between gap-3">
         <h4 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
           {a.gone ? (
@@ -120,13 +121,17 @@ function ApplicationCard({
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span
-          className={`rounded-sm px-2 py-0.5 text-body ${open || a.status === "已录用" ? "bg-brand-soft text-brand" : "bg-background text-muted"}`}
+          className={`rounded-full px-2.5 py-0.5 text-body ${open || a.status === "已录用" ? "bg-brand-soft text-brand" : "bg-neutral-soft text-muted"}`}
         >
           {a.status}
         </span>
         {a.note && <span className="min-w-0 truncate text-meta text-muted">附言：{a.note}</span>}
         {open && (
-          <button type="button" onClick={onWithdraw} className="ml-auto text-meta text-muted hover:text-danger">
+          <button
+            type="button"
+            onClick={onWithdraw}
+            className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
+          >
             撤回申请
           </button>
         )}

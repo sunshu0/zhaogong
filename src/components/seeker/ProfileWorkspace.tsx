@@ -63,6 +63,7 @@ export function ProfileWorkspace() {
       <ProfileChoice />
 
       <Section
+        look="app"
         id="profile-preview"
         title="别人看到的样子"
         description={isEmployer ? "求职者在职位和企业主页上看到这些" : "雇主在推荐人才和聊天里看到这些"}
@@ -95,7 +96,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section id="profile-progress" title={`资料完成度 ${progress.done}/${progress.total}`}>
+      <Section look="app" id="profile-progress" title={`资料完成度 ${progress.done}/${progress.total}`}>
         <Group>
           <div
             role="progressbar"
@@ -124,7 +125,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section id="profile-required" title="必填" description="对方最先看的几项">
+      <Section look="app" id="profile-required" title="必填" description="对方最先看的几项">
         <Group className="space-y-4">
           {isEmployer ? (
             <>
@@ -147,7 +148,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section>
+      <Section look="app">
         <details className="group py-group">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-subtitle font-semibold [&::-webkit-details-marker]:hidden">
             <span>
@@ -182,7 +183,12 @@ export function ProfileWorkspace() {
       </Section>
 
       {!isEmployer && (
-        <Section id="profile-recommend" title="推荐给雇主" description="打开后，雇主可以在「推荐人才」里看到上面的资料">
+        <Section
+          look="app"
+          id="profile-recommend"
+          title="推荐给雇主"
+          description="打开后，雇主可以在「推荐人才」里看到上面的资料"
+        >
           <Group>
             <DiscoverableToggle value={profile.resume} onChange={(resume) => update("resume", resume)} />
           </Group>
@@ -190,6 +196,7 @@ export function ProfileWorkspace() {
       )}
 
       <Section
+        look="app"
         id="profile-private"
         title="私密交换资料"
         description="只在聊天里交换时给对方：你发起交换时对方马上能看到；对方发起时，你同意后才给。不显示在公开主页。"
@@ -205,7 +212,7 @@ export function ProfileWorkspace() {
       {/* Stays in view at the bottom while the form scrolls, above the phone's bottom bar. */}
       <ProfileSaveNote
         localSave={localSave}
-        className="sticky bottom-above-nav z-10 -mx-4 border-t border-border bg-surface px-4 py-2 sm:mx-0 sm:rounded-md sm:border"
+        className="sticky bottom-above-nav z-10 rounded-card bg-surface/90 px-4 py-2 shadow-pop backdrop-blur-md"
       />
     </div>
   );

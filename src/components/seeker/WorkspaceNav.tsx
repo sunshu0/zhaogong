@@ -48,7 +48,7 @@ export function WorkspaceNav({ pathname, isEmployer }: { pathname: string; isEmp
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-2.5 text-body ${
+            className={`pressable-row flex min-h-11 items-center justify-between gap-2 rounded-control px-2.5 text-body ${
               active ? ACTIVE : "hover:bg-background"
             }`}
           >

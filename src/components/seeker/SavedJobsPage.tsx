@@ -9,13 +9,17 @@ import { sendWaitingChanges } from "@/components/seeker/chat-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { formatDateZh } from "@/components/seeker/job-facts";
 import { Pay } from "@/components/ui/Pay";
-import { Tag } from "@/components/ui/Tag";
+import { SoftTag } from "@/components/ui/Tag";
+import { ButtonLink } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { useAppliedJobIds } from "@/components/seeker/applied-client";
 
 /**
  * 收藏和进度 (#52): the account's saved jobs, newest first, each with its stage; external jobs of 实习 and 专业职位
  * (#131) among them, marked 外部职位. Jobs taken down or past their closing date stay, marked 已下架. Only the account
- * sees this; employers never do.
+ * sees this; employers never do. Round 19: each job a card, 进度 a Select (a bottom sheet on phones).
  */
 export function SavedJobsPage() {
   const hydrated = useHydrated();
@@ -40,19 +44,15 @@ export function SavedJobsPage() {
     };
   }, [signedIn, scope]);
 
-  if (!hydrated || (signedIn && jobs === undefined && !error))
-    return <div className="h-48 animate-pulse rounded-md border border-border bg-surface" aria-hidden="true" />;
+  if (!hydrated || (signedIn && jobs === undefined && !error)) return <SkeletonList count={2} label="正在加载收藏" />;
 
   if (!session) {
     return (
-      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
-        <p className="font-medium">登录后可以收藏职位、记下求职进度</p>
-        <Link
-          href="/login?next=%2Fme%2Fsaved"
-          className="mt-4 inline-block rounded-md bg-brand px-4 py-2 text-sm font-medium text-white"
-        >
+      <div className={`py-10 text-center ${cardClass()}`}>
+        <p className="text-body font-medium">登录后可以收藏职位、记下求职进度</p>
+        <ButtonLink href="/login?next=%2Fme%2Fsaved" className="mt-4">
           登录
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
@@ -66,14 +66,14 @@ export function SavedJobsPage() {
 
   if (!jobs || jobs.length === 0) {
     return (
-      <div className="rounded-md border border-border bg-surface px-4 py-10 text-center">
-        <p className="font-medium">还没有收藏的职位</p>
+      <div className={`py-10 text-center ${cardClass()}`}>
+        <p className="text-body font-medium">还没有收藏的职位</p>
         <p className="mt-1 text-body text-muted">
           在职位上点「收藏」，就会出现在这里，可以记下联系、面试到录用的进度。
         </p>
-        <Link href="/jobs" className="mt-4 inline-block text-body text-brand underline-offset-4 hover:underline">
+        <ButtonLink href="/jobs" variant="secondary" className="mt-4">
           去看职位 →
-        </Link>
+        </ButtonLink>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export function SavedJobsPage() {
       <p className="mb-2 text-body text-muted">只有你自己看得到，雇主看不到。</p>
       <ul aria-label="收藏的职位" className="space-y-3">
         {jobs.map((job) => (
-          <li key={job.jobId} className="rounded-md border border-border bg-surface p-4 lg:p-5">
+          <li key={job.jobId} className={cardClass()}>
             <article aria-label={job.titleZh}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -104,9 +104,9 @@ export function SavedJobsPage() {
                         {job.titleZh}
                       </Link>
                     )}
-                    {job.external && <Tag kind="neutral">外部职位</Tag>}
-                    {job.gone && <Tag kind="neutral">已下架</Tag>}
-                    {applied?.has(job.jobId) && <Tag kind="perk">已申请</Tag>}
+                    {job.external && <SoftTag tone="neutral">外部职位</SoftTag>}
+                    {job.gone && <SoftTag tone="neutral">已下架</SoftTag>}
+                    {applied?.has(job.jobId) && <SoftTag tone="brand">已申请</SoftTag>}
                   </h2>
                   {job.titleEn && (
                     <p lang="en" className="truncate font-latin text-meta text-muted">
@@ -126,26 +126,21 @@ export function SavedJobsPage() {
                 {[job.region, job.employerName].filter(Boolean).join(" · ")} · {formatDateZh(job.savedAt, job.country)}
                 收藏
               </p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                <label className="flex items-center gap-2 text-body">
-                  进度
-                  <select
+              <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
+                <div className="w-36">
+                  <Select
+                    label="进度"
+                    required
                     value={job.stage}
-                    onChange={(e) => {
-                      const stage = parseSavedStage(e.target.value);
+                    options={SAVED_STAGES.map((stage) => ({ value: stage, label: SAVED_STAGE_LABELS[stage] }))}
+                    onChange={(value) => {
+                      const stage = parseSavedStage(value);
                       if (stage) void change(() => setMyJobStage(job.jobId, stage));
                     }}
-                    className="rounded-md border border-border bg-surface px-2 py-1.5 text-body"
-                  >
-                    {SAVED_STAGES.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {SAVED_STAGE_LABELS[stage]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  />
+                </div>
                 {!job.picked && job.stage === "contacted" && (
-                  <span className="text-meta text-muted">聊天里交换过联系方式</span>
+                  <span className="pb-3 text-meta text-muted">聊天里交换过联系方式</span>
                 )}
                 <button
                   type="button"
@@ -155,7 +150,7 @@ export function SavedJobsPage() {
                       return mySavedJobs();
                     })
                   }
-                  className="ml-auto text-meta text-muted hover:text-danger"
+                  className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
                 >
                   取消收藏
                 </button>

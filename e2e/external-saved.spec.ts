@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { fillSignInCode, freshEmail, signIn } from "./helpers";
+import { chooseOption, fillSignInCode, freshEmail, selectTrigger, signIn } from "./helpers";
 
 // 收藏 and 职位提醒 for 实习 and 专业职位 (#131): the demo external jobs a moderator already approved
 // (src/mock/external-jobs.ts). Nothing here approves or hides a job, so both projects can share the server; the
@@ -39,12 +39,12 @@ test("收藏 an external job signed out: sign in, back on the section with it sa
   ]);
   const grad = list.getByRole("article", { name: "Graduate Software Engineer" });
   await expect(grad).toContainText("Kōwhai Robotics");
-  await grad.getByLabel("进度").selectOption({ label: "已面试" });
-  await expect(grad.getByLabel("进度")).toHaveValue("interviewed");
+  await chooseOption(page, grad, "进度", "已面试");
+  await expect(selectTrigger(grad, "进度")).toHaveAccessibleName("进度 已面试");
   await page.reload();
-  await expect(list.getByRole("article", { name: "Graduate Software Engineer" }).getByLabel("进度")).toHaveValue(
-    "interviewed",
-  );
+  await expect(
+    selectTrigger(list.getByRole("article", { name: "Graduate Software Engineer" }), "进度"),
+  ).toHaveAccessibleName("进度 已面试");
   await expect(grad.getByRole("link", { name: "Graduate Software Engineer" })).toHaveAttribute(
     "href",
     "/external/demo-kowhai%3A4001",

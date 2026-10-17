@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import type { Profile } from "@/components/seeker/hub-state";
+import { inputClass } from "@/components/ui/input-class";
 
 export type UpdateProfileField = <K extends keyof Profile>(field: K, value: Profile[K]) => boolean | undefined;
 type PrivateDetails = NonNullable<Profile["privateDetails"]>;
@@ -142,9 +143,6 @@ export function PrivateDetailsFields({
   );
 }
 
-const CONTROL =
-  "w-full rounded-md border border-border bg-background px-3 text-body outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
-
 function Field({
   label,
   value,
@@ -163,7 +161,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`h-11 ${CONTROL}`}
+        className={inputClass()}
       />
     </label>
   );
@@ -196,7 +194,7 @@ function TextArea({
         onChange={(event) => onChange(event.target.value)}
         rows={4}
         placeholder={placeholder}
-        className={`resize-y py-2 ${CONTROL}`}
+        className={`resize-y ${inputClass({ multiline: true })}`}
       />
     </div>
   );

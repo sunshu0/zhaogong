@@ -16,7 +16,11 @@ import { workspaceTitle } from "@/components/seeker/workspace";
 /** Chat uses up to 96rem centred on the window instead of the usual wide column. */
 const CHAT_WIDTH = "lg:ml-[calc(50%_-_min(48rem,_50vw_-_1.5rem))] lg:w-[min(96rem,_100vw_-_3rem)]";
 
-export function WorkHubFrame({ children }: { children: ReactNode }) {
+/**
+ * The 工作台 pages' frame: on desktop a side column with the workspace navigation. `look="app"` (Round 19) gives
+ * the content the sample's type (`type-app`); each line passes it once its pages have the new cards.
+ */
+export function WorkHubFrame({ look, children }: { look?: "app"; children: ReactNode }) {
   const pathname = usePathname();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
@@ -27,7 +31,7 @@ export function WorkHubFrame({ children }: { children: ReactNode }) {
       className={`${width} space-y-4 lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:items-start lg:gap-5 lg:space-y-0`}
     >
       <aside className="hidden lg:sticky lg:top-[4.5rem] lg:block">
-        <div className="border-r border-border pr-4 py-3">
+        <div className="rounded-card bg-surface p-3 shadow-card">
           <div className="border-b border-border px-2 pb-3">
             <p className="text-xs font-medium text-brand">找工</p>
             <h2 className="mt-1 text-lg font-semibold">工作台</h2>
@@ -38,7 +42,7 @@ export function WorkHubFrame({ children }: { children: ReactNode }) {
           )}
         </div>
       </aside>
-      <div className="min-w-0 space-y-4 lg:space-y-0">
+      <div className={`min-w-0 space-y-4 lg:space-y-0 ${look === "app" ? "type-app" : ""}`}>
         <div key={identityScope(session)}>{children}</div>
       </div>
     </div>
