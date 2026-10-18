@@ -58,11 +58,11 @@ describe("admin switch", () => {
   it("refuses every Server Function while ADMIN_ENABLED is not 1", async () => {
     for (const value of ["", "0", "true"]) {
       vi.stubEnv("ADMIN_ENABLED", value);
-      await expect(getModerationQueue()).rejects.toThrow("审核后台未开放");
-      await expect(approveJob("j10")).rejects.toThrow("审核后台未开放");
-      await expect(takeDownJob("j10")).rejects.toThrow("审核后台未开放");
-      await expect(dismissReports("j10")).rejects.toThrow("审核后台未开放");
-      await expect(banJobEmployer("j10")).rejects.toThrow("审核后台未开放");
+      await expect(getModerationQueue()).rejects.toThrow("/admin is switched off");
+      await expect(approveJob("j10")).rejects.toThrow("/admin is switched off");
+      await expect(takeDownJob("j10")).rejects.toThrow("/admin is switched off");
+      await expect(dismissReports("j10")).rejects.toThrow("/admin is switched off");
+      await expect(banJobEmployer("j10")).rejects.toThrow("/admin is switched off");
     }
     expect((await getJob("j10"))?.status).toBe("active");
     vi.stubEnv("ADMIN_ENABLED", "1");

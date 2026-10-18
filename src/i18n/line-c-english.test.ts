@@ -83,7 +83,7 @@ describe("external jobs in English", () => {
       Field: "Software",
       Type: "Not stated",
       Location: "Auckland (posting: Auckland, New Zealand)",
-      Closes: "21 Nov 2026",
+      Closes: "20 Nov 2026",
       Experience: "None needed",
       Degree: "Bachelor's · Computer science",
       Visa: "The posting says: no visa sponsorship",

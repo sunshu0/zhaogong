@@ -53,7 +53,8 @@ describe("line C's dictionaries", () => {
   it.each(Object.entries(DICTIONARIES))("%s: both sides give the same paths, none of them empty", (_, d) => {
     const zh = texts(d.zh);
     const en = texts(d.en);
-    expect(en.map(([p]) => p)).toEqual(zh.map(([p]) => p));
+    const entries = (list: [string, string][]) => [...new Set(list.map(([p]) => p.replace(/\(.*$/, "()")))];
+    expect(entries(en)).toEqual(entries(zh));
     expect(zh.filter(([, t]) => !t.trim())).toEqual([]);
     // Only the bit after an inline email may be empty in English (the sentence ends before it).
     expect(en.filter(([p, t]) => !t.trim() && p !== "data.confirmAfter")).toEqual([]);

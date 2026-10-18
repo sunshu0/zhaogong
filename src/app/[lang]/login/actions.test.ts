@@ -39,6 +39,7 @@ describe("注册或登录", () => {
       ok: true,
       devCode: expect.stringMatching(/^\d{6}$/),
       resendInSec: 60, // #184: for the page's countdown
+      validMinutes: 10, // how long the code works, said on the page
     });
     const again = await requestSignInCode("new@example.com");
     expect(again).toEqual({
@@ -128,7 +129,7 @@ describe("openEmployerForAccount", () => {
     expect((await openEmployerForAccount("first@example.com", { kind: "existing", employerId: "e1" })).ok).toBe(true);
     await signIn("second@example.com");
     const second = await openEmployerForAccount("second@example.com", { kind: "existing", employerId: "e1" });
-    expect(second).toEqual({ ok: false, error: expect.stringContaining("已经有团队在用了") });
+    expect(second).toEqual({ ok: false, error: expect.stringContaining("已经有团队在用了"), reason: "taken" });
     expect(await getAccountEmployer("second@example.com")).toBeUndefined();
   });
 
