@@ -54,6 +54,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
       <Field name="descriptionZh" label={t.descriptionZh} required {...state("descriptionZh")}>
         <textarea
           id="in-descriptionZh"
+          lang="zh-CN"
           rows={5}
           value={form.descriptionZh}
           onChange={(e) => set({ descriptionZh: e.target.value })}

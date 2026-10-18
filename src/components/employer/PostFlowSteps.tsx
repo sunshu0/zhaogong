@@ -13,7 +13,7 @@ import { JobDetail } from "@/components/seeker/JobDetail";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
 import { pillTab } from "@/components/employer/Tabs";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 type HeadingRef = RefObject<HTMLHeadingElement | null>;
@@ -88,6 +88,8 @@ export function PasteStep({
       </label>
       <textarea
         id="post-text"
+        // The paste box takes a Chinese WeChat post, and its example is one.
+        lang="zh-CN"
         rows={9}
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -156,6 +158,7 @@ export function PreviewStep({
   roles?: ReactNode;
 }) {
   const m = useMessages(employerPostMessages);
+  const lang = useLang();
   const t = m.steps;
   // The kinds the job makes public, in the page's language (as contactKinds does in Chinese).
   const kinds = [
@@ -179,7 +182,7 @@ export function PreviewStep({
       )}
       <DuplicateJobNote titleZh={preview.titleZh} />
       {roles && <div className="rounded-card bg-surface p-4 shadow-card">{roles}</div>}
-      <JobDetail job={preview} employer={employer} now={previewAt}>
+      <JobDetail job={preview} employer={employer} now={previewAt} lang={lang}>
         <section className="rounded-card bg-surface p-4 shadow-card">
           <h2 className="text-subtitle font-semibold">{t.previewContactTitle}</h2>
           <p className="mt-1 text-body text-muted">

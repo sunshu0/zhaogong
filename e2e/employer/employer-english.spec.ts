@@ -64,6 +64,8 @@ test("the employer's pages in English: home, 职位管理, applicants, 推荐人
   await page.getByLabel("Business name or NZBN").fill("Demo");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("listitem").first()).toBeVisible();
+  // Measured once the search is done: while it runs the buttons are aria-disabled (#202) and drawn faded.
+  await expect(page.getByRole("button", { name: "Search", exact: true })).not.toHaveAttribute("aria-busy", "true");
   // The register's names are English and NZBNs are figures; nothing Chinese of the interface may be left.
   await expectEnglishPage(page, "/employer/verify with results");
 
