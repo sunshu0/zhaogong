@@ -5,12 +5,16 @@
 // the language is Chinese, so components can switch to dictionaries before step 1 lands.
 import { usePathname } from "next/navigation";
 import { createContext, use, type PropsWithChildren } from "react";
+import { englishLoaded, loadEnglish } from "@/i18n/english";
 import { DEFAULT_LANG, sitePath, type Lang } from "@/i18n/lang";
 import { pick, type Dictionary, type Messages } from "@/i18n/messages";
 
 const LangContext = createContext<Lang>(DEFAULT_LANG);
 
 export function LangProvider({ lang, children }: PropsWithChildren<{ lang: Lang }>) {
+  // #240: on an English page the browser fetches the English dictionaries before the page's client components run;
+  // the server's HTML stays on screen meanwhile. The server has them already, so nothing waits there.
+  if (lang === "en" && !englishLoaded()) use(loadEnglish());
   return <LangContext value={lang}>{children}</LangContext>;
 }
 

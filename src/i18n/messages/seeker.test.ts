@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { pick, type Dictionary } from "@/i18n/messages";
 import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
@@ -31,7 +32,7 @@ describe("line A's dictionaries (Round 20)", () => {
   for (const [name, dictionary] of Object.entries(DICTIONARIES)) {
     it(`${name}: the English side has the Chinese side's keys and no Chinese left in it`, () => {
       const zh = texts(dictionary.zh).map(([path]) => path);
-      const en = texts(dictionary.en);
+      const en = texts(pick(dictionary as Dictionary<object>, "en"));
       expect(en.map(([path]) => path)).toEqual(zh);
       const left = en.filter(([, text]) => CJK.test(KEPT.reduce((rest, word) => rest.replaceAll(word, ""), text)));
       expect(left).toEqual([]);

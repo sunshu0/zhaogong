@@ -2,10 +2,11 @@
 // One name per feature everywhere (Round 10 A22 table).
 import { POST_JOB_PATH } from "@/components/seeker/identity";
 import type { DemoSession } from "@/components/seeker/session";
+import type { Messages } from "@/i18n/messages";
 import { uiMessages } from "@/i18n/messages/ui";
 
 /** The entries' names (Round 20): the page's language through useMessages(uiMessages).nav, Chinese by default. */
-export type NavWords = typeof uiMessages.en.nav;
+export type NavWords = Messages<typeof uiMessages.zh>["nav"];
 const ZH: NavWords = uiMessages.zh.nav;
 
 export type NavRole = "out" | "seeker" | "employer";

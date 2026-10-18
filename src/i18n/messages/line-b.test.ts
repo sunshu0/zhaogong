@@ -1,3 +1,4 @@
+import { pick } from "@/i18n/messages";
 import { describe, expect, it } from "vitest";
 import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -77,16 +78,16 @@ describe("line B's dictionaries", () => {
   });
 
   it("words with a figure agree with it in English", () => {
-    const { en } = employerJobsMessages;
+    const en = pick(employerJobsMessages, "en");
     expect([en.numbers.applicants(1), en.numbers.applicants(3)]).toEqual(["1 application", "3 applications"]);
-    expect([employerPostMessages.en.bars.holdReason(1, 0), employerPostMessages.en.bars.holdReason(2, 3)]).toEqual([
-      "1 problem to fix",
-      "2 problems to fix, 3 fields to fill in",
-    ]);
-    expect([candidateMatchingMessages.en.facts.years(1), candidateMatchingMessages.en.facts.years(4)]).toEqual([
-      "1 year",
-      "4 years",
-    ]);
+    expect([
+      pick(employerPostMessages, "en").bars.holdReason(1, 0),
+      pick(employerPostMessages, "en").bars.holdReason(2, 3),
+    ]).toEqual(["1 problem to fix", "2 problems to fix, 3 fields to fill in"]);
+    expect([
+      pick(candidateMatchingMessages, "en").facts.years(1),
+      pick(candidateMatchingMessages, "en").facts.years(4),
+    ]).toEqual(["1 year", "4 years"]);
   });
 
   it("holdReason says the same as use-draft-form's in Chinese", () => {

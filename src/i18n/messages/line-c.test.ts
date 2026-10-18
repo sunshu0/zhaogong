@@ -1,3 +1,4 @@
+import { pick } from "@/i18n/messages";
 import { describe, expect, it } from "vitest";
 import { accountMessages } from "@/i18n/messages/account";
 import { adminMessages } from "@/i18n/messages/admin";
@@ -61,16 +62,16 @@ describe("line C's dictionaries", () => {
   });
 
   it("words with a figure agree with it in English", () => {
-    const { en } = adminStatsMessages;
+    const en = pick(adminStatsMessages, "en");
     expect([en.wait.minutes(1), en.wait.minutes(5), en.wait.daysHours(1, 3)]).toEqual([
       "1 minute",
       "5 minutes",
       "1 day 3 hours",
     ]);
-    expect([loginMessages.en.errors.wrongCode(1), loginMessages.en.errors.wrongCode(4)]).toEqual([
+    expect([pick(loginMessages, "en").errors.wrongCode(1), pick(loginMessages, "en").errors.wrongCode(4)]).toEqual([
       "That code isn't right. 1 try left.",
       "That code isn't right. 4 tries left.",
     ]);
-    expect(adminMessages.en.log.ban("川味小馆", 1)).toBe("Banned the employer “川味小馆” and took down 1 job");
+    expect(pick(adminMessages, "en").log.ban("川味小馆", 1)).toBe("Banned the employer “川味小馆” and took down 1 job");
   });
 });

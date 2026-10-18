@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { pick, type Dictionary } from "@/i18n/messages";
 
@@ -59,5 +60,38 @@ describe("dictionaries", () => {
       en: { count: (n: number) => n },
     };
     expect([missing, extra, wrongParameter, notWording]).toHaveLength(4);
+  });
+});
+
+// The dictionary modules, loaded once for the test below (#240).
+const files = readdirSync("src/i18n/messages").filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+const modules: [string, Record<string, unknown>][] = await Promise.all(
+  files.map(
+    async (f) => [f, await import(`./messages/${f.replace(/\.ts$/, "")}.ts`)] as [string, Record<string, unknown>],
+  ),
+);
+
+describe("the English sides kept apart (#240)", () => {
+  // Every dictionary in src/i18n/messages/: English either inline (not moved yet) or listed in en/index.ts under its
+  // key, so pick(…, "en") never throws on a page.
+  const dictionaries = modules.flatMap(([file, exports]) =>
+    Object.entries(exports)
+      .filter(([, value]) => typeof value === "object" && value !== null && "zh" in value)
+      .map(([name, value]) => [`${file} ${name}`, value as Dictionary<object>] as const),
+  );
+
+  it("finds the dictionaries", () => {
+    expect(dictionaries.length).toBeGreaterThan(20);
+  });
+
+  for (const [name, dictionary] of dictionaries)
+    it(`${name} has its English side`, () => {
+      expect(() => pick(dictionary, "en")).not.toThrow();
+      expect(Object.keys(pick(dictionary, "en"))).toEqual(Object.keys(dictionary.zh));
+    });
+
+  it("keys are unique, so no two dictionaries share an English side", () => {
+    const keys = dictionaries.map(([, d]) => d.key).filter(Boolean);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
