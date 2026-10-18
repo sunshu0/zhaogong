@@ -7,17 +7,21 @@ import { requestTime } from "@/components/seeker/request-time";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { EmployerPublicPage } from "@/components/seeker/EmployerPublicPage";
+import { messages } from "@/i18n/server";
+import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/employers/[id]">): Promise<Metadata> {
   const employer = await getEmployer((await params).id);
-  return { title: employer && !employer.bannedAt ? `${employer.name} · 企业主页` : "雇主不存在" };
+  const t = await messages(seekerEmployerMessages);
+  return { title: employer && !employer.bannedAt ? t.title(employer.name) : t.missing };
 }
 
-export default function EmployerPage({ params }: PageProps<"/[lang]/employers/[id]">) {
+export default async function EmployerPage({ params }: PageProps<"/[lang]/employers/[id]">) {
+  const t = await messages(seekerEmployerMessages);
   return (
     <div className={WIDE_ON_DESKTOP}>
       <NoScriptStreams />
-      <Suspense fallback={<DetailPageSkeleton label="加载企业主页…" />}>
+      <Suspense fallback={<DetailPageSkeleton label={t.loading} />}>
         <PublicEmployer params={params} />
       </Suspense>
     </div>

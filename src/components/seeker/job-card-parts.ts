@@ -1,19 +1,33 @@
 // What a job card shows (Round 19, the job list's sample): the title and the pay lead; one light line of points
 // (place, work type and hours, shifts, how the employer is reached) without 「地区 / 工时 / 联系」 labels; one
-// status, the most important; at most two tags. Pure, for JobCard and its test.
+// status, the most important; at most two tags. Pure, for JobCard and its test. Round 20: in the page's language;
+// the shifts are the employer's own words, marked Chinese (`zh`) for the English page.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
-import { formatHours, jobTags } from "@/components/seeker/format";
+import { formatHours, jobTagKeys, type JobTag } from "@/components/seeker/format";
 
 /** Tags on a card besides its status. */
 export const CARD_TAG_LIMIT = 2;
 
+/** One point of the line; `zh`: the employer's own Chinese, not translated. */
+export type CardPoint = { text: string; zh?: true };
+
 /** The points line: place, work type and hours, shifts, then how the employer is reached (A25). */
-export function cardPoints(job: Job, regionName: string | undefined): string[] {
-  const work = [formatEmploymentTypes(job.employmentType), formatHours(job.hoursPerWeek)].filter(Boolean).join(" ");
-  return [regionName, work, job.shiftsZh?.trim(), job.contactPublic ? "联系方式公开" : "聊天交换联系方式"].filter(
-    (point): point is string => Boolean(point),
-  );
+export function cardPoints(job: Job, regionName: string | undefined, lang: Lang = DEFAULT_LANG): CardPoint[] {
+  const t = pick(seekerJobsMessages, lang).card;
+  const work = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang)]
+    .filter(Boolean)
+    .join(" ");
+  const shifts = job.shiftsZh?.trim();
+  const points: CardPoint[] = [];
+  if (regionName) points.push({ text: regionName });
+  if (work) points.push({ text: work });
+  if (shifts) points.push({ text: shifts, zh: true });
+  points.push({ text: job.contactPublic ? t.contactPublic : t.contactByChat });
+  return points;
 }
 
 export type CardStatus = { kind: "urgent" } | { kind: "verified"; verification: Employer["verification"] } | null;
@@ -26,9 +40,9 @@ export function cardStatus(job: Job, employer: Employer | undefined): CardStatus
   return null;
 }
 
-/** The tags after the status: perks and visas, at most CARD_TAG_LIMIT. */
-export function cardTags(job: Job): string[] {
-  return jobTags(job)
-    .filter((tag) => tag !== "急招")
+/** The tags after the status (their keys): perks and visas, at most CARD_TAG_LIMIT. */
+export function cardTags(job: Job): JobTag[] {
+  return jobTagKeys(job)
+    .filter((tag) => tag !== "urgent")
     .slice(0, CARD_TAG_LIMIT);
 }

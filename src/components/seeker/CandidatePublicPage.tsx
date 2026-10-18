@@ -18,12 +18,19 @@ import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import { candidateFacts, type Candidate } from "@/lib/candidate-matching";
 import type { Job } from "@/lib/types";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
+import { contentLang } from "@/i18n/lang";
+import { placeName } from "@/components/seeker/format";
 
 /**
  * /candidates/[id]: a job seeker's page as an employer sees it. Coming from a chat or 推荐人才, the top says which
  * job it is about and offers 回到聊天 or 发起聊天; the five facts employers check first come before the rest.
  */
 export function CandidatePublicPage() {
+  const lang = useLang();
+  const t = useMessages(seekerProfileMessages);
+  const c = t.candidate;
   const { id } = useParams<{ id: string }>();
   const jobParam = useSearchParams().get("job");
   const hydrated = useHydrated();
@@ -38,13 +45,13 @@ export function CandidatePublicPage() {
     ? `/messages?conversation=${encodeURIComponent(context.conversationId)}`
     : "/messages";
 
-  if (!hydrated || (!candidate && !loaded)) return <SkeletonList count={2} label="正在加载主页…" />;
+  if (!hydrated || (!candidate && !loaded)) return <SkeletonList count={2} label={t.pages.loadingProfileEllipsis} />;
   if (!candidate)
     return (
       <div className="space-y-4">
         <BackToChat href={chatHref} />
-        <h1 className="text-title font-semibold">求职者主页暂不可查看</h1>
-        <p className="text-body text-muted">该求职者尚未公开资料或已关闭公开主页。</p>
+        <h1 className="text-title font-semibold">{c.unavailable}</h1>
+        <p className="text-body text-muted">{c.unavailableHint}</p>
       </div>
     );
 
@@ -58,41 +65,61 @@ export function CandidatePublicPage() {
       <Section look="app">
         <Group>
           <header className="flex items-start gap-4">
-            <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={`${candidate.name}头像`} large />
+            <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={t.avatar.alt(candidate.name)} large />
             <div className="min-w-0">
-              <p className="text-meta text-muted">求职者主页{candidate.source === "demo" ? " · 演示资料" : ""}</p>
-              <h1 className="break-words text-title font-semibold">{candidate.name}</h1>
-              <p className="mt-1 break-words text-body">{candidate.headline || "求职意向待补充"}</p>
-              <p className="mt-1 flex items-center gap-1 text-body text-muted">
+              <p className="text-meta text-muted">
+                {c.page}
+                {candidate.source === "demo" ? c.demo : ""}
+              </p>
+              <h1 lang={contentLang(candidate.name)} className="break-words text-title font-semibold">
+                {candidate.name}
+              </h1>
+              <p lang={contentLang(candidate.headline)} className="mt-1 break-words text-body">
+                {candidate.headline || c.noHeadline}
+              </p>
+              <p lang={contentLang(candidate.location)} className="mt-1 flex items-center gap-1 text-body text-muted">
                 <MapPin aria-hidden="true" className="size-4 shrink-0" />
-                {candidate.location || "地区待补充"}
+                {candidate.location || c.noRegion}
               </p>
             </div>
           </header>
         </Group>
         <Group>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body" aria-label="主要条件">
+          {/* candidateFacts() is line B's (lib/candidate-matching.ts): its words follow once it takes a language. */}
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body" aria-label={c.facts}>
             {candidateFacts(candidate).map((fact) => (
-              <Fact key={fact.label} term={fact.label} value={fact.value === "待补充" ? undefined : fact.value} />
+              <Fact
+                key={fact.label}
+                term={fact.label}
+                value={fact.value === "待补充" ? undefined : fact.value}
+                empty={c.toFill}
+              />
             ))}
           </dl>
         </Group>
       </Section>
-      <Section look="app" id="candidate-about" title="个人介绍">
+      <Section look="app" id="candidate-about" title={c.about}>
         <Group>
-          <p className="whitespace-pre-line break-words text-body leading-relaxed">
-            {candidate.bio || "尚未填写个人介绍。"}
+          <p lang={contentLang(candidate.bio)} className="whitespace-pre-line break-words text-body leading-relaxed">
+            {candidate.bio || c.noBio}
           </p>
         </Group>
       </Section>
-      <Section look="app" id="candidate-preferences" title="公开求职资料">
+      <Section look="app" id="candidate-preferences" title={c.preferences}>
         <Group>
           <dl className="grid gap-4 text-body sm:grid-cols-2">
-            <Fact term="技能" value={candidate.resume.skills} />
-            <Fact term="用工形式" value={formatEmploymentTypes(candidate.resume.employmentTypes)} />
+            <Fact term={c.skills} value={candidate.resume.skills} empty={c.toFill} />
             <Fact
-              term="可工作地区"
-              value={candidate.resume.regionIds.map((region) => regionById("NZ", region)?.nameZh ?? region).join("、")}
+              term={c.employmentTypes}
+              value={formatEmploymentTypes(candidate.resume.employmentTypes, lang)}
+              empty={c.toFill}
+            />
+            <Fact
+              term={c.regions}
+              value={candidate.resume.regionIds
+                .map((region) => placeName(regionById("NZ", region), lang) ?? region)
+                .join(t.resume.listJoin)}
+              empty={c.toFill}
             />
           </dl>
         </Group>
@@ -119,6 +146,8 @@ function useOwnJob(jobId: string | null, email: string | undefined): Job | null 
 }
 
 function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; chatHref: string | null }) {
+  const c = useMessages(seekerProfileMessages).candidate;
+  const lang = useLang();
   const router = useRouter();
   const { openCandidateChat } = useChat();
   const [opening, setOpening] = useState(false);
@@ -126,19 +155,20 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
     <Section look="app">
       <div className="flex flex-wrap items-center justify-between gap-3 py-group">
         <div className="min-w-0">
-          <p className="text-meta text-muted">应聘职位</p>
+          <p className="text-meta text-muted">{c.forJob}</p>
           <Link
             href={`/jobs/${job.id}`}
+            lang={contentLang(job.titleZh)}
             className="pressable block truncate text-subtitle font-semibold hover:underline"
           >
             {job.titleZh}
           </Link>
           <p>
-            <Pay pay={job.pay} country={job.country} />
+            <Pay pay={job.pay} country={job.country} lang={lang} />
           </p>
         </div>
         {chatHref ? (
-          <ButtonLink href={chatHref}>回到聊天</ButtonLink>
+          <ButtonLink href={chatHref}>{c.backToChat}</ButtonLink>
         ) : (
           <Button
             loading={opening}
@@ -149,7 +179,7 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
               else setOpening(false);
             }}
           >
-            发起聊天
+            {c.startChat}
           </Button>
         )}
       </div>
@@ -158,20 +188,24 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
 }
 
 function BackToChat({ href }: { href: string }) {
+  const c = useMessages(seekerProfileMessages).candidate;
   return (
     <Link href={href} className="pressable inline-flex min-h-11 items-center gap-2 text-body text-brand">
       <ArrowLeft aria-hidden="true" className="size-4" />
-      回到聊天
+      {c.backToChat}
     </Link>
   );
 }
 
-function Fact({ term, value }: { term: string; value?: string }) {
+function Fact({ term, value, empty }: { term: string; value?: string; empty: string }) {
   return (
     <div className="min-w-0">
       <dt className="text-meta text-muted">{term}</dt>
-      <dd className={`mt-0.5 whitespace-pre-line break-words ${value?.trim() ? "" : "text-muted"}`}>
-        {value?.trim() || "待补充"}
+      <dd
+        lang={contentLang(value)}
+        className={`mt-0.5 whitespace-pre-line break-words ${value?.trim() ? "" : "text-muted"}`}
+      >
+        {value?.trim() || empty}
       </dd>
     </div>
   );

@@ -42,3 +42,11 @@ export function langRoute(pathname: string, cookie: string | undefined): { redir
   if (plain !== pathname) return { redirect: plain };
   return { rewrite: `/${langFrom(cookie)}${pathname === "/" ? "" : pathname}` };
 }
+
+/**
+ * The lang attribute for text a person wrote (a job's Chinese title, a business's name, shifts): zh-CN when it has
+ * Chinese in it, so screen readers read it as Chinese on the English page (ADR 0023 §6); nothing for Latin text.
+ */
+export function contentLang(text: string | undefined | null): "zh-CN" | undefined {
+  return text && /[㐀-鿿豈-﫿]/.test(text) ? "zh-CN" : undefined;
+}

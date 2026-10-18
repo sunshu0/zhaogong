@@ -5,12 +5,15 @@ import { answerMyInterview } from "@/app/[lang]/me/interview-actions";
 import { downloadInterviewIcs } from "@/components/seeker/interview-client";
 import {
   formatSlot,
-  INTERVIEW_MODES,
+  interviewModeName,
   REPLY_MAX,
   seekerInterviewStatus,
   type InterviewView,
 } from "@/components/seeker/interviews";
 import { Button } from "@/components/ui/Button";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 type Mode = "choose" | "counter" | "decline";
 
@@ -30,6 +33,8 @@ export function InterviewAnswer({
   interview: InterviewView;
   onChange: (interview: InterviewView) => void;
 }) {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages).interview;
   const [mode, setMode] = useState<Mode>("choose");
   const [slot, setSlot] = useState("");
   const [reply, setReply] = useState("");
@@ -43,7 +48,7 @@ export function InterviewAnswer({
     setError("");
     const result = await answerMyInterview(jobId, response).catch(() => ({
       ok: false as const,
-      error: "网络有问题，没有发出去，请再试一次。",
+      error: t.errors.network,
     }));
     setPending(false);
     if (!result.ok) return setError(result.error);
@@ -54,20 +59,25 @@ export function InterviewAnswer({
   }
 
   return (
-    <section aria-label="面试邀约" className="mt-3 rounded-md border border-brand/30 bg-brand-soft/40 p-3">
+    <section aria-label={t.answer.label} className="mt-3 rounded-md border border-brand/30 bg-brand-soft/40 p-3">
       <p ref={status} tabIndex={-1} className="text-body font-medium outline-none">
-        {seekerInterviewStatus(interview)}
+        {seekerInterviewStatus(interview, lang)}
       </p>
       <p className="text-meta text-muted">
-        {[interview.mode && INTERVIEW_MODES[interview.mode], interview.place].filter(Boolean).join(" · ")}
+        {[interview.mode && interviewModeName(interview.mode, lang), interview.place].filter(Boolean).join(" · ")}
       </p>
-      {interview.note && <p className="mt-1 text-body">雇主附言：{interview.note}</p>}
+      {interview.note && (
+        <p className="mt-1 text-body">
+          {t.answer.note("")}
+          <span lang={contentLang(interview.note)}>{interview.note}</span>
+        </p>
+      )}
 
       {open && mode === "choose" && (
         <div className="mt-2 space-y-2">
           {!interview.callFirst && (
             <fieldset>
-              <legend className="mb-1 text-meta text-muted">选一个你能来的时间（奥克兰时间）</legend>
+              <legend className="mb-1 text-meta text-muted">{t.answer.pickSlot}</legend>
               <div className="flex flex-col">
                 {interview.slots.map((s) => (
                   <label key={s} className="flex min-h-11 items-center gap-2 text-body">
@@ -78,7 +88,7 @@ export function InterviewAnswer({
                       onChange={() => setSlot(s)}
                       className="accent-brand"
                     />
-                    {formatSlot(s)}
+                    {formatSlot(s, lang)}
                   </label>
                 ))}
               </div>
@@ -87,18 +97,18 @@ export function InterviewAnswer({
           <div className="flex flex-wrap gap-2">
             {interview.callFirst ? (
               <Button onClick={() => void answer({ kind: "confirm", slot: null })} loading={pending}>
-                好的，等电话约时间
+                {t.answer.okByPhone}
               </Button>
             ) : (
               <Button onClick={() => void answer({ kind: "confirm", slot })} disabled={!slot} loading={pending}>
-                确认这个时间
+                {t.answer.confirm}
               </Button>
             )}
             <Button variant="secondary" onClick={() => setMode("counter")}>
-              {interview.callFirst ? "说说我方便的时间" : "这些时间不行"}
+              {interview.callFirst ? t.answer.suggest : t.answer.notThese}
             </Button>
             <Button variant="link" onClick={() => setMode("decline")}>
-              婉拒
+              {t.answer.decline}
             </Button>
           </div>
         </div>
@@ -113,22 +123,22 @@ export function InterviewAnswer({
           }}
         >
           <label className="block text-body">
-            <span className="mb-1 block font-medium">{mode === "counter" ? "我方便的时间" : "原因（选填）"}</span>
+            <span className="mb-1 block font-medium">{mode === "counter" ? t.answer.myTimes : t.answer.reason}</span>
             <textarea
               rows={2}
               value={reply}
               maxLength={REPLY_MAX}
               onChange={(event) => setReply(event.target.value)}
-              placeholder={mode === "counter" ? "例如：周四下午、周末都可以" : ""}
+              placeholder={mode === "counter" ? t.answer.timesPlaceholder : ""}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-body focus:border-brand"
             />
           </label>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={mode === "counter" && !reply.trim()} loading={pending}>
-              {mode === "counter" ? "发给雇主" : "确认婉拒"}
+              {mode === "counter" ? t.answer.send : t.answer.confirmDecline}
             </Button>
             <Button variant="link" onClick={() => setMode("choose")}>
-              返回
+              {t.answer.back}
             </Button>
           </div>
         </form>
@@ -138,9 +148,16 @@ export function InterviewAnswer({
         <Button
           variant="link"
           className="mt-1 -ml-1"
-          onClick={() => downloadInterviewIcs(interview, `${jobId}-${interview.invitedAt}`, `面试：${title}`)}
+          onClick={() =>
+            downloadInterviewIcs(
+              interview,
+              `${jobId}-${interview.invitedAt}`,
+              t.answer.calendarTitle(title),
+              t.answer.calendarFile,
+            )
+          }
         >
-          下载日历文件（.ics）
+          {t.answer.calendar}
         </Button>
       )}
       {error && (

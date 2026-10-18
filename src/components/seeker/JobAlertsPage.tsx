@@ -13,6 +13,9 @@ import { inputClass } from "@/components/ui/input-class";
 import { busyProps } from "@/components/ui/busy";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { SECTION_TITLES } from "@/lib/external-jobs/filter";
+import { useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 const SMALL =
   "inline-flex min-h-11 items-center px-1 text-body text-brand underline-offset-4 hover:underline disabled:opacity-50 aria-disabled:opacity-50";
@@ -23,6 +26,8 @@ const SMALL =
  * email service (#16).
  */
 export function JobAlertsPage() {
+  const t = useMessages(seekerMeMessages);
+  const a = t.alerts;
   const hydrated = useHydrated();
   const session = useSession();
   const signedIn = Boolean(session);
@@ -36,11 +41,11 @@ export function JobAlertsPage() {
     let current = true;
     myJobAlerts()
       .then((list) => current && setAlerts(list))
-      .catch(() => current && setError("网络有问题，提醒暂时打不开，请稍后再试。"));
+      .catch(() => current && setError(a.loadFailed));
     return () => {
       current = false;
     };
-  }, [signedIn]);
+  }, [signedIn, a.loadFailed]);
 
   /** Sends a change; the server's answer is the list from then on. True when the server took it. */
   async function run(change: () => Promise<JobAlertView[] | null>): Promise<boolean> {
@@ -50,19 +55,20 @@ export function JobAlertsPage() {
       if (list) setAlerts(list);
       return Boolean(list);
     } catch {
-      setError("网络有问题，没有改成，请重试。");
+      setError(a.changeFailed);
       return false;
     }
   }
 
-  if (!hydrated || (signedIn && alerts === undefined && !error)) return <SkeletonList count={2} label="正在加载提醒" />;
+  if (!hydrated || (signedIn && alerts === undefined && !error))
+    return <SkeletonList count={2} label={t.pages.loadingAlerts} />;
 
   if (!session) {
     return (
       <div className={`py-10 text-center ${cardClass()}`}>
-        <p className="text-body font-medium">登录后可以保存筛选条件，有新职位时提醒你</p>
+        <p className="text-body font-medium">{a.signInFor}</p>
         <ButtonLink href={`/login?next=${encodeURIComponent(ALERTS_PATH)}`} className="mt-4">
-          登录
+          {t.pages.signIn}
         </ButtonLink>
       </div>
     );
@@ -71,7 +77,7 @@ export function JobAlertsPage() {
   return (
     <div className="space-y-section">
       <p ref={top} tabIndex={-1} className="text-body text-muted outline-none">
-        有新职位符合条件时，会在「通知」里告诉你，同一个职位只提醒一次。最多 {ALERT_LIMIT} 个提醒。
+        {a.howItWorks(ALERT_LIMIT)}
       </p>
       {error && (
         <p role="alert" className="text-body text-danger">
@@ -79,7 +85,7 @@ export function JobAlertsPage() {
         </p>
       )}
       {alerts && alerts.length > 0 ? (
-        <Section look="app" title={`我的提醒（${alerts.length}/${ALERT_LIMIT}）`}>
+        <Section look="app" title={a.mine(alerts.length, ALERT_LIMIT)}>
           {alerts.map((alert) => (
             <AlertRow
               key={alert.id}
@@ -96,12 +102,10 @@ export function JobAlertsPage() {
       ) : (
         alerts && (
           <div className={`py-10 text-center ${cardClass()}`}>
-            <p className="text-body font-medium">还没有职位提醒</p>
-            <p className="mt-1 text-body text-muted">
-              在职位列表选好地区、行业等条件，点「保存为提醒」。「实习」「专业职位」也可以设提醒。
-            </p>
+            <p className="text-body font-medium">{a.emptyTitle}</p>
+            <p className="mt-1 text-body text-muted">{a.emptyHint}</p>
             <ButtonLink href="/jobs" className="mt-4">
-              去找工作
+              {a.findJobs}
             </ButtonLink>
           </div>
         )
@@ -121,6 +125,7 @@ function AlertRow({
   onPause: (paused: boolean) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
+  const a = useMessages(seekerMeMessages).alerts;
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -144,7 +149,7 @@ function AlertRow({
 
   return (
     <Group>
-      <article aria-label={`提醒：${alert.name}`}>
+      <article aria-label={a.label(alert.name)}>
         {renaming ? (
           <form
             className="flex flex-wrap items-center gap-2"
@@ -156,7 +161,7 @@ function AlertRow({
             }}
           >
             <label className="sr-only" htmlFor={`alert-name-${alert.id}`}>
-              提醒名称
+              {a.name}
             </label>
             <input
               id={`alert-name-${alert.id}`}
@@ -168,27 +173,31 @@ function AlertRow({
               className={`${inputClass()} min-w-0 flex-1`}
             />
             <Button type="submit" loading={busy}>
-              保存
+              {a.save}
             </Button>
             <Button variant="link" onClick={closeRename}>
-              取消
+              {a.cancel}
             </Button>
           </form>
         ) : (
           <h3 className="flex items-center gap-2 text-body font-medium">
-            <span className="min-w-0 truncate">{alert.name}</span>
-            {alert.section && <Tag kind="neutral">{SECTION_TITLES[alert.section]} · 外部职位</Tag>}
-            {alert.paused && <Tag kind="neutral">已暂停</Tag>}
+            <span lang={contentLang(alert.name)} className="min-w-0 truncate">
+              {alert.name}
+            </span>
+            {alert.section && <Tag kind="neutral">{a.external(SECTION_TITLES[alert.section])}</Tag>}
+            {alert.paused && <Tag kind="neutral">{a.paused}</Tag>}
           </h3>
         )}
         <p className="mt-1 text-meta text-muted">
           {alert.conditions.length
             ? alert.conditions.join(" · ")
-            : `不限条件：所有新${alert.section ? SECTION_TITLES[alert.section] : "职位"}`}
+            : alert.section
+              ? a.anyInSection(SECTION_TITLES[alert.section])
+              : a.anyJobs}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3">
           <Link href={alert.href} className={SMALL}>
-            看职位
+            {a.view}
           </Link>
           {!renaming && (
             <button
@@ -198,25 +207,25 @@ function AlertRow({
               onClick={() => setRenaming(true)}
               {...busyProps(busy)}
             >
-              改名
+              {a.rename}
             </button>
           )}
           <button type="button" className={SMALL} onClick={act(() => onPause(!alert.paused))} {...busyProps(busy)}>
-            {alert.paused ? "恢复提醒" : "暂停"}
+            {alert.paused ? a.resume : a.pause}
           </button>
           {confirming ? (
             <span className="flex items-center gap-2 text-body">
-              删除后不再提醒
+              {a.deleteWarning}
               <button type="button" className={`${SMALL} text-danger`} onClick={act(onDelete)} {...busyProps(busy)}>
-                确认删除
+                {a.confirmDelete}
               </button>
               <button type="button" className={SMALL} onClick={() => setConfirming(false)}>
-                取消
+                {a.cancel}
               </button>
             </span>
           ) : (
             <button type="button" className={`${SMALL} text-danger`} onClick={() => setConfirming(true)}>
-              删除
+              {a.delete}
             </button>
           )}
         </div>

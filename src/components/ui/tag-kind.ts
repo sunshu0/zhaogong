@@ -25,3 +25,11 @@ export function tagKindFor(label: string): TagKind {
   if (/签|visa/i.test(label)) return "visa";
   return "neutral";
 }
+
+/** The kind for a job tag by its key (Round 20: the words differ by language, the colour does not). */
+export const JOB_TAG_KINDS: Record<"urgent" | "meals" | "housing" | "student", TagKind> = {
+  urgent: "urgent",
+  meals: "perk",
+  housing: "perk",
+  student: "visa",
+};

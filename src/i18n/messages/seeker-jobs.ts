@@ -28,6 +28,8 @@ const seekerJobsZh = {
   },
   // seeker/format.ts and job-facts.ts: the figures come formatted.
   pay: {
+    /** After the amount, written straight on: $25–27/小时. */
+    hourUnit: "/小时",
     perHour: (amount: string) => `${amount}/小时`,
     range: (low: string, high: string) => `${low}–${high}`,
     from: (amount: string) => `${amount} 起`,
@@ -46,8 +48,8 @@ const seekerJobsZh = {
     closed: (date: string) => `${date}已截止`,
     closedNote: "这个职位已截止，可能已经招满。",
   },
-  // jobTags(): the card's and the page's tags. tag-kind.ts keys on the Chinese words today; step 2 keys it on these
-  // keys instead.
+  // jobTags(): the card's and the page's tags, by key (seeker/format.ts jobTagKeys); their colours come from the key
+  // (tag-kind.ts JOB_TAG_KINDS), not the words.
   tags: {
     label: "标签",
     urgent: "急招",
@@ -214,6 +216,8 @@ const seekerJobsZh = {
     phone: "电话",
     wechat: "微信",
     email: "邮箱",
+    /** The rows' labels. */
+    rows: { phone: "电话", wechat: "微信", email: "邮箱" },
     warning: "联系雇主时，不要预先支付押金、介绍费或任何费用，也不要交出护照原件。遇到这种情况请举报这个职位。",
     signedInAs: (email: string) => `已登录：${email}`,
     mine: "我的",
@@ -246,6 +250,7 @@ export const seekerJobsMessages: Dictionary<typeof seekerJobsZh> = {
       back: "Jobs",
     },
     pay: {
+      hourUnit: " an hour",
       perHour: (amount) => `${amount} an hour`,
       range: (low, high) => `${low}–${high}`,
       from: (amount) => `${amount} or more`,
@@ -424,6 +429,7 @@ export const seekerJobsMessages: Dictionary<typeof seekerJobsZh> = {
       phone: "phone",
       wechat: "WeChat",
       email: "email",
+      rows: { phone: "Phone", wechat: "WeChat", email: "Email" },
       warning:
         "When you contact an employer, don't pay a deposit, a placement fee or any other fee up front, and don't hand over your original passport. If they ask, report this job.",
       signedInAs: (email) => `Signed in as ${email}`,

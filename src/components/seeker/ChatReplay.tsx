@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { firstRoundLength, type ReplayMessage } from "@/components/seeker/chat-replay";
+import { useMessages } from "@/i18n/client";
+import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 
 /** Animate only with scripting on and no request for less motion. */
 const CAN_ANIMATE = "(scripting: enabled) and (prefers-reduced-motion: no-preference)";
@@ -22,6 +24,7 @@ const noop = () => () => {};
  * motion or without JavaScript the whole conversation shows at once.
  */
 export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
+  const t = useMessages(seekerHomeMessages).replay;
   const root = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const canAnimate = useSyncExternalStore(
@@ -101,20 +104,27 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   return (
     <div ref={root} className="overflow-hidden rounded-card bg-background shadow-card">
       <div className="flex items-center justify-between gap-3 bg-surface px-4 py-2.5 shadow-[0_1px_0_var(--border)]">
-        <p className="text-sm font-medium">找工发帖助手</p>
-        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">真实对话回放</span>
+        <p className="text-sm font-medium">{t.assistant}</p>
+        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">{t.tag}</span>
       </div>
 
       <ol className="sr-only">
         {messages.map((m) => (
           <li key={m.id}>
-            {m.from === "assistant" ? "助手：" : "雇主："}
-            {m.text}
+            {m.from === "assistant" ? t.fromAssistant : t.fromEmployer}
+            {/* The conversation itself stays Chinese: AI posting is Chinese in the first round (Round 20). */}
+            <span lang="zh-CN">{m.text}</span>
           </li>
         ))}
       </ol>
 
-      <div ref={log} aria-hidden="true" data-replay-log="" className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4">
+      <div
+        ref={log}
+        aria-hidden="true"
+        lang="zh-CN"
+        data-replay-log=""
+        className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4"
+      >
         {visible.map((m, i) => (
           <div
             key={m.id}
@@ -169,7 +179,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
             }}
             className="text-sm text-brand underline underline-offset-2"
           >
-            重新播放
+            {t.again}
           </button>
         </div>
       )}

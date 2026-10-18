@@ -23,6 +23,9 @@ import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { inputClass } from "@/components/ui/input-class";
 import { buttonClass, type ButtonSize } from "@/components/ui/Button";
 import { busyProps } from "@/components/ui/busy";
+import { contentLang } from "@/i18n/lang";
+import { useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { candidateFacts } from "@/lib/candidate-matching";
 
 /**
@@ -44,6 +47,7 @@ export function ApplyJob({
   size?: ButtonSize;
 }) {
   const applyButton = `${buttonClass("secondary", { size })} whitespace-nowrap`;
+  const t = useMessages(seekerJobsMessages).apply;
   const hydrated = useHydrated();
   const session = useSession();
   const router = useRouter();
@@ -76,7 +80,7 @@ export function ApplyJob({
     return (
       <Link href={applyAfterSignInHref(jobId)} className={applyButton}>
         <Send aria-hidden="true" className="size-4" />
-        申请
+        {t.apply}
       </Link>
     );
   if (!seeker) return null;
@@ -92,7 +96,7 @@ export function ApplyJob({
         className={applyButton}
       >
         <Send aria-hidden="true" className="size-4" />
-        {mine ? `已申请 · ${mine.status}` : "申请"}
+        {mine ? t.appliedWithStatus(mine.status) : t.apply}
       </button>
       {open && (
         <ApplyDialog
@@ -127,6 +131,7 @@ function ApplyDialog({
   onClose: () => void;
 }) {
   const { profile } = useProfile();
+  const t = useMessages(seekerJobsMessages).apply;
   const page = applicationProfileFrom(profile);
   const facts = page ? candidateFacts(applicantCandidate("me", page)) : [];
   const [note, setNote] = useState("");
@@ -149,7 +154,7 @@ function ApplyDialog({
     setError("");
     const result = await applyForJob(jobId, note, page).catch(() => null);
     setBusy(false);
-    if (!result) return setError("网络有问题，请稍后再试");
+    if (!result) return setError(t.networkError);
     if (!result.ok) return setError(result.error);
     onChange(result.application);
   }
@@ -158,7 +163,7 @@ function ApplyDialog({
     setBusy(true);
     const ok = await withdrawMyApplication(jobId).catch(() => false);
     setBusy(false);
-    if (!ok) return setError("没能撤回，请稍后再试");
+    if (!ok) return setError(t.withdrawFailed);
     onChange(null);
     onClose();
   }
@@ -176,7 +181,7 @@ function ApplyDialog({
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-card bg-surface p-4 shadow-pop md:rounded-card md:p-5"
       >
         <h2 id={titleId} className="text-subtitle font-semibold">
-          {mine ? "我的申请" : "申请这个职位"}
+          {mine ? t.titleMine : t.titleNew}
         </h2>
         <p className="mt-1 text-body text-muted">{jobTitle}</p>
 
@@ -185,8 +190,13 @@ function ApplyDialog({
             <p role="status" className="rounded-control bg-brand-soft px-3 py-2 text-body text-brand">
               {mine.status}
             </p>
-            {mine.note && <p className="text-body">附言：{mine.note}</p>}
-            <p className="text-meta text-muted">进度也在「我的 → 收藏和进度」里。</p>
+            {mine.note && (
+              <p className="text-body">
+                {t.note("")}
+                <span lang={contentLang(mine.note)}>{mine.note}</span>
+              </p>
+            )}
+            <p className="text-meta text-muted">{t.progressWhere}</p>
             {error && (
               <p role="alert" className="text-body text-danger">
                 {error}
@@ -194,10 +204,10 @@ function ApplyDialog({
             )}
             <div className="flex gap-2">
               <button ref={first} type="button" onClick={onClose} className={buttonClass("primary")}>
-                好的
+                {t.ok}
               </button>
               <button type="button" onClick={withdraw} className={buttonClass("link")} {...busyProps(busy)}>
-                撤回申请
+                {t.withdraw}
               </button>
             </div>
           </div>
@@ -209,8 +219,8 @@ function ApplyDialog({
               void submit();
             }}
           >
-            <section aria-label="雇主会看到的资料" className="rounded-control bg-background p-3">
-              <p className="text-meta text-muted">雇主会看到你的主页（不含联系方式）：</p>
+            <section aria-label={t.shown} className="rounded-control bg-background p-3">
+              <p className="text-meta text-muted">{t.shownHint}</p>
               {page ? (
                 <>
                   <p className="mt-1 font-medium">
@@ -227,15 +237,15 @@ function ApplyDialog({
                   </dl>
                 </>
               ) : (
-                <p className="mt-1 text-body text-warn">还没有名字，雇主不知道是谁申请的。</p>
+                <p className="mt-1 text-body text-warn">{t.noName}</p>
               )}
               <Link href="/profile" className="mt-1 inline-flex min-h-11 items-center text-meta text-brand underline">
-                编辑我的主页
+                {t.editProfile}
               </Link>
             </section>
             <div>
               <label htmlFor={`${titleId}-note`} className="text-body font-medium">
-                附言（选填）
+                {t.noteLabel}
               </label>
               <textarea
                 ref={first}
@@ -244,14 +254,14 @@ function ApplyDialog({
                 maxLength={NOTE_MAX}
                 rows={3}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="比如：周末都能上班，做过两年奶茶店"
+                placeholder={t.notePlaceholder}
                 className={`mt-1 ${inputClass({ multiline: true })}`}
               />
               <p className="text-right text-meta text-muted">
                 {[...note].length} / {NOTE_MAX}
               </p>
             </div>
-            <p className="text-meta text-muted">申请不会把你的电话、微信或邮箱给雇主。联系方式照这个职位的方式来。</p>
+            <p className="text-meta text-muted">{t.privacy}</p>
             {error && (
               <p role="alert" className="text-body text-danger">
                 {error}
@@ -259,10 +269,10 @@ function ApplyDialog({
             )}
             <div className="flex gap-2">
               <button type="submit" disabled={!page} className={buttonClass("primary")} {...busyProps(busy)}>
-                {busy ? "正在提交…" : "提交申请"}
+                {busy ? t.submitting : t.submit}
               </button>
               <button type="button" onClick={onClose} className={buttonClass("link")}>
-                取消
+                {t.cancel}
               </button>
             </div>
           </form>
@@ -283,19 +293,22 @@ export function ApplyRowButton({ jobId, title }: { jobId: string; title: string 
   const session = useSession();
   const applied = useAppliedJobIds();
   const router = useRouter();
+  const t = useMessages(seekerJobsMessages).apply;
   if (hydrated && session?.activeRole === "employer") return null;
   if (session && applied?.has(jobId))
-    return <span className="relative z-10 inline-flex min-h-8 items-center px-1.5 text-meta text-brand">已申请</span>;
+    return (
+      <span className="relative z-10 inline-flex min-h-8 items-center px-1.5 text-meta text-brand">{t.applied}</span>
+    );
   return (
     <button
       type="button"
       disabled={!hydrated}
-      aria-label={`申请：${title}`}
+      aria-label={t.label(title)}
       onClick={() => router.push(session ? `/jobs/${jobId}?${APPLY_PARAM}=1` : applyAfterSignInHref(jobId))}
       className="relative z-10 hidden min-h-8 items-center gap-1 rounded-control px-1.5 text-meta text-muted after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 md:inline-flex"
     >
       <Send aria-hidden="true" className="size-4" />
-      申请
+      {t.apply}
     </button>
   );
 }

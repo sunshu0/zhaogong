@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   contactKinds,
+  expiry,
   expiryZh,
   formatDateZh,
+  formatJobDate,
   isExpired,
   isPublic,
   minimumWageNote,
@@ -26,7 +28,7 @@ describe("minimumWageNote", () => {
   it("notes pay within a dollar of the minimum wage, naming the rate and the date", () => {
     expect(minimumWageNote({ min: 24.95 }, "NZ")).toEqual({
       level: "near",
-      text: "接近新西兰最低时薪 $23.95（2026-04-01 起）。",
+      text: "接近新西兰成人最低时薪 $23.95（2026-04-01 起）。",
     });
     expect(minimumWageNote({ min: 24, max: 26 }, "NZ")?.level).toBe("near");
   });
@@ -34,14 +36,14 @@ describe("minimumWageNote", () => {
   it("notes pay at the minimum wage", () => {
     expect(minimumWageNote({ min: 23.95 }, "NZ")).toEqual({
       level: "at",
-      text: "等于新西兰最低时薪 $23.95（2026-04-01 起）。",
+      text: "等于新西兰成人最低时薪 $23.95（2026-04-01 起）。",
     });
   });
 
   it("warns when pay is below the minimum wage and points to reporting", () => {
     const note = minimumWageNote({ min: 22 }, "NZ");
     expect(note?.level).toBe("below");
-    expect(note?.text).toContain("低于新西兰最低时薪 $23.95");
+    expect(note?.text).toContain("低于新西兰成人最低时薪 $23.95");
     expect(note?.text).toContain("举报");
   });
 
@@ -107,5 +109,18 @@ describe("contactKinds", () => {
     expect(contactKinds(job("j1"))).toEqual(["电话", "微信"]);
     expect(contactKinds(job("j3"))).toEqual(["电话", "邮箱"]);
     expect(contactKinds({ ...job("j1"), contact: {} })).toEqual([]);
+  });
+});
+
+describe("in English (Round 20)", () => {
+  it("names the adult minimum wage, the badge's meaning, the dates and the contact kinds", () => {
+    expect(minimumWageNote({ min: 23.95 }, "NZ", "en")?.text).toBe(
+      "The same as the adult minimum wage in New Zealand, $23.95 an hour (from 2026-04-01).",
+    );
+    expect(verificationNote("business_verified", "NZ", "en")).toContain("NZBN");
+    expect(formatJobDate("2026-10-10T11:30:00Z", "NZ", "en")).toBe("11 October");
+    expect(expiry("2026-10-11T12:00:00Z", Date.parse("2026-10-10T12:00:00Z"), "NZ", "en")).toBe(
+      "Closes 12 October (in 1 day)",
+    );
   });
 });

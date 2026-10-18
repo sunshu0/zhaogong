@@ -33,6 +33,8 @@ import {
 } from "@/components/seeker/saved-jobs";
 import { CITY_LABELS, payLabel } from "@/lib/external-jobs/labels";
 import { isShown } from "@/lib/external-jobs/visibility";
+import { placeName } from "@/components/seeker/format";
+import { requestLang } from "@/i18n/server";
 
 export type SavedJobView = {
   /** The save key: a job's id, or externalSaveKey of an external job. */
@@ -70,6 +72,7 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
   const session = await getCurrentSession();
   if (!session) return null;
   const rows = await listSavedJobs(session.email);
+  const lang = await requestLang();
   // The job seeker identity's chats say which jobs swapped contact details: its own and those it shares (#110).
   const scope = identityScope({ email: session.email, signedInAt: "", activeRole: "seeker" });
   const own = (await chatServerStore().getChat(scope)) ?? EMPTY_CHAT;
@@ -111,7 +114,7 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
         titleEn: job.titleEn,
         pay: job.pay,
         country: job.country,
-        region: regionById(job.country, job.regionId)?.nameZh,
+        region: placeName(regionById(job.country, job.regionId), lang),
         employerName: employer?.name,
         gone: job.status !== "active" || isExpired(job, now) || !!employer?.bannedAt,
         savedAt: row.savedAt,

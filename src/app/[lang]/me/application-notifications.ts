@@ -4,10 +4,14 @@
 // from the session calls it (messages/server-notifications.ts, jobs/[id]/apply-actions.ts). Server only.
 import { getEmployer, getJob, listModerationLog } from "@/lib/data";
 import { myApplications, type ApplicationRow } from "@/db/job-applications";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import { hiredNotificationId, jobEndedAt, jobEndedNotificationId } from "@/components/seeker/applications";
 import type { Notification } from "@/components/seeker/hub-state";
 import type { Job } from "@/lib/types";
+import type { Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { requestLang } from "@/i18n/server";
 
 /**
  * When each job stopped taking people, or null while open (jobEndedAt). For a job taken down, the time comes from
@@ -45,11 +49,14 @@ export async function applicationOutcomeNotifications(email: string, now: number
     if (job) jobs.set(job.id, job);
   }
   const endings = await jobEndings([...jobs.values()], now);
+  // Made per request in the visitor's language (Round 20).
+  const lang = await requestLang();
   const notes = await Promise.all(
     rows.map(async (row): Promise<Notification | null> => {
       const job = jobs.get(row.jobId);
       if (!job) return null;
-      return outcome(row, job, endings.get(job.id) ?? null, (await getEmployer(job.employerId))?.name ?? "", now);
+      const business = (await getEmployer(job.employerId))?.name ?? "";
+      return outcome(row, job, endings.get(job.id) ?? null, business, now, lang);
     }),
   );
   return notes.filter((n): n is Notification => n !== null);
@@ -61,14 +68,16 @@ function outcome(
   endedAt: string | null,
   business: string,
   now: number,
+  lang: Lang,
 ): Notification | null {
+  const t = pick(seekerMeMessages, lang).notices;
   if (row.decision === "hired")
     return {
       id: hiredNotificationId(row.id),
       type: "申请",
-      title: `${business}录用了你`,
-      detail: `「${job.titleZh}」。上班时间和安排，可以在聊天里和雇主确认。`,
-      time: postedAgoZh(row.decidedAt ?? row.appliedAt, now),
+      title: t.hired(business),
+      detail: t.hiredDetail(job.titleZh),
+      time: postedAgo(row.decidedAt ?? row.appliedAt, now, lang),
       unread: true,
       target: { type: "applications" },
     };
@@ -76,9 +85,9 @@ function outcome(
   return {
     id: jobEndedNotificationId(row.id),
     type: "申请",
-    title: job.hiresConfirmed ? `「${job.titleZh}」已经招满` : `「${job.titleZh}」已结束`,
-    detail: `谢谢你申请${business}的这个职位。它已经不再招人，可以看看其他在招的职位。`,
-    time: postedAgoZh(endedAt, now),
+    title: job.hiresConfirmed ? t.filled(job.titleZh) : t.ended(job.titleZh),
+    detail: t.endedDetail(business),
+    time: postedAgo(endedAt, now, lang),
     unread: true,
     target: { type: "applications" },
   };

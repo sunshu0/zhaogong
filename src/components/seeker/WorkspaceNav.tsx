@@ -5,6 +5,8 @@ import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useNotifications } from "@/components/seeker/hub-client";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
+import { useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 type NavItem = { href: string; label: string };
 
@@ -12,35 +14,38 @@ type NavItem = { href: string; label: string };
  * The workspace sidebar (from 1024 px). Names match the header, the account menu and 我的; 聊天 and 职位管理 are
  * in the header, so they are not repeated here. Phones reach these pages from 我的 in the bottom bar.
  */
-function workspaceNav(isEmployer: boolean): NavItem[] {
+function workspaceNav(isEmployer: boolean, t: WorkspaceWords): NavItem[] {
   return [
-    { href: "/workspace", label: "总览" },
-    { href: "/notifications", label: "通知" },
-    { href: "/profile", label: isEmployer ? "企业主页" : "我的主页" },
+    { href: "/workspace", label: t.overview },
+    { href: "/notifications", label: t.notifications },
+    { href: "/profile", label: isEmployer ? t.businessPage : t.profile },
     ...(isEmployer
       ? [
-          { href: "/employer/candidates", label: "推荐人才" },
-          { href: "/employer/verify", label: "企业验证" }, // #78: from 工作台, not only from 企业主页
-          { href: "/employer/team", label: "团队" }, // #87
+          { href: "/employer/candidates", label: t.candidates },
+          { href: "/employer/verify", label: t.verify }, // #78: from 工作台, not only from 企业主页
+          { href: "/employer/team", label: t.team }, // #87
         ]
       : [
-          { href: "/me/saved", label: "收藏和进度" },
-          { href: ALERTS_PATH, label: "职位提醒" },
-          { href: "/me", label: "浏览与举报" },
+          { href: "/me/saved", label: t.saved },
+          { href: ALERTS_PATH, label: t.alerts },
+          { href: "/me", label: t.history },
         ]),
     // Both identities: on a desktop this sidebar and the account menu are the only ways to it (#76).
-    { href: ACCOUNT_DATA_PATH, label: "数据与账号" },
+    { href: ACCOUNT_DATA_PATH, label: t.data },
   ];
 }
+
+type WorkspaceWords = (typeof seekerMeMessages)["en"]["workspace"];
 
 // The current page: brand and semibold on the brand's soft colour (Round 19, like a chosen option).
 const ACTIVE = "bg-brand-soft font-semibold text-brand";
 
 export function WorkspaceNav({ pathname, isEmployer }: { pathname: string; isEmployer: boolean }) {
+  const t = useMessages(seekerMeMessages).workspace;
   const { unread: notificationUnread } = useNotifications();
   return (
-    <nav aria-label="工作台导航" className="mt-3 space-y-1">
-      {workspaceNav(isEmployer).map((item) => {
+    <nav aria-label={t.nav} className="mt-3 space-y-1">
+      {workspaceNav(isEmployer, t).map((item) => {
         const active = pathname === item.href;
         return (
           <Link

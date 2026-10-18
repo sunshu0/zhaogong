@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LANG, LANGS, isLang, langFrom, langRoute, localeTag, sitePath } from "@/i18n/lang";
+import { DEFAULT_LANG, LANGS, contentLang, isLang, langFrom, langRoute, localeTag, sitePath } from "@/i18n/lang";
 
 describe("languages", () => {
   it("are Chinese and English, Chinese first and by default", () => {
@@ -38,5 +38,13 @@ describe("languages", () => {
     expect(langRoute("/", undefined)).toEqual({ rewrite: "/zh" });
     expect(langRoute("/en/jobs", "en")).toEqual({ redirect: "/jobs" });
     expect(langRoute("/zh", undefined)).toEqual({ redirect: "/" });
+  });
+
+  it("marks a person's text Chinese when it has Chinese in it, and leaves Latin text alone", () => {
+    expect(contentLang("前厅服务员")).toBe("zh-CN");
+    expect(contentLang("川味小馆 Sichuan")).toBe("zh-CN");
+    expect(contentLang("Tūī Software")).toBeUndefined();
+    expect(contentLang("")).toBeUndefined();
+    expect(contentLang(undefined)).toBeUndefined();
   });
 });

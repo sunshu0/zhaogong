@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
 import { Radio } from "@/components/ui/Checkbox";
 import { inputClass } from "@/components/ui/input-class";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 /** "举报这个职位" → reasons + optional note → thank-you. */
 export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
@@ -24,11 +26,12 @@ export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string
 }
 
 function ClosedReport({ disabled = false, onOpen }: { disabled?: boolean; onOpen?: () => void }) {
+  const t = useMessages(seekerJobsMessages).report;
   return (
     <div className="flex items-center justify-between gap-3 px-1 text-sm text-muted">
-      <span>职位信息有问题？</span>
+      <span>{t.prompt}</span>
       <Button variant="danger-secondary" disabled={disabled} onClick={onOpen}>
-        举报这个职位
+        {t.open}
       </Button>
     </div>
   );
@@ -38,6 +41,8 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   const [state, setState] = useState<"closed" | "open" | "sent">("closed");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const lang = useLang();
+  const t = useMessages(seekerJobsMessages).report;
   const thanks = useRef<HTMLElement>(null);
   // The form and its buttons go away: the focus goes to the thanks (#202).
   useEffect(() => {
@@ -50,12 +55,12 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     const data = new FormData(e.currentTarget);
     const reason = String(data.get("reason") ?? "");
     const note = String(data.get("note") ?? "");
-    const parsed = parseReport({ reason, note });
+    const parsed = parseReport({ reason, note }, lang);
     if (!parsed.ok) return setError(parsed.error);
     setError(null);
     startTransition(async () => {
       const result = await reportJob(jobId, parsed.reason, parsed.note).catch(() => null);
-      if (!result) return setError("网络有问题，举报没有发出，请稍后再试");
+      if (!result) return setError(t.networkError);
       if (!result.ok) return setError(result.error);
       rememberReport(
         { reportId: result.reportId, jobId, jobTitle, reason: parsed.reason, at: new Date().toISOString() },
@@ -68,14 +73,14 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   if (state === "sent") {
     return (
       <section ref={thanks} tabIndex={-1} role="status" className="rounded-card bg-ok-soft p-4 outline-none lg:p-5">
-        <h2 className="font-medium text-ok">谢谢你的举报</h2>
-        <p className="mt-1 text-sm">我们会尽快核查这个职位。在此之前，如果雇主要求你付钱或交出证件，请不要照做。</p>
+        <h2 className="font-medium text-ok">{t.thanks}</h2>
+        <p className="mt-1 text-sm">{t.thanksDetail}</p>
         <p className="mt-2 text-xs text-muted">
-          发出的举报可以在
+          {t.seeBefore}
           <Link href="/me" className="mx-0.5 underline underline-offset-2">
-            「我的」
+            {t.seeLink}
           </Link>
-          里看到。
+          {t.seeAfter}
         </p>
       </section>
     );
@@ -83,7 +88,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
 
   if (state === "closed") {
     return reportedBefore ? (
-      <p className="px-1 text-sm text-muted">你已经举报过这个职位，我们会尽快核查。</p>
+      <p className="px-1 text-sm text-muted">{t.already}</p>
     ) : (
       <ClosedReport onOpen={() => setState("open")} />
     );
@@ -92,24 +97,24 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   return (
     <form onSubmit={submit} noValidate className={cardClass()}>
       <fieldset>
-        <legend className="font-medium">举报这个职位</legend>
-        <p className="mt-1 text-sm text-muted">请选择最符合的原因。举报不会告诉雇主是谁发的。</p>
+        <legend className="font-medium">{t.legend}</legend>
+        <p className="mt-1 text-sm text-muted">{t.hint}</p>
         <div className="mt-3 space-y-1">
           {REPORT_REASONS.map((reason) => (
             <Radio key={reason} name="reason" value={reason}>
-              {REPORT_REASON_LABELS[reason].zh}
+              {REPORT_REASON_LABELS[reason][lang]}
             </Radio>
           ))}
         </div>
       </fieldset>
 
       <label className="mt-3 block">
-        <span className="mb-1 block text-sm">补充说明（选填）</span>
+        <span className="mb-1 block text-sm">{t.note}</span>
         <textarea
           name="note"
           rows={3}
           maxLength={NOTE_MAX}
-          placeholder="例如：电话里要求先交 200 元押金"
+          placeholder={t.notePlaceholder}
           className={inputClass({ multiline: true })}
         />
       </label>
@@ -129,10 +134,10 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
             setError(null);
           }}
         >
-          取消
+          {t.cancel}
         </Button>
         <Button type="submit" variant="danger" loading={pending} className="flex-[2]">
-          提交举报
+          {t.submit}
         </Button>
       </div>
     </form>

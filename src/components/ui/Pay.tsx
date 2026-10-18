@@ -1,4 +1,5 @@
 import { payParts } from "@/components/ui/pay-parts";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import type { CountryCode, PayRange } from "@/lib/types";
 
 const SIZES = {
@@ -19,13 +20,16 @@ export function Pay({
   country,
   size = "card",
   className = "",
+  lang = DEFAULT_LANG,
 }: {
   pay: PayRange;
   country: CountryCode;
   size?: keyof typeof SIZES;
   className?: string;
+  /** The page's language (Round 20): 「/小时」 or 「 an hour」. */
+  lang?: Lang;
 }) {
-  const { amount, unit } = payParts(pay, country);
+  const { amount, unit } = payParts(pay, country, lang);
   return (
     <span className={`inline-flex items-baseline whitespace-nowrap text-brand ${className}`.trim()}>
       <span className={`font-figure ${SIZES[size]}`}>{amount}</span>

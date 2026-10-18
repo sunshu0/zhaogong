@@ -10,14 +10,17 @@ import { externalAlertHref } from "@/lib/external-jobs/alerts";
 import type { ExternalSection } from "@/lib/external-jobs/filter";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { busyProps } from "@/components/ui/busy";
+import { useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 const ACTION =
   "inline-flex min-h-11 shrink-0 items-center gap-1 text-body text-brand underline-offset-4 hover:underline";
 
-const SAID: Record<SaveAlertResult["status"], string> = {
-  created: "已保存为提醒",
-  exists: "已经是提醒了",
-  limit: `提醒已满 ${ALERT_LIMIT} 个`,
+/** What 保存为提醒 turns into, by the server's answer (the words in seeker-me's alerts). */
+const SAID: Record<SaveAlertResult["status"], "created" | "exists" | "limit"> = {
+  created: "created",
+  exists: "exists",
+  limit: "limit",
 };
 
 /**
@@ -26,6 +29,7 @@ const SAID: Record<SaveAlertResult["status"], string> = {
  * `section` it saves the filters of 实习 or 专业职位 (#131).
  */
 export function SaveAlert({ query, section }: { query: string; section?: ExternalSection }) {
+  const a = useMessages(seekerMeMessages).alerts;
   const hydrated = useHydrated();
   const session = useSession();
   const [busy, setBusy] = useState(false);
@@ -45,7 +49,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
         className={ACTION}
       >
         <Bell aria-hidden="true" className="size-4" />
-        登录后保存为提醒
+        {a.signInToSave}
       </Link>
     );
   }
@@ -55,7 +59,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
       <p role="status" className="flex min-h-11 shrink-0 items-center gap-2 text-body text-muted">
         {said}
         <Link ref={manage} href={ALERTS_PATH} className="text-brand underline-offset-4 hover:underline">
-          管理提醒
+          {a.manage}
         </Link>
       </p>
     );
@@ -65,7 +69,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
     <span className="flex shrink-0 items-center gap-2">
       {failed && (
         <span role="alert" className="text-meta text-danger">
-          没有保存，请重试
+          {a.saveFailed}
         </span>
       )}
       <button
@@ -76,7 +80,8 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
           setFailed(false);
           try {
             const result = await saveMyJobAlert(query, section);
-            setSaid(result ? SAID[result.status] : "请先登录");
+            const said = result && SAID[result.status];
+            setSaid(said ? (said === "limit" ? a.limit(ALERT_LIMIT) : a[said]) : a.signInFirst);
           } catch {
             setFailed(true);
           } finally {
@@ -86,7 +91,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
         {...busyProps(busy)}
       >
         <Bell aria-hidden="true" className="size-4" />
-        保存为提醒
+        {a.saveAsAlert}
       </button>
     </span>
   );

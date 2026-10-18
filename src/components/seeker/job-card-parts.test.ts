@@ -9,14 +9,14 @@ const employer = MOCK_EMPLOYERS.find((e) => e.id === j5.employerId)!;
 
 describe("a job card's parts (Round 19)", () => {
   it("puts place, work and hours, shifts and how to reach the employer on one line, without labels", () => {
-    expect(cardPoints(j5, "Botany")).toEqual([
+    expect(cardPoints(j5, "Botany").map((p) => p.text)).toEqual([
       "Botany",
       `${formatEmploymentTypes(j5.employmentType)} 每周 20–30 小时`,
       "早班 7:00–13:00",
       "聊天交换联系方式",
     ]);
     const bare: Job = { ...j5, employmentType: [], hoursPerWeek: undefined, shiftsZh: " ", contactPublic: true };
-    expect(cardPoints(bare, undefined)).toEqual(["联系方式公开"]);
+    expect(cardPoints(bare, undefined).map((p) => p.text)).toEqual(["联系方式公开"]);
   });
 
   it("shows one status: 急招 before a verified employer, nothing for an unverified one", () => {
@@ -37,7 +37,18 @@ describe("a job card's parts (Round 19)", () => {
       accommodationIncluded: true,
       visaAccepted: ["student"],
     };
-    expect(cardTags(all)).toEqual(["包餐", "包住"]);
-    expect(cardTags({ ...all, mealsIncluded: false, accommodationIncluded: false })).toEqual(["接受学签"]);
+    expect(cardTags(all)).toEqual(["meals", "housing"]);
+    expect(cardTags({ ...all, mealsIncluded: false, accommodationIncluded: false })).toEqual(["student"]);
+  });
+
+  it("says the line in English, and marks the shifts as the employer's own Chinese", () => {
+    const points = cardPoints(j5, "Botany", "en");
+    expect(points.map((p) => p.text)).toEqual([
+      "Botany",
+      `${formatEmploymentTypes(j5.employmentType, "en")} 20–30 hours a week`,
+      "早班 7:00–13:00",
+      "Swap contact details in chat",
+    ]);
+    expect(points.filter((p) => p.zh).map((p) => p.text)).toEqual(["早班 7:00–13:00"]);
   });
 });

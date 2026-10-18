@@ -13,6 +13,8 @@ import { SignInGate } from "@/components/seeker/SignInGate";
 import { WorkspaceDashboard } from "@/components/seeker/WorkspaceDashboard";
 import { WorkspaceNav } from "@/components/seeker/WorkspaceNav";
 import { workspaceTitle } from "@/components/seeker/workspace";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 /** Chat uses up to 96rem centred on the window instead of the usual wide column. */
 const CHAT_WIDTH = "lg:ml-[calc(50%_-_min(48rem,_50vw_-_1.5rem))] lg:w-[min(96rem,_100vw_-_3rem)]";
@@ -22,6 +24,8 @@ const CHAT_WIDTH = "lg:ml-[calc(50%_-_min(48rem,_50vw_-_1.5rem))] lg:w-[min(96re
  * the content the sample's type (`type-app`); each line passes it once its pages have the new cards.
  */
 export function WorkHubFrame({ look, children }: { look?: "app"; children: ReactNode }) {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages).workspace;
   const pathname = useSitePathname();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
@@ -35,11 +39,13 @@ export function WorkHubFrame({ look, children }: { look?: "app"; children: React
         <div className="rounded-card bg-surface p-3 shadow-card">
           <div className="border-b border-border px-2 pb-3">
             <p className="text-xs font-medium text-brand">找工</p>
-            <h2 className="mt-1 text-lg font-semibold">工作台</h2>
+            <h2 className="mt-1 text-lg font-semibold">{t.title}</h2>
           </div>
           <WorkspaceNav pathname={pathname} isEmployer={isEmployer} />
           {session && (
-            <p className="mt-3 border-t border-border px-2 pt-3 text-xs text-muted">{workspaceTitle(isEmployer)}</p>
+            <p className="mt-3 border-t border-border px-2 pt-3 text-xs text-muted">
+              {workspaceTitle(isEmployer, lang)}
+            </p>
           )}
         </div>
       </aside>
@@ -51,33 +57,37 @@ export function WorkHubFrame({ look, children }: { look?: "app"; children: React
 }
 
 export function WorkspaceOverview() {
+  const t = useMessages(seekerMeMessages).workspace;
   return (
-    <SignInGate message="登录后进入你的工作台">
+    <SignInGate message={t.gateWorkspace}>
       <WorkspaceDashboard />
     </SignInGate>
   );
 }
 
 export function MessagesPage() {
+  const t = useMessages(seekerMeMessages).workspace;
   const conversationId = useSearchParams().get("conversation");
   return (
-    <SignInGate message="登录后管理你的聊天和求职沟通">
+    <SignInGate message={t.gateChat}>
       <MessageWorkspace key={conversationId ?? "list"} initialId={conversationId} />
     </SignInGate>
   );
 }
 
 export function NotificationsPage() {
+  const t = useMessages(seekerMeMessages).workspace;
   return (
-    <SignInGate message="登录后查看职位和聊天通知">
+    <SignInGate message={t.gateNotifications}>
       <NotificationWorkspace />
     </SignInGate>
   );
 }
 
 export function ProfilePage() {
+  const t = useMessages(seekerMeMessages).workspace;
   return (
-    <SignInGate message="登录后创建自己的个人主页">
+    <SignInGate message={t.gateProfile}>
       <ProfileWorkspace />
     </SignInGate>
   );

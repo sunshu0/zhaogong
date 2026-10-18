@@ -56,7 +56,7 @@ export function PayReferenceBox({
           <p className={card ? "font-semibold" : "font-medium"}>
             {t.title}{" "}
             <span className="font-normal text-muted">
-              · {reference.place} · {label}
+              · {lang === "en" ? reference.placeEn : reference.place} · {label}
             </span>
           </p>
           <dl className={card ? "mt-3 grid grid-cols-3 gap-x-4" : "mt-1 flex flex-wrap gap-x-4 gap-y-0.5"}>

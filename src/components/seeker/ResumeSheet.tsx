@@ -11,9 +11,12 @@ export function ResumeSheet({ doc }: { doc: ResumeDoc }) {
   const rows = resumeRows(doc);
   const contact = contactRows(doc.contact);
   return (
+    // The sheet is the CV itself, in both languages whatever the page's (Round 20): Chinese, with its English parts
+    // marked lang="en".
     <article
       id={RESUME_SHEET_ID}
-      aria-label="中英文简历"
+      lang="zh-CN"
+      aria-label="中英文简历 · CV"
       className="mx-auto w-full max-w-[210mm] rounded-card bg-white px-5 py-6 text-[#1f2421] shadow-card sm:px-10 sm:py-9 print:max-w-none print:rounded-none print:p-0 print:shadow-none"
     >
       <header className="border-b-2 border-brand pb-3">

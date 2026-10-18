@@ -71,7 +71,7 @@ test("a keyword with no match shows the empty state, which clears the filters", 
 
 test("a job near the minimum wage says so, and an unknown job is not found", async ({ page }) => {
   await page.goto("/jobs/j13");
-  await expect(page.getByText("接近新西兰最低时薪 $23.95（2026-04-01 起）。").filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("接近新西兰成人最低时薪 $23.95（2026-04-01 起）。").filter({ visible: true })).toBeVisible();
   await expect(
     page.getByText(/签证一项是雇主提供的信息，不构成签证或移民建议。/).filter({ visible: true }),
   ).toBeVisible();

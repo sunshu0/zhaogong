@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { useMediaQuery } from "@/components/ui/use-media-query";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
 import {
   filterChips,
@@ -69,7 +71,10 @@ function Form({
   const desktop = useMediaQuery(DESKTOP, true);
   const [pending, startTransition] = useTransition();
   const country = COUNTRIES[filter.country];
-  const active = filterChips(filter).filter((c) => c.id !== "q").length;
+  const lang = useLang();
+  const t = useMessages(seekerJobsMessages);
+  const f = t.filter;
+  const active = filterChips(filter, lang).filter((c) => c.id !== "q").length;
   // What is ticked in the panel, applied or not, for the group rows.
   const [draft, setDraft] = useState(filter);
   const readDraft = useCallback(() => {
@@ -101,7 +106,7 @@ function Form({
 
   const group = (id: FilterGroup) => ({
     id,
-    summary: filterGroupSummary(draft, id),
+    summary: filterGroupSummary(draft, id, lang),
     open: openGroups.has(id),
     onToggle: () => toggleGroup(id),
   });
@@ -110,7 +115,7 @@ function Form({
   const choice = desktop ? checkChoice : chip;
   const multi = (
     <>
-      <Group title="地区" {...group("region")}>
+      <Group title={f.region} {...group("region")}>
         {country.regions.map((r) =>
           choice({
             key: r.id,
@@ -118,11 +123,11 @@ function Form({
             name: "region",
             value: r.id,
             checked: filter.regionIds?.includes(r.id),
-            label: r.nameZh,
+            label: lang === "en" ? r.nameEn : r.nameZh,
           }),
         )}
       </Group>
-      <Group title="行业" {...group("industry")}>
+      <Group title={f.industry} {...group("industry")}>
         {(Object.keys(INDUSTRY_LABELS) as Industry[]).map((id) =>
           choice({
             key: id,
@@ -130,11 +135,11 @@ function Form({
             name: "industry",
             value: id,
             checked: filter.industries?.includes(id),
-            label: INDUSTRY_LABELS[id].zh,
+            label: INDUSTRY_LABELS[id][lang],
           }),
         )}
       </Group>
-      <Group title="岗位类别" {...group("role")}>
+      <Group title={f.role} {...group("role")}>
         {JOB_ROLE_IDS.map((id) =>
           choice({
             key: id,
@@ -142,11 +147,11 @@ function Form({
             name: "role",
             value: id,
             checked: filter.roles?.includes(id),
-            label: JOB_ROLES[id].zh,
+            label: JOB_ROLES[id][lang],
           }),
         )}
       </Group>
-      <Group title="工作类型" {...group("type")}>
+      <Group title={f.type} {...group("type")}>
         {(Object.keys(EMPLOYMENT_TYPE_LABELS) as EmploymentType[]).map((id) =>
           choice({
             key: id,
@@ -154,21 +159,21 @@ function Form({
             name: "type",
             value: id,
             checked: filter.employmentTypes?.includes(id),
-            label: EMPLOYMENT_TYPE_LABELS[id].zh,
+            label: EMPLOYMENT_TYPE_LABELS[id][lang],
           }),
         )}
       </Group>
     </>
   );
   const food = (
-    <Group title="食宿" {...group("food")}>
+    <Group title={f.food} {...group("food")}>
       {choice({
         key: "meals",
         type: "checkbox",
         name: "meals",
         value: "1",
         checked: filter.mealsIncluded,
-        label: "包餐",
+        label: f.meals,
       })}
       {choice({
         key: "housing",
@@ -176,12 +181,15 @@ function Form({
         name: "housing",
         value: "1",
         checked: filter.accommodationIncluded,
-        label: "包住",
+        label: f.housing,
       })}
     </Group>
   );
-  const minPayOptions = MIN_PAY_OPTIONS.map((n) => ({ value: String(n), label: `${country.currencySymbol}${n} 起` }));
-  const visaOptions = country.visaTypes.map((v) => ({ value: v, label: VISA_LABELS[v].zh }));
+  const minPayOptions = MIN_PAY_OPTIONS.map((n) => ({
+    value: String(n),
+    label: t.pay.from(`${country.currencySymbol}${n}`),
+  }));
+  const visaOptions = country.visaTypes.map((v) => ({ value: v, label: VISA_LABELS[v][lang] }));
 
   return (
     <form
@@ -199,8 +207,8 @@ function Form({
           defaultValue={filter.query}
           maxLength={50}
           enterKeyHint="search"
-          placeholder="搜索职位，如 服务员、厨师"
-          aria-label="搜索职位"
+          placeholder={f.searchPlaceholder}
+          aria-label={f.search}
           className="h-11 min-w-0 flex-1 rounded-control bg-surface px-3 text-base shadow-card outline-none focus:ring-2 focus:ring-brand/40"
         />
         <button
@@ -214,7 +222,7 @@ function Form({
           }`}
         >
           <SlidersHorizontal aria-hidden="true" className="size-4" />
-          筛选{active > 0 && ` · ${active}`}
+          {active > 0 ? f.openWithCount(active) : f.open}
         </button>
       </div>
 
@@ -230,14 +238,14 @@ function Form({
           <div className="space-y-3 pt-3">
             <Select
               name="minPay"
-              label="最低时薪"
+              label={f.minPay}
               defaultValue={filter.minPay == null ? "" : String(filter.minPay)}
               options={minPayOptions}
               onChange={selectChanged}
             />
             <Select
               name="visa"
-              label="雇主接受的签证"
+              label={f.visa}
               defaultValue={filter.visa ?? ""}
               options={visaOptions}
               onChange={selectChanged}
@@ -248,7 +256,7 @@ function Form({
         <BottomSheet
           open={open}
           onClose={close}
-          title="筛选"
+          title={f.title}
           footer={
             // Below the scrolling groups, so 查看职位 is always in reach and nothing shows under it.
             <div className="flex gap-2">
@@ -265,24 +273,24 @@ function Form({
                   readDraft();
                 }}
               >
-                清空条件
+                {f.clear}
               </Button>
               <Button type="submit" size="lg" loading={pending} className="flex-[2]">
-                {pending ? "正在查找…" : "查看职位"}
+                {pending ? f.finding : f.show}
               </Button>
             </div>
           }
         >
           <div id="job-filters" className="divide-y divide-border px-2">
             {multi}
-            <Group title="最低时薪" {...group("minPay")}>
+            <Group title={f.minPay} {...group("minPay")}>
               {chip({
                 key: "",
                 type: "radio",
                 name: "minPay",
                 value: "",
                 checked: filter.minPay == null,
-                label: "不限",
+                label: f.any,
               })}
               {minPayOptions.map((o) =>
                 chip({
@@ -295,8 +303,8 @@ function Form({
                 }),
               )}
             </Group>
-            <Group title="雇主接受的签证" {...group("visa")}>
-              {chip({ key: "", type: "radio", name: "visa", value: "", checked: !filter.visa, label: "不限" })}
+            <Group title={f.visa} {...group("visa")}>
+              {chip({ key: "", type: "radio", name: "visa", value: "", checked: !filter.visa, label: f.any })}
               {visaOptions.map((o) =>
                 chip({
                   key: o.value,

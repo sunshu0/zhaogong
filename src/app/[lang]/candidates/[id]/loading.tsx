@@ -1,6 +1,8 @@
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
+import { messages } from "@/i18n/server";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 // Shown at once while a job seeker's page comes from the server (Round 19): no blank screen between pages.
-export default function Loading() {
-  return <DetailPageSkeleton label="正在加载主页" />;
+export default async function Loading() {
+  return <DetailPageSkeleton label={(await messages(seekerProfileMessages)).pages.loadingProfile} />;
 }

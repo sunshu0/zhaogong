@@ -13,9 +13,13 @@ import { ButtonLink } from "@/components/ui/Button";
 import { LinkList } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 /** 总览 (/workspace): only what needs doing, most urgent first; one sentence and one button when nothing does. */
 export function WorkspaceDashboard() {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages).workspace;
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const employerEmail = isEmployer ? session.email : undefined;
@@ -48,31 +52,29 @@ export function WorkspaceDashboard() {
   return (
     <div className="space-y-section">
       <header>
-        <h1 className="text-title font-semibold">{workspaceTitle(isEmployer)}</h1>
+        <h1 className="text-title font-semibold">{workspaceTitle(isEmployer, lang)}</h1>
         <p className="mt-0.5 text-meta text-muted">
-          {[isEmployer && session?.employerName, !loading && todos.length > 0 && `${todos.length} 件事要处理`]
+          {[isEmployer && session?.employerName, !loading && todos.length > 0 && t.toDo(todos.length)]
             .filter(Boolean)
             .join(" · ")}
         </p>
       </header>
       {loading ? (
-        <SkeletonList count={2} label="正在读取待办" />
+        <SkeletonList count={2} label={t.loadingTodos} />
       ) : todos.length ? (
-        <Section look="app" id="todos" title="待办">
+        <Section look="app" id="todos" title={t.todos}>
           <LinkList
-            label="待办"
+            label={t.todos}
             items={todos.map((todo) => ({ href: todo.href, label: todo.title, detail: todo.detail }))}
           />
         </Section>
       ) : (
         <Section look="app">
           <div className="py-10 text-center">
-            <p className="text-subtitle">都处理完了</p>
-            <p className="mt-1 text-meta text-muted">
-              {isEmployer ? "新的应聘和聊天会出现在这里。" : "有新消息或交换请求时会出现在这里。"}
-            </p>
+            <p className="text-subtitle">{t.allDone}</p>
+            <p className="mt-1 text-meta text-muted">{isEmployer ? t.employerEmpty : t.seekerEmpty}</p>
             <ButtonLink href={isEmployer ? "/employer/post" : "/jobs"} className="mt-4">
-              {isEmployer ? "发布职位" : "去看职位"}
+              {isEmployer ? t.postJob : t.browse}
             </ButtonLink>
           </div>
         </Section>

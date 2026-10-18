@@ -3,42 +3,42 @@
 import { useId } from "react";
 import type { Profile } from "@/components/seeker/hub-state";
 import { inputClass } from "@/components/ui/input-class";
+import { useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 export type UpdateProfileField = <K extends keyof Profile>(field: K, value: Profile[K]) => boolean | undefined;
 type PrivateDetails = NonNullable<Profile["privateDetails"]>;
 
-const PRIVATE_FIELDS = [
-  ["phone", "交换用电话", ""],
-  ["wechat", "交换用微信", ""],
-  ["email", "交换用邮箱", ""],
-] as const;
+/** The details for swapping; their labels are the fields' words of the same names (seeker-profile). */
+const PRIVATE_FIELDS = ["phone", "wechat", "email"] as const;
 const NO_PRIVATE_DETAILS: PrivateDetails = { phone: "", wechat: "", email: "" };
 
 type FieldsProps = { profile: Profile; update: UpdateProfileField };
 
 /** A job seeker's required text fields; 期望时薪 and 经验 come from ResumeKeyFields. */
 export function SeekerRequiredFields({ profile, update }: FieldsProps) {
+  const f = useMessages(seekerProfileMessages).fields;
   return (
     <>
-      <Field label="称呼" value={profile.name} onChange={(v) => update("name", v)} placeholder="例如：林晓" />
+      <Field label={f.name} value={profile.name} onChange={(v) => update("name", v)} placeholder={f.namePlaceholder} />
       <Field
-        label="可上班时间"
+        label={f.availability}
         value={profile.availability}
         onChange={(v) => update("availability", v)}
-        placeholder="例如：周一至周六，下午可上班"
+        placeholder={f.availabilityPlaceholder}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="地区"
+          label={f.region}
           value={profile.location}
           onChange={(v) => update("location", v)}
-          placeholder="例如：奥克兰 · 北岸"
+          placeholder={f.regionPlaceholder}
         />
         <Field
-          label="语言"
+          label={f.languages}
           value={profile.languages}
           onChange={(v) => update("languages", v)}
-          placeholder="例如：普通话、英语"
+          placeholder={f.languagesPlaceholder}
         />
       </div>
     </>
@@ -46,47 +46,49 @@ export function SeekerRequiredFields({ profile, update }: FieldsProps) {
 }
 
 export function SeekerOptionalFields({ profile, update }: FieldsProps) {
+  const f = useMessages(seekerProfileMessages).fields;
   return (
     <>
       <Field
-        label="一句话介绍"
+        label={f.headline}
         value={profile.headline}
         onChange={(v) => update("headline", v)}
-        placeholder="例如：前厅服务 · 中英文沟通"
+        placeholder={f.headlinePlaceholder}
       />
-      <TextArea
-        label="个人介绍"
-        value={profile.bio}
-        onChange={(v) => update("bio", v)}
-        placeholder="介绍你的经验、擅长的工作和期望…"
-      />
+      <TextArea label={f.bio} value={profile.bio} onChange={(v) => update("bio", v)} placeholder={f.bioPlaceholder} />
     </>
   );
 }
 
 /** What job seekers look at first about a business; 企业验证 is a link beside these. */
 export function EmployerRequiredFields({ profile, update }: FieldsProps) {
+  const f = useMessages(seekerProfileMessages).fields;
   return (
     <>
-      <Field label="企业名称" value={profile.name} onChange={(v) => update("name", v)} placeholder="企业或店铺名称" />
+      <Field
+        label={f.businessName}
+        value={profile.name}
+        onChange={(v) => update("name", v)}
+        placeholder={f.businessNamePlaceholder}
+      />
       <TextArea
-        label="企业介绍"
+        label={f.businessBio}
         value={profile.bio}
         onChange={(v) => update("bio", v)}
-        placeholder="介绍企业、工作环境和团队…"
+        placeholder={f.businessBioPlaceholder}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="地区"
+          label={f.region}
           value={profile.location}
           onChange={(v) => update("location", v)}
-          placeholder="例如：Mt Eden · Dominion Rd"
+          placeholder={f.businessRegionPlaceholder}
         />
         <Field
-          label="招聘联系人"
+          label={f.contactName}
           value={profile.contactName}
           onChange={(v) => update("contactName", v)}
-          placeholder="例如：陈经理"
+          placeholder={f.contactNamePlaceholder}
         />
       </div>
     </>
@@ -94,26 +96,27 @@ export function EmployerRequiredFields({ profile, update }: FieldsProps) {
 }
 
 export function EmployerOptionalFields({ profile, update }: FieldsProps) {
+  const f = useMessages(seekerProfileMessages).fields;
   return (
     <>
       <Field
-        label="招聘简介"
+        label={f.businessHeadline}
         value={profile.headline}
         onChange={(v) => update("headline", v)}
-        placeholder="例如：前厅、后厨招聘"
+        placeholder={f.businessHeadlinePlaceholder}
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="语言"
+          label={f.languages}
           value={profile.languages}
           onChange={(v) => update("languages", v)}
-          placeholder="例如：普通话、英语"
+          placeholder={f.languagesPlaceholder}
         />
         <Field
-          label="联系时间"
+          label={f.contactHours}
           value={profile.availability}
           onChange={(v) => update("availability", v)}
-          placeholder="例如：工作日 10:00–17:00"
+          placeholder={f.contactHoursPlaceholder}
         />
       </div>
     </>
@@ -128,14 +131,15 @@ export function PrivateDetailsFields({
   details?: PrivateDetails;
   onChange: (details: PrivateDetails) => void;
 }) {
+  const f = useMessages(seekerProfileMessages).fields;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {PRIVATE_FIELDS.map(([key, label, placeholder]) => (
+      {PRIVATE_FIELDS.map((key) => (
         <Field
           key={key}
-          label={label}
+          label={f[key]}
           value={details?.[key] ?? ""}
-          placeholder={placeholder}
+          placeholder=""
           onChange={(value) => onChange({ ...NO_PRIVATE_DETAILS, ...details, [key]: value })}
         />
       ))}

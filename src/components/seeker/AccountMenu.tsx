@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
-import { employerSignUpHref, identityLabel, postJobHref } from "@/components/seeker/identity";
+import { employerSignUpHref, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { ACCOUNT_DATA_PATH, navRole, showsPostJob } from "@/components/ui/nav";
+import { useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 /** Once per page load, make the browser's copy of the session match the server's (A12-1: the cookie is the truth). */
 function useAccountSync() {
@@ -19,6 +22,7 @@ function useAccountSync() {
  * switch (the rest is on 我的); from 768 px it also lists the workspace pages and 退出登录.
  */
 export function AccountMenu() {
+  const t = useMessages(seekerMeMessages).accountMenu;
   const hydrated = useHydrated();
   const session = useSession();
   const [open, setOpen] = useState(false);
@@ -53,13 +57,13 @@ export function AccountMenu() {
   if (!hydrated || !session) {
     return (
       <Link href="/login" className="hidden min-h-11 items-center px-1 hover:text-brand md:inline-flex">
-        登录 / 注册
+        {t.signIn}
       </Link>
     );
   }
 
-  const label = identityLabel(session);
   const isEmployer = session.activeRole === "employer";
+  const label = isEmployer && session.employerName ? `${t.employer} · ${session.employerName}` : t.seeker;
   const item = "block w-full rounded-md px-2 py-2 text-left text-body hover:bg-background";
   const pageItem = `${item} hidden md:block`;
   const close = () => setOpen(false);
@@ -75,12 +79,14 @@ export function AccountMenu() {
         }}
         aria-expanded={open}
         aria-controls="account-menu"
-        aria-label={`账号菜单，当前身份：${label}`}
+        aria-label={t.label(label)}
         className="flex min-h-11 max-w-[9rem] items-center gap-1 px-1 hover:text-brand md:max-w-[14rem]"
       >
         <span className="truncate">
-          <span className="md:hidden">{isEmployer ? "雇主" : "求职者"}</span>
-          <span className="hidden md:inline">{label}</span>
+          <span className="md:hidden">{isEmployer ? t.employer : t.seeker}</span>
+          <span lang={contentLang(session.employerName)} className="hidden md:inline">
+            {label}
+          </span>
         </span>
         <span aria-hidden="true">▾</span>
       </button>
@@ -99,25 +105,26 @@ export function AccountMenu() {
         >
           <p className="truncate px-2 pt-1 text-meta text-muted">{session.email}</p>
           <p className="px-2 pb-2 text-meta">
-            当前身份：<span className="font-medium">{label}</span>
+            {t.current}
+            <span className="font-medium">{label}</span>
           </p>
           <div className="border-t border-border pt-1">
             <Link href="/workspace" className={`${pageItem} font-medium text-brand`} onClick={close}>
-              工作台
+              {t.workspace}
             </Link>
             <Link href="/notifications" className={pageItem} onClick={close}>
-              通知
+              {t.notifications}
             </Link>
             <Link href="/profile" className={pageItem} onClick={close}>
-              {isEmployer ? "企业主页" : "我的主页"}
+              {isEmployer ? t.businessPage : t.profile}
             </Link>
             {!isEmployer && (
               <Link href="/me" className={pageItem} onClick={close}>
-                浏览与举报
+                {t.history}
               </Link>
             )}
             <Link href={ACCOUNT_DATA_PATH} className={pageItem} onClick={close}>
-              数据与账号
+              {t.data}
             </Link>
             {moderator && (
               <Link href={ADMIN_ENTRY.href} className={pageItem} onClick={close}>
@@ -134,11 +141,11 @@ export function AccountMenu() {
                   else void toEmployer();
                 }}
               >
-                {isEmployer ? "切换为求职者" : `切换为雇主（${employer.name}）`}
+                {isEmployer ? t.toSeeker : t.toEmployer(employer.name)}
               </button>
             ) : (
               <Link href={employerSignUpHref()} className={item} onClick={close}>
-                开通雇主身份
+                {t.setUpHiring}
               </Link>
             )}
             <button
@@ -150,7 +157,7 @@ export function AccountMenu() {
                 router.push("/jobs");
               }}
             >
-              退出登录
+              {t.signOut}
             </button>
           </div>
         </div>
@@ -163,7 +170,8 @@ export function AccountMenu() {
  * 发布招聘 (header) and the landing page's employer links. With an employer identity it switches to it and goes
  * to posting; otherwise it goes through employer sign-up (the email step signed out, the business step signed in).
  */
-export function PostJobLink({ className = "", children = "发布招聘" }: { className?: string; children?: ReactNode }) {
+export function PostJobLink({ className = "", children }: { className?: string; children?: ReactNode }) {
+  const t = useMessages(seekerMeMessages).accountMenu;
   const hydrated = useHydrated();
   const session = useSession();
   const current = hydrated ? session : null;
@@ -177,7 +185,7 @@ export function PostJobLink({ className = "", children = "发布招聘" }: { cla
       }}
       className={className}
     >
-      {children}
+      {children ?? t.postJob}
     </Link>
   );
 }

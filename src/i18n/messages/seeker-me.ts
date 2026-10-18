@@ -93,6 +93,7 @@ const seekerMeZh = {
     stage: "进度",
     swapped: "聊天里交换过联系方式",
     unsave: "取消收藏",
+    savedOn: (date: string) => `${date}收藏`,
     stages: {
       saved: "已收藏",
       contacted: "已联系",
@@ -121,6 +122,8 @@ const seekerMeZh = {
     anyJobs: "不限条件：所有新职位",
     anyInSection: (section: string) => `不限条件：所有新${section}`,
     allJobs: "全部新职位",
+    /** Between the conditions in an alert's default name: 餐饮、洗碗. */
+    nameJoin: "、",
     view: "看职位",
     rename: "改名",
     resume: "恢复提醒",
@@ -213,6 +216,8 @@ const seekerMeZh = {
   notices: {
     job: "职位",
     thisJob: "这个职位",
+    /** The business and the job, as the job seeker's interview notices name them. */
+    whoJob: (business: string, job: string) => `${business}「${job}」`,
     hired: (business: string) => `${business}录用了你`,
     hiredDetail: (job: string) => `「${job}」。上班时间和安排，可以在聊天里和雇主确认。`,
     filled: (job: string) => `「${job}」已经招满`,
@@ -360,6 +365,7 @@ export const seekerMeMessages: Dictionary<typeof seekerMeZh> = {
       stage: "Progress",
       swapped: "You swapped contact details in chat",
       unsave: "Remove from saved",
+      savedOn: (date) => `Saved ${date}`,
       stages: {
         saved: "Saved",
         contacted: "Contacted",
@@ -388,6 +394,7 @@ export const seekerMeMessages: Dictionary<typeof seekerMeZh> = {
       anyJobs: "No filters: every new job",
       anyInSection: (section) => `No filters: every new job in ${section}`,
       allJobs: "All new jobs",
+      nameJoin: ", ",
       view: "See jobs",
       rename: "Rename",
       resume: "Resume alert",
@@ -477,6 +484,7 @@ export const seekerMeMessages: Dictionary<typeof seekerMeZh> = {
     notices: {
       job: "a job",
       thisJob: "This job",
+      whoJob: (business, job) => (business ? `${business}, “${job}”` : `“${job}”`),
       hired: (business) => `${business} hired you`,
       hiredDetail: (job) => `“${job}”. Sort out your hours and start date with the employer in chat.`,
       filled: (job) => `“${job}” has been filled`,

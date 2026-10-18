@@ -1,7 +1,7 @@
 // Round 20 (ADR 0023): 我的主页 and 企业主页 (editing: ProfileWorkspace, ProfileFields, ProfileSaveNote, ProfileAvatar),
 // the job seeker's résumé settings (ResumeEditor) and 中英文简历 (ResumePage, app/profile/resume), the shared résumé
-// page (app/resume/[id]), 求职者主页 (CandidatePublicPage, app/candidates/[id]) and candidateFacts() from
-// lib/candidate-matching.ts. The printed résumé (ResumeSheet, resume-doc.ts) is already in both languages and stays
+// page (app/resume/[id]) and 求职者主页 (CandidatePublicPage, app/candidates/[id]); the five facts' words are line
+// B's (candidate-matching dictionary). The printed résumé (ResumeSheet, resume-doc.ts) is already in both languages and stays
 // as it is. 「企业主页」 and 「我的主页」 (求职者主页 to others), one name each since step 1 (导师决定 7).
 
 import type { Dictionary } from "@/i18n/messages";
@@ -23,7 +23,11 @@ const profileZh = {
   workspace: {
     employerTitle: "企业主页",
     seekerTitle: "我的主页",
-    employerSaves: "改动会自动保存在这台设备上。",
+    employerSaves: "改动会自动保存到企业主页，团队里的人和求职者都看同一份。",
+    notSaved: "企业主页没保存：",
+    /** After 企业主页 for screen readers when a team member only reads it (ADR 0022). */
+    adminOnly: "（只有管理员能改）",
+    privateHintTeam: "这是你自己的，团队里每人一份，只存在这台设备上。",
     seekerSaves: "改动会自动保存到你的账号，换一台设备登录也能看到。",
     preview: "别人看到的样子",
     employerPreviewHint: "求职者在职位和企业主页上看到这些",
@@ -95,6 +99,14 @@ const profileZh = {
     keptHere: "资料只保存在这台设备上，改动会自动保存。",
     saving: "正在保存…",
     saved: "已保存到你的账号，换一台设备登录也能看到。",
+    // The 企业主页 is the business's, on the server (#181, ADR 0022).
+    savedBusiness: "已保存到企业主页，团队里的人和求职者都能看到。",
+    refused: "没保存：企业主页里有不能公开的内容，按上面的提示改好后会自动保存。",
+    readonly: "企业主页由管理员修改；你的私密交换资料会自动保存在这台设备上。",
+    autosavesBusiness: "改动会自动保存到企业主页。",
+    differBusiness: "这台设备上的主页和企业主页现在的不一样",
+    onBusiness: "企业主页现在的",
+    useBusiness: "用企业主页现在的",
     offline: "没连上服务器：改动先存在这台设备上，再改一次或下次打开时会再保存。",
     chooseFirst: "先在上面选留哪一份。选好之前，改动只存在这台设备上。",
     autosaves: "改动会自动保存到你的账号。",
@@ -204,19 +216,6 @@ const profileZh = {
     startChat: "发起聊天",
     toFill: "待补充",
   },
-  // candidateFacts() in lib/candidate-matching.ts: the five facts on 求职者主页 and on the applicants' cards.
-  candidateFacts: {
-    availability: "可上班时间",
-    region: "地区",
-    expectedPay: "期望时薪",
-    languages: "语言",
-    experience: "经验",
-    hoursPerWeek: (min: number, max: number) => `每周 ${min}–${max} 小时`,
-    payFrom: (amount: string) => `${amount} 起`,
-    noExperience: "无经验",
-    years: (n: number) => `${n} 年`,
-    toFill: "待补充",
-  },
 };
 
 export const seekerProfileMessages: Dictionary<typeof profileZh> = {
@@ -236,7 +235,10 @@ export const seekerProfileMessages: Dictionary<typeof profileZh> = {
     workspace: {
       employerTitle: "Business page",
       seekerTitle: "My profile",
-      employerSaves: "Changes save on this device as you type.",
+      employerSaves: "Changes save to the business page as you type; your team and job seekers all see the same page.",
+      notSaved: "The business page wasn't saved:",
+      adminOnly: " (only admins can change it)",
+      privateHintTeam: " These are your own: each person on the team has theirs, kept on this device only.",
       seekerSaves: "Changes save to your account as you type, so you'll see them on any device you sign in on.",
       preview: "What others see",
       employerPreviewHint: "Job seekers see this on your jobs and your business page",
@@ -308,6 +310,14 @@ export const seekerProfileMessages: Dictionary<typeof profileZh> = {
       keptHere: "Your details are kept on this device only, and changes save as you type.",
       saving: "Saving…",
       saved: "Saved to your account, so you'll see it on any device you sign in on.",
+      savedBusiness: "Saved to the business page: your team and job seekers can see it.",
+      refused:
+        "Not saved: the business page has something that can't be shown publicly. Fix it as the notes above say and it saves itself.",
+      readonly: "The business page is changed by an admin; your details for swapping save on this device.",
+      autosavesBusiness: "Changes save to the business page as you type.",
+      differBusiness: "The profile on this device is different from the business page as it is now",
+      onBusiness: "The business page now",
+      useBusiness: "Keep the business page's",
       offline:
         "Couldn't reach the server: changes are kept on this device for now and saved with your next change or next visit.",
       chooseFirst: "Choose which version to keep above. Until then, changes are kept on this device only.",
@@ -416,18 +426,6 @@ export const seekerProfileMessages: Dictionary<typeof profileZh> = {
       forJob: "Applying for",
       backToChat: "Back to chat",
       startChat: "Start a chat",
-      toFill: "Not given yet",
-    },
-    candidateFacts: {
-      availability: "Available",
-      region: "Area",
-      expectedPay: "Pay wanted",
-      languages: "Languages",
-      experience: "Experience",
-      hoursPerWeek: (min, max) => `${min}–${max} hours a week`,
-      payFrom: (amount) => `${amount} an hour or more`,
-      noExperience: "No experience",
-      years: (n) => (n === 1 ? "1 year" : `${n} years`),
       toFill: "Not given yet",
     },
   },

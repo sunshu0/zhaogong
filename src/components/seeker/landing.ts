@@ -1,10 +1,15 @@
 // Pieces of the landing page that are not markup. Everything said here must be true of the product today.
+// Round 20: the words in the page's language (seeker-home dictionary), the counts formatted for it.
 import { visibleStats } from "@/config/landing";
+import { formatNumber } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 import type { PlatformStats } from "@/lib/types";
 
 /** 1234 → "1,234". Counts are shown exactly as counted, never rounded up. */
-export function formatCount(n: number): string {
-  return new Intl.NumberFormat("zh-CN").format(n);
+export function formatCount(n: number, lang: Lang = DEFAULT_LANG): string {
+  return formatNumber(n, lang);
 }
 
 /**
@@ -16,41 +21,45 @@ export function heroCounts(
   openJobs: number,
   verifiedEmployers: number,
   stats: PlatformStats,
+  lang: Lang = DEFAULT_LANG,
 ): { value: number; label: string }[] {
+  const t = pick(seekerHomeMessages, lang).counts;
   return [
-    { value: openJobs, label: "个职位在招，来自" },
-    { value: verifiedEmployers, label: "家已验证雇主" },
+    { value: openJobs, label: t.openJobs },
+    { value: verifiedEmployers, label: t.verifiedEmployers },
     ...visibleStats(stats)
       .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
-      .map(({ value, label }) => ({ value, label })),
+      .map(({ key, value }) => ({ value, label: t[key] })),
   ];
+}
+
+/** visibleStats with their words in the page's language (the no-JavaScript summary). */
+export function statLines(stats: PlatformStats, lang: Lang = DEFAULT_LANG) {
+  const t = pick(seekerHomeMessages, lang).counts;
+  return visibleStats(stats).map(({ key, value }) => ({ key, value, label: t[key] }));
 }
 
 export type FeatureIcon = "chat" | "language" | "check" | "shield";
 
 /** 功能展示: the AI chat post first (with its replay), then three more. Only what the product does now. */
-export const AI_FEATURE = {
-  title: "AI 对话发帖",
-  text: "雇主粘贴一段微信招聘消息，助手一问一答补齐时薪、地区、工时、签证和联系方式；违规的说法当场指出，帮你改好。",
-};
+export function aiFeature(lang: Lang = DEFAULT_LANG) {
+  const t = pick(seekerHomeMessages, lang).features;
+  return { title: t.aiTitle, text: t.aiText };
+}
 
-export const FEATURES: { title: string; text: string; icon: FeatureIcon }[] = [
-  {
-    title: "发布前合规检查",
-    text: "低于最低工资不能发布；押金、介绍费、包签、限华人等说法会被拦下或要求改写。",
-    icon: "check",
-  },
-  {
-    title: "雇主验证与防骗",
-    text: "核对过企业登记的雇主带认证标志；联系方式只给登录的人，或在聊天中双方同意后交换；每个职位都能举报，有人审核。",
-    icon: "shield",
-  },
-  { title: "中文为主", text: "全中文页面，职位中英文对照；求职者浏览、注册、联系雇主都不收费。", icon: "language" },
-];
+export function features(lang: Lang = DEFAULT_LANG): { title: string; text: string; icon: FeatureIcon }[] {
+  const t = pick(seekerHomeMessages, lang).features;
+  return [
+    { title: t.checksTitle, text: t.checksText, icon: "check" },
+    { title: t.trustTitle, text: t.trustText, icon: "shield" },
+    { title: t.chineseTitle, text: t.chineseText, icon: "language" },
+  ];
+}
 
 /**
  * The employer band's "before": the first three lines of MSG.frontOfHouse in src/lib/ai-post/parse.test.ts.
- * The fourth line (WeChat and phone) is left out: contact details are for signed-in users only.
+ * The fourth line (WeChat and phone) is left out: contact details are for signed-in users only. A Chinese posting
+ * on either page: it is what employers paste.
  */
 export const EMPLOYER_EXAMPLE = `【急招】Mt Eden 川菜馆招前厅服务员 2 名
 时薪 $25-27，每周 15-25 小时，周五至周日晚班

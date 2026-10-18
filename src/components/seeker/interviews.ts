@@ -3,10 +3,22 @@
 // the browser and the server; the server parses everything a browser sends. Times are instants (ISO, UTC), shown in
 // Auckland time. No contact details ride along: those follow the job's two rules (R-12, ADR 0002).
 
+import { dateFormat } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+
 export const INTERVIEW_TZ = "Pacific/Auckland";
 
 export const INTERVIEW_MODES = { in_person: "到店面试", phone: "电话面试", video: "视频面试" } as const;
 export type InterviewMode = keyof typeof INTERVIEW_MODES;
+
+/** The mode's name in the page's language (Round 20); INTERVIEW_MODES is the Chinese. */
+export function interviewModeName(mode: InterviewMode, lang: Lang = DEFAULT_LANG): string {
+  return pick(seekerMeMessages, lang).interview.modes[mode];
+}
+
+const words = (lang: Lang) => pick(seekerMeMessages, lang).interview;
 
 /**
  * proposed: waiting for the job seeker. confirmed: a time agreed (or, for 电话再定, the job seeker agreed to wait for
@@ -92,9 +104,19 @@ export function instantToAuckland(iso: string): string {
 
 const WEEKDAY = new Intl.DateTimeFormat("zh-CN", { timeZone: INTERVIEW_TZ, weekday: "short" });
 
-/** 「10月20日周二 14:30」 in Auckland time. */
-export function formatSlot(iso: string): string {
+const SLOT_EN: Intl.DateTimeFormatOptions = {
+  timeZone: INTERVIEW_TZ,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+};
+
+/** 「10月20日周二 14:30」 / "Tue, 20 Oct, 2:30 pm" in Auckland time. */
+export function formatSlot(iso: string, lang: Lang = DEFAULT_LANG): string {
   const ms = Date.parse(iso);
+  if (lang === "en") return dateFormat("en", SLOT_EN).format(new Date(ms));
   const p = parts(ms);
   const two = (n: number) => String(n).padStart(2, "0");
   return `${p.month}月${p.day}日${WEEKDAY.format(new Date(ms))} ${two(p.hour)}:${two(p.minute)}`;
@@ -115,23 +137,25 @@ export function soonDay(iso: string, now: number): "今天" | "明天" | null {
 export function parseInvite(
   value: unknown,
   now: number,
+  lang: Lang = DEFAULT_LANG,
 ): { ok: true; invite: InterviewInvite } | { ok: false; error: string } {
-  if (!value || typeof value !== "object") return { ok: false, error: "邀约内容不完整" };
+  const e = words(lang).errors;
+  if (!value || typeof value !== "object") return { ok: false, error: e.incomplete };
   const input = value as Record<string, unknown>;
   const callFirst = input.callFirst === true;
   const mode = typeof input.mode === "string" && input.mode in INTERVIEW_MODES ? (input.mode as InterviewMode) : null;
   const invite = { callFirst, mode, place: text(input.place, PLACE_MAX), note: text(input.note, INTERVIEW_NOTE_MAX) };
   if (callFirst) return { ok: true, invite: { ...invite, slots: [] } };
   const raw = Array.isArray(input.slots) ? input.slots : [];
-  if (raw.length > SLOT_MAX) return { ok: false, error: `最多给 ${SLOT_MAX} 个时间` };
+  if (raw.length > SLOT_MAX) return { ok: false, error: e.tooManySlots(SLOT_MAX) };
   const slots: number[] = [];
   for (const slot of raw) {
     const ms = typeof slot === "string" && /^\d{4}-\d{2}-\d{2}T/.test(slot) ? Date.parse(slot) : NaN;
-    if (Number.isNaN(ms)) return { ok: false, error: "有一个时间看不懂，请重新选" };
-    if (ms <= now) return { ok: false, error: `${formatSlot(new Date(ms).toISOString())} 已经过去了，请换一个时间` };
+    if (Number.isNaN(ms)) return { ok: false, error: e.unreadableSlot };
+    if (ms <= now) return { ok: false, error: e.slotPast(formatSlot(new Date(ms).toISOString(), lang)) };
     if (!slots.includes(ms)) slots.push(ms);
   }
-  if (!slots.length) return { ok: false, error: "至少给一个时间，或者选「电话联系后再定」" };
+  if (!slots.length) return { ok: false, error: e.noSlots };
   slots.sort((a, b) => a - b);
   return { ok: true, invite: { ...invite, slots: slots.map((ms) => new Date(ms).toISOString()) } };
 }
@@ -141,62 +165,70 @@ export function parseResponse(
   value: unknown,
   interview: Pick<InterviewView, "status" | "slots" | "callFirst">,
   now: number,
+  lang: Lang = DEFAULT_LANG,
 ): { ok: true; response: InterviewResponse } | { ok: false; error: string } {
-  if (interview.status !== "proposed") return { ok: false, error: "这个邀约已经变了，请刷新后再看" };
-  if (!value || typeof value !== "object") return { ok: false, error: "请选一个回复" };
+  const e = words(lang).errors;
+  if (interview.status !== "proposed") return { ok: false, error: e.changed };
+  if (!value || typeof value !== "object") return { ok: false, error: e.chooseReply };
   const input = value as Record<string, unknown>;
   const reply = text(input.reply, REPLY_MAX);
   if (input.kind === "confirm") {
     if (interview.callFirst) return { ok: true, response: { kind: "confirm", slot: null } };
     const slot = typeof input.slot === "string" ? input.slot : "";
-    if (!interview.slots.includes(slot)) return { ok: false, error: "请从雇主给的时间里选一个" };
-    if (Date.parse(slot) <= now) return { ok: false, error: "这个时间已经过去了，请选别的，或回一句你方便的时间" };
+    if (!interview.slots.includes(slot)) return { ok: false, error: e.notOffered };
+    if (Date.parse(slot) <= now) return { ok: false, error: e.chosenPast };
     return { ok: true, response: { kind: "confirm", slot } };
   }
   if (input.kind === "decline") return { ok: true, response: { kind: "decline", reply } };
   if (input.kind === "counter") {
-    if (!reply) return { ok: false, error: "写一句你方便的时间" };
+    if (!reply) return { ok: false, error: e.noReply };
     return { ok: true, response: { kind: "counter", reply } };
   }
-  return { ok: false, error: "请选一个回复" };
+  return { ok: false, error: e.chooseReply };
 }
 
 /** The invitation's when, in a line. */
-export function whenText(interview: Pick<InterviewView, "slots" | "callFirst" | "chosenSlot">): string {
-  if (interview.chosenSlot) return formatSlot(interview.chosenSlot);
-  if (interview.callFirst) return "电话联系后再定";
-  return interview.slots.map(formatSlot).join("、");
+export function whenText(
+  interview: Pick<InterviewView, "slots" | "callFirst" | "chosenSlot">,
+  lang: Lang = DEFAULT_LANG,
+): string {
+  const w = words(lang);
+  if (interview.chosenSlot) return formatSlot(interview.chosenSlot, lang);
+  if (interview.callFirst) return w.callFirst;
+  return interview.slots.map((slot) => formatSlot(slot, lang)).join(w.slotJoin);
 }
 
 /** Where the interview stands, as the job seeker reads it. */
-export function seekerInterviewStatus(interview: InterviewView): string {
+export function seekerInterviewStatus(interview: InterviewView, lang: Lang = DEFAULT_LANG): string {
+  const t = words(lang).seeker;
   switch (interview.status) {
     case "proposed":
-      return interview.callFirst ? "邀请你面试，时间电话联系后再定" : "邀请你面试，请选一个时间";
+      return interview.callFirst ? t.proposedCallFirst : t.proposed;
     case "confirmed":
-      return interview.chosenSlot ? `面试已确认：${formatSlot(interview.chosenSlot)}` : "已同意，等雇主电话约时间";
+      return interview.chosenSlot ? t.confirmed(formatSlot(interview.chosenSlot, lang)) : t.confirmedCallFirst;
     case "counter":
-      return "你回了方便的时间，等雇主回复";
+      return t.counter;
     case "declined":
-      return "你已婉拒这次面试";
+      return t.declined;
     case "cancelled":
-      return "雇主取消了这次面试";
+      return t.cancelled;
   }
 }
 
 /** Where the interview stands, as the employer reads it. */
-export function employerInterviewStatus(interview: InterviewView): string {
+export function employerInterviewStatus(interview: InterviewView, lang: Lang = DEFAULT_LANG): string {
+  const t = words(lang).employer;
   switch (interview.status) {
     case "proposed":
-      return "已发邀约，等对方确认";
+      return t.proposed;
     case "confirmed":
-      return interview.chosenSlot ? `对方已确认：${formatSlot(interview.chosenSlot)}` : "对方同意了，等你打电话约时间";
+      return interview.chosenSlot ? t.confirmed(formatSlot(interview.chosenSlot, lang)) : t.confirmedCallFirst;
     case "counter":
-      return `对方说这些时间不行：「${interview.reply}」`;
+      return t.counter(interview.reply);
     case "declined":
-      return interview.reply ? `对方婉拒了：「${interview.reply}」` : "对方婉拒了";
+      return interview.reply ? t.declinedWithReply(interview.reply) : t.declined;
     case "cancelled":
-      return "你已取消这次面试";
+      return t.cancelled;
   }
 }
 
@@ -206,18 +238,21 @@ export function interviewTodo(
   side: "seeker" | "employer",
   who: string,
   now: number,
+  lang: Lang = DEFAULT_LANG,
 ): { title: string; detail: string } | null {
+  const w = words(lang);
   if (interview.status === "confirmed" && interview.chosenSlot) {
     const day = soonDay(interview.chosenSlot, now);
     if (!day || Date.parse(interview.chosenSlot) < now - 3_600_000) return null;
-    return { title: `${day}的面试：${who}`, detail: formatSlot(interview.chosenSlot) };
+    const dayWord = day === "今天" ? w.today : w.tomorrow;
+    return { title: w.todo.onDay(dayWord, who), detail: formatSlot(interview.chosenSlot, lang) };
   }
   if (interview.status === "proposed")
     return side === "seeker"
-      ? { title: `待确认的面试：${who}`, detail: whenText(interview) }
-      : { title: `待确认的面试：${who}`, detail: "等对方确认" };
+      ? { title: w.todo.toConfirm(who), detail: whenText(interview, lang) }
+      : { title: w.todo.toConfirm(who), detail: w.todo.waitingForThem };
   if (interview.status === "counter" && side === "employer")
-    return { title: `${who}回了方便的时间`, detail: interview.reply };
+    return { title: w.todo.replied(who), detail: interview.reply };
   return null;
 }
 

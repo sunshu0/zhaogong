@@ -2,13 +2,15 @@
 // its query string (filter-query.ts) so a stored alert reads the same way a shared link does, plus a name.
 import { filterChips, filterToQuery, parseFilter, toParams } from "@/components/seeker/filter-query";
 import type { CountryCode, JobFilter } from "@/lib/types";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 /** The page where the account manages its alerts. */
 export const ALERTS_PATH = "/me/alerts";
 /** Alerts per account. */
 export const ALERT_LIMIT = 5;
 export const ALERT_NAME_MAX = 20;
-const ALL_JOBS = "全部新职位";
 
 type StoredAlert = { country: CountryCode; query: string };
 
@@ -23,16 +25,17 @@ export function normalizeAlertQuery(query: unknown, country: CountryCode): strin
 }
 
 /** The conditions as the job list shows them (地区、行业、签证 …); empty for every new job. */
-export function alertConditions(alert: StoredAlert): string[] {
-  return filterChips(alertFilter(alert)).map((chip) => chip.label);
+export function alertConditions(alert: StoredAlert, lang: Lang = DEFAULT_LANG): string[] {
+  return filterChips(alertFilter(alert), lang).map((chip) => chip.label);
 }
 
 /** The name an alert starts with: its conditions (a keyword without its quote marks), shortened to fit. */
-export function defaultAlertName(alert: StoredAlert): string {
-  const name = alertConditions(alert)
+export function defaultAlertName(alert: StoredAlert, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(seekerMeMessages, lang).alerts;
+  const name = alertConditions(alert, lang)
     .map((label) => label.replace(/^“(.*)”$/, "$1"))
-    .join("、");
-  if (!name) return ALL_JOBS;
+    .join(t.nameJoin);
+  if (!name) return t.allJobs;
   return name.length > ALERT_NAME_MAX ? `${name.slice(0, ALERT_NAME_MAX - 1)}…` : name;
 }
 

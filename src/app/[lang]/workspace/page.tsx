@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { WorkHubFrame, WorkspaceOverview } from "@/components/seeker/WorkHub";
+import { messages } from "@/i18n/server";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
-export const metadata: Metadata = { title: "工作台", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await messages(seekerMeMessages)).pages.workspace, robots: { index: false } };
+}
 
 export default function Workspace() {
   return (

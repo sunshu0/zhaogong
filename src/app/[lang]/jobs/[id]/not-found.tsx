@@ -1,15 +1,14 @@
 import { BriefcaseBusiness } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { StatusCard } from "@/components/seeker/StatusCard";
+import { messages } from "@/i18n/server";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
-export default function JobNotFound() {
+export default async function JobNotFound() {
+  const t = (await messages(seekerJobsMessages)).notFound;
   return (
-    <StatusCard
-      icon={BriefcaseBusiness}
-      title="这个职位不存在或已下架"
-      actions={<ButtonLink href="/jobs">看看其他职位</ButtonLink>}
-    >
-      链接可能有误，或者雇主已经关闭了这个职位。
+    <StatusCard icon={BriefcaseBusiness} title={t.title} actions={<ButtonLink href="/jobs">{t.others}</ButtonLink>}>
+      {t.body}
     </StatusCard>
   );
 }

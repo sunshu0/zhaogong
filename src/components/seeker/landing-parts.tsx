@@ -3,8 +3,12 @@ import { regionById } from "@/config/countries";
 import { LANGUAGE_LABELS } from "@/i18n/labels";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { JobDraft } from "@/lib/compliance";
-import { formatHours, formatPay } from "@/components/seeker/format";
+import { formatHours, formatPay, placeName } from "@/components/seeker/format";
 import type { FeatureIcon } from "@/components/seeker/landing";
+import { contentLang, DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
   return (
@@ -63,24 +67,40 @@ export function FeatureIconSvg({ name }: { name: FeatureIcon }) {
 }
 
 /** Before → after for employers: a WeChat message and the job the post flow makes of it (parsed by parsePost). */
-export function BeforeAfter({ message, draft, summaryEn }: { message: string; draft: JobDraft; summaryEn: string }) {
+export function BeforeAfter({
+  message,
+  draft,
+  summaryEn,
+  lang = DEFAULT_LANG,
+}: {
+  message: string;
+  draft: JobDraft;
+  summaryEn: string;
+  /** The page's language (Round 20). The message and the job's Chinese are the employer's, marked zh-CN. */
+  lang?: Lang;
+}) {
+  const t = pick(seekerHomeMessages, lang).beforeAfter;
+  const words = pick(seekerJobsMessages, lang).tags;
   const facts = [
-    draft.regionId ? regionById("NZ", draft.regionId)?.nameZh : undefined,
-    formatEmploymentTypes(draft.employmentType),
-    formatHours(draft.hoursPerWeek),
+    draft.regionId ? placeName(regionById("NZ", draft.regionId), lang) : undefined,
+    formatEmploymentTypes(draft.employmentType, lang),
+    formatHours(draft.hoursPerWeek, lang),
   ].filter(Boolean);
   const tags = [
-    draft.urgent && "急招",
-    draft.mealsIncluded && "包餐",
-    draft.accommodationIncluded && "包住",
-    draft.visaAccepted?.includes("student") && "接受学签",
-  ].filter((t): t is string => Boolean(t));
+    draft.urgent && { key: "urgent", word: words.urgent },
+    draft.mealsIncluded && { key: "meals", word: words.meals },
+    draft.accommodationIncluded && { key: "housing", word: words.housing },
+    draft.visaAccepted?.includes("student") && { key: "student", word: words.student },
+  ].filter((tag): tag is { key: string; word: string } => Boolean(tag));
 
   return (
     <figure className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div>
-        <p className="mb-2 text-xs text-white/75">改前 · 微信群里的一段话</p>
-        <div className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-black">
+        <p className="mb-2 text-xs text-white/75">{t.before}</p>
+        <div
+          lang="zh-CN"
+          className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-black"
+        >
           <span aria-hidden="true" className="absolute top-4 -right-1.5 size-3 rotate-45 bg-[#95ec69]" />
           {message}
         </div>
@@ -101,40 +121,49 @@ export function BeforeAfter({ message, draft, summaryEn }: { message: string; dr
       </svg>
 
       <div>
-        <p className="mb-2 text-xs text-white/75">改后 · 找工整理好的中英文职位</p>
+        <p className="mb-2 text-xs text-white/75">{t.after}</p>
         <div className="rounded-md bg-surface p-4 text-foreground">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-semibold">{draft.titleZh}</p>
+              <p lang={contentLang(draft.titleZh)} className="font-semibold">
+                {draft.titleZh}
+              </p>
               <p lang="en" className="text-xs text-muted">
                 {draft.titleEn}
               </p>
             </div>
-            {draft.pay && <p className="shrink-0 font-semibold text-brand">{formatPay(draft.pay, "NZ")}</p>}
+            {draft.pay && <p className="shrink-0 font-semibold text-brand">{formatPay(draft.pay, "NZ", lang)}</p>}
           </div>
           <p className="mt-2 text-xs text-muted">
             {facts.join(" · ")}
-            {draft.shiftsZh && `，${draft.shiftsZh}`}
+            {draft.shiftsZh && (
+              <>
+                {pick(seekerJobsMessages, lang).detail.clauseJoin}
+                <span lang={contentLang(draft.shiftsZh)}>{draft.shiftsZh}</span>
+              </>
+            )}
           </p>
           {tags.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-1.5">
               {tags.map((tag) => (
-                <Tag key={tag} urgent={tag === "急招"}>
-                  {tag}
+                <Tag key={tag.key} urgent={tag.key === "urgent"}>
+                  {tag.word}
                 </Tag>
               ))}
             </ul>
           )}
           {draft.languages && draft.languages.length > 0 && (
-            <p className="mt-2 text-xs">工作语言：{draft.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、")}</p>
+            <p className="mt-2 text-xs">
+              {t.languages(draft.languages.map((l) => LANGUAGE_LABELS[l][lang]).join(t.listJoin))}
+            </p>
           )}
           <p lang="en" className="mt-2 border-t border-border pt-2 text-xs text-muted">
             {summaryEn}
           </p>
-          <p className="mt-2 text-xs text-muted">联系方式：登录后可见</p>
+          <p className="mt-2 text-xs text-muted">{t.contact}</p>
         </div>
       </div>
-      <figcaption className="sr-only">一段微信招聘消息，由找工整理成中英文职位</figcaption>
+      <figcaption className="sr-only">{t.caption}</figcaption>
     </figure>
   );
 }

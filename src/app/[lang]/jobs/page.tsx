@@ -16,30 +16,35 @@ import { SaveAlert } from "@/components/seeker/SaveAlert";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { buttonClass } from "@/components/ui/Button";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { messages, serverLang } from "@/i18n/server";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
-export const metadata: Metadata = { title: "奥克兰中文工作" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await messages(seekerJobsMessages)).list.title };
+}
 
 // Round 19 sample (操作质感): this page and the job page wear the new type (`type-app`) and cards first; the other
 // pages follow once the user has seen it.
-export default function JobsPage({ searchParams }: PageProps<"/[lang]/jobs">) {
+export default async function JobsPage({ searchParams }: PageProps<"/[lang]/jobs">) {
+  const t = (await messages(seekerJobsMessages)).list;
   return (
     <PageTransition>
       <div className={`${WIDE_ON_DESKTOP} type-app`}>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h1 className="text-title font-semibold">奥克兰中文工作</h1>
+          <h1 className="text-title font-semibold">{t.title}</h1>
           {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
-          <nav aria-label="外部职位分区" className="flex gap-2">
+          <nav aria-label={t.sections} className="flex gap-2">
             <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
-              实习
+              {t.internships}
             </Link>
             <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
-              专业职位
+              {t.professional}
             </Link>
           </nav>
         </div>
         <NoScriptStreams />
         <FinishSaveAfterSignIn />
-        <Suspense fallback={<JobListSkeleton look="app" />}>
+        <Suspense fallback={<JobListSkeleton look="app" lang={await serverLang()} />}>
           <Results searchParams={searchParams} />
         </Suspense>
       </div>
@@ -54,6 +59,8 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
   const employers = await employersOf(jobs);
   const filtered = isFiltered(filter);
   const query = filterToQuery(filter);
+  const lang = await serverLang();
+  const t = (await messages(seekerJobsMessages)).list;
 
   // From 1024 px: the filters in a 240 px column on the left, the search box and the list (at most 720 px) on the
   // right. The form spans both columns (display: contents), so it stays one GET form. The second row takes what
@@ -62,23 +69,22 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
     <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
       <RememberListQuery query={query} />
       <FilterForm filter={filter} />
-      <section aria-label="职位列表" className="lg:col-start-2">
-        <ActiveFilters filter={filter} />
+      <section aria-label={t.listLabel} className="lg:col-start-2">
+        <ActiveFilters filter={filter} lang={lang} />
         {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
         <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
-          <p className="text-body text-muted">
-            {filtered ? `找到 ${jobs.length} 个职位` : `共 ${jobs.length} 个职位，最新发布在前`}
-          </p>
+          <p className="text-body text-muted">{filtered ? t.found(jobs.length) : t.all(jobs.length)}</p>
           <SaveAlert key={query} query={query} />
         </div>
         <JobList
           look="app"
           jobs={jobs}
           employers={employers}
+          lang={lang}
           empty={
             filtered && (
               <Link href={jobsHref("")} className={buttonClass("primary")}>
-                清除筛选，看全部职位
+                {t.clear}
               </Link>
             )
           }

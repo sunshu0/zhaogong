@@ -7,6 +7,8 @@ import Image from "next/image";
 import { Camera } from "lucide-react";
 import { useCandidateDirectory, usePublicEmployerProfile } from "@/components/seeker/hub-client";
 import type { Conversation } from "@/components/seeker/chat-client";
+import { useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 export function AvatarImage({
   avatar,
@@ -47,11 +49,13 @@ export function EmployerAvatar({
   fallback: string;
   large?: boolean;
 }) {
+  const t = useMessages(seekerProfileMessages).avatar;
   const profile = usePublicEmployerProfile(employerId);
-  return <AvatarImage avatar={profile?.avatar} fallback={fallback} alt={`${fallback}头像`} large={large} />;
+  return <AvatarImage avatar={profile?.avatar} fallback={fallback} alt={t.alt(fallback)} large={large} />;
 }
 
 export function CounterpartAvatar({ conversation, isEmployer }: { conversation: Conversation; isEmployer: boolean }) {
+  const t = useMessages(seekerProfileMessages).avatar;
   const { candidates } = useCandidateDirectory();
   const employer = usePublicEmployerProfile(conversation.employerId ?? "");
   const candidateId =
@@ -62,7 +66,7 @@ export function CounterpartAvatar({ conversation, isEmployer }: { conversation: 
     <AvatarImage
       avatar={isEmployer ? candidate?.avatar : employer?.avatar}
       fallback={conversation.avatar || conversation.person}
-      alt={`${conversation.person}头像`}
+      alt={t.alt(conversation.person)}
     />
   );
 }
@@ -76,6 +80,7 @@ export function ProfileAvatarEditor({
   fallback: string;
   onChange: (value?: string) => boolean | undefined;
 }) {
+  const t = useMessages(seekerProfileMessages).avatar;
   const inputRef = useRef<HTMLInputElement>(null);
   const uploadButton = useRef<HTMLButtonElement>(null);
   const request = useRef(0);
@@ -91,7 +96,7 @@ export function ProfileAvatarEditor({
     if (!file) return;
     const token = ++request.current;
     if (!file.type.startsWith("image/") || file.size > 8 * 1024 * 1024) {
-      setError("请选择 8MB 以内的图片。");
+      setError(t.tooBig);
       return;
     }
     setBusy(true);
@@ -109,16 +114,16 @@ export function ProfileAvatarEditor({
       const avatar = canvas.toDataURL("image/webp", 0.82);
       if (avatar.length > 180_000) throw new Error("size");
       if (token !== request.current) return;
-      if (onChange(avatar) !== true) setError("本机存储空间不足，头像未保存。");
+      if (onChange(avatar) !== true) setError(t.noRoom);
     } catch {
-      if (token === request.current) setError("图片无法读取，请换一张图片。");
+      if (token === request.current) setError(t.unreadable);
     } finally {
       if (token === request.current) setBusy(false);
     }
   }
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <AvatarImage avatar={value} fallback={fallback} alt="头像预览" large />
+      <AvatarImage avatar={value} fallback={fallback} alt={t.preview} large />
       <div className="space-y-1">
         <div className="flex flex-wrap gap-2">
           <button
@@ -129,20 +134,20 @@ export function ProfileAvatarEditor({
             {...busyProps(busy)}
           >
             <Camera aria-hidden="true" className="size-4" />
-            {busy ? "处理中…" : "上传头像"}
+            {busy ? t.working : t.upload}
           </button>
           {value && (
             <button
               type="button"
               onClick={() => {
                 const removed = onChange(undefined) === true;
-                setError(removed ? "" : "头像移除失败，请重试。");
+                setError(removed ? "" : t.removeFailed);
                 if (removed) uploadButton.current?.focus(); // 移除头像 goes away with the photo (#202)
               }}
               className="min-h-11 text-sm text-muted underline aria-disabled:opacity-50"
               {...busyProps(busy)}
             >
-              移除头像
+              {t.remove}
             </button>
           )}
         </div>
@@ -154,7 +159,7 @@ export function ProfileAvatarEditor({
         <input
           ref={inputRef}
           type="file"
-          aria-label="选择头像图片"
+          aria-label={t.choose}
           accept="image/*"
           className="hidden"
           onChange={(event) => {

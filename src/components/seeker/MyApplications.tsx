@@ -10,11 +10,14 @@ import {
 import { refreshApplied } from "@/components/seeker/applied-client";
 import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import type { InterviewView } from "@/components/seeker/interviews";
-import { formatDateZh } from "@/components/seeker/job-facts";
+import { formatJobDate } from "@/components/seeker/job-facts";
 import { useSession } from "@/components/seeker/session-client";
 import { Pay } from "@/components/ui/Pay";
 import { Tag } from "@/components/ui/Tag";
 import { cardClass } from "@/components/ui/Card";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 /**
  * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
@@ -22,6 +25,7 @@ import { cardClass } from "@/components/ui/Card";
  * hired or once the job ended. Nothing while there are none. Withdrawing takes the application off the employer's list.
  */
 export function MyApplications() {
+  const t = useMessages(seekerMeMessages).applications;
   const signedIn = Boolean(useSession());
   const [list, setList] = useState<MyApplicationView[] | null>(null);
   const [error, setError] = useState("");
@@ -31,11 +35,11 @@ export function MyApplications() {
     let current = true;
     myApplicationViews()
       .then((answer) => current && setList(answer))
-      .catch(() => current && setError("网络有问题，申请记录暂时打不开。"));
+      .catch(() => current && setError(t.loadFailed));
     return () => {
       current = false;
     };
-  }, [signedIn]);
+  }, [signedIn, t.loadFailed]);
 
   if (error)
     return (
@@ -48,20 +52,20 @@ export function MyApplications() {
   async function withdraw(jobId: string) {
     setError("");
     const ok = await withdrawMyApplication(jobId).catch(() => false);
-    if (!ok) return setError("没能撤回，请稍后再试。");
+    if (!ok) return setError(t.withdrawFailed);
     setList((current) => current?.filter((a) => a.jobId !== jobId) ?? null);
     refreshApplied();
   }
 
   const groups = [
-    { stage: "open", label: "进行中", items: list.filter((a) => a.stage === "open") },
-    { stage: "ended", label: "已结束", items: list.filter((a) => a.stage === "ended") },
+    { stage: "open", label: t.open, items: list.filter((a) => a.stage === "open") },
+    { stage: "ended", label: t.ended, items: list.filter((a) => a.stage === "ended") },
   ].filter((g) => g.items.length > 0);
 
   return (
     <section aria-labelledby="my-applications" className="mb-6">
       <h2 id="my-applications" className="mb-2 text-subtitle font-semibold">
-        我的申请 <span className="text-body font-normal text-muted">{list.length} 个</span>
+        {t.title} <span className="text-body font-normal text-muted">{t.count(list.length)}</span>
       </h2>
       <div className="space-y-4">
         {groups.map((g) => (
@@ -69,7 +73,7 @@ export function MyApplications() {
             <h3 id={`my-applications-${g.stage}`} className="mb-2 text-body font-semibold text-muted">
               {g.label} {g.items.length}
             </h3>
-            <ul aria-label={`${g.label}的申请`} className="space-y-3">
+            <ul aria-label={t.groupLabel(g.label)} className="space-y-3">
               {g.items.map((a) => (
                 <li key={a.jobId}>
                   <ApplicationCard
@@ -102,41 +106,56 @@ function ApplicationCard({
   onWithdraw: () => void;
   onInterview: (interview: InterviewView) => void;
 }) {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages).applications;
   const open = a.stage === "open";
   return (
     <article aria-label={a.titleZh} className={cardClass()}>
       <div className="flex items-start justify-between gap-3">
         <h4 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
           {a.gone ? (
-            <span className="text-muted">{a.titleZh}</span>
+            <span lang={contentLang(a.titleZh)} className="text-muted">
+              {a.titleZh}
+            </span>
           ) : (
-            <Link href={`/jobs/${a.jobId}`} className="hover:text-brand">
+            <Link href={`/jobs/${a.jobId}`} lang={contentLang(a.titleZh)} className="hover:text-brand">
               {a.titleZh}
             </Link>
           )}
-          {a.gone && <Tag kind="neutral">已下架</Tag>}
+          {a.gone && <Tag kind="neutral">{t.gone}</Tag>}
         </h4>
         <p className={`shrink-0 leading-none ${a.gone ? "opacity-60" : ""}`}>
-          <Pay pay={a.pay} country={a.country} />
+          <Pay pay={a.pay} country={a.country} lang={lang} />
         </p>
       </div>
       <p className="mt-1 text-body text-muted">
-        {[a.region, a.employerName].filter(Boolean).join(" · ")} · {formatDateZh(a.appliedAt, a.country)}申请
+        {a.region && `${a.region} · `}
+        {a.employerName && (
+          <>
+            <span lang={contentLang(a.employerName)}>{a.employerName}</span> ·{" "}
+          </>
+        )}
+        {t.appliedOn(formatJobDate(a.appliedAt, a.country, lang))}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span
-          className={`rounded-full px-2.5 py-0.5 text-body ${open || a.status === "已录用" ? "bg-brand-soft text-brand" : "bg-neutral-soft text-muted"}`}
+          className={`rounded-full px-2.5 py-0.5 text-body ${open || a.status === t.status.hired ? "bg-brand-soft text-brand" : "bg-neutral-soft text-muted"}`}
         >
           {a.status}
         </span>
-        {a.note && <span className="min-w-0 truncate text-meta text-muted">附言：{a.note}</span>}
+        {a.note && (
+          <span className="min-w-0 truncate text-meta text-muted">
+            {t.note("")}
+            <span lang={contentLang(a.note)}>{a.note}</span>
+          </span>
+        )}
         {open && (
           <button
             type="button"
             onClick={onWithdraw}
             className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
           >
-            撤回申请
+            {t.withdraw}
           </button>
         )}
       </div>

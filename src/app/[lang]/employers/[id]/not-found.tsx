@@ -1,15 +1,14 @@
 import { Store } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { StatusCard } from "@/components/seeker/StatusCard";
+import { messages } from "@/i18n/server";
+import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 
-export default function EmployerNotFound() {
+export default async function EmployerNotFound() {
+  const t = (await messages(seekerEmployerMessages)).notFound;
   return (
-    <StatusCard
-      icon={Store}
-      title="这个雇主不存在或已停用"
-      actions={<ButtonLink href="/jobs">看看其他职位</ButtonLink>}
-    >
-      链接可能有误，或者这家雇主已经不在找工上招聘。
+    <StatusCard icon={Store} title={t.title} actions={<ButtonLink href="/jobs">{t.others}</ButtonLink>}>
+      {t.body}
     </StatusCard>
   );
 }

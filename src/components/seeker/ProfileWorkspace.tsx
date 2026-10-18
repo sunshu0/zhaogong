@@ -29,6 +29,9 @@ import { Group, Section } from "@/components/ui/Section";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { candidateFacts, EMPTY_RESUME, type Candidate } from "@/lib/candidate-matching";
 import type { EmployerVerification } from "@/lib/types";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
+import { contentLang } from "@/i18n/lang";
 
 /**
  * /profile (我的主页 / 企业主页): what the other side sees at the top, how complete it is, then the required
@@ -37,6 +40,9 @@ import type { EmployerVerification } from "@/lib/types";
  * save says so instead of pretending. Only an admin changes a 企业主页; a member sees its fields read-only.
  */
 export function ProfileWorkspace() {
+  const lang = useLang();
+  const t = useMessages(seekerProfileMessages);
+  const w = t.workspace;
   const { profile, update: updateProfile } = useProfile();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
@@ -58,17 +64,13 @@ export function ProfileWorkspace() {
   return (
     <div className="space-y-section">
       <header>
-        <h1 className="text-title font-semibold">{isEmployer ? "企业主页" : "我的主页"}</h1>
-        <p className="mt-0.5 text-meta text-muted">
-          {isEmployer
-            ? "改动会自动保存到企业主页，团队里的人和求职者都看同一份。"
-            : "改动会自动保存到你的账号，换一台设备登录也能看到。"}
-        </p>
+        <h1 className="text-title font-semibold">{isEmployer ? w.employerTitle : w.seekerTitle}</h1>
+        <p className="mt-0.5 text-meta text-muted">{isEmployer ? w.employerSaves : w.seekerSaves}</p>
         {readOnly && <p className="mt-3 rounded-control bg-brand-soft px-3 py-2 text-body">{readOnlyNote(admins)}</p>}
         {/* #195: the page is public, signed out too; the server refused what cannot be shown. */}
         {isEmployer && refused && refused.length > 0 && (
           <div role="alert" className="mt-3 space-y-1 rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
-            <p className="font-medium">企业主页没保存：</p>
+            <p className="font-medium">{w.notSaved}</p>
             <ul className="list-disc space-y-1 pl-5">
               {refused.map((finding) => (
                 <li key={finding.message_zh}>{finding.message_zh}</li>
@@ -83,8 +85,8 @@ export function ProfileWorkspace() {
       <Section
         look="app"
         id="profile-preview"
-        title="别人看到的样子"
-        description={isEmployer ? "求职者在职位和企业主页上看到这些" : "雇主在推荐人才和聊天里看到这些"}
+        title={w.preview}
+        description={isEmployer ? w.employerPreviewHint : w.seekerPreviewHint}
         action={
           isEmployer && session?.employerId ? (
             <Link
@@ -92,7 +94,7 @@ export function ProfileWorkspace() {
               className="inline-flex min-h-11 items-center gap-1 text-body text-brand underline-offset-4 hover:underline"
             >
               <ExternalLink aria-hidden="true" className="size-4" />
-              查看公开主页
+              {w.viewPublic}
             </Link>
           ) : !isEmployer ? (
             <Link
@@ -100,7 +102,7 @@ export function ProfileWorkspace() {
               className="inline-flex min-h-11 items-center gap-1 text-body text-brand underline-offset-4 hover:underline"
             >
               <FileText aria-hidden="true" className="size-4" />
-              生成简历
+              {w.makeResume}
             </Link>
           ) : undefined
         }
@@ -114,11 +116,11 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section look="app" id="profile-progress" title={`资料完成度 ${progress.done}/${progress.total}`}>
+      <Section look="app" id="profile-progress" title={w.progress(progress.done, progress.total)}>
         <Group>
           <div
             role="progressbar"
-            aria-label="资料完成度"
+            aria-label={w.progressLabel}
             aria-valuemin={0}
             aria-valuemax={progress.total}
             aria-valuenow={progress.done}
@@ -126,7 +128,7 @@ export function ProfileWorkspace() {
           >
             <div className="h-full bg-brand" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
           </div>
-          <p className="mt-3 text-meta text-muted">{isEmployer ? "求职者最看重：" : "雇主最看重："}</p>
+          <p className="mt-3 text-meta text-muted">{isEmployer ? w.seekersWant : w.employersWant}</p>
           <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-body">
             {keyItems.map((item) => (
               <li key={item.id} className={`flex items-center gap-1 ${item.done ? "" : "text-warn"}`}>
@@ -136,27 +138,30 @@ export function ProfileWorkspace() {
                   <span aria-hidden="true">·</span>
                 )}
                 {item.label}
-                <span className="sr-only">{item.done ? "（已填）" : "（待填）"}</span>
+                <span className="sr-only">{item.done ? w.filled : w.toFill}</span>
               </li>
             ))}
           </ul>
         </Group>
       </Section>
 
-      <Section look="app" id="profile-required" title="必填" description="对方最先看的几项">
+      <Section look="app" id="profile-required" title={w.required} description={w.requiredHint}>
         <Group className="space-y-4">
           {isEmployer ? (
             <>
               {/* A member reads the business's page (ADR 0022): the fields stay, disabled. */}
               <fieldset disabled={readOnly} className="min-w-0 space-y-4">
-                <legend className="sr-only">企业主页{readOnly ? "（只有管理员能改）" : ""}</legend>
+                <legend className="sr-only">
+                  {w.employerTitle}
+                  {readOnly ? w.adminOnly : ""}
+                </legend>
                 <EmployerRequiredFields profile={profile} update={update} />
               </fieldset>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
-                <span className="font-medium">企业验证</span>
-                {verification && <VerificationBadge verification={verification} />}
+                <span className="font-medium">{w.verification}</span>
+                {verification && <VerificationBadge verification={verification} lang={lang} />}
                 <Link href="/employer/verify" className="text-brand underline-offset-4 hover:underline">
-                  管理公司资质
+                  {w.manageVerification}
                 </Link>
               </div>
             </>
@@ -174,9 +179,9 @@ export function ProfileWorkspace() {
         <details className="group py-group">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-subtitle font-semibold [&::-webkit-details-marker]:hidden">
             <span>
-              选填资料
+              {w.optional}
               <span className="ml-2 text-meta font-normal text-muted">
-                {optionalMissing ? `${optionalMissing} 项未填` : "已全部填写"}
+                {optionalMissing ? w.optionalMissing(optionalMissing) : w.allFilled}
               </span>
             </span>
             <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">
@@ -184,12 +189,17 @@ export function ProfileWorkspace() {
             </span>
           </summary>
           <fieldset disabled={readOnly} className="mt-3 min-w-0 space-y-4">
-            {readOnly && <legend className="sr-only">企业主页（只有管理员能改）</legend>}
+            {readOnly && (
+              <legend className="sr-only">
+                {w.employerTitle}
+                {w.adminOnly}
+              </legend>
+            )}
             <div>
-              <p className="mb-1 text-body font-medium">头像</p>
+              <p className="mb-1 text-body font-medium">{w.avatar}</p>
               <ProfileAvatarEditor
                 value={profile.avatar}
-                fallback={profile.name.slice(0, 1) || "我"}
+                fallback={profile.name.slice(0, 1) || w.me}
                 onChange={(avatar) => update("avatar", avatar)}
               />
             </div>
@@ -206,12 +216,7 @@ export function ProfileWorkspace() {
       </Section>
 
       {!isEmployer && (
-        <Section
-          look="app"
-          id="profile-recommend"
-          title="推荐给雇主"
-          description="打开后，雇主可以在「推荐人才」里看到上面的资料"
-        >
+        <Section look="app" id="profile-recommend" title={w.recommend} description={w.recommendHint}>
           <Group>
             <DiscoverableToggle value={profile.resume} onChange={(resume) => update("resume", resume)} />
           </Group>
@@ -221,10 +226,8 @@ export function ProfileWorkspace() {
       <Section
         look="app"
         id="profile-private"
-        title="私密交换资料"
-        description={`只在聊天里交换时给对方：你发起交换时对方马上能看到；对方发起时，你同意后才给。不显示在公开主页。${
-          isEmployer ? "这是你自己的，团队里每人一份，只存在这台设备上。" : ""
-        }`}
+        title={w.private}
+        description={`${w.privateHint}${isEmployer ? w.privateHintTeam : ""}`}
       >
         <Group>
           <PrivateDetailsFields
@@ -249,20 +252,28 @@ function asCandidate(profile: Profile): Candidate {
 }
 
 function SeekerPreview({ profile }: { profile: Profile }) {
+  const w = useMessages(seekerProfileMessages).workspace;
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <AvatarImage avatar={profile.avatar} fallback={profile.name || "我"} />
+        <AvatarImage avatar={profile.avatar} fallback={profile.name || w.me} />
         <div className="min-w-0">
-          <p className="truncate text-subtitle font-semibold">{profile.name || "称呼待填写"}</p>
-          <p className="truncate text-meta text-muted">{profile.headline || "一句话介绍待填写"}</p>
+          <p lang={contentLang(profile.name)} className="truncate text-subtitle font-semibold">
+            {profile.name || w.noName}
+          </p>
+          <p lang={contentLang(profile.headline)} className="truncate text-meta text-muted">
+            {profile.headline || w.noHeadline}
+          </p>
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
         {candidateFacts(asCandidate(profile)).map((fact) => (
           <div key={fact.label} className="min-w-0">
             <dt className="text-meta text-muted">{fact.label}</dt>
-            <dd className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>{fact.value}</dd>
+            {/* candidateFacts() is line B's; its words follow once it takes a language. */}
+            <dd lang={contentLang(fact.value)} className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>
+              {fact.value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -271,34 +282,42 @@ function SeekerPreview({ profile }: { profile: Profile }) {
 }
 
 function EmployerPreview({ profile, verification }: { profile: Profile; verification?: EmployerVerification }) {
+  const w = useMessages(seekerProfileMessages).workspace;
+  const lang = useLang();
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <AvatarImage avatar={profile.avatar} fallback={profile.name || "企"} />
+        <AvatarImage avatar={profile.avatar} fallback={profile.name || w.business} />
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
-            <span className="break-words">{profile.name || "企业名称待填写"}</span>
-            {verification && <VerificationBadge verification={verification} />}
+            <span lang={contentLang(profile.name)} className="break-words">
+              {profile.name || w.noBusinessName}
+            </span>
+            {verification && <VerificationBadge verification={verification} lang={lang} />}
           </p>
-          <p className="truncate text-meta text-muted">{profile.headline || "招聘简介待填写"}</p>
+          <p lang={contentLang(profile.headline)} className="truncate text-meta text-muted">
+            {profile.headline || w.noBusinessHeadline}
+          </p>
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
-        <PreviewFact term="地区" value={profile.location} />
-        <PreviewFact term="招聘联系人" value={profile.contactName} />
+        <PreviewFact term={w.region} value={profile.location} empty={w.toBeFilled} />
+        <PreviewFact term={w.contactName} value={profile.contactName} empty={w.toBeFilled} />
       </dl>
       <p className={`line-clamp-3 whitespace-pre-line text-body ${profile.bio ? "" : "text-muted"}`}>
-        {profile.bio || "企业介绍待填写"}
+        {profile.bio || w.noBusinessBio}
       </p>
     </div>
   );
 }
 
-function PreviewFact({ term, value }: { term: string; value: string }) {
+function PreviewFact({ term, value, empty }: { term: string; value: string; empty: string }) {
   return (
     <div className="min-w-0">
       <dt className="text-meta text-muted">{term}</dt>
-      <dd className={`break-words ${value.trim() ? "" : "text-muted"}`}>{value.trim() || "待填写"}</dd>
+      <dd lang={contentLang(value)} className={`break-words ${value.trim() ? "" : "text-muted"}`}>
+        {value.trim() || empty}
+      </dd>
     </div>
   );
 }

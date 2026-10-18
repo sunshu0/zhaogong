@@ -2,11 +2,14 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 export const CHAT_COMMAND_CLASS =
   "pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-border px-3 py-2 text-body hover:border-brand disabled:cursor-default disabled:opacity-60";
 
 export function ChatDialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const t = useMessages(uiMessages);
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useId();
   useEffect(() => {
@@ -36,8 +39,8 @@ export function ChatDialog({ title, onClose, children }: { title: string; onClos
         <button
           type="button"
           onClick={onClose}
-          aria-label="关闭弹窗"
-          title="关闭"
+          aria-label={t.closeDialog}
+          title={t.close}
           className="pressable flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-background"
         >
           <X aria-hidden="true" className="size-5" />

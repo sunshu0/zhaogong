@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/Button";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 /**
  * The Clipboard API needs a secure, focused page; plain http on a phone (testing over the LAN) and some
@@ -37,7 +39,7 @@ const SIZES = { sm: "", md: "" };
 
 export function CopyButton({
   text,
-  label = "复制",
+  label,
   size = "sm",
   className = "",
 }: {
@@ -46,6 +48,7 @@ export function CopyButton({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
+  const t = useMessages(uiMessages);
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   async function copy() {
@@ -59,7 +62,9 @@ export function CopyButton({
       onClick={copy}
       className={`${buttonClass("secondary")} whitespace-nowrap ${SIZES[size]} ${className}`.trim()}
     >
-      <span aria-live="polite">{state === "copied" ? "已复制" : state === "failed" ? "复制失败" : label}</span>
+      <span aria-live="polite">
+        {state === "copied" ? t.copied : state === "failed" ? t.copyFailed : (label ?? t.copy)}
+      </span>
     </button>
   );
 }

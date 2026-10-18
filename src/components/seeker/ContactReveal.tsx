@@ -7,6 +7,8 @@ import type { Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { buttonClass } from "@/components/ui/Button";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
+import { useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 /** A number a phone can call; the demo's masked numbers (021 ••• 0101（演示）) get no tel: link. */
 const DIALABLE = /^\+?[\d\s()-]+$/;
@@ -15,6 +17,7 @@ type Loaded = { jobId: string; email: string; contact: Job["contact"] | null };
 
 /** Contact details for signed-in users; a sign-in prompt for everyone else. */
 export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[] }) {
+  const t = useMessages(seekerJobsMessages);
   const hydrated = useHydrated();
   const session = useSession();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -38,7 +41,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
   return (
     <section aria-labelledby="contact-heading" className="rounded-card bg-surface p-4 shadow-card lg:p-5">
       <h2 id="contact-heading" className="font-medium">
-        联系方式
+        {t.contact.title}
       </h2>
 
       {!hydrated ? (
@@ -46,24 +49,24 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
       ) : !session ? (
         <>
           <p className="mt-1 text-sm text-muted">
-            {kinds.length ? `登录后可以查看雇主的${kinds.join("、")}。` : "登录后可以查看雇主的联系方式。"}
+            {kinds.length ? t.contact.signInFor(kinds.join(t.detail.listJoin)) : t.contact.signInForAny}
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`}
             className={`mt-3 ${buttonClass("primary", { block: true })}`}
           >
-            登录查看联系方式
+            {t.contact.signIn}
           </Link>
         </>
       ) : !current ? (
-        <p className="mt-1 text-sm text-muted">正在获取联系方式…</p>
+        <p className="mt-1 text-sm text-muted">{t.contact.loading}</p>
       ) : !current.contact ? (
-        <p className="mt-1 text-sm text-danger">暂时无法获取联系方式，请稍后再试。</p>
+        <p className="mt-1 text-sm text-danger">{t.contact.failed}</p>
       ) : (
         <>
           <ul className="mt-2 divide-y divide-border text-sm">
             {current.contact.phone && (
-              <ContactRow label="电话">
+              <ContactRow label={t.contact.rows.phone}>
                 {DIALABLE.test(current.contact.phone) ? (
                   <a
                     href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
@@ -77,26 +80,24 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
               </ContactRow>
             )}
             {current.contact.wechat && (
-              <ContactRow label="微信">
+              <ContactRow label={t.contact.rows.wechat}>
                 <span className="font-mono">{current.contact.wechat}</span>
                 <CopyButton text={current.contact.wechat} className="ml-auto" />
               </ContactRow>
             )}
             {current.contact.email && (
-              <ContactRow label="邮箱">
+              <ContactRow label={t.contact.rows.email}>
                 <a href={`mailto:${current.contact.email}`} className="text-brand underline underline-offset-2">
                   {current.contact.email}
                 </a>
               </ContactRow>
             )}
           </ul>
-          <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">
-            联系雇主时，不要预先支付押金、介绍费或任何费用，也不要交出护照原件。遇到这种情况请举报这个职位。
-          </p>
+          <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{t.contact.warning}</p>
           <p className="mt-2 text-xs text-muted">
-            已登录：{session.email} ·{" "}
+            {t.contact.signedInAs(session.email)} ·{" "}
             <Link href="/me" className="underline underline-offset-2">
-              我的
+              {t.contact.mine}
             </Link>
           </p>
         </>

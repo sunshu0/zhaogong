@@ -6,6 +6,9 @@ import type { Job } from "@/lib/types";
 import { isExpired, isPublic } from "@/components/seeker/job-facts";
 import { formatPay } from "@/components/seeker/format";
 import { parseReport } from "@/components/seeker/report";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { requestLang } from "@/i18n/server";
 
 /** The job page fetches contact details on every visit, so one person counts once per job in this window. */
 const RECORD_AGAIN_AFTER_MS = 30 * 60 * 1000;
@@ -35,10 +38,11 @@ export type ReportResult = { ok: true; reportId: string } | { ok: false; error: 
 
 /** Sends a report on a job seekers can see. Anyone can report; signing in is not needed. */
 export async function reportJob(jobId: string, reason: string, note?: string): Promise<ReportResult> {
-  const parsed = parseReport({ reason, note });
+  const lang = await requestLang();
+  const parsed = parseReport({ reason, note }, lang);
   if (!parsed.ok) return parsed;
   const job = typeof jobId === "string" ? await getJob(jobId) : undefined;
-  if (!job || !isPublic(job)) return { ok: false, error: "找不到这个职位，可能已经下架" };
+  if (!job || !isPublic(job)) return { ok: false, error: pick(seekerJobsMessages, lang).report.jobGone };
   const report = await submitReport(job.id, parsed.reason, parsed.note);
   return { ok: true, reportId: report.id };
 }

@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
-import { DEMO_DATA, visibleStats } from "@/config/landing";
+import { DEMO_DATA } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import type { JobFilter } from "@/lib/types";
 import { englishSummary, parsePost } from "@/lib/ai-post";
@@ -15,46 +15,50 @@ import { JobCard } from "@/components/seeker/JobCard";
 import { PostJobLink } from "@/components/seeker/AccountMenu";
 import { buildReplay } from "@/components/seeker/chat-replay";
 import { ChatReplay } from "@/components/seeker/ChatReplay";
-import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount, heroCounts } from "@/components/seeker/landing";
+import { aiFeature, EMPLOYER_EXAMPLE, features, formatCount, heroCounts, statLines } from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, FeatureIconSvg } from "@/components/seeker/landing-parts";
 import { WindowNotices } from "@/components/seeker/WindowNotices";
-import { formatPay } from "@/components/seeker/format";
+import { formatPay, placeName } from "@/components/seeker/format";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
 import { cardClass } from "@/components/ui/Card";
 import { Skeleton, SkeletonList } from "@/components/ui/Skeleton";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { contentLang } from "@/i18n/lang";
+import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
+import { messages, serverLang } from "@/i18n/server";
 
-const TITLE = `${PRODUCT_NAME} · 奥克兰的中文工作平台`;
-const DESCRIPTION =
-  "时薪、地区、签证一目了然；雇主经过验证，职位发布前检查最低工资和违规收费；联系方式只给登录的求职者，或在聊天中双方同意后交换。";
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await messages(seekerHomeMessages);
+  const title = `${PRODUCT_NAME} · ${t.title}`;
+  const locale = (await serverLang()) === "en" ? "en_NZ" : "zh_CN";
+  return {
+    title: { absolute: title },
+    description: t.description,
+    openGraph: { title, description: t.description, type: "website", locale },
+  };
+}
 
-export const metadata: Metadata = {
-  title: { absolute: TITLE },
-  description: DESCRIPTION,
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "website", locale: "zh_CN" },
-};
-
-/** One tap into /jobs with a filter it already has. */
-const QUICK_FILTERS: { label: string; filter: Omit<JobFilter, "country"> }[] = [
-  { label: "接受学签", filter: { visa: "student" } },
-  { label: "包餐", filter: { mealsIncluded: true } },
-  { label: "兼职", filter: { employmentTypes: ["part_time"] } },
-  { label: "市中心", filter: { regionIds: ["akl-cbd"] } },
+/** One tap into /jobs with a filter it already has; `word` names it in the seeker-home dictionary. */
+const QUICK_FILTERS: {
+  word: "quickStudent" | "quickMeals" | "quickPartTime" | "quickCbd";
+  filter: Omit<JobFilter, "country">;
+}[] = [
+  { word: "quickStudent", filter: { visa: "student" } },
+  { word: "quickMeals", filter: { mealsIncluded: true } },
+  { word: "quickPartTime", filter: { employmentTypes: ["part_time"] } },
+  { word: "quickCbd", filter: { regionIds: ["akl-cbd"] } },
 ];
 
 const NOTICE_COUNT = 3;
 
-const EMPLOYER_POINTS = [
-  "粘贴微信群里的招聘消息，自动整理成中英文职位",
-  "发布前自动检查最低工资和违规用词",
-  "一键复制到微信群、小红书和 Skykiwi",
-];
+const EMPLOYER_POINTS = ["pointPaste", "pointChecks", "pointShare"] as const;
 
 const FEATURED_COUNT = 6;
 
 /** The landing page: full-bleed bands, content in the site container. Pictures and numbers come from real data. */
-export default function Home({ searchParams }: PageProps<"/[lang]">) {
+export default async function Home({ searchParams }: PageProps<"/[lang]">) {
+  const t = await messages(seekerHomeMessages);
   return (
     // The bands meet the header and the footer: cancel main's vertical padding.
     <PageTransition>
@@ -74,13 +78,11 @@ export default function Home({ searchParams }: PageProps<"/[lang]">) {
           >
             <div>
               <h1 id="hero-heading" className="text-[1.75rem] leading-tight font-black lg:text-[3.25rem]">
-                奥克兰的中文工作，
+                {t.hero.line1}
                 <br />
-                时薪写在最前面。
+                {t.hero.line2}
               </h1>
-              <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">
-                餐饮、零售、清洁、装修。每个职位发布前都核对过最低工资，雇主有没有通过验证、接受哪些签证，都写得清清楚楚。
-              </p>
+              <p className="mt-3 max-w-xl text-body leading-relaxed text-muted lg:text-subtitle">{t.hero.lead}</p>
               <form
                 action={jobsHref("")}
                 role="search"
@@ -91,40 +93,40 @@ export default function Home({ searchParams }: PageProps<"/[lang]">) {
                   name="q"
                   maxLength={50}
                   enterKeyHint="search"
-                  placeholder="服务员、厨师、Mt Eden…"
-                  aria-label="搜索职位"
+                  placeholder={t.hero.searchPlaceholder}
+                  aria-label={t.hero.search}
                   className="h-full min-w-0 flex-1 bg-transparent text-base outline-none"
                 />
                 <button
                   type="submit"
                   className="pressable h-full shrink-0 rounded-control bg-brand px-4 font-bold text-white hover:opacity-90"
                 >
-                  找工作
+                  {t.hero.submit}
                 </button>
               </form>
-              <ul aria-label="快捷筛选" className="mt-3 flex flex-wrap gap-2">
+              <ul aria-label={t.hero.quick} className="mt-3 flex flex-wrap gap-2">
                 {QUICK_FILTERS.map((quick) => (
-                  <li key={quick.label}>
+                  <li key={quick.word}>
                     <Link
                       href={jobsHref(filterToQuery({ country: DEFAULT_COUNTRY, ...quick.filter }))}
                       className="pressable inline-flex min-h-11 items-center rounded-full bg-brand-soft px-4 text-body text-brand hover:bg-brand hover:text-white md:min-h-9 md:px-3.5"
                     >
-                      {quick.label}
+                      {t.hero[quick.word]}
                     </Link>
                   </li>
                 ))}
               </ul>
               {/* Round 18 (#113): external jobs from companies' own sites. */}
               <p className="mt-3 text-body">
-                找软件、电子电气方向的工作？看{" "}
+                {t.hero.externalBefore}{" "}
                 <Link href="/internships" className="font-medium text-brand underline underline-offset-2">
-                  实习
+                  {t.hero.internships}
                 </Link>{" "}
-                和{" "}
+                {t.hero.and}{" "}
                 <Link href="/professional" className="font-medium text-brand underline underline-offset-2">
-                  专业职位
+                  {t.hero.professional}
                 </Link>
-                （来自公司官网）
+                {t.hero.externalAfter}
               </p>
               <Suspense
                 fallback={
@@ -162,8 +164,10 @@ export default function Home({ searchParams }: PageProps<"/[lang]">) {
  * with JavaScript enabled <noscript> is ignored by the browser.
  */
 async function NoScriptLanding() {
+  const lang = await serverLang();
+  const t = await messages(seekerHomeMessages);
   const [stats, jobs] = await Promise.all([
-    getPlatformStats(DEFAULT_COUNTRY).then(visibleStats),
+    getPlatformStats(DEFAULT_COUNTRY).then((all) => statLines(all, lang)),
     listFeaturedJobs(DEFAULT_COUNTRY, 3),
   ]);
   if (stats.length === 0 && jobs.length === 0) return null;
@@ -175,7 +179,7 @@ async function NoScriptLanding() {
           {stats.length > 0 && (
             <section aria-labelledby="no-js-stats-heading">
               <h2 id="no-js-stats-heading" className="font-semibold">
-                平台数据
+                {t.stats}
               </h2>
               <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {stats.map((stat) => (
@@ -193,22 +197,25 @@ async function NoScriptLanding() {
               className={stats.length > 0 ? "mt-4 border-t border-border pt-4" : undefined}
             >
               <h2 id="no-js-jobs-heading" className="font-semibold">
-                精选工作
+                {t.featured.title}
               </h2>
               <ul className="mt-2 grid grid-cols-1 gap-2">
                 {jobs.map((job) => (
                   <li key={job.id}>
                     <Link href={`/jobs/${job.id}`} className="block rounded-control bg-background p-3 hover:text-brand">
-                      <span className="block font-medium">{job.titleZh}</span>
+                      <span lang={contentLang(job.titleZh)} className="block font-medium">
+                        {job.titleZh}
+                      </span>
                       <span className="block text-xs text-muted">
-                        {formatPay(job.pay, job.country)} · {regionById(job.country, job.regionId)?.nameZh ?? "奥克兰"}
+                        {formatPay(job.pay, job.country, lang)} ·{" "}
+                        {placeName(regionById(job.country, job.regionId), lang) ?? t.featured.auckland}
                       </span>
                     </Link>
                   </li>
                 ))}
               </ul>
               <Link href={jobsHref("")} className="mt-3 inline-block text-brand underline underline-offset-2">
-                浏览全部职位 →
+                {t.featured.browseAll}
               </Link>
             </section>
           )}
@@ -222,7 +229,7 @@ async function NoScriptLanding() {
 async function HeroNotices() {
   await connection();
   const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT, await requestTime());
-  return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} />;
+  return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} lang={await serverLang()} />;
 }
 
 /**
@@ -237,8 +244,10 @@ async function HeroCount() {
   ]);
   const employers = await employersOf(jobs);
   const verified = [...employers.values()].filter((e) => e.verification !== "unverified").length;
-  const [open, by, ...more] = heroCounts(jobs.length, verified, stats);
-  const figure = (n: number) => <b className="font-figure text-[1.375rem] text-foreground">{formatCount(n)}</b>;
+  const lang = await serverLang();
+  const t = await messages(seekerHomeMessages);
+  const [open, by, ...more] = heroCounts(jobs.length, verified, stats, lang);
+  const figure = (n: number) => <b className="font-figure text-[1.375rem] text-foreground">{formatCount(n, lang)}</b>;
   return (
     <p data-hero-counts="" className="mt-4 text-body text-muted">
       <span className="whitespace-nowrap">
@@ -255,7 +264,7 @@ async function HeroCount() {
       ))}
       {DEMO_DATA && (
         <span className="ml-2 inline-block rounded-sm bg-warn-soft px-1.5 py-0.5 text-meta whitespace-nowrap text-warn">
-          演示数据
+          {t.demoData}
         </span>
       )}
     </p>
@@ -266,24 +275,26 @@ async function FeaturedBand() {
   await connection(); // featured jobs change as jobs are published
   const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT, await requestTime());
   const employers = await employersOf(jobs);
+  const lang = await serverLang();
+  const t = (await messages(seekerHomeMessages)).featured;
   return (
     <section id="featured" aria-labelledby="featured-heading" className={`${FULL_BLEED} scroll-mt-16`}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 id="featured-heading" className="text-2xl font-bold">
-              精选工作
+              {t.title}
             </h2>
-            <p className="mt-1 text-body text-muted">来自已验证雇主、正在招聘的职位，时薪高的在前。</p>
+            <p className="mt-1 text-body text-muted">{t.hint}</p>
           </div>
           <Link href={jobsHref("")} className="pressable inline-flex min-h-11 items-center font-medium text-brand">
-            查看全部职位 →
+            {t.all}
           </Link>
         </div>
         <ul className="mt-6 space-y-3 lg:max-w-3xl">
           {jobs.map((job) => (
             <li key={job.id}>
-              <JobCard look="app" job={job} employer={employers.get(job.employerId)} headingLevel={3} />
+              <JobCard look="app" job={job} employer={employers.get(job.employerId)} headingLevel={3} lang={lang} />
             </li>
           ))}
         </ul>
@@ -312,14 +323,15 @@ function NoticesSkeleton() {
 }
 
 /** While 精选工作 comes (#167): its heading and three job cards in grey, like the job list's loading page. */
-function FeaturedSkeleton() {
+async function FeaturedSkeleton() {
+  const t = (await messages(seekerHomeMessages)).featured;
   return (
     <div data-nojs-hide="" className={FULL_BLEED}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <Skeleton className="h-8 w-32" />
         <Skeleton className="mt-2 h-4 w-64 max-w-full" />
         <div className="mt-6 lg:max-w-3xl">
-          <SkeletonList count={3} label="正在加载精选工作" />
+          <SkeletonList count={3} label={t.loading} />
         </div>
       </div>
     </div>
@@ -329,11 +341,14 @@ function FeaturedSkeleton() {
 /** 功能展示: the AI chat post with a replay of a real conversation, then three more features. */
 async function FeaturesBand() {
   const replay = await buildReplay();
+  const lang = await serverLang();
+  const t = await messages(seekerHomeMessages);
+  const ai = aiFeature(lang);
   return (
     <section aria-labelledby="features-heading" className={`${FULL_BLEED} bg-background`}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <h2 id="features-heading" className="text-2xl font-bold">
-          功能展示
+          {t.features.title}
         </h2>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           <article aria-labelledby="ai-feature-heading" className={cardClass()}>
@@ -343,9 +358,9 @@ async function FeaturesBand() {
               </span>
               <div>
                 <h3 id="ai-feature-heading" className="font-semibold">
-                  {AI_FEATURE.title}
+                  {ai.title}
                 </h3>
-                <p className="mt-1 text-body leading-relaxed text-muted">{AI_FEATURE.text}</p>
+                <p className="mt-1 text-body leading-relaxed text-muted">{ai.text}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -354,7 +369,7 @@ async function FeaturesBand() {
           </article>
           {/* Round 19: each feature a card of its own. */}
           <ul className="space-y-3">
-            {FEATURES.map((feature) => (
+            {features(lang).map((feature) => (
               <li key={feature.title} className={`flex items-start gap-3 ${cardClass()}`}>
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
                   <FeatureIconSvg name={feature.icon} />
@@ -375,37 +390,43 @@ async function FeaturesBand() {
 /** For employers: a WeChat message turned into a job by the same parser the post flow uses. */
 async function EmployerBand() {
   const { draft } = await parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY);
+  const t = (await messages(seekerHomeMessages)).employers;
   return (
     <section aria-labelledby="employer-heading" className={`${FULL_BLEED} bg-foreground text-white`}>
       <div
         className={`${SITE_CONTAINER} grid items-center gap-10 py-12 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:py-16`}
       >
         <div>
-          <p className="text-body text-white/75">给雇主</p>
+          <p className="text-body text-white/75">{t.eyebrow}</p>
           <h2 id="employer-heading" className="mt-1 text-2xl font-bold">
-            招人？一分钟发布招聘
+            {t.title}
           </h2>
           <ul className="mt-4 space-y-2 text-body text-white/90">
             {EMPLOYER_POINTS.map((point) => (
               <li key={point} className="flex items-start gap-2">
                 <CheckIcon className="mt-0.5 size-4" />
-                {point}
+                {t[point]}
               </li>
             ))}
           </ul>
           <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
             <PostJobLink className="pressable inline-flex min-h-12 items-center rounded-control bg-white px-5 font-semibold text-foreground hover:bg-white/90">
-              注册雇主 →
+              {t.signUp}
             </PostJobLink>
             <Link
               href="/employer"
               className="pressable inline-flex min-h-11 items-center text-body text-white underline underline-offset-4 hover:no-underline"
             >
-              看看雇主能做什么
+              {t.whatTheyCanDo}
             </Link>
           </div>
         </div>
-        <BeforeAfter message={EMPLOYER_EXAMPLE} draft={draft} summaryEn={englishSummary(draft, DEFAULT_COUNTRY)} />
+        <BeforeAfter
+          message={EMPLOYER_EXAMPLE}
+          draft={draft}
+          summaryEn={englishSummary(draft, DEFAULT_COUNTRY)}
+          lang={await serverLang()}
+        />
       </div>
     </section>
   );

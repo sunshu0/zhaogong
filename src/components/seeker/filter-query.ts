@@ -3,6 +3,9 @@
 import { COUNTRIES } from "@/config/countries";
 import { JOB_ROLE_IDS, JOB_ROLES } from "@/config/job-roles";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, VISA_LABELS } from "@/i18n/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import type { CountryCode, EmploymentType, Industry, JobFilter } from "@/lib/types";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -101,8 +104,10 @@ export interface FilterChip {
   query: string;
 }
 
-/** One chip per active filter value, in the order they appear in the query. */
-export function filterChips(filter: JobFilter): FilterChip[] {
+/** One chip per active filter value, in the order they appear in the query, in the page's language. */
+export function filterChips(filter: JobFilter, lang: Lang = DEFAULT_LANG): FilterChip[] {
+  const t = pick(seekerJobsMessages, lang);
+  const symbol = COUNTRIES[filter.country].currencySymbol;
   const chips: FilterChip[] = [];
   const add = (id: string, label: string, without: Partial<JobFilter>) =>
     chips.push({ id, label, query: filterToQuery({ ...filter, ...without }) });
@@ -110,18 +115,26 @@ export function filterChips(filter: JobFilter): FilterChip[] {
 
   const regions = COUNTRIES[filter.country].regions;
   for (const id of filter.regionIds ?? [])
-    add(`region:${id}`, regions.find((r) => r.id === id)?.nameZh ?? id, { regionIds: drop(filter.regionIds!, id) });
+    add(
+      `region:${id}`,
+      regionName(
+        regions.find((r) => r.id === id),
+        lang,
+      ) ?? id,
+      {
+        regionIds: drop(filter.regionIds!, id),
+      },
+    );
   for (const id of filter.industries ?? [])
-    add(`industry:${id}`, INDUSTRY_LABELS[id].zh, { industries: drop(filter.industries!, id) });
-  for (const id of filter.roles ?? []) add(`role:${id}`, JOB_ROLES[id].zh, { roles: drop(filter.roles!, id) });
+    add(`industry:${id}`, INDUSTRY_LABELS[id][lang], { industries: drop(filter.industries!, id) });
+  for (const id of filter.roles ?? []) add(`role:${id}`, JOB_ROLES[id][lang], { roles: drop(filter.roles!, id) });
   for (const id of filter.employmentTypes ?? [])
-    add(`type:${id}`, EMPLOYMENT_TYPE_LABELS[id].zh, { employmentTypes: drop(filter.employmentTypes!, id) });
-  if (filter.minPay != null)
-    add("minPay", `时薪 ${COUNTRIES[filter.country].currencySymbol}${filter.minPay} 起`, { minPay: undefined });
-  if (filter.visa) add("visa", `签证：${VISA_LABELS[filter.visa].zh}`, { visa: undefined });
-  if (filter.mealsIncluded) add("meals", "包餐", { mealsIncluded: undefined });
-  if (filter.accommodationIncluded) add("housing", "包住", { accommodationIncluded: undefined });
-  if (filter.query) add("q", `“${filter.query}”`, { query: undefined });
+    add(`type:${id}`, EMPLOYMENT_TYPE_LABELS[id][lang], { employmentTypes: drop(filter.employmentTypes!, id) });
+  if (filter.minPay != null) add("minPay", t.pay.minPayChip(`${symbol}${filter.minPay}`), { minPay: undefined });
+  if (filter.visa) add("visa", t.filter.visaChip(VISA_LABELS[filter.visa][lang]), { visa: undefined });
+  if (filter.mealsIncluded) add("meals", t.filter.meals, { mealsIncluded: undefined });
+  if (filter.accommodationIncluded) add("housing", t.filter.housing, { accommodationIncluded: undefined });
+  if (filter.query) add("q", t.filter.queryChip(filter.query), { query: undefined });
   return chips;
 }
 
@@ -132,14 +145,26 @@ export type FilterGroup = "region" | "industry" | "role" | "type" | "minPay" | "
  * What a closed group shows after its name: the one choice made in it (「Albany」「$30 起」), 「已选 N」 for several,
  * or undefined when nothing in it is chosen.
  */
-export function filterGroupSummary(filter: JobFilter, group: FilterGroup): string | undefined {
+export function filterGroupSummary(
+  filter: JobFilter,
+  group: FilterGroup,
+  lang: Lang = DEFAULT_LANG,
+): string | undefined {
+  const t = pick(seekerJobsMessages, lang);
   if (group === "minPay")
-    return filter.minPay == null ? undefined : `${COUNTRIES[filter.country].currencySymbol}${filter.minPay} 起`;
-  if (group === "visa") return filter.visa && VISA_LABELS[filter.visa].zh;
+    return filter.minPay == null
+      ? undefined
+      : t.pay.from(`${COUNTRIES[filter.country].currencySymbol}${filter.minPay}`);
+  if (group === "visa") return filter.visa && VISA_LABELS[filter.visa][lang];
   const ids = group === "food" ? ["meals", "housing"] : null;
-  const chips = filterChips(filter).filter((c) => (ids ? ids.includes(c.id) : c.id.startsWith(`${group}:`)));
+  const chips = filterChips(filter, lang).filter((c) => (ids ? ids.includes(c.id) : c.id.startsWith(`${group}:`)));
   if (chips.length === 0) return undefined;
-  return chips.length === 1 ? chips[0].label : `已选 ${chips.length}`;
+  return chips.length === 1 ? chips[0].label : t.filter.chosen(chips.length);
+}
+
+/** A region's name in the language (the English names are mostly the same). */
+function regionName(region: { nameZh: string; nameEn: string } | undefined, lang: Lang): string | undefined {
+  return region && (lang === "en" ? region.nameEn : region.nameZh);
 }
 
 export function isFiltered(filter: JobFilter): boolean {

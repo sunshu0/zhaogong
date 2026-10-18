@@ -1,15 +1,23 @@
 "use client";
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
+/** Each tab names its language in that language, and marks the text it shows with it. */
 const TABS = [
-  { key: "zh", label: "中文", lang: undefined },
-  { key: "en", label: "English", lang: "en" },
+  { key: "zh", lang: "zh-CN" },
+  { key: "en", lang: "en" },
 ] as const;
 
-/** The job description in Chinese or English, one at a time (Chinese first). Arrow keys move between the tabs. */
+/**
+ * The job description in Chinese or English, one at a time: Chinese first, English first on the English page when
+ * the employer wrote it (Round 20). Arrow keys move between the tabs.
+ */
 export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
-  const [current, setCurrent] = useState<"zh" | "en">("zh");
+  const t = useMessages(seekerJobsMessages).detail;
+  const pageLang = useLang();
+  const [current, setCurrent] = useState<"zh" | "en">(pageLang === "en" && en.trim() ? "en" : "zh");
   const id = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const text = { zh, en };
@@ -26,9 +34,13 @@ export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
     <section aria-labelledby={`${id}-heading`} className="rounded-card bg-surface p-4 shadow-card lg:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id={`${id}-heading`} className="text-subtitle font-semibold">
-          职位描述
+          {t.description}
         </h2>
-        <div role="tablist" aria-label="描述语言" className="flex rounded-full bg-neutral-soft p-1 text-body">
+        <div
+          role="tablist"
+          aria-label={t.descriptionLanguage}
+          className="flex rounded-full bg-neutral-soft p-1 text-body"
+        >
           {TABS.map((tab, index) => (
             <button
               key={tab.key}
@@ -45,7 +57,7 @@ export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
               onKeyDown={(event) => onKeyDown(event, index)}
               className="pressable relative min-h-9 rounded-full px-4 text-muted after:absolute after:inset-x-0 after:-inset-y-1 aria-selected:bg-surface aria-selected:font-medium aria-selected:text-brand aria-selected:shadow-card"
             >
-              {tab.label}
+              <span lang={tab.lang}>{tab.key === "zh" ? t.chinese : t.english}</span>
             </button>
           ))}
         </div>

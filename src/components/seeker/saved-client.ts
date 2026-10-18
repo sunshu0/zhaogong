@@ -7,6 +7,9 @@ import { useEffect, useSyncExternalStore } from "react";
 import { mySavedJobIds, saveMyJob, unsaveMyJob } from "@/app/[lang]/me/saved/actions";
 import { useSession } from "@/components/seeker/session-client";
 import { toast } from "@/components/ui/Toast";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 let ids: ReadonlySet<string> | null = null;
 let loading = false;
@@ -68,16 +71,20 @@ function setBusy(jobId: string, on: boolean) {
   for (const listener of listeners) listener();
 }
 
-/** Saves or removes a job; the buttons follow the server's answer, and a toast says what happened (Round 19). */
-export async function toggleSaved(jobId: string, save: boolean): Promise<void> {
+/**
+ * Saves or removes a job; the buttons follow the server's answer, and a toast says what happened (Round 19), in the
+ * page's language (`lang`, from the caller's useLang()).
+ */
+export async function toggleSaved(jobId: string, save: boolean, lang: Lang = DEFAULT_LANG): Promise<void> {
+  const t = pick(seekerJobsMessages, lang).save;
   setBusy(jobId, true);
   try {
     const answer = await (save ? saveMyJob(jobId) : unsaveMyJob(jobId));
     set(answer ? new Set(answer) : null);
-    if (answer) toast(save ? "已收藏，可以在「收藏和进度」里查看" : "已取消收藏");
+    if (answer) toast(save ? t.savedToast : t.unsavedToast);
   } catch {
     // Unchanged: the button still shows what the server has.
-    toast(save ? "网络有问题，没有收藏上，请重试" : "网络有问题，没有取消，请重试");
+    toast(save ? t.saveFailed : t.unsaveFailed);
   } finally {
     setBusy(jobId, false);
   }

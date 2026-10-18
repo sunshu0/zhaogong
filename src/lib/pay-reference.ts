@@ -1,6 +1,7 @@
 // 时薪参考 (#85, PRD R-36): what jobs of the same industry pay, from the platform's own open jobs only. No outside
 // data, and nothing about visa or immigration pay thresholds.
 import { COUNTRIES, regionById } from "@/config/countries";
+import { uiMessages } from "@/i18n/messages/ui";
 import type { CountryCode, Industry, Job } from "@/lib/types";
 
 /** Fewer jobs than this in the region: widen to the whole area (Auckland); fewer there too: no reference. */
@@ -12,6 +13,8 @@ export type PayReference =
       scope: "region" | "area";
       /** The region or area's name, as the page says it. */
       place: string;
+      /** The same in English (Round 20). */
+      placeEn: string;
       min: number;
       median: number;
       max: number;
@@ -46,18 +49,19 @@ export function payReference(
   const inArea = same.filter((j) => !area || regionById(j.country, j.regionId)?.area === area);
   const inRegion = region ? same.filter((j) => j.regionId === region.id) : [];
 
-  const [scope, sample, place] =
+  const [scope, sample, place, placeEn] =
     inRegion.length >= MIN_SAMPLE
-      ? (["region", inRegion, region!.nameZh] as const)
+      ? (["region", inRegion, region!.nameZh, region!.nameEn] as const)
       : inArea.length >= MIN_SAMPLE
-        ? (["area", inArea, areaName(target.country, area)] as const)
-        : (["none", inArea, ""] as const);
+        ? (["area", inArea, areaName(target.country, area, "zh"), areaName(target.country, area, "en")] as const)
+        : (["none", inArea, "", ""] as const);
   if (scope === "none") return { scope, count: sample.length };
 
   const rates = sample.map((j) => jobRate(j.pay)).sort((a, b) => a - b);
   return {
     scope,
     place,
+    placeEn,
     min: Math.min(...sample.map((j) => j.pay.min)),
     median: Math.round(median(rates) * 100) / 100,
     max: Math.max(...sample.map((j) => j.pay.max ?? j.pay.min)),
@@ -65,10 +69,12 @@ export function payReference(
   };
 }
 
-/** 「全奥克兰」 for Auckland; the country's own name when the region has no area. */
-function areaName(country: CountryCode, area: string | undefined): string {
-  if (area === "Auckland") return "全奥克兰";
-  return area ? `全${area}` : COUNTRIES[country].nameZh;
+/** 「全奥克兰」 / All of Auckland for Auckland; the country's own name when the region has no area. */
+function areaName(country: CountryCode, area: string | undefined, lang: "zh" | "en"): string {
+  const t = uiMessages[lang].payReference;
+  if (area === "Auckland") return t.wholeAuckland;
+  if (area) return t.wholeCity(area);
+  return lang === "en" ? COUNTRIES[country].nameEn : COUNTRIES[country].nameZh;
 }
 
 /** The note beside the pay an employer is filling in: only a hint, never a block. */

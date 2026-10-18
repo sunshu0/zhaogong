@@ -33,6 +33,8 @@ import { Group, Section } from "@/components/ui/Section";
 import type { VisaAccepted } from "@/lib/types";
 import { inputClass } from "@/components/ui/input-class";
 import { Select } from "@/components/ui/Select";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 const LONG_FIELDS: ResumeTextField[] = ["skills", "bio"];
 
@@ -44,12 +46,13 @@ const sharedForm = (doc: ResumeDoc) => JSON.stringify(parseResumeDoc(shareCopy(d
  * resume needs. Everything is saved with the rest of the page (on the account since #104); 分享链接 keeps its own copy.
  */
 export function ResumePage() {
+  const lang = useLang();
+  const t = useMessages(seekerProfileMessages).resume;
   const session = useSession();
   const { profile, update } = useProfile();
   const [saved, setSaved] = useState<boolean | null>(null);
 
-  if (session?.activeRole === "employer")
-    return <p className="py-8 text-body text-muted">简历是求职者身份的功能。请在身份菜单里切换为求职者后再生成。</p>;
+  if (session?.activeRole === "employer") return <p className="py-8 text-body text-muted">{t.seekerOnly}</p>;
 
   const doc = resumeDocFrom(profile);
   const missing = missingEnglish(doc);
@@ -62,34 +65,27 @@ export function ResumePage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link href="/profile" className="pressable inline-flex min-h-11 items-center text-meta text-brand">
-            ← 我的主页
+            {t.back}
           </Link>
-          <h1 className="mt-1 text-title font-semibold">中英文简历</h1>
-          <p className="mt-0.5 text-meta text-muted">
-            用主页资料生成。打印时选「存为 PDF」就能得到 PDF 文件，A4 一页。
-          </p>
+          <h1 className="mt-1 text-title font-semibold">{t.title}</h1>
+          <p className="mt-0.5 text-meta text-muted">{t.intro}</p>
         </div>
         <PrintButton />
       </header>
 
       {missing.length > 0 && (
         <p role="note" className="rounded-control bg-warn-soft px-3 py-2 text-body">
-          英文还缺 {missing.length} 项：{missing.map((field) => TEXT_LABELS[field].zh).join("、")}。缺的项只印中文，
+          {t.missingEnglish(missing.length, missing.map((field) => TEXT_LABELS[field][lang]).join(t.listJoin))}
           <a href="#resume-english" className="text-brand underline underline-offset-4">
-            去补填英文
+            {t.fillEnglish}
           </a>
-          。
+          {lang === "zh" ? "。" : "."}
         </p>
       )}
 
       <ResumeSheet doc={doc} />
 
-      <Section
-        look="app"
-        id="resume-english"
-        title="英文资料"
-        description="简历的英文部分只用你在这里写的英文，平台不翻译。中文在「我的主页」里改。"
-      >
+      <Section look="app" id="resume-english" title={t.english} description={t.englishHint}>
         <Group className="space-y-4">
           {RESUME_TEXT_FIELDS.map((field) => (
             <EnglishField
@@ -105,23 +101,13 @@ export function ResumePage() {
         </Group>
       </Section>
 
-      <Section
-        look="app"
-        id="resume-visa"
-        title="签证"
-        description="只写事实：你持有的签证，以及签证上写的每周可工作时间。不填就不印。"
-      >
+      <Section look="app" id="resume-visa" title={t.visa} description={t.visaHint}>
         <Group>
           <VisaFields profile={profile} onChange={(workRights) => change({ workRights })} />
         </Group>
       </Section>
 
-      <Section
-        look="app"
-        id="resume-contact"
-        title="印上联系方式"
-        description="勾选的会印在简历上。号码在主页的「私密交换资料」里填写。"
-      >
+      <Section look="app" id="resume-contact" title={t.contact} description={t.contactHint}>
         <Group>
           <ContactChoice profile={profile} onChange={(resumeContact) => change({ resumeContact })} />
         </Group>
@@ -149,18 +135,16 @@ function EnglishField({
   regionsChosen: boolean;
   onChange: (value: string) => void;
 }) {
-  const label = `${TEXT_LABELS[field].zh}（英文）`;
-  const hint = !chinese
-    ? "中文还没填，这一项不会印。"
-    : regionsChosen
-      ? "已选的可上班地区有英文名，可以不填。"
-      : `中文：${chinese}`;
+  const lang = useLang();
+  const t = useMessages(seekerProfileMessages).resume;
+  const label = t.englishField(TEXT_LABELS[field][lang]);
+  const hint = !chinese ? t.noChinese : regionsChosen ? t.regionsHaveEnglish : t.chinese(chinese);
   const id = `resume-en-${field}`;
   return (
     <div>
       <label htmlFor={id} className="mb-1 flex items-center gap-2 text-body font-medium">
         {label}
-        {missing && <span className="text-meta font-normal text-warn">待补填</span>}
+        {missing && <span className="text-meta font-normal text-warn">{t.toFill}</span>}
       </label>
       {LONG_FIELDS.includes(field) ? (
         <textarea
@@ -190,24 +174,25 @@ function EnglishField({
 }
 
 function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value: Profile["workRights"]) => void }) {
+  const lang = useLang();
+  const t = useMessages(seekerProfileMessages).resume;
   const rights = profile.workRights;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {/* The label looks like the other fields'; Select's own is only read out. */}
       <div className="text-body">
         <label htmlFor="resume-visa-held" className="mb-1 block font-medium">
-          持有的签证
+          {t.visaHeld}
         </label>
         <Select
           id="resume-visa-held"
-          label="持有的签证"
+          label={t.visaHeld}
           hideLabel
-          placeholder="不填"
+          placeholder={t.visaNone}
           value={rights?.visa ?? ""}
-          options={(Object.entries(HELD_VISA_LABELS) as [VisaAccepted, { zh: string }][]).map(([visa, label]) => ({
-            value: visa,
-            label: label.zh,
-          }))}
+          options={(Object.entries(HELD_VISA_LABELS) as [VisaAccepted, { zh: string; en: string }][]).map(
+            ([visa, label]) => ({ value: visa, label: label[lang] }),
+          )}
           onChange={(value) => {
             const visa = value as VisaAccepted | "";
             onChange(
@@ -218,7 +203,7 @@ function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value:
       </div>
       {rights && rights.visa !== "citizen_resident" && (
         <label className="block text-body">
-          <span className="mb-1 block font-medium">每周可工作（小时，选填）</span>
+          <span className="mb-1 block font-medium">{t.weeklyHours}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -228,7 +213,7 @@ function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value:
             onChange={(event) =>
               onChange({ visa: rights.visa, weeklyHours: event.target.value ? Number(event.target.value) : undefined })
             }
-            placeholder="按签证上写的填"
+            placeholder={t.weeklyHoursPlaceholder}
             className={inputClass()}
           />
         </label>
@@ -237,8 +222,6 @@ function VisaFields({ profile, onChange }: { profile: Profile; onChange: (value:
   );
 }
 
-const CONTACT_LABELS = { phone: "电话", wechat: "微信", email: "邮箱" } as const;
-
 function ContactChoice({
   profile,
   onChange,
@@ -246,10 +229,11 @@ function ContactChoice({
   profile: Profile;
   onChange: (value: NonNullable<Profile["resumeContact"]>) => void;
 }) {
+  const t = useMessages(seekerProfileMessages).resume;
   const choice = profile.resumeContact ?? NO_CONTACT;
   return (
     <fieldset>
-      <legend className="sr-only">印上联系方式</legend>
+      <legend className="sr-only">{t.contact}</legend>
       <div className="flex flex-wrap gap-x-5 gap-y-2">
         {(["phone", "wechat", "email"] as const).map((key) => {
           const value = profile.privateDetails?.[key]?.trim();
@@ -262,13 +246,13 @@ function ContactChoice({
                 onChange={(event) => onChange({ ...choice, [key]: event.target.checked })}
                 className="size-5 accent-brand"
               />
-              {CONTACT_LABELS[key]}
-              <span className="text-meta text-muted">{value || "未填写"}</span>
+              {t[key]}
+              <span className="text-meta text-muted">{value || t.notFilled}</span>
             </label>
           );
         })}
       </div>
-      <p className="mt-1 text-meta text-muted">分享链接里不显示邮箱。</p>
+      <p className="mt-1 text-meta text-muted">{t.noEmailInLink}</p>
     </fieldset>
   );
 }
@@ -281,6 +265,7 @@ const MAKE = "resume-share-make";
  * since then is pointed out with 更新分享内容. Closing it makes the link show nothing.
  */
 function ShareSection({ doc }: { doc: ResumeDoc }) {
+  const t = useMessages(seekerProfileMessages).resume;
   const [share, setShare] = useState<ResumeShareView | null | undefined>(undefined);
   const [origin, setOrigin] = useState("");
   const [error, setError] = useState("");
@@ -337,21 +322,16 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const outdated = share && JSON.stringify(share.resume) !== sharedForm(doc);
 
   return (
-    <Section
-      look="app"
-      id="resume-share"
-      title="分享链接"
-      description="默认不公开。打开后，拿到链接的人不用登录就能看这份简历（不含邮箱），比如不在平台上的雇主。可以随时关闭。"
-    >
+    <Section look="app" id="resume-share" title={t.share} description={t.shareHint}>
       <Group className="space-y-3">
         {share === undefined ? (
           <p role="status" className="text-meta text-muted">
-            正在读取分享状态…
+            {t.shareLoading}
           </p>
         ) : share ? (
           <>
             <p className="flex flex-wrap items-center gap-2 text-body">
-              <span className="font-medium">已打开：</span>
+              <span className="font-medium">{t.shareOn}</span>
               <a
                 ref={link}
                 href={share.path}
@@ -361,13 +341,9 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
               >
                 {url}
               </a>
-              <CopyButton text={url} label="复制链接" />
+              <CopyButton text={url} label={t.copyLink} />
             </p>
-            {outdated && (
-              <p className="text-meta text-warn">
-                资料改过了，链接里还是上次分享时的内容。点「更新分享内容」让链接也变。
-              </p>
-            )}
+            {outdated && <p className="text-meta text-warn">{t.shareStale}</p>}
             <div className="flex flex-wrap gap-3">
               <Button
                 variant="secondary"
@@ -376,7 +352,7 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
                 loading={pending && acting === "share"}
                 {...busyProps(pending && acting !== "share")}
               >
-                更新分享内容
+                {t.shareUpdate}
               </Button>
               <Button
                 variant="link"
@@ -384,13 +360,13 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
                 loading={pending && acting === "close"}
                 {...busyProps(pending && acting !== "close")}
               >
-                关闭链接
+                {t.shareOff}
               </Button>
             </div>
           </>
         ) : (
           <Button id={MAKE} variant="secondary" onClick={shareNow} loading={pending}>
-            生成分享链接
+            {t.shareMake}
           </Button>
         )}
         {error && (

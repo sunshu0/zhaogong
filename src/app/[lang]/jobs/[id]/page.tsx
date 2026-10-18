@@ -15,7 +15,9 @@ import { ReportJob } from "@/components/seeker/ReportJob";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
 import { Phone } from "lucide-react";
-import { formatPay } from "@/components/seeker/format";
+import { formatPay, placeName } from "@/components/seeker/format";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { messages, serverLang } from "@/i18n/server";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
 import { ContactReveal } from "@/components/seeker/ContactReveal";
@@ -30,11 +32,27 @@ import type { Employer, Job as JobRecord } from "@/lib/types";
 import { PageTransition } from "@/components/ui/PageTransition";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/jobs/[id]">): Promise<Metadata> {
+  const lang = await serverLang();
   const job = await getJob((await params).id);
-  if (!job || !isPublic(job)) return { title: "职位不存在" };
-  const title = shareTitle(job);
+  if (!job || !isPublic(job)) return { title: (await messages(seekerJobsMessages)).detail.notFoundTitle };
+  // The share card stays Chinese (WeChat groups, like the share text); the English page's own title is English
+  // where the employer wrote one.
+  const title =
+    lang === "en"
+      ? [
+          job.titleEn?.trim() || job.titleZh,
+          formatPay(job.pay, job.country, "en"),
+          placeName(regionById(job.country, job.regionId), "en"),
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : shareTitle(job);
   const description = shareDescription(job, await getEmployer(job.employerId));
-  return { title, description, openGraph: { title, description, type: "website", locale: "zh_CN" } };
+  return {
+    title,
+    description,
+    openGraph: { title: shareTitle(job), description, type: "website", locale: lang === "en" ? "en_NZ" : "zh_CN" },
+  };
 }
 
 // Round 19 sample (操作质感): with the job list, the first page in the new type (`type-app`) and cards.
@@ -57,6 +75,8 @@ export default function JobPage({ params }: PageProps<"/[lang]/jobs/[id]">) {
 async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
   const job = await getJob((await params).id);
   if (!job || !isPublic(job)) notFound();
+  const lang = await serverLang();
+  const t = await messages(seekerJobsMessages);
   // The request's time first: the open jobs are counted at it (#100).
   const now = await requestTime();
   const [employer, open] = await Promise.all([getEmployer(job.employerId), listJobs({ country: job.country }, now)]);
@@ -75,6 +95,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
         job={job}
         employer={employer}
         now={now}
+        lang={lang}
         payReference={
           <PayReferenceBox
             reference={reference}
@@ -82,6 +103,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
             country={job.country}
             industry={job.industry}
             look="card"
+            lang={lang}
           />
         }
         share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
@@ -109,8 +131,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
               {job.contactPublic && (
                 <a
                   href="#contact"
-                  aria-label="查看联系方式"
-                  title="查看联系方式"
+                  aria-label={t.contact.show}
+                  title={t.contact.show}
                   className="pressable flex size-12 shrink-0 items-center justify-center rounded-control border border-brand/40 bg-surface text-brand hover:bg-brand-soft"
                 >
                   <Phone aria-hidden="true" className="size-5" />
@@ -123,24 +145,22 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
           <>
             <div id="contact" className="scroll-mt-20">
               {job.contactPublic ? (
-                <ContactReveal jobId={job.id} kinds={contactKinds(job)} />
+                <ContactReveal jobId={job.id} kinds={contactKinds(job, lang)} />
               ) : (
                 <section
                   aria-labelledby="contact-heading"
                   className="space-y-3 rounded-card bg-surface p-4 shadow-card lg:p-5"
                 >
                   <h2 id="contact-heading" className="font-medium">
-                    联系方式
+                    {t.contact.title}
                   </h2>
-                  <p className="text-sm text-muted">
-                    雇主没有公开联系方式。点「立即沟通」，在聊天里申请交换：你发起时先给出自己的联系方式，雇主同意后才会给你。
-                  </p>
+                  <p className="text-sm text-muted">{t.contact.notPublic}</p>
                   {employer && (
                     <Link
                       href={`/employers/${employer.id}`}
                       className="inline-flex min-h-11 items-center text-sm text-brand underline"
                     >
-                      查看企业主页
+                      {t.detail.employerPageShort}
                     </Link>
                   )}
                 </section>
@@ -152,8 +172,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
         <RecordView
           jobId={job.id}
           title={job.titleZh}
-          pay={formatPay(job.pay, job.country)}
-          region={regionById(job.country, job.regionId)?.nameZh ?? ""}
+          pay={formatPay(job.pay, job.country, lang)}
+          region={placeName(regionById(job.country, job.regionId), lang) ?? ""}
         />
         <ReportJob jobId={job.id} jobTitle={job.titleZh} />
         <FinishSaveAfterSignIn />

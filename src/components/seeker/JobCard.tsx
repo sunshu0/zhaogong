@@ -3,7 +3,11 @@ import type { ReactNode } from "react";
 import { regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
-import { formatHours, jobTags } from "@/components/seeker/format";
+import { formatHours, jobTagKeys, placeName } from "@/components/seeker/format";
+import { contentLang, DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { JOB_TAG_KINDS } from "@/components/ui/tag-kind";
 import { SoftTag, Tag } from "@/components/ui/Tag";
 import { linkCardClass } from "@/components/ui/Card";
 import { Pay } from "@/components/ui/Pay";
@@ -30,20 +34,27 @@ export function JobCard({
   headingLevel = 2,
   look = "classic",
   action,
+  lang = DEFAULT_LANG,
 }: {
   job: Job;
   employer?: Employer;
   headingLevel?: 2 | 3;
+  /** The page's language (Round 20): the card renders on the server and in the browser, so it is told. */
+  lang?: Lang;
   /** "app": the Round 19 sample (the job list only, until the user approves it for the other lists). */
   look?: "classic" | "app";
   /** "app" only: one more control at the end of the bottom row, e.g. 立即沟通 on an employer's page. */
   action?: ReactNode;
 }) {
-  if (look === "app") return <AppJobCard job={job} employer={employer} headingLevel={headingLevel} action={action} />;
+  if (look === "app")
+    return <AppJobCard job={job} employer={employer} headingLevel={headingLevel} action={action} lang={lang} />;
   const Heading = headingLevel === 3 ? "h3" : "h2";
-  const region = regionById(job.country, job.regionId)?.nameZh;
-  const hours = [formatEmploymentTypes(job.employmentType), formatHours(job.hoursPerWeek)].filter(Boolean).join("，");
-  const tags = jobTags(job).slice(0, CARD_TAGS);
+  const t = pick(seekerJobsMessages, lang);
+  const region = placeName(regionById(job.country, job.regionId), lang);
+  const hours = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang)]
+    .filter(Boolean)
+    .join(t.detail.clauseJoin);
+  const tags = jobTagKeys(job).slice(0, CARD_TAGS);
 
   return (
     <article className="group relative h-full rounded-md border border-border bg-surface p-4 hover:border-brand lg:p-5 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand">
@@ -53,6 +64,7 @@ export function JobCard({
             <Link
               href={`/jobs/${job.id}`}
               transitionTypes={FORWARD}
+              lang={contentLang(job.titleZh)}
               className="outline-none after:absolute after:inset-0"
             >
               {job.titleZh}
@@ -63,15 +75,15 @@ export function JobCard({
           </p>
         </div>
         <p className="shrink-0 leading-none">
-          <Pay pay={job.pay} country={job.country} />
+          <Pay pay={job.pay} country={job.country} lang={lang} />
         </p>
       </div>
 
       <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-body">
-        {region && <Fact label="地区">{region}</Fact>}
-        {hours && <Fact label="工时">{hours}</Fact>}
+        {region && <Fact label={t.card.region}>{region}</Fact>}
+        {hours && <Fact label={t.card.hours}>{hours}</Fact>}
         {/* How to reach the employer, before opening the job (A25). */}
-        <Fact label="联系">{job.contactPublic ? "联系方式公开" : "聊天交换联系方式"}</Fact>
+        <Fact label={t.card.contact}>{job.contactPublic ? t.card.contactPublic : t.card.contactByChat}</Fact>
       </dl>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
@@ -81,18 +93,20 @@ export function JobCard({
             <span className="shrink-0 *:size-5 *:text-meta">
               <EmployerAvatar employerId={employer.id} fallback={employer.name} />
             </span>
-            <span className="truncate">{employer.name}</span>
+            <span lang={contentLang(employer.name)} className="truncate">
+              {employer.name}
+            </span>
             <span className="font-normal">
-              <VerificationBadge verification={employer.verification} />
+              <VerificationBadge verification={employer.verification} lang={lang} />
             </span>
           </p>
         )}
         <div className="ml-auto flex items-center gap-2">
           {tags.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5" aria-label="标签">
+            <ul className="flex flex-wrap gap-1.5" aria-label={t.tags.label}>
               {tags.map((tag) => (
                 <li key={tag}>
-                  <Tag>{tag}</Tag>
+                  <Tag kind={JOB_TAG_KINDS[tag]}>{t.tags[tag]}</Tag>
                 </li>
               ))}
             </ul>
@@ -117,14 +131,17 @@ function AppJobCard({
   employer,
   headingLevel,
   action,
+  lang,
 }: {
   job: Job;
   employer?: Employer;
   headingLevel: 2 | 3;
   action?: ReactNode;
+  lang: Lang;
 }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
-  const points = cardPoints(job, regionById(job.country, job.regionId)?.nameZh);
+  const t = pick(seekerJobsMessages, lang);
+  const points = cardPoints(job, placeName(regionById(job.country, job.regionId), lang), lang);
   const status = cardStatus(job, employer);
   const tags = cardTags(job);
 
@@ -136,6 +153,7 @@ function AppJobCard({
             <Link
               href={`/jobs/${job.id}`}
               transitionTypes={FORWARD}
+              lang={contentLang(job.titleZh)}
               className="outline-none after:absolute after:inset-0"
             >
               {job.titleZh}
@@ -146,38 +164,38 @@ function AppJobCard({
           </p>
         </div>
         <p className="shrink-0 leading-none">
-          <Pay pay={job.pay} country={job.country} />
+          <Pay pay={job.pay} country={job.country} lang={lang} />
         </p>
       </div>
 
       <p className="mt-2 truncate text-body text-muted">
         {points.map((point, i) => (
-          <span key={point}>
+          <span key={point.text}>
             {i > 0 && (
               <span aria-hidden="true" className="px-1.5 text-border">
                 ·
               </span>
             )}
-            {point}
+            <span lang={point.zh && contentLang(point.text)}>{point.text}</span>
           </span>
         ))}
       </p>
 
       {(status || tags.length > 0) && (
-        <ul className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="标签">
+        <ul className="mt-2 flex flex-wrap items-center gap-1.5" aria-label={t.tags.label}>
           {status?.kind === "urgent" && (
             <li>
-              <SoftTag tone="urgent">急招</SoftTag>
+              <SoftTag tone="urgent">{t.tags.urgent}</SoftTag>
             </li>
           )}
           {status?.kind === "verified" && (
             <li>
-              <VerificationBadge verification={status.verification} />
+              <VerificationBadge verification={status.verification} lang={lang} />
             </li>
           )}
           {tags.map((tag) => (
             <li key={tag}>
-              <SoftTag tone="brand">{tag}</SoftTag>
+              <SoftTag tone="brand">{t.tags[tag]}</SoftTag>
             </li>
           ))}
         </ul>
@@ -189,7 +207,9 @@ function AppJobCard({
             <span className="shrink-0 *:size-5 *:text-meta">
               <EmployerAvatar employerId={employer.id} fallback={employer.name} />
             </span>
-            <span className="truncate">{employer.name}</span>
+            <span lang={contentLang(employer.name)} className="truncate">
+              {employer.name}
+            </span>
           </p>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-1">

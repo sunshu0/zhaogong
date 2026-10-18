@@ -29,7 +29,7 @@ export function useInterviewTodos(session: DemoSession | null): InterviewTodo[] 
 }
 
 /** Saves the confirmed interview as a calendar file (.ics); nothing is sent to any calendar service. */
-export function downloadInterviewIcs(interview: InterviewView, id: string, title: string) {
+export function downloadInterviewIcs(interview: InterviewView, id: string, title: string, filename = "面试.ics") {
   if (!interview.chosenSlot) return;
   const file = interviewIcs({
     uid: id,
@@ -43,7 +43,7 @@ export function downloadInterviewIcs(interview: InterviewView, id: string, title
   const url = URL.createObjectURL(new Blob([file], { type: "text/calendar;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = "面试.ics";
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();

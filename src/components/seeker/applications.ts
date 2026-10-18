@@ -1,5 +1,8 @@
 // 一键申请 (#84, PRD R-35): what an application holds and how each side sees its state. Shared by the browser and
 // the server; the server parses everything a browser sends.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { parseResume, type Candidate, type Resume } from "@/lib/candidate-matching";
 import type { Profile } from "@/components/seeker/hub-state";
 
@@ -39,14 +42,23 @@ export type ApplicationProfile = {
 export type ApplicationDecision = "fit" | "unfit" | "hired";
 export const DECISION_LABELS: Record<ApplicationDecision, string> = { fit: "合适", unfit: "不合适", hired: "已录用" };
 
+/** The decision's word in the page's language (Round 20); DECISION_LABELS is the Chinese. */
+export function decisionLabel(decision: ApplicationDecision, lang: Lang = DEFAULT_LANG): string {
+  return pick(seekerMeMessages, lang).applications.decision[decision];
+}
+
 export function parseDecision(value: unknown): ApplicationDecision | null | undefined {
   if (value === null) return null;
   return value === "fit" || value === "unfit" || value === "hired" ? value : undefined;
 }
 
-export function parseApplicationNote(value: unknown): { ok: true; note: string } | { ok: false; error: string } {
+export function parseApplicationNote(
+  value: unknown,
+  lang: Lang = DEFAULT_LANG,
+): { ok: true; note: string } | { ok: false; error: string } {
   const note = typeof value === "string" ? value.trim() : "";
-  if ([...note].length > NOTE_MAX) return { ok: false, error: `附言最多 ${NOTE_MAX} 字` };
+  if ([...note].length > NOTE_MAX)
+    return { ok: false, error: pick(seekerMeMessages, lang).applications.noteTooLong(NOTE_MAX) };
   return { ok: true, note };
 }
 
@@ -90,12 +102,14 @@ export function applicantCandidate(id: string, profile: ApplicationProfile): Can
 export function seekerStatus(
   application: { seenAt?: string | null; decision?: ApplicationDecision | null },
   ended = false,
+  lang: Lang = DEFAULT_LANG,
 ): string {
-  if (application.decision === "hired") return "已录用";
-  if (ended) return "职位已结束";
-  if (application.decision === "fit") return "雇主觉得合适";
-  if (application.seenAt || application.decision === "unfit") return "雇主已看过";
-  return "已申请，等雇主查看";
+  const t = pick(seekerMeMessages, lang).applications.status;
+  if (application.decision === "hired") return t.hired;
+  if (ended) return t.ended;
+  if (application.decision === "fit") return t.fit;
+  if (application.seenAt || application.decision === "unfit") return t.seen;
+  return t.waiting;
 }
 
 /** 进行中 or 已结束 in 我的申请 (#105): an application is over once the person is hired or the job has ended. */
@@ -149,3 +163,9 @@ export const APPLY_ERRORS = {
   note_too_long: `附言最多 ${NOTE_MAX} 字`,
 } as const;
 export type ApplyRefusal = keyof typeof APPLY_ERRORS;
+
+/** Why an application cannot go through, in the visitor's language (Round 20). */
+export function applyError(reason: ApplyRefusal, lang: Lang = DEFAULT_LANG): string {
+  const refused = pick(seekerMeMessages, lang).applications.refused;
+  return reason === "note_too_long" ? refused.note_too_long(NOTE_MAX) : refused[reason];
+}

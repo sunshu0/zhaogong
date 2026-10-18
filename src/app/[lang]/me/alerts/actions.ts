@@ -19,6 +19,8 @@ import {
   parseSection,
 } from "@/lib/external-jobs/alerts";
 import type { ExternalSection } from "@/lib/external-jobs/filter";
+import type { Lang } from "@/i18n/lang";
+import { requestLang } from "@/i18n/server";
 
 export type JobAlertView = {
   id: string;
@@ -34,7 +36,7 @@ export type JobAlertView = {
 
 export type SaveAlertResult = { status: "created" | "exists"; alert: JobAlertView } | { status: "limit" };
 
-function view(alert: JobAlert): JobAlertView {
+function view(alert: JobAlert, lang: Lang): JobAlertView {
   const { id, name, query, paused } = alert;
   const section = parseSection(alert.section) ?? null;
   if (section) {
@@ -49,7 +51,7 @@ function view(alert: JobAlert): JobAlertView {
       conditions: externalAlertConditions(external),
     };
   }
-  return { id, name, query, paused, section, href: jobsHref(query), conditions: alertConditions(alert) };
+  return { id, name, query, paused, section, href: jobsHref(query), conditions: alertConditions(alert, lang) };
 }
 
 async function myEmail(): Promise<string | null> {
@@ -59,7 +61,9 @@ async function myEmail(): Promise<string | null> {
 /** The account's alerts, oldest first; null when signed out. */
 export async function myJobAlerts(): Promise<JobAlertView[] | null> {
   const email = await myEmail();
-  return email ? (await listJobAlerts(email)).map(view) : null;
+  if (!email) return null;
+  const lang = await requestLang();
+  return (await listJobAlerts(email)).map((row) => view(row, lang));
 }
 
 /**
@@ -73,10 +77,10 @@ export async function saveMyJobAlert(query: string, section?: ExternalSection): 
   const stored = on ? normalizeExternalQuery(query, on) : normalizeAlertQuery(query, DEFAULT_COUNTRY);
   const name = on
     ? defaultExternalAlertName({ section: on, query: stored })
-    : defaultAlertName({ country: DEFAULT_COUNTRY, query: stored });
+    : defaultAlertName({ country: DEFAULT_COUNTRY, query: stored }, await requestLang());
   const result = await createJobAlert(email, { country: DEFAULT_COUNTRY, query: stored, name, section: on });
   if (result.status === "no_account") return null; // a session always has its account
-  return result.status === "limit" ? result : { status: result.status, alert: view(result.alert) };
+  return result.status === "limit" ? result : { status: result.status, alert: view(result.alert, await requestLang()) };
 }
 
 /** Renames, pauses or resumes an alert; answers with the account's alerts as they now are. */
@@ -88,14 +92,16 @@ export async function changeMyJobAlert(id: string, change: { name?: string; paus
     const paused = typeof change.paused === "boolean" ? change.paused : undefined;
     if (name !== undefined || paused !== undefined) await updateJobAlert(email, id, { name, paused });
   }
-  return (await listJobAlerts(email)).map(view);
+  const lang = await requestLang();
+  return (await listJobAlerts(email)).map((row) => view(row, lang));
 }
 
 export async function deleteMyJobAlert(id: string): Promise<JobAlertView[] | null> {
   const email = await myEmail();
   if (!email) return null;
   if (typeof id === "string") await deleteJobAlert(email, id);
-  return (await listJobAlerts(email)).map(view);
+  const lang = await requestLang();
+  return (await listJobAlerts(email)).map((row) => view(row, lang));
 }
 
 /**

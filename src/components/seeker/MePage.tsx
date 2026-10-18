@@ -4,31 +4,37 @@ import Link from "next/link";
 import { useId, type ReactNode } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
-import { formatDateZh } from "@/components/seeker/job-facts";
+import { formatJobDate } from "@/components/seeker/job-facts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { ManageJobs } from "@/components/employer/ManageJobs";
 import { ButtonLink } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 /**
  * /me (浏览与举报): jobs viewed and reports sent from this device. Account and sign-out are on 我的 (/account).
  * Round 19: the sample's type, each list a card, rows that darken while pressed.
  */
 export function MePage() {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages);
+  const h = t.history;
   const hydrated = useHydrated();
   const session = useSession();
   const views = useViewedJobs();
   const reports = useSentReports();
 
-  if (!hydrated) return <SkeletonList count={2} label="正在加载浏览记录" />;
+  if (!hydrated) return <SkeletonList count={2} label={t.pages.loadingHistory} />;
 
   if (!session) {
     return (
       <div className={`py-10 text-center ${cardClass()}`}>
-        <p className="text-body font-medium">登录后可以查看浏览记录和举报记录</p>
+        <p className="text-body font-medium">{h.signInFor}</p>
         <ButtonLink href="/login?next=%2Fme" className="mt-4">
-          登录
+          {t.pages.signIn}
         </ButtonLink>
       </div>
     );
@@ -37,13 +43,13 @@ export function MePage() {
   return (
     <div className="space-y-3">
       {session.activeRole === "employer" ? (
-        <section className="space-y-3" aria-label="招聘记录">
-          <h2 className="text-subtitle font-semibold">招聘记录</h2>
+        <section className="space-y-3" aria-label={h.records}>
+          <h2 className="text-subtitle font-semibold">{h.records}</h2>
           <ManageJobs />
         </section>
       ) : (
         <Panel
-          title="最近看过的职位"
+          title={h.viewed}
           count={views.length}
           action={
             views.length > 0 && (
@@ -52,16 +58,16 @@ export function MePage() {
                 onClick={forgetViews}
                 className="pressable inline-flex min-h-11 items-center text-meta text-muted underline underline-offset-2"
               >
-                清除浏览记录
+                {h.clear}
               </button>
             )
           }
         >
           {views.length === 0 ? (
             <Empty>
-              还没有看过职位。
+              {h.noneViewed}
               <Link href="/jobs" className="text-brand underline underline-offset-2">
-                去看看
+                {h.browse}
               </Link>
             </Empty>
           ) : (
@@ -73,12 +79,15 @@ export function MePage() {
                     className={`${ROW} flex min-h-14 items-center justify-between gap-3 py-2.5`}
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-body font-medium">{v.title}</span>
-                      <span className="block truncate text-meta text-muted">
+                      <span lang={contentLang(v.title)} className="block truncate text-body font-medium">
+                        {v.title}
+                      </span>
+                      {/* Kept as the job page said them when the job was viewed, in its language then. */}
+                      <span lang={contentLang(`${v.pay}${v.region}`)} className="block truncate text-meta text-muted">
                         {v.pay} · {v.region}
                       </span>
                     </span>
-                    <span className="shrink-0 text-meta text-muted">{formatDateZh(v.at, "NZ")}</span>
+                    <span className="shrink-0 text-meta text-muted">{formatJobDate(v.at, "NZ", lang)}</span>
                   </Link>
                 </li>
               ))}
@@ -87,20 +96,22 @@ export function MePage() {
         </Panel>
       )}
 
-      <Panel title="我发出的举报" count={reports.length}>
+      <Panel title={h.reports} count={reports.length}>
         {reports.length === 0 ? (
-          <Empty>还没有举报过职位。</Empty>
+          <Empty>{h.noReports}</Empty>
         ) : (
           <ul className="divide-y divide-border">
             {reports.map((r) => (
               <li key={r.reportId}>
                 <Link href={`/jobs/${r.jobId}`} className={`${ROW} block py-2.5`}>
                   <span className="flex items-baseline justify-between gap-3">
-                    <span className="min-w-0 truncate text-body font-medium">{r.jobTitle}</span>
-                    <span className="shrink-0 text-meta text-muted">{formatDateZh(r.at, "NZ")}</span>
+                    <span lang={contentLang(r.jobTitle)} className="min-w-0 truncate text-body font-medium">
+                      {r.jobTitle}
+                    </span>
+                    <span className="shrink-0 text-meta text-muted">{formatJobDate(r.at, "NZ", lang)}</span>
                   </span>
                   <span className="block text-meta text-muted">
-                    {REPORT_REASON_LABELS[r.reason].zh} · 已提交，等待核查
+                    {h.reportStatus(REPORT_REASON_LABELS[r.reason][lang])}
                   </span>
                 </Link>
               </li>
@@ -109,7 +120,7 @@ export function MePage() {
         )}
       </Panel>
 
-      <p className="px-1 text-meta text-muted">演示版：这些记录只保存在这台设备上。</p>
+      <p className="px-1 text-meta text-muted">{h.demoNote}</p>
     </div>
   );
 }

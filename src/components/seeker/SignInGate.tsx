@@ -6,12 +6,15 @@ import { useSitePathname } from "@/i18n/client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { buttonClass } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 /**
  * Shows `children` to a signed-in user; anyone else gets `message` and a sign-in link back to this page, in a card
  * with a 48px main button (Round 19).
  */
 export function SignInGate({ message, children }: { message: string; children: ReactNode }) {
+  const t = useMessages(uiMessages);
   const pathname = useSitePathname();
   const hydrated = useHydrated();
   const session = useSession();
@@ -23,7 +26,7 @@ export function SignInGate({ message, children }: { message: string; children: R
         href={`/login?next=${encodeURIComponent(pathname)}`}
         className={`${buttonClass("primary", { size: "lg" })} mt-5 px-8`}
       >
-        登录 / 注册
+        {t.signIn}
       </Link>
     </div>
   );

@@ -5,6 +5,9 @@
 import { getCurrentSession } from "@/lib/auth";
 import { closeResumeShare, myResumeShare, saveResumeShare } from "@/db/resume-shares";
 import { parseResumeDoc, shareCopy, type ResumeDoc } from "@/components/seeker/resume-doc";
+import { pick } from "@/i18n/messages";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
+import { requestLang } from "@/i18n/server";
 
 /** An open link: its path, and the page it shows (for its owner, to tell whether the page changed since). */
 export type ResumeShareView = { path: string; updatedAt: string; resume: ResumeDoc };
@@ -28,12 +31,13 @@ export async function myResumeShareLink(): Promise<ResumeShareView | null> {
 /** Opens the link, or updates what it shows. */
 export async function shareMyResume(resume: unknown): Promise<ShareResult> {
   const session = await getCurrentSession();
-  if (!session) return { ok: false, error: "请先登录" };
-  if (session.activeRole !== "seeker") return { ok: false, error: "请切换为求职者身份后再分享简历" };
+  const t = pick(seekerProfileMessages, await requestLang()).resume;
+  if (!session) return { ok: false, error: t.signInFirst };
+  if (session.activeRole !== "seeker") return { ok: false, error: t.switchToShare };
   const doc = parseResumeDoc(resume);
-  if (!doc) return { ok: false, error: "先在主页填写称呼，再分享简历" };
+  if (!doc) return { ok: false, error: t.nameFirst };
   const row = await saveResumeShare(session.email, shareCopy(doc));
-  if (row === "no_account") return { ok: false, error: "请先登录" };
+  if (row === "no_account") return { ok: false, error: t.signInFirst };
   return { ok: true, share: view(row) };
 }
 

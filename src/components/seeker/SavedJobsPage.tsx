@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { mySavedJobs, setMyJobStage, unsaveMyJob, type SavedJobView } from "@/app/[lang]/me/saved/actions";
-import { SAVED_STAGES, SAVED_STAGE_LABELS, parseSavedStage } from "@/components/seeker/saved-jobs";
+import { SAVED_STAGES, parseSavedStage } from "@/components/seeker/saved-jobs";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { sendWaitingChanges } from "@/components/seeker/chat-client";
 import { identityScope } from "@/components/seeker/identity-scope";
-import { formatDateZh } from "@/components/seeker/job-facts";
+import { formatJobDate } from "@/components/seeker/job-facts";
 import { Pay } from "@/components/ui/Pay";
 import { SoftTag } from "@/components/ui/Tag";
 import { ButtonLink } from "@/components/ui/Button";
@@ -15,6 +15,9 @@ import { cardClass } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useAppliedJobIds } from "@/components/seeker/applied-client";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 /**
  * 收藏和进度 (#52): the account's saved jobs, newest first, each with its stage; external jobs of 实习 and 专业职位
@@ -22,6 +25,9 @@ import { useAppliedJobIds } from "@/components/seeker/applied-client";
  * sees this; employers never do. Round 19: each job a card, 进度 a Select (a bottom sheet on phones).
  */
 export function SavedJobsPage() {
+  const lang = useLang();
+  const t = useMessages(seekerMeMessages);
+  const s = t.saved;
   const hydrated = useHydrated();
   const session = useSession();
   const signedIn = Boolean(session);
@@ -38,20 +44,21 @@ export function SavedJobsPage() {
     sendWaitingChanges(scope)
       .then(() => mySavedJobs())
       .then((list) => current && setJobs(list))
-      .catch(() => current && setError("网络有问题，收藏暂时打不开，请稍后再试。"));
+      .catch(() => current && setError(s.loadFailed));
     return () => {
       current = false;
     };
-  }, [signedIn, scope]);
+  }, [signedIn, scope, s.loadFailed]);
 
-  if (!hydrated || (signedIn && jobs === undefined && !error)) return <SkeletonList count={2} label="正在加载收藏" />;
+  if (!hydrated || (signedIn && jobs === undefined && !error))
+    return <SkeletonList count={2} label={t.pages.loadingSaved} />;
 
   if (!session) {
     return (
       <div className={`py-10 text-center ${cardClass()}`}>
-        <p className="text-body font-medium">登录后可以收藏职位、记下求职进度</p>
+        <p className="text-body font-medium">{s.signInFor}</p>
         <ButtonLink href="/login?next=%2Fme%2Fsaved" className="mt-4">
-          登录
+          {t.pages.signIn}
         </ButtonLink>
       </div>
     );
@@ -67,12 +74,10 @@ export function SavedJobsPage() {
   if (!jobs || jobs.length === 0) {
     return (
       <div className={`py-10 text-center ${cardClass()}`}>
-        <p className="text-body font-medium">还没有收藏的职位</p>
-        <p className="mt-1 text-body text-muted">
-          在职位上点「收藏」，就会出现在这里，可以记下联系、面试到录用的进度。
-        </p>
+        <p className="text-body font-medium">{s.emptyTitle}</p>
+        <p className="mt-1 text-body text-muted">{s.emptyHint}</p>
         <ButtonLink href="/jobs" variant="secondary" className="mt-4">
-          去看职位 →
+          {s.browse}
         </ButtonLink>
       </div>
     );
@@ -83,14 +88,14 @@ export function SavedJobsPage() {
     try {
       setJobs(await run());
     } catch {
-      setError("网络有问题，没有保存，请再试一次。");
+      setError(s.saveFailed);
     }
   }
 
   return (
     <div>
-      <p className="mb-2 text-body text-muted">只有你自己看得到，雇主看不到。</p>
-      <ul aria-label="收藏的职位" className="space-y-3">
+      <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
+      <ul aria-label={s.list} className="space-y-3">
         {jobs.map((job) => (
           <li key={job.jobId} className={cardClass()}>
             <article aria-label={job.titleZh}>
@@ -98,15 +103,21 @@ export function SavedJobsPage() {
                 <div className="min-w-0">
                   <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
                     {job.gone ? (
-                      <span className="text-muted">{job.titleZh}</span>
+                      <span lang={contentLang(job.titleZh)} className="text-muted">
+                        {job.titleZh}
+                      </span>
                     ) : (
-                      <Link href={job.href} lang={job.external ? "en" : undefined} className="hover:text-brand">
+                      <Link
+                        href={job.href}
+                        lang={job.external ? "en" : contentLang(job.titleZh)}
+                        className="hover:text-brand"
+                      >
                         {job.titleZh}
                       </Link>
                     )}
-                    {job.external && <SoftTag tone="neutral">外部职位</SoftTag>}
-                    {job.gone && <SoftTag tone="neutral">已下架</SoftTag>}
-                    {applied?.has(job.jobId) && <SoftTag tone="brand">已申请</SoftTag>}
+                    {job.external && <SoftTag tone="neutral">{s.external}</SoftTag>}
+                    {job.gone && <SoftTag tone="neutral">{s.gone}</SoftTag>}
+                    {applied?.has(job.jobId) && <SoftTag tone="brand">{s.applied}</SoftTag>}
                   </h2>
                   {job.titleEn && (
                     <p lang="en" className="truncate font-latin text-meta text-muted">
@@ -116,23 +127,28 @@ export function SavedJobsPage() {
                 </div>
                 {job.pay ? (
                   <p className={`shrink-0 leading-none ${job.gone ? "opacity-60" : ""}`}>
-                    <Pay pay={job.pay} country={job.country} />
+                    <Pay pay={job.pay} country={job.country} lang={lang} />
                   </p>
                 ) : (
                   job.payText && <p className="shrink-0 text-meta text-muted">{job.payText}</p>
                 )}
               </div>
               <p className="mt-1 text-body text-muted">
-                {[job.region, job.employerName].filter(Boolean).join(" · ")} · {formatDateZh(job.savedAt, job.country)}
-                收藏
+                {job.region && `${job.region} · `}
+                {job.employerName && (
+                  <>
+                    <span lang={contentLang(job.employerName)}>{job.employerName}</span> ·{" "}
+                  </>
+                )}
+                {t.saved.savedOn(formatJobDate(job.savedAt, job.country, lang))}
               </p>
               <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
                 <div className="w-36">
                   <Select
-                    label="进度"
+                    label={s.stage}
                     required
                     value={job.stage}
-                    options={SAVED_STAGES.map((stage) => ({ value: stage, label: SAVED_STAGE_LABELS[stage] }))}
+                    options={SAVED_STAGES.map((stage) => ({ value: stage, label: s.stages[stage] }))}
                     onChange={(value) => {
                       const stage = parseSavedStage(value);
                       if (stage) void change(() => setMyJobStage(job.jobId, stage));
@@ -140,7 +156,7 @@ export function SavedJobsPage() {
                   />
                 </div>
                 {!job.picked && job.stage === "contacted" && (
-                  <span className="pb-3 text-meta text-muted">聊天里交换过联系方式</span>
+                  <span className="pb-3 text-meta text-muted">{s.swapped}</span>
                 )}
                 <button
                   type="button"
@@ -152,7 +168,7 @@ export function SavedJobsPage() {
                   }
                   className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
                 >
-                  取消收藏
+                  {s.unsave}
                 </button>
               </div>
             </article>

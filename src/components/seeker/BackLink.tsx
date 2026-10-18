@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { lastListHref } from "@/components/seeker/last-list";
 import { BACK } from "@/components/ui/PageTransition";
+import { useMessages } from "@/i18n/client";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 /** Back to the list the user last looked at in this tab, with its filters, or to /jobs. */
 export function BackLink() {
+  const t = useMessages(seekerJobsMessages).list;
   const router = useRouter();
   return (
     <Link
@@ -19,7 +22,7 @@ export function BackLink() {
       }}
       className="inline-flex items-center gap-1 py-1 text-sm text-muted hover:text-brand"
     >
-      <span aria-hidden="true">←</span> 职位列表
+      <span aria-hidden="true">←</span> {t.back}
     </Link>
   );
 }

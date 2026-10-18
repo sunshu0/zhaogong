@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { employersOf } from "@/components/seeker/employers";
-import { AI_FEATURE, EMPLOYER_EXAMPLE, FEATURES, formatCount, heroCounts } from "@/components/seeker/landing";
+import { aiFeature, EMPLOYER_EXAMPLE, features, formatCount, heroCounts } from "@/components/seeker/landing";
 import { DEMO_DATA, STAT_MIN_TO_SHOW } from "@/config/landing";
 import { englishSummary, parsePost } from "@/lib/ai-post";
 import { listFeaturedJobs } from "@/lib/data";
@@ -22,6 +22,11 @@ describe("heroCounts (#51: the home page's one line of numbers)", () => {
       { value: 16, label: "个职位在招，来自" },
       { value: 6, label: "家已验证雇主" },
     ]);
+    expect(
+      heroCounts(16, 6, stats, "en")
+        .slice(0, 2)
+        .map((p) => p.label),
+    ).toEqual(["open jobs, from", "verified employers"]);
     const rest = parts.slice(2).map((p) => p.label);
     expect(rest).not.toContain("个职位");
     expect(rest).not.toContain("家雇主发布过招聘");
@@ -47,14 +52,24 @@ describe("employersOf", () => {
   });
 });
 
-describe("FEATURES", () => {
+describe("features", () => {
   it("shows the AI chat post and three more, short, with an icon each and no number claims", () => {
-    expect(FEATURES.map((f) => f.title)).toEqual(["发布前合规检查", "雇主验证与防骗", "中文为主"]);
-    for (const block of [...FEATURES, { ...AI_FEATURE, icon: "chat" as const }]) {
+    expect(features().map((f) => f.title)).toEqual(["发布前合规检查", "雇主验证与防骗", "中文为主"]);
+    for (const block of [...features(), { ...aiFeature(), icon: "chat" as const }]) {
       expect(block.text.length).toBeLessThanOrEqual(70);
       expect(["chat", "language", "check", "shield"]).toContain(block.icon);
       expect(`${block.title}${block.text}`.replace("AI", "")).not.toMatch(/[0-9０-９]|万|千|百/);
     }
+  });
+
+  it("says the same in English, still without number claims (Round 20)", () => {
+    expect(features("en").map((f) => f.title)).toEqual([
+      "Checks before posting",
+      "Verified employers, fewer scams",
+      "Chinese first",
+    ]);
+    for (const block of [...features("en"), aiFeature("en")])
+      expect(`${block.title}${block.text}`.replace("AI", "")).not.toMatch(/[0-9]|hundred|thousand/i);
   });
 });
 

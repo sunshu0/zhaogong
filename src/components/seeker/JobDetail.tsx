@@ -4,8 +4,12 @@ import { regionById } from "@/config/countries";
 import { INDUSTRY_LABELS, LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { Employer, Job } from "@/lib/types";
-import { formatHours, jobTags, postedAgoZh } from "@/components/seeker/format";
-import { expiryZh, formatDateZh, isExpired, minimumWageNote } from "@/components/seeker/job-facts";
+import { formatHours, jobTagKeys, placeName, postedAgo } from "@/components/seeker/format";
+import { expiry, formatJobDate, isExpired, minimumWageNote } from "@/components/seeker/job-facts";
+import { contentLang, DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { JOB_TAG_KINDS } from "@/components/ui/tag-kind";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { Tag } from "@/components/ui/Tag";
 import { Pay } from "@/components/ui/Pay";
@@ -34,6 +38,7 @@ export function JobDetail({
   share,
   payReference,
   children,
+  lang = DEFAULT_LANG,
 }: {
   job: Job;
   employer?: Employer;
@@ -51,26 +56,31 @@ export function JobDetail({
   payReference?: ReactNode;
   /** Blocks shown after the description (and after `aside` on phones), e.g. report. */
   children?: ReactNode;
+  /** The page's language (Round 20): the job page renders on the server, the post form's preview in the browser. */
+  lang?: Lang;
 }) {
+  const t = pick(seekerJobsMessages, lang);
   const region = regionById(job.country, job.regionId);
-  const payNote = minimumWageNote(job.pay, job.country);
-  const tags = jobTags(job);
-  const hours = [formatHours(job.hoursPerWeek), job.shiftsZh].filter(Boolean).join("，");
+  const payNote = minimumWageNote(job.pay, job.country, lang);
+  const tags = jobTagKeys(job);
+  const hours = formatHours(job.hoursPerWeek, lang);
+  const shifts = job.shiftsZh?.trim();
+  const join = (items: string[]) => items.join(t.detail.listJoin);
 
   const details = (
     <>
       {isExpired(job, now) && (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">这个职位已截止，可能已经招满。</p>
+        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.closes.closedNote}</p>
       )}
 
       {/* The title and the pay lead (Round 19); the facts follow in a card of their own. */}
       <header className={CARD}>
         <div className="flex items-start justify-between gap-2">
           {tags.length > 0 ? (
-            <ul className="flex flex-wrap gap-1.5" aria-label="标签">
+            <ul className="flex flex-wrap gap-1.5" aria-label={t.tags.label}>
               {tags.map((tag) => (
                 <li key={tag}>
-                  <Tag>{tag}</Tag>
+                  <Tag kind={JOB_TAG_KINDS[tag]}>{t.tags[tag]}</Tag>
                 </li>
               ))}
             </ul>
@@ -82,12 +92,17 @@ export function JobDetail({
             {share}
           </div>
         </div>
-        <h1 className="mt-1 text-[1.75rem] leading-tight font-black break-words lg:text-[2.125rem]">{job.titleZh}</h1>
+        <h1
+          lang={contentLang(job.titleZh)}
+          className="mt-1 text-[1.75rem] leading-tight font-black break-words lg:text-[2.125rem]"
+        >
+          {job.titleZh}
+        </h1>
         <p lang="en" className="font-latin text-body text-muted">
           {job.titleEn}
         </p>
         <p className="mt-3">
-          <Pay pay={job.pay} country={job.country} size="detail" />
+          <Pay pay={job.pay} country={job.country} size="detail" lang={lang} />
         </p>
         {payNote && (
           <p className={`mt-3 rounded-control px-3 py-2 text-body ${NOTE_STYLES[payNote.level]}`}>{payNote.text}</p>
@@ -100,52 +115,67 @@ export function JobDetail({
         )}
       </header>
 
-      <section aria-label="职位信息" className={CARD}>
+      <section aria-label={t.detail.facts} className={CARD}>
         {/* The facts both sides need first (A29): 2 columns on phones, 3 from 1024 px. */}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
-          <Fact term="地区">
-            {region?.nameZh}
+          <Fact term={t.detail.region}>
+            {placeName(region, lang)}
             {job.address && <span className="block text-meta text-muted">{job.address}</span>}
           </Fact>
-          <Fact term="工时和班次">{hours || "未注明"}</Fact>
-          <Fact term="用工形式">
-            {formatEmploymentTypes(job.employmentType)}
-            <span className="block text-meta text-muted">{INDUSTRY_LABELS[job.industry].zh}</span>
+          <Fact term={t.detail.hoursAndShifts}>
+            {hours || shifts ? (
+              <>
+                {hours}
+                {hours && shifts && t.detail.clauseJoin}
+                {shifts && <span lang={contentLang(shifts)}>{shifts}</span>}
+              </>
+            ) : (
+              t.detail.notStated
+            )}
           </Fact>
-          <Fact term="食宿">
-            {job.mealsIncluded ? "包餐" : "不包餐"} · {job.accommodationIncluded ? "包住" : "不包住"}
+          <Fact term={t.detail.employmentType}>
+            {formatEmploymentTypes(job.employmentType, lang)}
+            <span className="block text-meta text-muted">{INDUSTRY_LABELS[job.industry][lang]}</span>
           </Fact>
-          <Fact term="接受的签证">
-            {job.visaAccepted.length ? job.visaAccepted.map((v) => VISA_LABELS[v].zh).join("、") : "未注明"}
+          <Fact term={t.detail.food}>
+            {job.mealsIncluded ? t.detail.meals : t.detail.noMeals} ·{" "}
+            {job.accommodationIncluded ? t.detail.housing : t.detail.noHousing}
+          </Fact>
+          <Fact term={t.detail.visas}>
+            {job.visaAccepted.length ? join(job.visaAccepted.map((v) => VISA_LABELS[v][lang])) : t.detail.notStated}
           </Fact>
         </dl>
         <p className="mt-4 border-t border-border pt-3 text-meta text-muted">
-          工作语言：{job.languages.length ? job.languages.map((l) => LANGUAGE_LABELS[l].zh).join("、") : "未注明"}
-          。签证一项是雇主提供的信息，不构成签证或移民建议。
+          {t.detail.languages(
+            job.languages.length ? join(job.languages.map((l) => LANGUAGE_LABELS[l][lang])) : t.detail.notStated,
+          )}
+          {t.detail.visaNote}
         </p>
         <p className="mt-1 text-meta text-muted">
-          {formatDateZh(job.postedAt, job.country)}发布（{postedAgoZh(job.postedAt, now)}）·{" "}
-          {expiryZh(job.expiresAt, now, job.country)}
+          {t.posted.on(formatJobDate(job.postedAt, job.country, lang), postedAgo(job.postedAt, now, lang))} ·{" "}
+          {expiry(job.expiresAt, now, job.country, lang)}
         </p>
       </section>
 
       {payReference}
 
       {employer && (
-        <section aria-label="雇主" className={CARD}>
+        <section aria-label={t.detail.employer} className={CARD}>
           <p className="flex min-w-0 items-center gap-2 font-medium">
             <EmployerAvatar employerId={employer.id} fallback={employer.name} />
-            <span className="break-words">{employer.name}</span>
+            <span lang={contentLang(employer.name)} className="break-words">
+              {employer.name}
+            </span>
           </p>
           <div className="mt-2">
-            <VerificationBadge verification={employer.verification} explain />
+            <VerificationBadge verification={employer.verification} explain lang={lang} />
           </div>
           <Link
             href={`/employers/${employer.id}`}
             transitionTypes={FORWARD}
             className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
           >
-            查看企业主页 →
+            {t.detail.employerPage}
           </Link>
         </section>
       )}
@@ -170,7 +200,10 @@ export function JobDetail({
       className={`space-y-3 ${room} lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0`}
     >
       <div className="space-y-3 lg:col-start-1">{details}</div>
-      <aside aria-label="联系雇主" className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}>
+      <aside
+        aria-label={t.detail.contactEmployer}
+        className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}
+      >
         {aside}
       </aside>
       {children && <div className="space-y-3 lg:col-start-1">{children}</div>}

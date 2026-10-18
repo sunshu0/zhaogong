@@ -3,6 +3,9 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { CountryCode, Employer, EmployerVerification, Job, PayRange } from "@/lib/types";
 import { DAY_MS, formatMoney, formatPay } from "@/components/seeker/format";
+import { DEFAULT_LANG, localeTag, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 /** Pay within this many dollars above the minimum wage gets a note. */
 const NEAR_MINIMUM_WAGE = 1;
@@ -15,30 +18,40 @@ export interface PayNote {
   text: string;
 }
 
-/** A note when the lowest advertised rate is below, at or just above the country's adult minimum wage. */
-export function minimumWageNote(pay: PayRange, country: CountryCode): PayNote | undefined {
+/**
+ * A note when the lowest advertised rate is below, at or just above the country's adult minimum wage (the one the
+ * platform checks, 导师决定 3).
+ */
+export function minimumWageNote(pay: PayRange, country: CountryCode, lang: Lang = DEFAULT_LANG): PayNote | undefined {
   const config = COUNTRIES[country];
   const { hourly, effectiveFrom } = config.minimumWage;
   if (!hourly) return undefined;
 
-  const rate = `${config.nameZh}最低时薪 ${config.currencySymbol}${formatMoney(hourly)}（${effectiveFrom} 起）`;
+  const t = pick(seekerJobsMessages, lang).minimumWage;
+  const name = lang === "en" ? config.nameEn : config.nameZh;
+  const rate = t.rate(name, `${config.currencySymbol}${formatMoney(hourly, lang)}`, effectiveFrom);
   const cents = Math.round(pay.min * 100) - Math.round(hourly * 100);
-  if (cents < 0) return { level: "below", text: `低于${rate}。雇主不得低于最低工资支付，如有疑问可以举报这个职位。` };
-  if (cents === 0) return { level: "at", text: `等于${rate}。` };
-  if (cents <= NEAR_MINIMUM_WAGE * 100) return { level: "near", text: `接近${rate}。` };
+  if (cents < 0) return { level: "below", text: t.below(rate) };
+  if (cents === 0) return { level: "at", text: t.at(rate) };
+  if (cents <= NEAR_MINIMUM_WAGE * 100) return { level: "near", text: t.near(rate) };
   return undefined;
 }
 
 /** One line on what the employer's badge means. */
-export function verificationNote(verification: EmployerVerification, country: CountryCode): string {
+export function verificationNote(
+  verification: EmployerVerification,
+  country: CountryCode,
+  lang: Lang = DEFAULT_LANG,
+): string {
   const number = COUNTRIES[country].businessNumberLabel;
+  const t = pick(seekerJobsMessages, lang).verification;
   switch (verification) {
     case "accredited_employer":
-      return `已核对企业登记（${number}），雇主为移民局认证雇主。`;
+      return t.accredited(number);
     case "business_verified":
-      return `已核对企业登记（${number}），确认这家企业真实存在。`;
+      return t.verified(number);
     case "unverified":
-      return "雇主还没有完成企业验证。请自行核实，不要向雇主支付任何费用。";
+      return t.unverified;
   }
 }
 
@@ -54,24 +67,42 @@ export function shareDescription(job: Job, employer: Employer | undefined): stri
   return text.length > 100 ? `${text.slice(0, 99)}…` : text;
 }
 
-/** "10月11日" in the market's local time. */
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+
+/** "10月11日" / "11 October" in the market's local time. */
+export function formatJobDate(iso: string, country: CountryCode, lang: Lang = DEFAULT_LANG): string {
+  const key = `${lang} ${country}`;
+  let format = dateFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(localeTag(lang), { timeZone: TIME_ZONES[country], month: "long", day: "numeric" });
+    dateFormats.set(key, format);
+  }
+  return format.format(new Date(iso));
+}
+
+/** formatJobDate in Chinese (its name before Round 20). */
 export function formatDateZh(iso: string, country: CountryCode): string {
-  return new Intl.DateTimeFormat("zh-CN", { timeZone: TIME_ZONES[country], month: "long", day: "numeric" }).format(
-    new Date(iso),
-  );
+  return formatJobDate(iso, country, "zh");
 }
 
-/** "11月9日截止（还有 29 天）", or "10月10日已截止". */
-export function expiryZh(expiresAt: string, now: number, country: CountryCode): string {
-  const date = formatDateZh(expiresAt, country);
+/** "11月9日截止（还有 29 天）" / "Closes 9 November (in 29 days)", or "10月10日已截止" / "Closed 10 October". */
+export function expiry(expiresAt: string, now: number, country: CountryCode, lang: Lang = DEFAULT_LANG): string {
+  const date = formatJobDate(expiresAt, country, lang);
   const days = Math.ceil((Date.parse(expiresAt) - now) / DAY_MS);
-  return days > 0 ? `${date}截止（还有 ${days} 天）` : `${date}已截止`;
+  const t = pick(seekerJobsMessages, lang).closes;
+  return days > 0 ? t.inDays(date, days) : t.closed(date);
 }
 
-/** Which kinds of contact a job has ("电话", "微信", "邮箱"), without the details themselves. */
-export function contactKinds(job: Job): string[] {
+/** expiry in Chinese (its name before Round 20). */
+export function expiryZh(expiresAt: string, now: number, country: CountryCode): string {
+  return expiry(expiresAt, now, country, "zh");
+}
+
+/** Which kinds of contact a job has ("电话", "微信", "邮箱" / phone, WeChat, email), without the details themselves. */
+export function contactKinds(job: Job, lang: Lang = DEFAULT_LANG): string[] {
   const { phone, wechat, email } = job.contact;
-  return [phone && "电话", wechat && "微信", email && "邮箱"].filter((k): k is string => Boolean(k));
+  const t = pick(seekerJobsMessages, lang).contact;
+  return [phone && t.phone, wechat && t.wechat, email && t.email].filter((k): k is string => Boolean(k));
 }
 
 /** Job seekers can open active and expired jobs; removed and unreviewed ones are not found. */

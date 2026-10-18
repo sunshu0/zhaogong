@@ -33,6 +33,7 @@ describe("payReference (#85)", () => {
     expect(payReference(jobs, { country: "NZ", industry: "hospitality", regionId: "akl-cbd" })).toEqual({
       scope: "region",
       place: "市中心",
+      placeEn: "Auckland CBD",
       min: 23.95,
       median: 25,
       max: 35,
@@ -50,7 +51,15 @@ describe("payReference (#85)", () => {
         regionId: "akl-cbd",
         exclude: own.id,
       }),
-    ).toEqual({ scope: "area", place: "全奥克兰", min: 24, median: 28, max: 32, count: 5 });
+    ).toEqual({
+      scope: "area",
+      place: "全奥克兰",
+      placeEn: "All of Auckland",
+      min: 24,
+      median: 28,
+      max: 32,
+      count: 5,
+    });
   });
 
   it("gives no reference below 5 jobs, saying how many there are", () => {
@@ -70,7 +79,15 @@ describe("payReference (#85)", () => {
 });
 
 describe("belowMedianHint", () => {
-  const reference = { scope: "region" as const, place: "市中心", min: 24, median: 26, max: 30, count: 5 };
+  const reference = {
+    scope: "region" as const,
+    place: "市中心",
+    placeEn: "Auckland CBD",
+    min: 24,
+    median: 26,
+    max: 30,
+    count: 5,
+  };
   it("hints below the median only, and never without a reference or a rate", () => {
     expect(belowMedianHint(25, reference)).toBe("低于同类职位的中位数，可能比较难招到人。");
     expect(belowMedianHint(26, reference)).toBeNull();

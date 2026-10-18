@@ -83,6 +83,27 @@ test("job cards: title, pay, one line of points, one status and two tags, employ
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 });
 
+test("job cards in English (Round 20): still three whole cards on a 375 × 812 phone, nothing wider", async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "the phone's screen");
+  await page.context().addCookies([{ name: "zg_lang", value: "en", url: baseURL! }]);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/jobs");
+  const cards = page.getByRole("region", { name: "Jobs" }).locator("article");
+  await expect(cards.first()).toBeVisible();
+  let bottom = (await box(cards.nth(0))).y;
+  for (const id of ["j3", "j5", "j11"])
+    bottom += (await box(cards.filter({ has: page.locator(`a[href="/jobs/${id}"]`) }))).height;
+  expect(bottom).toBeLessThanOrEqual(812);
+  const retail = cards.filter({ has: page.locator('a[href="/jobs/j5"]') });
+  for (const text of ["$24", "an hour", "Urgent", "20–30 hours a week", "Swap contact details in chat"])
+    await expect(retail).toContainText(text);
+  expect(await noSideScroll(page)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });
+});
+
 test("the whole card opens the job, and featured cards on the home page are h3 under 精选工作", async ({ page }) => {
   await page.goto("/jobs");
   const card = page.getByRole("region", { name: "职位列表" }).locator("article").first();

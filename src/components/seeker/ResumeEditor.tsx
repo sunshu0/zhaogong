@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { inputClass as sharedInputClass } from "@/components/ui/input-class";
 import { EMPTY_RESUME, type Resume } from "@/lib/candidate-matching";
 import type { EmploymentType } from "@/lib/types";
+import { useLang, useMessages } from "@/i18n/client";
+import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 const toggle = <T,>(values: T[], value: T) =>
   values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -26,12 +28,13 @@ function resumeUpdater({ value = EMPTY_RESUME, onChange }: ResumeProps) {
 
 /** 期望时薪 and 经验: two of the five things employers look at first. */
 export function ResumeKeyFields(props: ResumeProps) {
+  const r = useMessages(seekerProfileMessages).resumeEditor;
   const value = props.value ?? EMPTY_RESUME;
   const update = resumeUpdater(props);
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="block text-body">
-        <span className="mb-1 block font-medium">期望时薪（NZ$ / 小时起）</span>
+        <span className="mb-1 block font-medium">{r.expectedPay}</span>
         <input
           type="number"
           inputMode="decimal"
@@ -40,12 +43,12 @@ export function ResumeKeyFields(props: ResumeProps) {
           step="0.5"
           value={value.expectedMinPay ?? ""}
           onChange={(event) => update({ expectedMinPay: numberOrEmpty(event.target.value) })}
-          placeholder="例如：25"
+          placeholder={r.expectedPayPlaceholder}
           className={inputClass}
         />
       </label>
       <label className="block text-body">
-        <span className="mb-1 block font-medium">经验（年）</span>
+        <span className="mb-1 block font-medium">{r.experience}</span>
         <input
           type="number"
           inputMode="decimal"
@@ -54,7 +57,7 @@ export function ResumeKeyFields(props: ResumeProps) {
           step="0.5"
           value={value.experienceYears ?? ""}
           onChange={(event) => update({ experienceYears: numberOrEmpty(event.target.value) })}
-          placeholder="没有经验填 0"
+          placeholder={r.experiencePlaceholder}
           className={inputClass}
         />
       </label>
@@ -64,13 +67,15 @@ export function ResumeKeyFields(props: ResumeProps) {
 
 /** 想做的岗位 (#96): the categories recommendations compare with a job's, any number. */
 export function ResumeRoleField(props: ResumeProps) {
+  const r = useMessages(seekerProfileMessages).resumeEditor;
+  const lang = useLang();
   const value = props.value ?? EMPTY_RESUME;
   const update = resumeUpdater(props);
   const roles = value.roles ?? [];
   return (
     <fieldset>
-      <legend className="mb-1 text-body font-medium">想做的岗位</legend>
-      <p className="mb-2 text-meta text-muted">可多选。雇主找人时按岗位类别匹配，前台、服务员、接待都算前厅服务。</p>
+      <legend className="mb-1 text-body font-medium">{r.roles}</legend>
+      <p className="mb-2 text-meta text-muted">{r.rolesHint}</p>
       <div className="flex flex-wrap gap-2">
         {JOB_ROLE_IDS.map((id) => (
           <ChoicePill
@@ -79,7 +84,7 @@ export function ResumeRoleField(props: ResumeProps) {
             checked={roles.includes(id)}
             onChange={() => update({ roles: toggle(roles, id) })}
           >
-            {JOB_ROLES[id].zh}
+            {JOB_ROLES[id][lang]}
           </ChoicePill>
         ))}
       </div>
@@ -89,40 +94,44 @@ export function ResumeRoleField(props: ResumeProps) {
 
 /** The rest of the resume: skills, employment types, weekly hours and the regions you can work in. */
 export function ResumeMoreFields(props: ResumeProps) {
+  const r = useMessages(seekerProfileMessages).resumeEditor;
+  const lang = useLang();
   const value = props.value ?? EMPTY_RESUME;
   const update = resumeUpdater(props);
   return (
     <div className="space-y-4">
       <label className="block text-body">
-        <span className="mb-1 block font-medium">工作技能（补充说明）</span>
+        <span className="mb-1 block font-medium">{r.skills}</span>
         <input
           value={value.skills}
           onChange={(event) => update({ skills: event.target.value })}
-          placeholder="例如：点餐、上菜、收银"
+          placeholder={r.skillsPlaceholder}
           className={inputClass}
         />
       </label>
       <fieldset>
-        <legend className="mb-2 text-body font-medium">期望用工形式</legend>
+        <legend className="mb-2 text-body font-medium">{r.employmentTypes}</legend>
         <div className="flex flex-wrap gap-2">
-          {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string }][]).map(([type, label]) => (
-            <ChoicePill
-              key={type}
-              type="checkbox"
-              checked={value.employmentTypes.includes(type)}
-              onChange={() => update({ employmentTypes: toggle(value.employmentTypes, type) })}
-            >
-              {label.zh}
-            </ChoicePill>
-          ))}
+          {(Object.entries(EMPLOYMENT_TYPE_LABELS) as [EmploymentType, { zh: string; en: string }][]).map(
+            ([type, label]) => (
+              <ChoicePill
+                key={type}
+                type="checkbox"
+                checked={value.employmentTypes.includes(type)}
+                onChange={() => update({ employmentTypes: toggle(value.employmentTypes, type) })}
+              >
+                {label[lang]}
+              </ChoicePill>
+            ),
+          )}
         </div>
       </fieldset>
       <fieldset>
-        <legend className="mb-2 text-body font-medium">每周可工作工时</legend>
+        <legend className="mb-2 text-body font-medium">{r.hours}</legend>
         <div className="grid grid-cols-2 gap-3">
           {(["min", "max"] as const).map((key) => (
             <label key={key} className="text-body">
-              <span className="mb-1 block text-muted">{key === "min" ? "最少小时" : "最多小时"}</span>
+              <span className="mb-1 block text-muted">{key === "min" ? r.minHours : r.maxHours}</span>
               <input
                 type="number"
                 min="1"
@@ -147,7 +156,7 @@ export function ResumeMoreFields(props: ResumeProps) {
         </div>
       </fieldset>
       <fieldset>
-        <legend className="mb-2 text-body font-medium">可工作地区</legend>
+        <legend className="mb-2 text-body font-medium">{r.regions}</legend>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {COUNTRIES.NZ.regions.map((region) => (
             <Checkbox
@@ -155,7 +164,7 @@ export function ResumeMoreFields(props: ResumeProps) {
               checked={value.regionIds.includes(region.id)}
               onChange={() => update({ regionIds: toggle(value.regionIds, region.id) })}
             >
-              {region.nameZh}
+              {lang === "en" ? region.nameEn : region.nameZh}
             </Checkbox>
           ))}
         </div>
@@ -166,6 +175,7 @@ export function ResumeMoreFields(props: ResumeProps) {
 
 /** Whether employers can find this profile in 推荐人才. */
 export function DiscoverableToggle(props: ResumeProps) {
+  const r = useMessages(seekerProfileMessages).resumeEditor;
   const value = props.value ?? EMPTY_RESUME;
   const update = resumeUpdater(props);
   return (
@@ -174,7 +184,7 @@ export function DiscoverableToggle(props: ResumeProps) {
       checked={value.discoverable}
       onChange={(event) => update({ discoverable: event.target.checked })}
     >
-      允许向雇主推荐我的主页
+      {r.discoverable}
     </Checkbox>
   );
 }
