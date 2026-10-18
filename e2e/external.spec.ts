@@ -58,10 +58,15 @@ test("实习 shows internships and graduate programmes; a job page has facts, �
   await expect(facts).toContainText("实习");
   await expect(facts).toContainText("签证原文未说明");
   await expect(facts).toContainText("$30 起 NZD 每小时");
-  const apply = job.getByRole("link", { name: "去官网申请（新窗口）" });
-  await expect(apply).toHaveAttribute("href", "https://example.com/demo-kowhai/jobs/4005");
-  await expect(apply).toHaveAttribute("target", "_blank");
-  await expect(apply).toHaveAttribute("rel", /noopener/);
+  // A demo job has no company site: 去官网申请 explains that on the page and never links to example.com.
+  await expect(page.locator('a[href*="example.com"]')).toHaveCount(0);
+  const apply = job.getByRole("button", { name: "去官网申请", exact: true });
+  await expect(apply).toHaveAttribute("aria-expanded", "false");
+  await apply.click();
+  await expect(apply).toHaveAttribute("aria-expanded", "true");
+  await expect(job.getByRole("status")).toHaveText(
+    "这是演示职位，没有真的官网申请页。真实职位会在新窗口打开公司官网的申请页面。",
+  );
   // Not a 找工 job: no apply, chat or contact details here.
   await expect(page.getByRole("button", { name: /^申请|立即沟通|查看联系方式/ })).toHaveCount(0);
   await expectNoViolations(page, "/external/[id]");

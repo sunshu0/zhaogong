@@ -141,7 +141,8 @@ test("external jobs in English: both sections, the filters, a job", async ({ pag
     await expect(
       page.getByRole("heading", { level: 2, name: "About the job (from the original posting)" }),
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "Apply on the company's site (new window)" })).toBeVisible();
+    await page.getByRole("button", { name: "Apply on the company's site", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "This is a demo job" })).toBeVisible();
     await expectEnglishPage(page, "/external/[id]");
   }
   await expect(page.getByRole("heading", { name: "Removal requested by the company" })).toBeVisible();

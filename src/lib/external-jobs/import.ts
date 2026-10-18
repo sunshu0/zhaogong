@@ -11,6 +11,7 @@ import {
   takeDownCompany,
   type FeedResult,
 } from "@/db/external-jobs";
+import { isDemoCompany } from "@/lib/external-jobs/demo";
 import { factsOf } from "@/lib/external-jobs/facts";
 import { parsePostings, postingsUrl } from "@/lib/external-jobs/sources";
 import type { ExternalFacts } from "@/lib/external-jobs/types";
@@ -80,9 +81,7 @@ export async function importExternalJobs({
 export async function takeDownUnlisted(listed: ExternalCompany[], now = new Date()): Promise<CompanyReport[]> {
   const onList = new Set(listed.map((c) => c.id));
   const up = (await listExternalJobs()).filter((job) => job.removedAt == null);
-  const unlisted = [...new Set(up.map((job) => job.companyId))].filter(
-    (id) => !onList.has(id) && !id.startsWith("demo-"),
-  );
+  const unlisted = [...new Set(up.map((job) => job.companyId))].filter((id) => !onList.has(id) && !isDemoCompany(id));
   const reports: CompanyReport[] = [];
   for (const company of unlisted) {
     reports.push({ company, status: "unlisted", takenDown: await takeDownCompany(company, now) });

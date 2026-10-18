@@ -549,19 +549,18 @@ test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通�
 });
 
 test("专业职位: home → 专业职位 → a job → 去官网申请 (#113)", async ({ page }) => {
-  // The demo jobs link to example.com; answer it here instead of the network.
-  await page.context().route("https://example.com/**", (route) => route.fulfill({ body: "company site" }));
   await page.goto("/");
   await page.getByRole("link", { name: "专业职位", exact: true }).first().click();
   await expect(page).toHaveURL("/professional");
   await page.getByRole("region", { name: "专业职位列表" }).getByRole("link", { name: "Full Stack Developer" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Full Stack Developer" })).toBeVisible();
-  const [popup] = await Promise.all([
-    page.waitForEvent("popup"),
-    page.getByRole("link", { name: "去官网申请（新窗口）" }).click(),
-  ]);
-  await expect(popup).toHaveURL(/example\.com\/demo-tui\/jobs\//);
-  await popup.close();
+  // A demo job: 去官网申请 explains on the page that a real job opens the company's site; nothing opens.
+  let opened = false;
+  page.context().on("page", () => (opened = true));
+  await page.getByRole("button", { name: "去官网申请", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "这是演示职位" })).toBeVisible();
+  await expect(page).toHaveURL(/\/external\//);
+  expect(opened).toBe(false);
 });
 
 test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 → 收藏和进度 (#131)", async ({ page }, testInfo) => {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { DemoApply } from "@/components/external/DemoApply";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { requestTime } from "@/components/seeker/request-time";
@@ -12,6 +13,7 @@ import { SoftTag } from "@/components/ui/Tag";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { getExternalJob } from "@/db/external-jobs";
+import { isDemoCompany } from "@/lib/external-jobs/demo";
 import { SECTION_PATHS } from "@/lib/external-jobs/filter";
 import { externalWords, factLines, sourceLine } from "@/lib/external-jobs/labels";
 import { externalMessages } from "@/i18n/messages/external";
@@ -92,14 +94,18 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
         </p>
         <p className="mt-1 text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt, lang)}</p>
         <div className="fixed inset-x-0 bottom-above-nav z-10 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${buttonClass("primary", { block: true, size: "lg" })} font-semibold whitespace-nowrap md:w-auto`}
-          >
-            {t.apply}
-          </a>
+          {isDemoCompany(job.companyId) ? (
+            <DemoApply label={t.demoApply} note={t.demoNote} />
+          ) : (
+            <a
+              href={job.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${buttonClass("primary", { block: true, size: "lg" })} font-semibold whitespace-nowrap md:w-auto`}
+            >
+              {t.apply}
+            </a>
+          )}
         </div>
       </header>
       <section aria-labelledby="facts-heading" className={CARD}>

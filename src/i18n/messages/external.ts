@@ -141,6 +141,9 @@ const externalZh = {
     factsHeading: "职位信息（按官网原文整理）",
     factsNote: "只列原文写明的事实；签证一项只照录原文，不是签证建议。详细要求、职责和申请方式以官网为准。",
     applyNote: "申请直接交给公司，找工看不到也不经手你的申请。",
+    // A demo job (isDemoCompany) has no company site: its 去官网申请 explains that instead (DemoApply).
+    demoApply: "去官网申请",
+    demoNote: "这是演示职位，没有真的官网申请页。真实职位会在新窗口打开公司官网的申请页面。",
   },
   // lib/external-jobs/alerts.ts: an alert on a section, its conditions in words and its first name.
   alerts: {
@@ -296,6 +299,9 @@ export const externalMessages: Dictionary<typeof externalZh> = {
       factsNote:
         "Only facts the posting states. The visa line just repeats the posting; it isn't visa advice. The company's site has the full requirements, duties and how to apply.",
       applyNote: "Your application goes straight to the company; 找工 never sees or handles it.",
+      demoApply: "Apply on the company's site",
+      demoNote:
+        "This is a demo job, so there's no real application page. For a real job, this opens the company's own application page in a new window.",
     },
     alerts: {
       kindNotStated: (notStated) => `Type ${notStated.toLowerCase()}`,
