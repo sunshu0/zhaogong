@@ -43,14 +43,9 @@ export const SUBJECT_LABELS: Record<DegreeSubject, string> = zh.subjects;
 /** For moderators (#112): why a job needs a look before it can show. */
 export const FLAG_LABELS: Record<ExternalFlag, string> = zh.flags;
 
-const day = new Intl.DateTimeFormat("en-NZ", { timeZone: "Pacific/Auckland", month: "numeric", day: "numeric" });
-
 /** 「10月17日」 / "17 Oct" in New Zealand time. */
 export function dayLabel(iso: string, lang: Lang = DEFAULT_LANG): string {
-  if (lang === "en") return formatDate(iso, "en", { day: "numeric", month: "short" });
-  const parts = day.formatToParts(new Date(iso));
-  const get = (type: string) => parts.find((p) => p.type === type)?.value;
-  return `${get("month")}月${get("day")}日`;
+  return formatDate(iso, lang, lang === "en" ? { day: "numeric", month: "short" } : { month: "long", day: "numeric" });
 }
 
 /** The closing date in full: 2026/10/18 / 18 Oct 2026. */

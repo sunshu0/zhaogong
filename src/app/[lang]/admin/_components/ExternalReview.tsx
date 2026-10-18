@@ -22,6 +22,7 @@ import { placedByTitle } from "@/lib/external-jobs/facts";
 import { dayLabel, externalWords, factLines, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { hideReasons, type HideReason } from "@/lib/external-jobs/review";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { adminExternalMessages } from "@/i18n/messages/admin-external";
 import { Button } from "@/components/ui/Button";
 import { Checkbox, Radio } from "@/components/ui/Checkbox";
@@ -237,17 +238,27 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
       onDone(result);
     });
   };
-  const status = company.block
-    ? company.block.kind === "takedown"
-      ? t.takedownOn(dayLabel(company.block.createdAt, lang), company.block.requester ?? "")
-      : t.stoppedOn(dayLabel(company.block.createdAt, lang), company.block.note)
-    : !company.onList
-      ? t.notListed
-      : company.terms
-        ? company.terms.allowsDisplay
-          ? t.termsChecked(company.terms.checkedBy, company.terms.checkedOn)
-          : t.termsForbid(company.terms.checkedBy, company.terms.checkedOn)
-        : t.termsUnchecked;
+  const block = company.block;
+  const terms = company.terms;
+  const status = block ? (
+    block.kind === "takedown" ? (
+      <WithTheirWords
+        sentence={(w) => t.takedownOn(dayLabel(block.createdAt, lang), w)}
+        words={block.requester ?? ""}
+      />
+    ) : (
+      <WithTheirWords sentence={(w) => t.stoppedOn(dayLabel(block.createdAt, lang), w)} words={block.note} />
+    )
+  ) : !company.onList ? (
+    t.notListed
+  ) : terms ? (
+    <WithTheirWords
+      sentence={(w) => (terms.allowsDisplay ? t.termsChecked(w, terms.checkedOn) : t.termsForbid(w, terms.checkedOn))}
+      words={terms.checkedBy}
+    />
+  ) : (
+    t.termsUnchecked
+  );
   const { opener: companyOpenerRef, form: companyFormRef } = useSwapFocus(form !== undefined);
 
   return (
@@ -330,5 +341,22 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
       )}
       {failed && <TryAgain />}
     </article>
+  );
+}
+
+const MARK = String.fromCharCode(0);
+
+/**
+ * A sentence from the dictionary with someone's own words in it (who checked a company's terms, a note, who asked for
+ * a removal): those words are marked lang="zh-CN" when they are Chinese, so an English page reads them as theirs.
+ */
+function WithTheirWords({ sentence, words }: { sentence: (words: string) => string; words: string }) {
+  const [before, after = ""] = sentence(MARK).split(MARK);
+  return (
+    <>
+      {before}
+      <span lang={contentLang(words)}>{words}</span>
+      {after}
+    </>
   );
 }
