@@ -283,8 +283,9 @@ export const seekerJobsMessages: Dictionary<typeof seekerJobsZh> = {
       region: "Area",
       hours: "Hours",
       contact: "Contact",
-      contactPublic: "Contact details shown",
-      contactByChat: "Swap contact details in chat",
+      // Short: they share one line with the area and the hours on a phone (#242).
+      contactPublic: "Contact shown",
+      contactByChat: "Contact in chat",
     },
     detail: {
       facts: "About the job",

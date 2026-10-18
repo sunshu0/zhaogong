@@ -162,7 +162,8 @@ const profileZh = {
     englishField: (field: string) => `${field}（英文）`,
     noChinese: "中文还没填，这一项不会印。",
     regionsHaveEnglish: "已选的可上班地区有英文名，可以不填。",
-    chinese: (text: string) => `中文：${text}`,
+    // Before the Chinese the person wrote, which is shown after it in its own element, marked as Chinese (#242).
+    chinese: "中文：",
     toFill: "待补填",
     visa: "签证",
     visaHint: "只写事实：你持有的签证，以及签证上写的每周可工作时间。不填就不印。",
@@ -374,7 +375,7 @@ export const seekerProfileMessages: Dictionary<typeof profileZh> = {
       englishField: (field) => `${field} (English)`,
       noChinese: "The Chinese isn't filled in yet, so this won't print.",
       regionsHaveEnglish: "The areas you chose already have English names, so you can leave this empty.",
-      chinese: (text) => `Chinese: ${text}`,
+      chinese: "Chinese: ",
       toFill: "Missing",
       visa: "Visa",
       visaHint:

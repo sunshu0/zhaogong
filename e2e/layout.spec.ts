@@ -98,7 +98,7 @@ test("job cards in English (Round 20): still three whole cards on a 375 × 812 p
     bottom += (await box(cards.filter({ has: page.locator(`a[href="/jobs/${id}"]`) }))).height;
   expect(bottom).toBeLessThanOrEqual(812);
   const retail = cards.filter({ has: page.locator('a[href="/jobs/j5"]') });
-  for (const text of ["$24", "an hour", "Urgent", "20–30 hours a week", "Swap contact details in chat"])
+  for (const text of ["$24", "an hour", "Urgent", "20–30 hours a week", "Contact in chat"])
     await expect(retail).toContainText(text);
   expect(await noSideScroll(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });

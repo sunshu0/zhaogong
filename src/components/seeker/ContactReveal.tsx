@@ -8,6 +8,7 @@ import { CopyButton } from "@/components/seeker/CopyButton";
 import { buttonClass } from "@/components/ui/Button";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
 /** A number a phone can call; the demo's masked numbers (021 ••• 0101（演示）) get no tel: link. */
@@ -75,7 +76,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                     {current.contact.phone}
                   </a>
                 ) : (
-                  <span>{current.contact.phone}</span>
+                  <span lang={contentLang(current.contact.phone)}>{current.contact.phone}</span>
                 )}
               </ContactRow>
             )}

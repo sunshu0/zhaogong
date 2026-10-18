@@ -25,8 +25,10 @@ export function cardPoints(job: Job, regionName: string | undefined, lang: Lang 
   const points: CardPoint[] = [];
   if (regionName) points.push({ text: regionName });
   if (work) points.push({ text: work });
-  if (shifts) points.push({ text: shifts, zh: true });
   points.push({ text: job.contactPublic ? t.contactPublic : t.contactByChat });
+  // Last: the card shows whole points on one line and leaves out those that don't fit (#242), and the shifts, in the
+  // employer's words, are the one the job page has in full anyway.
+  if (shifts) points.push({ text: shifts, zh: true });
   return points;
 }
 

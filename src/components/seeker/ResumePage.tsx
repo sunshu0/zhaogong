@@ -34,6 +34,7 @@ import type { VisaAccepted } from "@/lib/types";
 import { inputClass } from "@/components/ui/input-class";
 import { Select } from "@/components/ui/Select";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 const LONG_FIELDS: ResumeTextField[] = ["skills", "bio"];
@@ -138,7 +139,16 @@ function EnglishField({
   const lang = useLang();
   const t = useMessages(seekerProfileMessages).resume;
   const label = t.englishField(TEXT_LABELS[field][lang]);
-  const hint = !chinese ? t.noChinese : regionsChosen ? t.regionsHaveEnglish : t.chinese(chinese);
+  const hint = !chinese ? (
+    t.noChinese
+  ) : regionsChosen ? (
+    t.regionsHaveEnglish
+  ) : (
+    <>
+      {t.chinese}
+      <span lang={contentLang(chinese)}>{chinese}</span>
+    </>
+  );
   const id = `resume-en-${field}`;
   return (
     <div>

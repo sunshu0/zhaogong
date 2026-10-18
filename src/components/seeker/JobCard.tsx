@@ -168,9 +168,11 @@ function AppJobCard({
         </p>
       </div>
 
-      <p className="mt-2 truncate text-body text-muted">
+      {/* One line of whole points (#242): a point that doesn't fit goes to a second line, which is cut off, so
+          nothing ends in "…" mid-word. Screen readers still read every point. */}
+      <p className="mt-2 flex max-h-[1lh] flex-wrap overflow-hidden text-body text-muted">
         {points.map((point, i) => (
-          <span key={point.text}>
+          <span key={point.text} className="whitespace-nowrap">
             {i > 0 && (
               <span aria-hidden="true" className="px-1.5 text-border">
                 ·
