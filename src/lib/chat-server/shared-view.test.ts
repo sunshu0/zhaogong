@@ -74,6 +74,12 @@ describe("chatTime", () => {
     expect(chatTime("2026-10-16T05:00:00.000Z", now)).toBe("昨天");
     expect(chatTime("2026-10-02T05:00:00.000Z", now)).toBe("10月2日");
   });
+
+  it("says yesterday and the date in English too", () => {
+    expect(chatTime("2026-10-16T22:05:00.000Z", now, "en")).toBe("11:05");
+    expect(chatTime("2026-10-16T05:00:00.000Z", now, "en")).toBe("Yesterday");
+    expect(chatTime("2026-10-02T05:00:00.000Z", now, "en")).toBe("2 October");
+  });
 });
 
 describe("sharedPart", () => {

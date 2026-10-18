@@ -5,6 +5,10 @@
 import type { ChatRecord, Conversation, Message } from "@/components/seeker/chat-store";
 import { visibleExchange, type Exchange, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
 import type { AccountRole } from "@/lib/types";
+import { formatDate } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 
 export type Side = AccountRole;
 
@@ -70,9 +74,12 @@ export function parseSharedId(
 
 // Never sent to the side that may not see it (R-12): an offer withdrawn or turned down, or an answer the asker did
 // not get. Kept in shape, so the browser still shows that the exchange happened.
-const WITHHELD: ExchangePayload = { title: "资料", fields: [{ label: "", value: "—" }] };
+const withheld = (lang: Lang): ExchangePayload => ({
+  title: pick(chatMessages, lang).times.withheld,
+  fields: [{ label: "", value: "—" }],
+});
 
-function exchangeFor(item: SharedExchange, side: Side): Exchange {
+function exchangeFor(item: SharedExchange, side: Side, lang: Lang): Exchange {
   const exchange: Exchange = {
     id: item.id,
     kind: item.kind,
@@ -84,13 +91,14 @@ function exchangeFor(item: SharedExchange, side: Side): Exchange {
     ...(item.respondedAt ? { respondedAt: item.respondedAt } : {}),
   };
   const visible = visibleExchange(exchange);
-  if (exchange.from === "them" && visible?.them !== exchange.offered) exchange.offered = WITHHELD;
-  if (exchange.from === "me" && exchange.response && visible?.them !== exchange.response) exchange.response = WITHHELD;
+  if (exchange.from === "them" && visible?.them !== exchange.offered) exchange.offered = withheld(lang);
+  if (exchange.from === "me" && exchange.response && visible?.them !== exchange.response)
+    exchange.response = withheld(lang);
   return exchange;
 }
 
-/** A short time for a message or a conversation row, in New Zealand time: 10:42, 昨天 or 10月15日. */
-export function chatTime(at: string, now: number): string {
+/** A short time for a message or a conversation row, in New Zealand time: 10:42, 昨天 or 10月15日 (Yesterday, 15 October). */
+export function chatTime(at: string, now: number, lang: Lang = DEFAULT_LANG): string {
   const day = (ms: number) =>
     new Intl.DateTimeFormat("en-CA", { timeZone: "Pacific/Auckland", dateStyle: "short" }).format(ms);
   const then = Date.parse(at);
@@ -100,12 +108,11 @@ export function chatTime(at: string, now: number): string {
       hour: "2-digit",
       minute: "2-digit",
     }).format(then);
-  if (day(then) === day(now - 86_400_000)) return "昨天";
-  const [, month, date] = day(then).split("-");
-  return `${Number(month)}月${Number(date)}日`;
+  if (day(then) === day(now - 86_400_000)) return pick(chatMessages, lang).times.yesterday;
+  return formatDate(then, lang, { month: "long", day: "numeric" });
 }
 
-export function sharedPart(rows: SharedConversation[], side: Side, now: number): SharedPart {
+export function sharedPart(rows: SharedConversation[], side: Side, now: number, lang: Lang = DEFAULT_LANG): SharedPart {
   const part: SharedPart = { conversations: [], added: {}, readAt: {}, exchanges: {} };
   const newestFirst = [...rows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   for (const row of newestFirst) {
@@ -119,20 +126,24 @@ export function sharedPart(rows: SharedConversation[], side: Side, now: number):
       id,
       person,
       title: row.jobTitle,
-      time: chatTime(row.updatedAt, now),
+      time: chatTime(row.updatedAt, now, lang),
       avatar: person.slice(0, 1),
       job: row.jobId,
       ...(side === "seeker" ? { employerId: row.employerId } : row.candidateId ? { candidateId: row.candidateId } : {}),
     });
     part.added[id] = row.messages.map((m): Message => {
-      const message: Message = { from: m.from === side ? "me" : "them", text: m.text, time: chatTime(m.sentAt, now) };
+      const message: Message = {
+        from: m.from === side ? "me" : "them",
+        text: m.text,
+        time: chatTime(m.sentAt, now, lang),
+      };
       message.sentAt = m.sentAt;
       if (message.from === "me" && theirs && theirs >= m.sentAt) message.readAt = theirs;
       if (m.from === "employer" && m.byName) message.by = m.byName;
       return message;
     });
     if (mine) part.readAt[id] = mine;
-    if (row.exchanges.length) part.exchanges[id] = row.exchanges.map((item) => exchangeFor(item, side));
+    if (row.exchanges.length) part.exchanges[id] = row.exchanges.map((item) => exchangeFor(item, side, lang));
   }
   return part;
 }

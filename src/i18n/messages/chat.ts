@@ -87,6 +87,14 @@ const chatZh = {
   },
 
   /** ChatActivity.tsx and lib/chat-activity.ts */
+  /** src/lib/chat-server/shared-view.ts and messages/actions.ts: times the server writes into the chat list. */
+  times: {
+    yesterday: "昨天",
+    justNow: "刚刚",
+    /** The title of an exchange the reader may not see (withdrawn, turned down). */
+    withheld: "资料",
+  },
+
   activity: {
     chatLabel: "沟通状态",
     employerSummaryLabel: "雇主沟通情况",
@@ -328,6 +336,12 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       counterpartRead: (state) => `Other person · ${state}`,
       warningsLabel: "Rule reminder",
       reportMessage: "Report this message",
+    },
+
+    times: {
+      yesterday: "Yesterday",
+      justNow: "Just now",
+      withheld: "Details",
     },
 
     activity: {

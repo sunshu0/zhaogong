@@ -27,6 +27,8 @@ import {
 import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/[lang]/messages/server-notifications";
 import { requestLang } from "@/i18n/server";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import {
   parsePayload,
@@ -96,7 +98,10 @@ function readerOf(me: ChatIdentity): SharedReader | null {
 async function withSharedOf(me: ChatIdentity, own: ChatRecord): Promise<ChatRecord> {
   const reader = readerOf(me);
   if (!reader) return own;
-  return withShared(own, sharedPart(await listSharedConversations(reader), reader.side, Date.now()));
+  return withShared(
+    own,
+    sharedPart(await listSharedConversations(reader), reader.side, Date.now(), await requestLang()),
+  );
 }
 
 async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string): Promise<ChatSnapshot> {
@@ -370,7 +375,7 @@ async function openFor(
         id,
         person: demo.name,
         title: job.titleZh,
-        time: "刚刚",
+        time: pick(chatMessages, await requestLang()).times.justNow,
         avatar: demo.name.slice(0, 1),
         job: job.id,
         candidateId: demo.id,
