@@ -55,6 +55,7 @@
 | `getMyJobs()` | | 本企业所有职位，按发布时间从新到旧，任何状态 | `[]` |
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
 | `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
+| `getMyJobsOverview(options?)` | `{ withPosters: true }` 时带上发布人 | `{ jobs, numbers, renewals, applications, posters }`（#188）：上面 `getMyJobs`、`getMyJobNumbers`、`getMyJobRenewals`、`getMyApplicationCounts`、`getMyJobPosters` 的结果一次给，职位管理、工作台、推荐人才都用它（浏览器里的 Server Function 一个接一个跑，分开取要 4–5 次往返）。检查和它们一样：要登录，企业从账号查，被停用的企业或已经离开团队的人什么都拿不到 | 全是空的（`jobs: []`，`posters` 是 `{ teamSize: 0, posters: {}, contactsFrom: {} }`） |
 | `getMyJobPosters()` | | `{ teamSize, posters: { [jobId]: poster } }`（#182）：企业每个职位是谁发的，按看的人说：`{ kind: "you" }`、`{ kind: "teammate", name }`（团队里的称呼，没设就是邮箱）、`{ kind: "left", email }`（已离开团队）、`{ kind: "deleted" }`（已删号）；#182 之前的职位不在里面。`teamSize` 是团队现在的人数。`contactsFrom`（#186）：公开联系方式、而且联系方式是已离开团队的人（`left`）或已删号的账号（`deleted`）填的职位 | 没有企业时 `{ teamSize: 0, posters: {}, contactsFrom: {} }` |
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
 | `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days, funnel }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0；`funnel` 是从发布到现在的 `{ applied, interviewed, hired }`（#105：申请人数、约过面试的人数，不算已取消的、录用人数） | `null`（未登录、不是雇主、不是本企业的职位） |

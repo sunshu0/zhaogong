@@ -19,6 +19,7 @@ import { countAiCalls, listAiUsageOf } from "@/db/ai-usage";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { answerInvite, changeTeam, inviteToTeam } from "@/db/team";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -38,6 +39,7 @@ const {
   getMyJobNumbers,
   getMyJobPosters,
   getMyJobRenewals,
+  getMyJobsOverview,
   getMyEmployer,
   getMyJob,
   getMyJobs,
@@ -49,6 +51,7 @@ const {
   requestVerification,
   getMyVerification,
 } = await import("@/app/employer/actions");
+const { getMyApplicationCounts } = await import("@/app/employer/applicant-actions");
 
 /** The email of each demo business's owner. The Server Functions take no email: the session says who acts. */
 const E: Record<string, string> = {};
@@ -584,5 +587,61 @@ describe("refused without the right session (#19)", () => {
     }
     expect(r.jobs.every((j) => j.employerId === "e1")).toBe(true);
     await untouched();
+  });
+});
+
+describe("getMyJobsOverview (#188)", () => {
+  const EMPTY = {
+    jobs: [],
+    numbers: {},
+    renewals: {},
+    applications: {},
+    posters: { teamSize: 0, posters: {}, contactsFrom: {} },
+  };
+
+  it("is what the separate reads give, in one answer; who posted only when asked", async () => {
+    const overview = await as(E.e1, () => getMyJobsOverview());
+    expect(overview.jobs.length).toBeGreaterThan(0);
+    expect(overview.jobs).toEqual(await as(E.e1, () => getMyJobs()));
+    expect(overview.numbers).toEqual(await as(E.e1, () => getMyJobNumbers()));
+    expect(overview.renewals).toEqual(await as(E.e1, () => getMyJobRenewals()));
+    expect(overview.applications).toEqual(await as(E.e1, () => getMyApplicationCounts()));
+    expect(overview.posters).toEqual(EMPTY.posters);
+    expect((await as(E.e1, () => getMyJobsOverview({ withPosters: true }))).posters).toEqual(
+      await as(E.e1, () => getMyJobPosters()),
+    );
+    expect((await as(E.e1, () => getMyJobsOverview({ withPosters: "yes" }))).posters).toEqual(EMPTY.posters);
+  });
+
+  it("has nothing for a browser that is not signed in", async () => {
+    cookies.clear();
+    expect(await getMyJobsOverview({ withPosters: true })).toEqual(EMPTY);
+  });
+
+  it("has nothing for an account without a business", async () => {
+    expect(await as("overview.nobusiness@example.com", () => getMyJobsOverview({ withPosters: true }))).toEqual(EMPTY);
+  });
+
+  it("has nothing once the business is banned", async () => {
+    const owner = "overview.banned@example.com";
+    await ensureAccount(owner);
+    const shop = await createEmployer({ name: "即将停用的店", regionId: "akl-cbd" });
+    await openEmployerIdentity(owner, shop.id);
+    await as(owner, async () => publishJob((await parseDraft(MESSAGE)).draft));
+    expect((await as(owner, () => getMyJobsOverview())).jobs).toHaveLength(1);
+    await banEmployer(shop.id);
+    expect(await as(owner, () => getMyJobsOverview({ withPosters: true }))).toEqual(EMPTY);
+  });
+
+  it("is the business's for a member of its team, and nothing once they left it", async () => {
+    const staff = "overview.staff@example.com";
+    await ensureAccount(staff);
+    const invited = await inviteToTeam("e1", E.e1, staff, "member");
+    if (invited.status !== "invited") throw new Error(invited.status);
+    await answerInvite(staff, invited.invite.id, { accept: true, name: "小周" });
+    const theirs = await as(staff, () => getMyJobsOverview());
+    expect(theirs.jobs.map((j) => j.id)).toEqual((await as(E.e1, () => getMyJobs())).map((j) => j.id));
+    await changeTeam("e1", staff, { type: "leave" });
+    expect(await as(staff, () => getMyJobsOverview({ withPosters: true }))).toEqual(EMPTY);
   });
 });

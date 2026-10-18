@@ -19,7 +19,12 @@ import { assistantKind, FAKE_COOKIE, postingModel, postingTurn, type AssistantKi
 import { LIMITED_ZH, overLimit } from "@/lib/ai-post/model/limits";
 import { countAiCalls, recordAiUsage } from "@/db/ai-usage";
 import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
-import { applicationFunnel, type ApplicationFunnel } from "@/db/job-applications";
+import {
+  applicationCounts,
+  applicationFunnel,
+  type ApplicationCount,
+  type ApplicationFunnel,
+} from "@/db/job-applications";
 import {
   createJob,
   getAccount,
@@ -103,6 +108,42 @@ export async function getMyJobPosters(): Promise<JobPosters> {
   const employer = session && (await getAccountEmployer(session.email));
   if (!session || !employer) return { teamSize: 0, posters: {}, contactsFrom: {} };
   return listJobPosters(employer.id, session.email);
+}
+
+/** Everything 职位管理 shows about the business's jobs (#188), read in one go. */
+export type JobsOverview = {
+  /** Newest first. */
+  jobs: Job[];
+  numbers: Record<string, JobNumbers>;
+  renewals: RenewalCounts;
+  applications: Record<string, ApplicationCount>;
+  posters: JobPosters;
+};
+
+const NO_POSTERS: JobPosters = { teamSize: 0, posters: {}, contactsFrom: {} };
+const NO_OVERVIEW: JobsOverview = { jobs: [], numbers: {}, renewals: {}, applications: {}, posters: NO_POSTERS };
+
+/**
+ * The business's jobs with their numbers (#55), renewals (#69), applications (#84) and, when asked, who posted them
+ * (#182, #186): one round trip instead of five, since a browser runs Server Functions one after another. The checks
+ * are those of each: signed in, a business on the account that is not banned (so someone who left the team has
+ * none), and the jobs only of that business. Empty when any fails.
+ */
+export async function getMyJobsOverview(options?: unknown): Promise<JobsOverview> {
+  const session = await getCurrentSession();
+  const employer = session ? await getAccountEmployer(session.email) : undefined;
+  if (!session || !employer) return NO_OVERVIEW;
+  const withPosters =
+    typeof options === "object" && options !== null && "withPosters" in options && options.withPosters === true;
+  const jobs = [...(await listJobsByEmployer(employer.id))].sort((a, b) => b.postedAt.localeCompare(a.postedAt));
+  const ids = jobs.map((j) => j.id);
+  const [numbers, renewals, applications, posters] = await Promise.all([
+    jobNumbers(ids),
+    renewalCounts(ids),
+    applicationCounts(employer.id),
+    withPosters ? listJobPosters(employer.id, session.email) : NO_POSTERS,
+  ]);
+  return { jobs, numbers, renewals, applications, posters };
 }
 
 /** How often each of the account's jobs was renewed, and when last (#69). */
