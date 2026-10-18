@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
 import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
@@ -9,13 +8,16 @@ import { employerSignUpHref } from "@/components/seeker/identity";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { signOut, useSession } from "@/components/seeker/session-client";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { LinkList, type LinkListItem } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
 import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 
-/** 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. */
+/**
+ * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Round 19: cards
+ * (Section look="app") whose rows darken while pressed.
+ */
 export function AccountHome() {
   const router = useRouter();
   const session = useSession();
@@ -51,7 +53,7 @@ export function AccountHome() {
   return (
     <div className="space-y-section">
       <h1 className="sr-only">我的</h1>
-      <Section>
+      <Section look="app">
         <div className="flex items-center gap-3 py-group">
           <AvatarImage avatar={profile.avatar} fallback={name} large />
           <div className="min-w-0">
@@ -68,9 +70,9 @@ export function AccountHome() {
               {isEmployer ? "切换为求职者" : `切换为雇主（${employer.name}）`}
             </Button>
           ) : (
-            <Link href={employerSignUpHref()} className="text-body text-brand underline-offset-4 hover:underline">
+            <ButtonLink variant="secondary" href={employerSignUpHref()}>
               开通雇主身份
-            </Link>
+            </ButtonLink>
           )}
         </div>
         {notice && (
@@ -80,22 +82,20 @@ export function AccountHome() {
         )}
       </Section>
       {!employer && <TeamInvites email={session.email} />}
-      <Section>
+      <Section look="app">
         <LinkList items={rows} />
       </Section>
-      <Section>
-        <div className="py-2">
-          <button
-            type="button"
-            className="min-h-11 w-full text-body text-danger"
-            onClick={async () => {
-              await signOut();
-              router.push("/jobs");
-            }}
-          >
-            退出登录
-          </button>
-        </div>
+      <Section look="app" className="overflow-hidden">
+        <button
+          type="button"
+          className="pressable-row -mx-4 flex min-h-14 w-[calc(100%_+_2rem)] items-center justify-center text-subtitle font-medium text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-danger sm:-mx-5 sm:w-[calc(100%_+_2.5rem)]"
+          onClick={async () => {
+            await signOut();
+            router.push("/jobs");
+          }}
+        >
+          退出登录
+        </button>
       </Section>
     </div>
   );

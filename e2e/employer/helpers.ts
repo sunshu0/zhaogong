@@ -1,6 +1,6 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
 import { expect, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
-import { fillSignInCode } from "../helpers";
+import { chooseOption, fillSignInCode } from "../helpers";
 
 /** The demo moderator (DEMO_MODERATOR in src/db/seed.ts), signed in once by e2e/moderator.setup.ts. */
 export const MODERATOR_EMAIL = "moderator@example.com";
@@ -53,7 +53,7 @@ export async function signUpEmployer(
   await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(shop);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL(next);
   return shop;

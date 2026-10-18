@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { fillSignInCode } from "./helpers";
+import { chooseOption, fillSignInCode } from "./helpers";
 
 // A17: one account, two identities. Accounts live in the dev server's memory and the three demo businesses can
 // each be claimed once per server, so every test uses fresh emails and new businesses; the demo-business test
@@ -22,7 +22,7 @@ async function newBusiness(page: Page, name: string) {
   await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(name);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" }); // its name also holds the chosen option
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
 }
 

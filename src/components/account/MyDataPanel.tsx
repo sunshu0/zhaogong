@@ -1,16 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteMyAccount, myServerData } from "@/app/account/actions";
 import { confirmsEmail, forgetLocalData, localDataFor, myDataFile, myDataFileName } from "@/components/account/my-data";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
-
-const inputClass =
-  "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-brand aria-invalid:border-danger";
+import { inputClass } from "@/components/ui/input-class";
 
 /** Where deleting sends the browser: a full load, so nothing of the account stays in this page's memory. */
 export const DELETED_HREF = "/account/data?deleted=1";
@@ -24,7 +21,7 @@ function download(name: string, content: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-/** 数据与账号 (#54, R-30): download everything about the account, or delete it. */
+/** 数据与账号 (#54, R-30): download everything about the account, or delete it. Round 19: cards, red buttons. */
 export function MyDataPanel() {
   const session = useSession();
   const [exporting, setExporting] = useState(false);
@@ -74,6 +71,7 @@ export function MyDataPanel() {
   return (
     <div className="space-y-section">
       <Section
+        look="app"
         id="export-data"
         title="导出我的数据"
         description="下载一个 JSON 文件，包含我们保存的关于你的全部数据：账号、求职和雇主两种身份的资料、发布的职位、聊天记录、已读通知、收藏和求职进度、职位提醒、举报和浏览记录。"
@@ -82,7 +80,7 @@ export function MyDataPanel() {
           <p className="text-meta text-muted">
             资料、举报和浏览记录有一部分只存在这台设备上；在别的设备上导出，文件里会少这一部分。
           </p>
-          <Button variant="secondary" onClick={() => void exportData()} disabled={exporting}>
+          <Button variant="secondary" onClick={() => void exportData()} loading={exporting}>
             {exporting ? "正在导出…" : "下载我的数据"}
           </Button>
           {exportResult && (
@@ -93,7 +91,7 @@ export function MyDataPanel() {
         </div>
       </Section>
 
-      <Section id="delete-account" title="删除账号">
+      <Section look="app" id="delete-account" title="删除账号">
         <form
           className="space-y-3 py-group"
           onSubmit={(e) => {
@@ -114,7 +112,7 @@ export function MyDataPanel() {
           </ul>
           <label className="block space-y-1">
             <span className="text-body">
-              输入你的登录邮箱 <span className="font-medium">{email}</span> 确认
+              输入你的登录邮箱 <span className="font-medium break-all">{email}</span> 确认
             </span>
             <input
               type="email"
@@ -124,21 +122,21 @@ export function MyDataPanel() {
               onChange={(e) => setTyped(e.target.value)}
               aria-invalid={deleteError ? true : undefined}
               aria-describedby={deleteError ? "delete-account-error" : undefined}
-              className={inputClass}
+              className={inputClass({ tone: deleteError ? "danger" : undefined })}
             />
           </label>
           {deleteError && (
-            <p id="delete-account-error" role="alert" className="text-meta text-danger">
+            <p
+              id="delete-account-error"
+              role="alert"
+              className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger"
+            >
               {deleteError}
             </p>
           )}
-          <button
-            type="submit"
-            disabled={!confirmed || deleting}
-            className="inline-flex min-h-11 items-center justify-center rounded-md border border-danger bg-danger px-4 text-body font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button type="submit" variant="danger" disabled={!confirmed} loading={deleting}>
             {deleting ? "正在删除…" : "永久删除账号"}
-          </button>
+          </Button>
         </form>
       </Section>
     </div>
@@ -154,15 +152,15 @@ export function AccountDeleted() {
     if (hydrated && session) router.replace("/account/data");
   }, [hydrated, session, router]);
   return (
-    <Section>
+    <Section look="app">
       <div role="status" className="space-y-2 py-group">
         <p className="text-title font-semibold">账号已删除</p>
         <p className="text-body">
           你已经退出登录。账号、聊天记录和这台设备上的资料都已清除；开通过雇主身份的，发布的职位也已下架。
         </p>
-        <Link href="/jobs" className="inline-block text-body text-brand underline-offset-4 hover:underline">
+        <ButtonLink href="/jobs" className="mt-2">
           去看职位
-        </Link>
+        </ButtonLink>
       </div>
     </Section>
   );

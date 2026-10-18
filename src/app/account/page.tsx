@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "我的", robots: { index: false } };
 
 export default function Account() {
   return (
-    <WorkHubFrame>
+    <WorkHubFrame look="app">
       <SignInGate message="登录后查看你的资料、通知和记录">
         <AccountHome />
       </SignInGate>

@@ -20,6 +20,12 @@ import {
 } from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
+import { Button } from "@/components/ui/Button";
+import { cardClass } from "@/components/ui/Card";
+import { Radio } from "@/components/ui/Checkbox";
+import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { inputClass } from "@/components/ui/input-class";
 
 export interface DemoBusiness {
   id: string;
@@ -30,10 +36,11 @@ export interface DemoBusiness {
   claimed: boolean;
 }
 
-const inputClass =
-  "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-base outline-none focus:border-brand aria-invalid:border-danger";
-const primaryClass = "w-full rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60";
-const linkButtonClass = "w-full py-1 text-sm text-muted underline underline-offset-2";
+// Round 19 (操作质感): each step is a card; the shared fields (inputClass), the main button 48px high.
+const CARD = cardClass();
+const labelClass = "mb-1.5 block text-body font-medium";
+const linkButtonClass =
+  "pressable min-h-11 w-full rounded-control text-body text-muted underline underline-offset-2 hover:text-foreground disabled:opacity-50";
 
 const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
   { role: "seeker", title: "我要找工作", text: "浏览职位，和雇主在线沟通、交换联系方式" },
@@ -106,7 +113,7 @@ export function LoginForm({
   if (!hydrated) return <Placeholder />;
 
   if (session && role === "employer") {
-    if (checkedFor !== session.email) return <p className="text-sm text-muted">正在核对你的账号…</p>;
+    if (checkedFor !== session.email) return <LoginFormSkeleton label="正在核对你的账号…" />;
     return (
       <BusinessStep
         email={session.email}
@@ -121,13 +128,13 @@ export function LoginForm({
 
   if (session) {
     return (
-      <div className="space-y-3 rounded-md border border-border bg-surface p-4">
-        <p className="text-sm">
-          你已登录：<span className="font-medium">{session.email}</span>
+      <div className={`space-y-3 ${CARD}`}>
+        <p className="text-body">
+          你已登录：<span className="font-medium break-all">{session.email}</span>
         </p>
-        <button type="button" onClick={() => router.replace(next)} className={primaryClass}>
+        <Button size="lg" block onClick={() => router.replace(next)}>
           继续
-        </button>
+        </Button>
         {!session.employerId && (
           <button type="button" onClick={() => setRole("employer")} className={linkButtonClass}>
             开通雇主身份
@@ -184,33 +191,26 @@ export function LoginForm({
   }
 
   return step === "email" ? (
-    <form onSubmit={submitEmail} noValidate className="space-y-4 rounded-md border border-border bg-surface p-4">
+    <form onSubmit={submitEmail} noValidate className={`space-y-5 ${CARD}`}>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">你想做什么？</legend>
+        <legend className={labelClass}>你想做什么？</legend>
         <div className="grid gap-2">
           {ROLE_OPTIONS.map((option) => (
-            <label
-              key={option.role}
-              className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft"
-            >
-              <input
-                type="radio"
+            <ChoiceCard key={option.role}>
+              <Radio
                 name="role"
                 value={option.role}
                 checked={role === option.role}
                 onChange={() => setRole(option.role)}
-                className="mt-1 size-4 accent-brand"
-              />
-              <span>
-                <span className="block text-sm font-medium">{option.title}</span>
-                <span className="block text-xs text-muted">{option.text}</span>
-              </span>
-            </label>
+              >
+                <ChoiceText title={option.title} text={option.text} />
+              </Radio>
+            </ChoiceCard>
           ))}
         </div>
       </fieldset>
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">邮箱</span>
+        <span className={labelClass}>邮箱</span>
         <input
           name="email"
           type="email"
@@ -220,32 +220,32 @@ export function LoginForm({
           placeholder="you@example.com"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}
-          className={inputClass}
+          className={inputClass({ tone: error ? "danger" : undefined })}
         />
       </label>
       {error && <ErrorText>{error}</ErrorText>}
-      <button type="submit" disabled={pending} className={primaryClass}>
+      <Button type="submit" size="lg" block loading={pending}>
         {pending ? "正在发送…" : "获取验证码"}
-      </button>
-      <p className="text-xs text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
+      </Button>
+      <p className="text-meta text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
     </form>
   ) : (
-    <form onSubmit={submitCode} noValidate className="space-y-3 rounded-md border border-border bg-surface p-4">
-      <p className="text-sm">
-        验证码已发送到 <span className="font-medium">{email}</span>
+    <form onSubmit={submitCode} noValidate className={`space-y-4 ${CARD}`}>
+      <p className="text-body">
+        验证码已发送到 <span className="font-medium break-all">{email}</span>
       </p>
       {devCode ? (
-        <p className="rounded-md bg-brand-soft px-3 py-2 text-xs text-brand">
+        <p className="rounded-control bg-brand-soft px-3 py-2 text-meta text-brand">
           开发环境没有接邮件服务，验证码打印在服务器日志里：
-          <span data-testid="dev-sign-in-code" className="ml-1 font-mono text-sm font-semibold tracking-widest">
+          <span data-testid="dev-sign-in-code" className="ml-1 font-mono text-body font-semibold tracking-widest">
             {devCode}
           </span>
         </p>
       ) : (
-        <p className="text-xs text-muted">10 分钟内有效。没收到可以 1 分钟后重新获取。</p>
+        <p className="text-meta text-muted">10 分钟内有效。没收到可以 1 分钟后重新获取。</p>
       )}
       <label className="block">
-        <span className="mb-1 block text-sm font-medium">验证码</span>
+        <span className={labelClass}>验证码</span>
         <input
           name="code"
           inputMode="numeric"
@@ -255,27 +255,29 @@ export function LoginForm({
           autoFocus
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}
-          className={`${inputClass} tracking-[0.3em]`}
+          className={`${inputClass({ tone: error ? "danger" : undefined })} font-figure tracking-[0.4em]`}
         />
       </label>
       {error && <ErrorText>{error}</ErrorText>}
-      <button type="submit" disabled={pending} className={primaryClass}>
+      <Button type="submit" size="lg" block loading={pending}>
         登录
-      </button>
-      <button type="button" disabled={pending} onClick={() => sendCode(email)} className={linkButtonClass}>
-        重新获取验证码
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          setStep("email");
-          setDevCode(null);
-          setError(null);
-        }}
-        className={linkButtonClass}
-      >
-        换个邮箱
-      </button>
+      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" disabled={pending} onClick={() => sendCode(email)} className={linkButtonClass}>
+          重新获取验证码
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("email");
+            setDevCode(null);
+            setError(null);
+          }}
+          className={linkButtonClass}
+        >
+          换个邮箱
+        </button>
+      </div>
     </form>
   );
 }
@@ -321,59 +323,70 @@ function BusinessStep({
   }
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-4 rounded-md border border-border bg-surface p-4">
+    <form onSubmit={submit} noValidate className={`space-y-5 ${CARD}`}>
       <div>
-        <h2 className="font-medium">开通雇主身份</h2>
-        <p className="mt-1 text-xs text-muted">
-          已登录：{email}。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。
+        <h2 className="text-subtitle font-semibold">开通雇主身份</h2>
+        <p className="mt-1 text-meta text-muted">
+          已登录：<span className="break-all">{email}</span>
+          。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。
         </p>
       </div>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">你的企业</legend>
+        <legend className={labelClass}>你的企业</legend>
         <div className="grid gap-2">
           {shops.map((b) => (
             <Choice key={b.id} value={b.id} current={choice} onPick={setChoice} disabled={b.claimed}>
-              <span className="block text-sm font-medium">{b.name}</span>
-              <span className="block text-xs text-muted">
-                {b.regionName} · {VERIFICATION_LABELS[b.verification].zh}
-                {b.claimed && " · 已有团队，需要管理员邀请"}
-              </span>
+              <ChoiceText
+                title={b.name}
+                text={`${b.regionName} · ${VERIFICATION_LABELS[b.verification].zh}${b.claimed ? " · 已有团队，需要管理员邀请" : ""}`}
+              />
             </Choice>
           ))}
           <Choice value="new" current={choice} onPick={setChoice}>
-            <span className="block text-sm font-medium">新建企业</span>
-            <span className="block text-xs text-muted">填写店名和地区；企业验证可以以后再做</span>
+            <ChoiceText title="新建企业" text="填写店名和地区；企业验证可以以后再做" />
           </Choice>
         </div>
       </fieldset>
 
       {choice === "new" && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <label className="block">
-            <span className="mb-1 block text-sm font-medium">店名</span>
-            <input name="name" maxLength={40} autoComplete="organization" className={inputClass} />
+            <span className={labelClass}>店名</span>
+            <input name="name" maxLength={40} autoComplete="organization" className={inputClass()} />
           </label>
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium">地区</span>
-            <select name="regionId" defaultValue="" className={inputClass}>
-              <option value="" disabled>
-                请选择
-              </option>
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.nameZh}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            name="regionId"
+            label="地区"
+            placeholder="请选择"
+            required
+            options={regions.map((r) => ({ value: r.id, label: r.nameZh }))}
+          />
         </div>
       )}
 
       {error && <ErrorText>{error}</ErrorText>}
-      <button type="submit" disabled={pending} className={primaryClass}>
+      <Button type="submit" size="lg" block loading={pending}>
         {pending ? "正在开通…" : "开通并开始发布招聘"}
-      </button>
+      </Button>
     </form>
+  );
+}
+
+/** A choice of the form as a card (Round 19): the Radio's whole row, outlined in brand colour once it is chosen. */
+function ChoiceCard({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-control border border-border px-2 transition-colors duration-(--duration-press) has-checked:border-brand has-checked:bg-brand-soft has-disabled:bg-background has-disabled:text-muted">
+      {children}
+    </div>
+  );
+}
+
+function ChoiceText({ title, text }: { title: string; text: string }) {
+  return (
+    <span className="block py-2.5">
+      <span className="block font-medium">{title}</span>
+      <span className="block text-meta text-muted">{text}</span>
+    </span>
   );
 }
 
@@ -391,34 +404,54 @@ function Choice({
   children: ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3 has-checked:border-brand has-checked:bg-brand-soft has-disabled:cursor-not-allowed has-disabled:bg-background">
-      <input
-        type="radio"
+    <ChoiceCard>
+      <Radio
         name="business"
         value={value}
         checked={current === value}
         disabled={disabled}
         onChange={() => onPick(value)}
-        className="mt-1 size-4 accent-brand"
-      />
-      <span>{children}</span>
-    </label>
+        className="has-disabled:cursor-not-allowed"
+      >
+        {children}
+      </Radio>
+    </ChoiceCard>
+  );
+}
+
+/** The page's title and what signing in is (the page and its loading.tsx). */
+export function LoginIntro() {
+  return (
+    <>
+      <h1 className="text-[1.75rem] leading-tight font-black lg:text-[2.125rem]">注册或登录</h1>
+      <p className="mt-2 mb-5 text-body text-muted">
+        用邮箱验证码注册或登录，不用设密码。同一个账号可以找工作，也可以开通雇主身份招人。
+      </p>
+    </>
+  );
+}
+
+/** The form's shape while it is on its way: a card with the role choice, a field and the button. Hidden without JavaScript. */
+export function LoginFormSkeleton({ label = "正在加载" }: { label?: string }) {
+  return (
+    <div data-nojs-hide="" aria-busy="true" className={`space-y-5 ${CARD}`}>
+      <span className="sr-only">{label}</span>
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="h-12 w-full" />
+    </div>
   );
 }
 
 function Placeholder() {
   return (
     <>
-      <div
-        data-nojs-hide=""
-        className="h-40 animate-pulse rounded-md border border-border bg-surface"
-        aria-hidden="true"
-      />
+      <LoginFormSkeleton />
       {/* Signing in runs in the browser (the code step, the session copy): say so instead of an endless placeholder. */}
       <noscript>
-        <p className="rounded-md border border-border bg-surface p-4 text-sm">
-          登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。
-        </p>
+        <p className={`text-body ${CARD}`}>登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。</p>
       </noscript>
     </>
   );
@@ -426,7 +459,7 @@ function Placeholder() {
 
 function ErrorText({ children }: { children: string }) {
   return (
-    <p id="login-error" role="alert" className="text-sm text-danger">
+    <p id="login-error" role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
       {children}
     </p>
   );

@@ -8,9 +8,10 @@ export const metadata: Metadata = { title: "数据与账号", robots: { index: f
 
 export default function AccountData({ searchParams }: PageProps<"/account/data">) {
   return (
-    <WorkHubFrame>
-      <h1 className="mb-3 text-lg font-semibold">数据与账号</h1>
-      <Suspense fallback={<div className="h-40 animate-pulse rounded-md border border-border bg-surface" />}>
+    <WorkHubFrame look="app">
+      {/* Round 19 (操作质感): a large title. */}
+      <h1 className="mb-4 text-[1.75rem] leading-tight font-black">数据与账号</h1>
+      <Suspense fallback={<div className="h-40 animate-shimmer rounded-card bg-surface shadow-card" />}>
         <Content searchParams={searchParams} />
       </Suspense>
     </WorkHubFrame>

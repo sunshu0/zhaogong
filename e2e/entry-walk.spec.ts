@@ -143,7 +143,7 @@ async function openShop(page: Page, testInfo: TestInfo) {
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(`走查店${run}`);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
 }
@@ -218,7 +218,7 @@ async function postAndApplyByClicks(page: Page, browser: Browser, testInfo: Test
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(`申请走查店${run}`);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
   const title = uniqueTitle(base, testInfo);
@@ -330,7 +330,7 @@ test("时薪参考: home → a job → 同类职位时薪; 发布招聘 → 直�
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(`时薪走查店${run}`);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
   await openTheForm(page);
@@ -623,7 +623,7 @@ test("岗位类别（发帖）: home → 发布招聘 → 直接填表 → 岗�
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await page.getByRole("radio", { name: /新建企业/ }).check();
   await page.getByLabel("店名", { exact: true }).fill(`类别走查店${run}`);
-  await page.getByRole("combobox", { name: /^地区/ }).selectOption({ label: "市中心" });
+  await chooseOption(page, page, "地区", "市中心");
   await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
   await expect(page).toHaveURL("/employer/post");
   await openTheForm(page);
