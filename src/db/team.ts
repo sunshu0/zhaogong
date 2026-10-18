@@ -7,6 +7,7 @@ import { normalizeEmail } from "@/components/seeker/session";
 import {
   TEAM_MAX,
   checkTeamChange,
+  inviteExpired,
   sortTeam,
   type TeamChange,
   type TeamMember,
@@ -65,12 +66,19 @@ export async function inviteToTeam(
     const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
     if (!account) return { status: "no_account" };
     if (account.employerId) return { status: "has_business" };
-    const pending = await tx
-      .select({ email: t.teamInvites.email })
+    const waiting = await tx
+      .select({ id: t.teamInvites.id, email: t.teamInvites.email, createdAt: t.teamInvites.createdAt })
       .from(t.teamInvites)
       .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")));
+    // Expired invitations (#194) hold no place; one to the same person is replaced by the new one.
+    const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
     if (pending.some((p) => p.email === address)) return { status: "pending" };
     if (members.length + pending.length >= TEAM_MAX) return { status: "full" };
+    for (const old of waiting.filter((p) => p.email === address))
+      await tx
+        .update(t.teamInvites)
+        .set({ status: "cancelled", answeredAt: now.toISOString() })
+        .where(eq(t.teamInvites.id, old.id));
 
     const [{ n }] = await tx.select({ n: sql<number>`count(*)` }).from(t.teamInvites);
     const invite: TeamInvite = {
@@ -88,20 +96,27 @@ export async function inviteToTeam(
   });
 }
 
-/** The business's invitations nobody has answered yet, newest first. */
-export async function pendingInvitesOf(employerId: string): Promise<TeamInvite[]> {
+/** The business's invitations nobody has answered yet, newest first; `expired` after 14 days (#194). */
+export async function pendingInvitesOf(
+  employerId: string,
+  now = new Date(),
+): Promise<(TeamInvite & { expired: boolean })[]> {
   const db = await database();
-  return db
+  const rows = await db
     .select()
     .from(t.teamInvites)
     .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")))
     .orderBy(desc(t.teamInvites.createdAt));
+  return rows.map((row) => ({ ...row, expired: inviteExpired(row.createdAt, now.getTime()) }));
 }
 
 export type InviteForMe = TeamInvite & { employerName: string };
 
-/** Invitations waiting for this account, oldest first, with the business's name. Banned businesses are left out. */
-export async function invitesFor(email: string): Promise<InviteForMe[]> {
+/**
+ * Invitations waiting for this account, oldest first, with the business's name. Banned businesses and expired
+ * invitations (#194) are left out.
+ */
+export async function invitesFor(email: string, now = new Date()): Promise<InviteForMe[]> {
   const db = await database();
   const rows = await db
     .select({ invite: t.teamInvites, employerName: t.employers.name })
@@ -115,7 +130,9 @@ export async function invitesFor(email: string): Promise<InviteForMe[]> {
       ),
     )
     .orderBy(asc(t.teamInvites.createdAt));
-  return rows.map((r) => ({ ...r.invite, employerName: r.employerName }));
+  return rows
+    .filter((r) => !inviteExpired(r.invite.createdAt, now.getTime()))
+    .map((r) => ({ ...r.invite, employerName: r.employerName }));
 }
 
 export type AnswerResult =
@@ -144,6 +161,7 @@ export async function answerInvite(
       .innerJoin(t.employers, eq(t.employers.id, t.teamInvites.employerId))
       .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.email, address)));
     if (!invite || invite.invite.status !== "pending" || invite.bannedAt) return { status: "gone" };
+    if (inviteExpired(invite.invite.createdAt, now.getTime())) return { status: "gone" };
     const answeredAt = now.toISOString();
     if (!answer.accept) {
       await tx.update(t.teamInvites).set({ status: "declined", answeredAt }).where(eq(t.teamInvites.id, inviteId));

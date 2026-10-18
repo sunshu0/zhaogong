@@ -21,6 +21,16 @@ export const TEAM_ROLE_LABEL: Record<TeamRole, string> = { admin: "管理员", m
 /** People in one business, the admins included. */
 export const TEAM_MAX = 10;
 
+/**
+ * An invitation nobody answered within this many days has expired (#194, ADR 0012): it no longer holds a place in the
+ * team and can no longer be accepted. Decided when read, like a job's closing date (ADR 0008); nothing runs on a timer.
+ */
+export const INVITE_DAYS = 14;
+
+export function inviteExpired(createdAt: string, now: number): boolean {
+  return now - Date.parse(createdAt) > INVITE_DAYS * 86_400_000;
+}
+
 /** The name a teammate goes by in the business's chats, e.g. 王经理. */
 export const TEAM_NAME_MAX = 12;
 

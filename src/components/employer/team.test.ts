@@ -4,6 +4,7 @@ import {
   checkTeamName,
   sortTeam,
   teamCan,
+  inviteExpired,
   teamSignature,
   type TeamMember,
 } from "@/components/employer/team";
@@ -39,6 +40,14 @@ describe("team permissions (#87)", () => {
     expect(teamCan("admin", "page")).toBe(true);
     expect(teamCan("member", "page")).toBe(false);
     expect(teamCan(undefined, "page")).toBe(false);
+  });
+});
+
+describe("inviteExpired (#194)", () => {
+  it("expires an invitation nobody answered in 14 days", () => {
+    const sent = "2026-10-01T00:00:00.000Z";
+    expect(inviteExpired(sent, Date.parse("2026-10-15T00:00:00.000Z"))).toBe(false);
+    expect(inviteExpired(sent, Date.parse("2026-10-15T00:00:01.000Z"))).toBe(true);
   });
 });
 

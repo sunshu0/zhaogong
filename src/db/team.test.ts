@@ -61,7 +61,7 @@ describe("team (#87)", () => {
     const [staff] = others;
     const invited = await inviteToTeam(employer.id, boss, `  ${staff.toUpperCase()} `, "member", T0);
     expect(invited).toMatchObject({ status: "invited", invite: { email: staff, status: "pending" } });
-    expect(await invitesFor(staff)).toMatchObject([{ employerName: employer.name, invitedByEmail: boss }]);
+    expect(await invitesFor(staff, T0)).toMatchObject([{ employerName: employer.name, invitedByEmail: boss }]);
     expect(await pendingInvitesOf(employer.id)).toHaveLength(1);
 
     const id = invited.status === "invited" ? invited.invite.id : "";
@@ -131,7 +131,7 @@ describe("team (#87)", () => {
     const c = await inviteToTeam(three.employer.id, three.boss, staff, "member", T0);
     if (a.status !== "invited" || b.status !== "invited" || c.status !== "invited") throw new Error("not invited");
     await banEmployer(three.employer.id);
-    expect((await invitesFor(staff)).map((i) => i.employerId)).toEqual([one.employer.id, two.employer.id]);
+    expect((await invitesFor(staff, T0)).map((i) => i.employerId)).toEqual([one.employer.id, two.employer.id]);
     expect(await answerInvite(staff, c.invite.id, { accept: true, name: "小李" }, T0)).toEqual({ status: "gone" });
     await answerInvite(staff, a.invite.id, { accept: true, name: "小李" }, T0);
     expect(await answerInvite(staff, b.invite.id, { accept: true, name: "小李" }, T0)).toEqual({
@@ -212,5 +212,42 @@ describe("team (#87)", () => {
     const db = await database();
     const [row] = await db.select().from(t.teamInvites).where(eq(t.teamInvites.email, others[0]));
     expect(row?.invitedByEmail).toBe(DELETED_ACCOUNT);
+  });
+});
+
+describe("invitations expire after 14 days (#194)", () => {
+  const LATER = new Date(T0.getTime() + 15 * 86_400_000);
+
+  it("can no longer be accepted, and the invited account no longer sees it", async () => {
+    const { boss, employer, others } = await shop(1);
+    const invited = await inviteToTeam(employer.id, boss, others[0], "member", T0);
+    if (invited.status !== "invited") throw new Error(invited.status);
+    expect(await invitesFor(others[0], new Date(T0.getTime() + 13 * 86_400_000))).toHaveLength(1);
+    expect(await invitesFor(others[0], LATER)).toEqual([]);
+    expect(await answerInvite(others[0], invited.invite.id, { accept: true, name: "小李" }, LATER)).toEqual({
+      status: "gone",
+    });
+    expect(await getTeam(employer.id)).toHaveLength(1);
+    // The admin still sees it, marked expired, and may take it back.
+    expect(await pendingInvitesOf(employer.id, LATER)).toMatchObject([{ email: others[0], expired: true }]);
+    expect(await pendingInvitesOf(employer.id, T0)).toMatchObject([{ expired: false }]);
+    expect(await cancelInvite(employer.id, boss, invited.invite.id, LATER)).toEqual({ status: "cancelled" });
+  });
+
+  it("holds no place in the team, and the same person can be invited again", async () => {
+    const { boss, employer, others } = await shop(TEAM_MAX - 1);
+    for (const email of others) await inviteToTeam(employer.id, boss, email, "member", T0);
+    await ensureAccount("team.late@example.com");
+    expect((await inviteToTeam(employer.id, boss, "team.late@example.com", "member", T0)).status).toBe("full");
+    expect((await inviteToTeam(employer.id, boss, "team.late@example.com", "member", LATER)).status).toBe("invited");
+
+    const again = await inviteToTeam(employer.id, boss, others[0], "admin", LATER);
+    expect(again.status).toBe("invited");
+    const waiting = await pendingInvitesOf(employer.id, LATER);
+    expect(waiting.filter((i) => i.email === others[0])).toMatchObject([{ role: "admin", expired: false }]);
+    if (again.status !== "invited") throw new Error(again.status);
+    expect(await answerInvite(others[0], again.invite.id, { accept: true, name: "新管理员" }, LATER)).toMatchObject({
+      status: "accepted",
+    });
   });
 });

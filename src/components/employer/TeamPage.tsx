@@ -7,7 +7,14 @@ import { noticeClass } from "@/components/employer/app-style";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useMyTeam } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
-import { TEAM_MAX, TEAM_NAME_MAX, TEAM_ROLE_LABEL, teamSignature, type TeamMember } from "@/components/employer/team";
+import {
+  INVITE_DAYS,
+  TEAM_MAX,
+  TEAM_NAME_MAX,
+  TEAM_ROLE_LABEL,
+  teamSignature,
+  type TeamMember,
+} from "@/components/employer/team";
 import {
   cancelTeamInvite,
   changeMyTeam,
@@ -285,6 +292,10 @@ function Invite({
               <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span className="text-body break-all">
                   {invite.email} · {TEAM_ROLE_LABEL[invite.role]}
+                  {/* #194: 14 days without an answer; it holds no place and cannot be accepted. */}
+                  {invite.expired && (
+                    <span className="ml-2 text-meta text-muted">已过期（{INVITE_DAYS} 天没回复，可以再邀请）</span>
+                  )}
                 </span>
                 <Button variant="link" disabled={disabled} onClick={() => onCancel(invite.id)}>
                   撤回邀请

@@ -30,8 +30,8 @@ export type MyTeam = {
   employer: { id: string; name: string };
   me: { email: string; role: TeamRole; name: string | null };
   members: TeamMember[];
-  /** Invitations nobody has answered yet; admins only (empty for members). */
-  invites: { id: string; email: string; role: TeamRole; createdAt: string }[];
+  /** Invitations nobody has answered yet, `expired` after 14 days (#194); admins only (empty for members). */
+  invites: { id: string; email: string; role: TeamRole; createdAt: string; expired: boolean }[];
 };
 
 type Failure = { ok: false; error_zh: string };
@@ -54,11 +54,12 @@ export async function getMyTeam(): Promise<MyTeam | null> {
   if (!me) return null;
   const invites =
     me.role === "admin"
-      ? (await pendingInvitesOf(mine.employer.id)).map(({ id, email, role, createdAt }) => ({
+      ? (await pendingInvitesOf(mine.employer.id)).map(({ id, email, role, createdAt, expired }) => ({
           id,
           email,
           role,
           createdAt,
+          expired,
         }))
       : [];
   return {
