@@ -99,7 +99,8 @@ const employerApplicantsZh = {
   /** src/components/employer/CandidateRecommendations.tsx */
   candidateRecommendations: {
     loadingJobs: "加载招聘职位…",
-    workspace: (businessName: string) => `雇主工作台 · ${businessName}`,
+    /** Before the business's name, which is marked as its own words. */
+    workspaceBefore: "雇主工作台 · ",
     title: "推荐人才",
     intro: "演示候选资料 · 匹配分仅供参考，班次与实际经验需双方确认。",
     noOpenJobs: "暂无招聘中的职位",
@@ -242,7 +243,7 @@ export const employerApplicantsMessages: Dictionary<typeof employerApplicantsZh>
 
     candidateRecommendations: {
       loadingJobs: "Loading your open jobs…",
-      workspace: (businessName) => `Employer workspace · ${businessName}`,
+      workspaceBefore: "Employer workspace · ",
       title: "Suggested candidates",
       intro:
         "Demo candidate details. The match score is a guide only: check shifts and real experience with the person.",

@@ -8,7 +8,8 @@ import { listboxKey, shownLabel, typeAhead } from "@/components/ui/select-keys";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
-export type SelectOption = { value: string; label: string };
+/** `lang`: when the label is someone's own words (a job's Chinese title), zh-CN, so the English page marks it (#238). */
+export type SelectOption = { value: string; label: string; lang?: string };
 
 /** The width from which Select opens as a dropdown under itself rather than as a bottom sheet (Tailwind's md). */
 const DESKTOP = "(min-width: 48rem)";
@@ -91,7 +92,7 @@ export function Select({
           className={`h-11 w-full rounded-control border bg-surface px-3 text-body ${fieldBorder(tone)}`}
         >
           {choices.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} lang={option.lang}>
               {option.label}
             </option>
           ))}
@@ -136,7 +137,12 @@ export function Select({
         }}
         className={`pressable flex h-11 w-full items-center justify-between gap-2 rounded-control border bg-surface px-3 text-left focus-visible:outline-2 focus-visible:outline-brand aria-expanded:border-brand ${fieldBorder(tone)}`}
       >
-        <span className={`truncate ${value ? "" : "text-muted"}`}>{shownLabel(choices, value, placeholder)}</span>
+        <span
+          lang={choices.find((option) => option.value === value)?.lang}
+          className={`truncate ${value ? "" : "text-muted"}`}
+        >
+          {shownLabel(choices, value, placeholder)}
+        </span>
         <ChevronDown
           aria-hidden="true"
           className={`size-4 shrink-0 text-muted transition-transform duration-(--duration-ui) ${open ? "rotate-180" : ""}`}
@@ -228,7 +234,7 @@ function Listbox({
               index === active ? "bg-background" : ""
             } ${selected ? "font-medium text-brand" : ""}`}
           >
-            <span>{option.label}</span>
+            <span lang={option.lang}>{option.label}</span>
             {selected && <Check aria-hidden="true" className="size-4 shrink-0" />}
           </li>
         );

@@ -3,6 +3,9 @@ import { expectEnglishPage, useEnglish } from "../helpers/english";
 import { SAMPLE_POST } from "../../src/lib/ai-post/chat-start";
 import { CLEAN_MESSAGE, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
+// Settled pages: axe measures colours after the pop-in, not halfway through it (as the other axe specs do).
+test.use({ reducedMotion: "reduce" });
+
 // Round 20 step 2, line B (#238): the employer's pages with zg_lang=en — <html lang>, axe, nothing wider than the
 // screen, and no Chinese of the interface left (e2e/helpers/english.ts). Both projects. The business and its job are
 // set up in Chinese first (the shared helpers speak Chinese); what the employer wrote (the shop's name, the job's

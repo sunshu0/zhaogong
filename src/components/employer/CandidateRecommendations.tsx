@@ -77,7 +77,10 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
   return (
     <div className="space-y-section">
       <header>
-        <p className="text-meta text-muted">{t.workspace(me.employerName)}</p>
+        <p className="text-meta text-muted">
+          {t.workspaceBefore}
+          <span lang={contentLang(me.employerName)}>{me.employerName}</span>
+        </p>
         <h1 className="mt-1 text-title font-semibold">{t.title}</h1>
         <p className="mt-1 text-body text-muted">{t.intro}</p>
       </header>
@@ -103,6 +106,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               options={jobs.map((item) => ({
                 value: item.id,
                 label: t.jobOption(item.titleZh, areaName(item.country, item.regionId, lang)),
+                lang: contentLang(item.titleZh),
               }))}
               defaultValue={job.id}
               onChange={setJobId}
