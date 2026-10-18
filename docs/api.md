@@ -23,11 +23,20 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `requestSignInCode(email)` | 邮箱 | `{ ok: true }`，验证码 10 分钟有效。开发和测试环境另带 `devCode`（登录页直接显示），生产环境永远不带 | `{ ok: false, error }`：「请输入正确的邮箱地址」「验证码刚发过，请 N 秒后再获取」（每个邮箱每分钟一次）「邮件服务还没有配置，暂时无法发送验证码」（生产环境，#16） |
-| `signInAccount(email, code, role?)` | 邮箱；6 位数字验证码；想要的身份，默认 `seeker`，账号有企业时才能是 `employer` | `{ ok: true, account: AccountStatus }`，首次使用时创建账号，并设置会话 cookie（30 天） | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」「请先获取验证码」「验证码已过期，请重新获取」「验证码不对，还可以再试 N 次」「错误次数太多，请重新获取验证码」（错 5 次作废） |
+| `signInAccount(email, code, role?)` | 邮箱；6 位数字验证码；想要的身份，默认 `seeker`，账号有企业时才能是 `employer` | `{ ok: true, account: AccountStatus, reload? }`，首次使用时创建账号，并设置会话 cookie（30 天）。账号存过界面语言、又和这个浏览器的不一样时，改写 cookie `zg_lang` 并带 `reload: true`（登录页整页跳转进去）；账号没存过时记下这个浏览器的语言（第 20 轮，ADR 0023） | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」「请先获取验证码」「验证码已过期，请重新获取」「验证码不对，还可以再试 N 次」「错误次数太多，请重新获取验证码」（错 5 次作废） |
 | `accountStatus(email?)` | 可选：浏览器副本里的邮箱 | 当前会话的 `AccountStatus`；浏览器每次加载页面用它校正本机副本 | 没有会话、或会话属于另一个邮箱时 `null` |
 | `switchIdentity(role)` | `"seeker"` 或 `"employer"` | 切换后的 `AccountStatus`；账号没有企业时留在求职者身份 | 没有会话时 `null` |
 | `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
 | `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
+
+## 界面语言 — `src/i18n/actions.ts`、`src/proxy.ts`（第 20 轮，ADR 0023）
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `setLang(lang)` | `"zh"` 或 `"en"`，别的值当 `zh` | 返回设好的语言：写 cookie `zg_lang`（一年，`Path=/`，`SameSite=Lax`，httpOnly，正式环境加 Secure）；已登录时同时存进 `accounts.lang`。调用后页面整页刷新（`location.reload()`） | — |
+
+- **proxy（每个页面请求都经过，排除 `_next/`、`api/` 和带扩展名的文件）：** 读 cookie `zg_lang`（不是 `en` 就当中文），内部改写到 `/zh/…` 或 `/en/…`，浏览器的地址不变；地址本身带 `/zh`、`/en` 的 308 跳回不带的。Server Functions 的 POST 也经过它，所以返回的出错信息是 cookie 的语言（`requestLang()`）。职位页 `/jobs/:id` 照旧顺带发访客 id（#79、#90）。
+- **出错信息：** 写操作返回的 `error` / `error_zh` 按请求的语言给（字段名照旧），读数据的接口返回的文字（通知、申请状态、提醒条件）也一样。
 
 ## 数据与账号 — `src/app/[lang]/account/actions.ts`
 

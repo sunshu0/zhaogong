@@ -20,6 +20,16 @@
 
 聊天状态与动作仍集中在 `chat-client.ts`，资料和通知在 `hub-client.ts`。身份隔离由 `identity-scope.ts` 负责；双方交换规则在 `src/lib/chat-consent.ts`，阅读与回复计数规则在 `src/lib/chat-activity.ts`。
 
+## 中英切换（第 20 轮，ADR 0023）
+
+页面都在 `src/app/[lang]/` 下（根布局 `src/app/[lang]/layout.tsx`：`generateStaticParams` 列出 zh、en，`<html lang>`、`LangProvider`、按语言的标题和页脚；不存在的地址走 `[lang]/[...missing]`）。不分语言、留在 `src/app/` 根下的：`api/`、`robots.ts`、`sitemap.ts`、`globals.css`、`global-error.tsx`（中英都写）。`src/proxy.ts` 按 cookie `zg_lang` 改写到哪一份。
+
+- `src/i18n/lang.ts`：`Lang`、`langFrom`、`localeTag`、`langRoute`（proxy 的判断）、`sitePath`、`contentLang`（用户写的中文标 `lang="zh-CN"`）。
+- `src/i18n/messages.ts` 的 `Dictionary` / `pick`；字典在 `src/i18n/messages/<模块>.ts`（A：`seeker-*`、`ui`；B：`employer-*`、`chat`、`compliance`、`candidate-matching`；C：`login`、`account`、`notifications`、`admin*`、`external`）。
+- 服务器端 `src/i18n/server.ts`（`messages()`、`serverLang()` 读根参数，`requestLang()` 读 cookie）；客户端 `src/i18n/client.tsx`（`LangProvider`、`useLang()`、`useMessages()`、`useSitePathname()`——看路径一律用它，服务器上的路径带 `/zh`，浏览器里没有）。
+- `src/i18n/format.ts`：日期、时间、数字、金额。切换按钮 `src/components/ui/LangSwitch.tsx`，Server Function `src/i18n/actions.ts`，cookie 设置 `src/i18n/cookie.ts`，账号语言 `src/db/account-lang.ts`。
+- 单测里 `next/root-params` 指到 `src/i18n/testing/root-params.ts`（`vitest.config.mts`）；英文页面的 e2e 检查 `e2e/helpers/english.ts`。
+
 ## 共用组件和页面外观（Round 19）
 
 做法见 ADR 0021 和 `docs/design-system.md` 的 Round 19 一节。共用组件在 `src/components/ui/`，只由 A 线改：
