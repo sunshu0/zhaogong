@@ -31,7 +31,7 @@ export default async function JobsPage({ searchParams }: PageProps<"/[lang]/jobs
     <PageTransition>
       <div className={`${WIDE_ON_DESKTOP} type-app`}>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h1 className="text-title font-semibold">{t.title}</h1>
+          <h1 className="text-title font-semibold">{t.heading}</h1>
           {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
           <nav aria-label={t.sections} className="flex gap-2">
             <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>

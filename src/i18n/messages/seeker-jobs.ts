@@ -14,6 +14,8 @@ const seekerJobsZh = {
   // app/jobs/page.tsx, JobList.tsx, BackLink.tsx
   list: {
     title: "奥克兰中文工作",
+    // The list's h1, beside the two section links: one line on a 375 px phone, so three whole cards still fit.
+    heading: "奥克兰中文工作",
     sections: "外部职位分区",
     internships: "实习",
     professional: "专业职位",
@@ -237,6 +239,7 @@ export const seekerJobsMessages: Dictionary<typeof seekerJobsZh> = {
   en: {
     list: {
       title: "Chinese-speaking jobs in Auckland",
+      heading: "Jobs",
       sections: "Jobs from company sites",
       internships: "Internships",
       professional: "Professional jobs",
