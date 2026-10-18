@@ -10,6 +10,7 @@ import type {
   ExternalFlag,
   ExternalKind,
   ExternalPay,
+  ExternalSource,
   PayPeriod,
   RawPosting,
   VisaFact,
@@ -77,25 +78,37 @@ export function nzCity(locations: string[], country?: string): ExternalCity | nu
 // ---- field ----
 
 const NOT_ENGINEERING =
-  /technician|technicus|machinist|\bcnc\b|mechanical|civil|structural|chemical|propulsion|manufacturing|materials|composites|\bsales\b|marketing|recruit|account (executive|manager)|customer success|business development|coordinator|\bbuyer\b|procurement/i;
+  /technician|technicus|machinist|\bcnc\b|mechanical|civil|structural|chemical|propulsion|manufacturing|materials|composites|\bsales\b|marketing|recruit|account (executive|manager)|customer success|business develop(ment|er)|product (manager|owner|designer)|coordinator|\bbuyer\b|procurement/i;
 const ELECTRICAL =
   /electrical|electronic|avionics|\bpcb\b|\brf\b|fpga|\basic\b|power electronics|hardware (design |development )?engineer|firmware|embedded|circuit|电气|电子/i;
 const SOFTWARE =
   /software|developer|full[ -]?stack|front[ -]?end|back[ -]?end|devops|\bsre\b|site reliability|platform engineer|cloud engineer|mobile engineer|\bios\b|android|web engineer|data engineer|machine learning engineer|\bml engineer|test automation|automation engineer|\bqa engineer|软件|开发/i;
 const GENERIC = /engineer|developer|intern|graduate|工程师|实习/i;
+/** "Developer" naming the people a role serves, not the work (Partly's "… & Developer Ecosystem", #180). */
+const DEVELOPER_AUDIENCE =
+  /\bdevelopers? (ecosystem|relations|advocacy|advocate|evangelist|community|marketing|success)\b/gi;
+/**
+ * A department or team named only "Engineering". On the Ashby boards read so far that is software work (Xero's);
+ * hardware has its own department there (Halter's "Hardware"). How Greenhouse and Lever boards use it is not
+ * checked, so there it places nothing (#180).
+ */
+const PLAIN_ENGINEERING = /^\s*engineering\s*$/i;
 
 /**
  * Software or electrical, from the title; a generic title ("Graduate Engineer", "Summer Intern") is placed by its
- * department. Electrical wins over software for firmware and embedded work. Null: outside the pilot.
+ * department, and on Ashby a department named only "Engineering" means software. Electrical wins over software for
+ * firmware and embedded work. Null: outside the pilot.
  */
-export function fieldOf(title: string, departments: string[]): ExternalField | null {
+export function fieldOf(title: string, departments: string[], source?: ExternalSource): ExternalField | null {
   if (NOT_ENGINEERING.test(title)) return null;
-  if (ELECTRICAL.test(title)) return "electrical";
-  if (SOFTWARE.test(title)) return "software";
-  if (!GENERIC.test(title)) return null;
+  const work = title.replace(DEVELOPER_AUDIENCE, " ");
+  if (ELECTRICAL.test(work)) return "electrical";
+  if (SOFTWARE.test(work)) return "software";
+  if (!GENERIC.test(work)) return null;
   const dept = departments.join(" / ");
   if (ELECTRICAL.test(dept)) return "electrical";
   if (SOFTWARE.test(dept)) return "software";
+  if (source === "ashby" && departments.some((d) => PLAIN_ENGINEERING.test(d))) return "software";
   return null;
 }
 
@@ -299,7 +312,7 @@ export function closesAtOf(text: string, now: Date): string | null {
 export function factsOf(posting: RawPosting, now: Date): ExternalFacts | null {
   const city = nzCity(posting.locations, posting.country);
   if (!city) return null;
-  const field = fieldOf(posting.title, posting.departments);
+  const field = fieldOf(posting.title, posting.departments, posting.source);
   if (!field) return null;
   const { degree, subjects } = degreeOf(posting.text);
   const deadline = posting.deadline ? Date.parse(posting.deadline) : NaN;

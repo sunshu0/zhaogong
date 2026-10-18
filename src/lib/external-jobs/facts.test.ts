@@ -52,6 +52,46 @@ describe("external job facts (#111)", () => {
     expect(fieldOf("CNC Programmer", ["Manufacturing"])).toBeNull();
   });
 
+  it("on an Ashby board, a generic title in a department named only Engineering is software (#180)", () => {
+    // Xero's Ashby board, 2026-10-17: these four were dropped for their generic titles.
+    expect(fieldOf("Engineering Manager", ["Engineering"], "ashby")).toBe("software");
+    expect(fieldOf("Senior Engineer - Database", ["Engineering", "Database"], "ashby")).toBe("software");
+    expect(fieldOf("Senior Security Engineer", [" Engineering "], "ashby")).toBe("software");
+    expect(fieldOf("Summer Intern", ["Engineering"], "ashby")).toBe("software");
+    // A department or team that names the field still decides first.
+    expect(fieldOf("Graduate Engineer", ["Engineering", "Avionics"], "ashby")).toBe("electrical");
+    // Not software: other sources, the words that rule a title out, other departments, a title that is not generic.
+    expect(fieldOf("Graduate Engineer", ["Engineering"], "greenhouse")).toBeNull();
+    expect(fieldOf("Graduate Engineer", ["Engineering"], "lever")).toBeNull();
+    expect(fieldOf("Graduate Engineer", ["Engineering"])).toBeNull();
+    expect(fieldOf("Experienced Mechanical Engineer", ["Engineering"], "ashby")).toBeNull();
+    expect(fieldOf("Sales Engineer (Enterprise)", ["Engineering"], "ashby")).toBeNull();
+    // Halter's board: hardware has its own department there.
+    expect(fieldOf("Senior Failure Analysis Engineer", ["Hardware", "Hardware Reliability"], "ashby")).toBeNull();
+    expect(fieldOf("Engineering Manager", ["Product & Engineering"], "ashby")).toBeNull();
+    expect(fieldOf("Office Manager", ["Engineering"], "ashby")).toBeNull();
+  });
+
+  it("counts Developer only when it is the job, not the people a role serves; product roles are not engineering (#180)", () => {
+    // Partly's Ashby board, 2026-10-17: a product manager was taken for software.
+    expect(
+      fieldOf("Senior/Staff Product Manager, NZ, Infrastructure APIs & Developer Ecosystem", ["Product"], "ashby"),
+    ).toBeNull();
+    expect(fieldOf("Developer Relations Lead", ["Engineering"], "ashby")).toBeNull();
+    expect(fieldOf("Developer Advocate", ["Software"])).toBeNull();
+    expect(fieldOf("Technical Product Manager, Software Platform", [])).toBeNull();
+    expect(fieldOf("Product Owner - Developer Tools", ["Software Engineering"], "ashby")).toBeNull();
+    expect(fieldOf("Principal Product Designer", ["Product", "Product Design"], "ashby")).toBeNull();
+    expect(fieldOf("Business Developer", [])).toBeNull();
+    // Still developers: Halter's, Electric Kiwi's (Greenhouse) and Partly's.
+    expect(fieldOf("NetSuite Developer", ["General & Admin", "Finance Systems"], "ashby")).toBe("software");
+    expect(fieldOf("Developer Productivity Engineer", [], "greenhouse")).toBe("software");
+    expect(fieldOf("Full Stack Developer", ["Engineering", "Product"], "lever")).toBe("software");
+    expect(fieldOf("Intern/ Graduate Software Engineer, NZ", ["AI Research & Software Engineering"], "ashby")).toBe(
+      "software",
+    );
+  });
+
   it("says internship or graduate from the title first, then what the commitment or the text says, else nothing", () => {
     expect(kindOf("Software Engineering Intern", "Full-time", "")).toBe("internship");
     expect(kindOf("Graduate Electrical Engineer 2027", undefined, "")).toBe("graduate");
@@ -127,6 +167,7 @@ describe("external job facts (#111)", () => {
   it("puts the facts together and drops jobs outside the pilot", () => {
     const posting: RawPosting = {
       externalId: "42",
+      source: "greenhouse",
       title: "  Graduate   Software Engineer ",
       locations: ["Auckland, New Zealand"],
       departments: ["Engineering"],
@@ -153,5 +194,9 @@ describe("external job facts (#111)", () => {
     expect(factsOf({ ...posting, deadline: "2026-12-01T00:00:00Z" }, NOW)?.closesAt).toBe("2026-12-01T00:00:00.000Z");
     expect(factsOf({ ...posting, locations: ["Melbourne"] }, NOW)).toBeNull();
     expect(factsOf({ ...posting, title: "Office Manager" }, NOW)).toBeNull();
+    // The posting's source reaches fieldOf (#180).
+    const generic = { ...posting, title: "Graduate Engineer" };
+    expect(factsOf({ ...generic, source: "ashby" }, NOW)?.field).toBe("software");
+    expect(factsOf(generic, NOW)).toBeNull();
   });
 });

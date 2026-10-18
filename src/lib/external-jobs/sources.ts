@@ -37,6 +37,7 @@ export function parseGreenhouse(body: unknown): RawPosting[] {
   if (!Array.isArray(jobs)) throw new Error("Greenhouse answer has no jobs list");
   return jobs.map((job) => ({
     externalId: String(job.id),
+    source: "greenhouse",
     title: job.title,
     locations: [job.location?.name, ...(job.offices ?? []).flatMap((o) => [o.location, o.name])].filter(
       (n): n is string => Boolean(n),
@@ -89,6 +90,7 @@ export function parseLever(body: unknown): RawPosting[] {
     const lists = (p.lists ?? []).map((l) => `${l.text ?? ""}\n${htmlToText(l.content ?? "")}`);
     return {
       externalId: p.id,
+      source: "lever",
       title: p.text,
       locations: [...new Set(locations)],
       ...(p.country && { country: p.country }),
@@ -178,6 +180,7 @@ export function parseAshby(body: unknown): RawPosting[] {
         ].filter((n): n is string => Boolean(n));
         return {
           externalId: job.id,
+          source: "ashby",
           title: job.title,
           locations: [...new Set(locations)],
           ...(onlyNz && { country: "NZ" }),

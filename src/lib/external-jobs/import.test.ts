@@ -71,6 +71,7 @@ describe("external job import (#111)", () => {
     expect(gh).toHaveLength(5);
     expect(gh[0]).toMatchObject({
       externalId: "4001",
+      source: "greenhouse",
       title: "Graduate Software Engineer",
       locations: ["Auckland, New Zealand", "Auckland, New Zealand", "Auckland"],
       departments: ["Software"],
@@ -82,6 +83,7 @@ describe("external job import (#111)", () => {
 
     const lv = parseLever(LEVER);
     expect(lv[0]).toMatchObject({
+      source: "lever",
       title: "Full Stack Developer",
       country: "NZ",
       commitment: "Permanent",
@@ -266,9 +268,12 @@ describe("external job import (#111)", () => {
       "Account Manager",
       "Software Engineer",
       "Senior Data Engineer",
+      "Graduate Engineer 2027",
+      "Senior Product Manager, Developer Ecosystem",
     ]);
     expect(ab[0]).toMatchObject({
       externalId: "7a1e0000-0000-4000-8000-000000000001",
+      source: "ashby",
       locations: ["Auckland", "New Zealand"],
       country: "NZ",
       departments: ["Hardware"],
@@ -299,7 +304,7 @@ describe("external job import (#111)", () => {
     };
     const { getJson } = feeds({ [postingsUrl("ashby", "pukeko-example")]: ASHBY });
     const [report] = await importExternalJobs({ companies: [PUKEKO], getJson, now: () => T0 });
-    expect(report).toMatchObject({ company: "pukeko", status: "imported", inFeed: 6, kept: 4, added: 4 });
+    expect(report).toMatchObject({ company: "pukeko", status: "imported", inFeed: 8, kept: 5, added: 5 });
     const jobs = await listExternalJobs({ companyId: "pukeko" });
     expect(new Map(jobs.map((j) => [j.title, [j.field, j.kind, j.city]]))).toEqual(
       new Map([
@@ -307,6 +312,8 @@ describe("external job import (#111)", () => {
         ["Senior Software Engineer", ["software", "full_time", "wellington"]],
         ["Software Engineering Intern", ["software", "internship", "christchurch"]],
         ["Senior Data Engineer", ["software", "contract", "wellington"]],
+        // #180: a generic title in a department named only Engineering; the product manager is left out.
+        ["Graduate Engineer 2027", ["software", "graduate", "wellington"]],
       ]),
     );
     expect(await getExternalJob("pukeko:7a1e0000-0000-4000-8000-000000000001")).toMatchObject({

@@ -234,6 +234,66 @@
         "compensationTiers": [],
         "summaryComponents": []
       }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000008",
+      "title": "Graduate Engineer 2027",
+      "department": "Engineering",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Wellington",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-12T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Wellington",
+          "addressRegion": "Wellington",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000008",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000008/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\nJoin the team that builds our farm apps and the services behind them.",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
+    },
+    {
+      "id": "7a1e0000-0000-4000-8000-000000000009",
+      "title": "Senior Product Manager, Developer Ecosystem",
+      "department": "Product",
+      "team": "",
+      "employmentType": "FullTime",
+      "location": "Auckland",
+      "secondaryLocations": [],
+      "publishedAt": "2026-10-12T21:00:00.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "Auckland",
+          "addressRegion": "Auckland",
+          "addressCountry": "New Zealand"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000009",
+      "applyUrl": "https://jobs.ashbyhq.com/pukeko-example/7a1e0000-0000-4000-8000-000000000009/application",
+      "descriptionHtml": "<p>(not read)</p>",
+      "descriptionPlain": "Pukeko Farms makes paddock sensors, and this sentence must never reach the database.\nOwn the roadmap for the APIs other developers build on.",
+      "compensation": {
+        "compensationTierSummary": null,
+        "scrapeableCompensationSalarySummary": null,
+        "compensationTiers": [],
+        "summaryComponents": []
+      }
     }
   ]
 }

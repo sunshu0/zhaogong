@@ -53,6 +53,8 @@ export type ExternalFlag = "other_citizenship" | "ethnicity";
 /** One posting as the API gives it, before facts are taken from it. `text` is the posting's text, never stored. */
 export interface RawPosting {
   externalId: string;
+  /** The system it was read from; some rules hold on one of them only (#180). */
+  source: ExternalSource;
   title: string;
   /** Location names as the posting gives them, most specific first. */
   locations: string[];
