@@ -39,6 +39,8 @@ const seekerJobsZh = {
   },
   hours: {
     perWeek: (range: string) => `每周 ${range} 小时`,
+    // On a job card, where it shares one line with the area and how to reach the employer (#242).
+    perWeekShort: (range: string) => `${range} 小时/周`,
   },
   posted: {
     today: "今天",
@@ -261,6 +263,7 @@ export const seekerJobsMessages: Dictionary<typeof seekerJobsZh> = {
     },
     hours: {
       perWeek: (range) => `${range} hours a week`,
+      perWeekShort: (range) => `${range} h/wk`,
     },
     posted: {
       today: "today",

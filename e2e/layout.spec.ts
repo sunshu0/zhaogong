@@ -5,6 +5,23 @@ const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
+/**
+ * #242 (导师 10-19): each card's points line shows whole points on one line, leaving out from the end what doesn't
+ * fit; the area and how to reach the employer always show, and nothing ends in "…". The cards whose first two points
+ * are not both on the line, by their text.
+ */
+const pointsCut = (cards: Locator) =>
+  cards.evaluateAll((list) =>
+    list.flatMap((card) => {
+      const line = card.querySelector("p.flex-wrap");
+      if (!line) return [`no points line: ${card.textContent?.slice(0, 40)}`];
+      const top = line.getBoundingClientRect().top;
+      const shown = [...line.children].map((point) => point.getBoundingClientRect().top - top < 4);
+      const ellipsis = getComputedStyle(line).textOverflow === "ellipsis";
+      return shown.slice(0, 2).every(Boolean) && !ellipsis ? [] : [line.textContent ?? ""];
+    }),
+  );
+
 test("job cards: title, pay, one line of points, one status and two tags, employer; 3 per phone screen", async ({
   page,
 }, testInfo) => {
@@ -30,6 +47,7 @@ test("job cards: title, pay, one line of points, one status and two tags, employ
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
     // A21: at least three whole rows on a 375 × 812 phone, below the header, search and count. Measured on three
     // demo jobs: other specs publish jobs with long titles that come first while the suite runs.
+    expect(await pointsCut(cards), `${width}: area and contact on every card`).toEqual([]);
     if (width === 375) {
       let bottom = first.y;
       for (const id of ["j3", "j5", "j11"])
@@ -48,7 +66,7 @@ test("job cards: title, pay, one line of points, one status and two tags, employ
       "东区亚洲超市",
       "急招", // the one status: 急招 comes before 已验证企业
       "聊天交换联系方式", // A25: j5 keeps contact details private
-      "每周 20–30 小时",
+      "20–30 小时/周",
       "早班 7:00", // shifts join the points line (#141)
     ])
       await expect(retail).toContainText(text);
@@ -98,8 +116,9 @@ test("job cards in English (Round 20): still three whole cards on a 375 × 812 p
     bottom += (await box(cards.filter({ has: page.locator(`a[href="/jobs/${id}"]`) }))).height;
   expect(bottom).toBeLessThanOrEqual(812);
   const retail = cards.filter({ has: page.locator('a[href="/jobs/j5"]') });
-  for (const text of ["$24", "an hour", "Urgent", "20–30 hours a week", "Contact in chat"])
+  for (const text of ["$24", "an hour", "Urgent", "20–30 h/wk", "Contact in chat"])
     await expect(retail).toContainText(text);
+  expect(await pointsCut(cards), "area and contact on every card").toEqual([]);
   expect(await noSideScroll(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });
 });

@@ -30,10 +30,11 @@ export function formatPay(pay: PayRange, country: CountryCode, lang: Lang = DEFA
 }
 
 /** "每周 15–25 小时" / "15–25 hours a week", or undefined when the job does not say. */
-export function formatHours(hours: Job["hoursPerWeek"], lang: Lang = DEFAULT_LANG): string | undefined {
+export function formatHours(hours: Job["hoursPerWeek"], lang: Lang = DEFAULT_LANG, short = false): string | undefined {
   if (!hours) return undefined;
   const range = hours.max != null && hours.max !== hours.min ? `${hours.min}–${hours.max}` : String(hours.min);
-  return pick(seekerJobsMessages, lang).hours.perWeek(range);
+  const t = pick(seekerJobsMessages, lang).hours;
+  return short ? t.perWeekShort(range) : t.perWeek(range);
 }
 
 /** The tags a job can have, most important first: their keys, so colours and words are looked up separately. */

@@ -18,16 +18,17 @@ export type CardPoint = { text: string; zh?: true };
 /** The points line: place, work type and hours, shifts, then how the employer is reached (A25). */
 export function cardPoints(job: Job, regionName: string | undefined, lang: Lang = DEFAULT_LANG): CardPoint[] {
   const t = pick(seekerJobsMessages, lang).card;
-  const work = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang)]
+  const work = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang, true)]
     .filter(Boolean)
     .join(" ");
   const shifts = job.shiftsZh?.trim();
   const points: CardPoint[] = [];
+  // The card shows whole points on one line and leaves out from the end those that don't fit (#242, 导师 10-19):
+  // the area and how to reach the employer (A25) first, so a phone always shows them; then the hours, short; the
+  // shifts, in the employer's words, last (the job page has them in full).
   if (regionName) points.push({ text: regionName });
-  if (work) points.push({ text: work });
   points.push({ text: job.contactPublic ? t.contactPublic : t.contactByChat });
-  // Last: the card shows whole points on one line and leaves out those that don't fit (#242), and the shifts, in the
-  // employer's words, are the one the job page has in full anyway.
+  if (work) points.push({ text: work });
   if (shifts) points.push({ text: shifts, zh: true });
   return points;
 }

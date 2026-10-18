@@ -8,11 +8,11 @@ const j5 = MOCK_JOBS.find((job) => job.id === "j5")!;
 const employer = MOCK_EMPLOYERS.find((e) => e.id === j5.employerId)!;
 
 describe("a job card's parts (Round 19)", () => {
-  it("puts place, work and hours, how to reach the employer and the shifts last on one line, without labels", () => {
+  it("puts place, how to reach the employer, work and short hours, and the shifts last, without labels", () => {
     expect(cardPoints(j5, "Botany").map((p) => p.text)).toEqual([
       "Botany",
-      `${formatEmploymentTypes(j5.employmentType)} 每周 20–30 小时`,
       "聊天交换联系方式",
+      `${formatEmploymentTypes(j5.employmentType)} 20–30 小时/周`,
       "早班 7:00–13:00",
     ]);
     const bare: Job = { ...j5, employmentType: [], hoursPerWeek: undefined, shiftsZh: " ", contactPublic: true };
@@ -45,8 +45,8 @@ describe("a job card's parts (Round 19)", () => {
     const points = cardPoints(j5, "Botany", "en");
     expect(points.map((p) => p.text)).toEqual([
       "Botany",
-      `${formatEmploymentTypes(j5.employmentType, "en")} 20–30 hours a week`,
       "Contact in chat",
+      `${formatEmploymentTypes(j5.employmentType, "en")} 20–30 h/wk`,
       "早班 7:00–13:00",
     ]);
     expect(points.filter((p) => p.zh).map((p) => p.text)).toEqual(["早班 7:00–13:00"]);
