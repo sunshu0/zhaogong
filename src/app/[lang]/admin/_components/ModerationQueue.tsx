@@ -303,7 +303,7 @@ function QueueCard({
           {findings.map((f, i) => (
             <div key={i}>
               <p className="mb-1 text-meta text-muted">{fieldNames[f.field] ?? f.field}</p>
-              <FindingItem finding={f} />
+              <FindingItem finding={f} lang={lang} />
             </div>
           ))}
         </div>

@@ -76,7 +76,7 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       });
     }
     // The same reminders as 通知 has: from 3 days before closing, and while a job that ran out can be renewed.
-    for (const reminder of closingReminders(input.jobs, input.now)) {
+    for (const reminder of closingReminders(input.jobs, input.now, lang)) {
       todos.push({ id: reminder.id, title: reminder.title, detail: reminder.detail, href: CLOSING_HREF });
     }
     for (const job of input.jobs.filter((job) => job.status === "pending_review")) {

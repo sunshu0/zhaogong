@@ -22,6 +22,7 @@ import { describeAction, groupOpenReports } from "@/app/[lang]/admin/moderation"
 import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
 import { pick } from "@/i18n/messages";
 import { adminMessages } from "@/i18n/messages/admin";
+import type { Lang } from "@/i18n/lang";
 import { requestLang } from "@/i18n/server";
 import { isValidEmail } from "@/components/seeker/session";
 
@@ -43,27 +44,28 @@ export interface ModerationQueue {
 /** Why the queue or the moderator list is not shown: not signed in, or not a moderator. */
 export type Refused = { refused: "signed_out" | "not_moderator"; error_zh: string };
 
-async function item(job: Job): Promise<QueueItem> {
+/** A job in the queue, with what the checks found, worded in the moderator's language. */
+async function item(job: Job, lang: Lang): Promise<QueueItem> {
   const employer = await getEmployer(job.employerId);
-  return { job, employer, findings: checkJob(job, job.country, employer) };
+  return { job, employer, findings: checkJob(job, job.country, employer, lang) };
 }
 
 /** The queue, for a moderator. */
 export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
   const me = await requireModerator();
   if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
+  const lang = await requestLang();
   const jobs = await listAllJobs(DEFAULT_COUNTRY);
-  const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map(item));
+  const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map((j) => item(j, lang)));
   const groups = groupOpenReports(await listReports());
   const reported = (
     await Promise.all(
       groups.map(async (g) => {
         const job = await getJob(g.jobId);
-        return job ? { ...(await item(job)), reports: g.reports } : undefined;
+        return job ? { ...(await item(job, lang)), reports: g.reports } : undefined;
       }),
     )
   ).filter((r) => r != null);
-  const lang = await requestLang();
   const log = (await listModerationLog()).map((e) => ({ ...e, text: describeAction(e, lang) }));
   return { flagged, reported, log };
 }

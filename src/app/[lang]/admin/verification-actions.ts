@@ -113,7 +113,7 @@ export async function rejectVerification(
   note: unknown,
   checklist: unknown,
 ): Promise<AdminResult> {
-  const rejection = parseRejection(reason, note);
+  const rejection = parseRejection(reason, note, await requestLang());
   if (!rejection.ok) return rejection;
   return decide(id, checklist, { approve: false, rejection: rejection.value });
 }
