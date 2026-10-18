@@ -1,8 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useState, useTransition, type FormEvent } from "react";
 import { addModerator, getModerators, removeModerator, type AdminResult, type Refused } from "@/app/admin/actions";
 import type { Moderator } from "@/db/moderators";
+import { isFailed, settle } from "@/app/admin/load-state";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
+import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
+import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { inputClass } from "@/components/ui/input-class";
@@ -18,38 +21,38 @@ const day = new Intl.DateTimeFormat("zh-CN", { timeZone: "Pacific/Auckland", dat
 
 /** 审核员 (#50): who may moderate, and adding or removing one by email. The last moderator cannot be removed. */
 export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => void }) {
-  const [answer, setAnswer] = useState<{ me: string; moderators: Moderator[] } | Refused>();
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  const answer = useAdminLoad<{ me: string; moderators: Moderator[] } | Refused>(getModerators, version);
+  // #183: where an action got no answer — the list (a removal) or the form (an addition, the email stays).
+  const [failed, setFailed] = useState<"list" | "add">();
 
-  useEffect(() => {
-    let live = true;
-    getModerators().then((a) => {
-      if (live) setAnswer(a);
-    });
-    return () => {
-      live = false;
-    };
-  }, [version]);
-
-  const run = (action: () => Promise<AdminResult>, after?: () => void) =>
+  const run = (where: "list" | "add", action: () => Promise<AdminResult>, after?: () => void) => {
+    setFailed(undefined);
     startTransition(async () => {
-      const result = await action();
+      const result = await settle(action);
+      if (!result) {
+        setFailed(where);
+        return;
+      }
       onDone(result);
       if (result.ok) after?.();
       reload();
     });
+  };
 
   const add = (event: FormEvent) => {
     event.preventDefault();
     run(
+      "add",
       () => addModerator(email),
       () => setEmail(""),
     );
   };
 
+  if (isFailed(answer)) return <LoadFailed what="审核员名单" onRetry={reload} />;
   if (!answer) return <Loading />;
   if ("refused" in answer) return <Empty>{answer.error_zh}</Empty>;
   const only = answer.moderators.length <= 1;
@@ -77,7 +80,7 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
                 variant="danger-secondary"
                 disabled={pending || only}
                 title={only ? "至少要留一位审核员" : undefined}
-                onClick={() => run(() => removeModerator(m.email))}
+                onClick={() => run("list", () => removeModerator(m.email))}
                 className="shrink-0"
                 aria-label={`移除审核员 ${m.email}`}
               >
@@ -86,6 +89,11 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
             </li>
           ))}
         </ul>
+        {failed === "list" && (
+          <div className="pb-group">
+            <TryAgain />
+          </div>
+        )}
       </Section>
       <Section look="app" title="添加审核员">
         <form onSubmit={add} className="space-y-2 py-group">
@@ -107,6 +115,7 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
             </Button>
           </div>
           <p className="text-meta text-muted">对方要先用这个邮箱登录过一次。</p>
+          {failed === "add" && <TryAgain />}
         </form>
       </Section>
     </div>

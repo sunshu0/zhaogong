@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import type { AdminResult, Refused } from "@/app/admin/actions";
+import { isFailed, settle, type Failed } from "@/app/admin/load-state";
 import {
   approveExternalJob,
   getExternalReview,
@@ -14,6 +15,8 @@ import {
 } from "@/app/admin/external-actions";
 import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
+import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
+import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { HIDE_REASONS, type HideReason } from "@/lib/external-jobs/review";
 import { Button } from "@/components/ui/Button";
@@ -24,17 +27,7 @@ import { Tag } from "@/components/ui/Tag";
 
 /** The external jobs and companies, loaded again whenever `version` changes; the count is for the tab. */
 export function useExternalReview(version: number) {
-  const [queue, setQueue] = useState<ExternalReviewQueue | Refused>();
-  useEffect(() => {
-    let live = true;
-    getExternalReview().then((q) => {
-      if (live) setQueue(q);
-    });
-    return () => {
-      live = false;
-    };
-  }, [version]);
-  return queue;
+  return useAdminLoad<ExternalReviewQueue | Refused>(getExternalReview, version);
 }
 
 /**
@@ -44,10 +37,13 @@ export function useExternalReview(version: number) {
 export function ExternalReview({
   queue,
   onDone,
+  onRetry,
 }: {
-  queue?: ExternalReviewQueue | Refused;
+  queue?: ExternalReviewQueue | Refused | Failed;
   onDone: (result: AdminResult) => void;
+  onRetry: () => void;
 }) {
+  if (isFailed(queue)) return <LoadFailed what="外部职位" onRetry={onRetry} />;
   if (!queue) return <Loading />;
   if ("refused" in queue) return <Empty>{queue.error_zh}</Empty>;
   return (
@@ -105,7 +101,15 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
   const [reason, setReason] = useState<HideReason>();
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
-  const run = (action: () => Promise<AdminResult>) => startTransition(async () => onDone(await action()));
+  const [failed, setFailed] = useState(false); // #183: no answer came; the tick, reason and note stay
+  const run = (action: () => Promise<AdminResult>) => {
+    setFailed(false);
+    startTransition(async () => {
+      const result = await settle(action);
+      if (result) onDone(result);
+      else setFailed(true);
+    });
+  };
   const approved = job.review === "approved";
 
   return (
@@ -201,6 +205,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
           </Button>
         </div>
       )}
+      {failed && <TryAgain />}
     </article>
   );
 }
@@ -211,12 +216,19 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
   const [requester, setRequester] = useState("");
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
-  const run = (action: () => Promise<AdminResult>) =>
+  const [failed, setFailed] = useState(false); // #183: no answer came; the form stays filled in
+  const run = (action: () => Promise<AdminResult>) => {
+    setFailed(false);
     startTransition(async () => {
-      const result = await action();
+      const result = await settle(action);
+      if (!result) {
+        setFailed(true);
+        return;
+      }
       if (result.ok) setForm(undefined);
       onDone(result);
     });
+  };
   const status = company.block
     ? company.block.kind === "takedown"
       ? `公司要求删除（${dayLabel(company.block.createdAt)}）：${company.block.requester ?? ""}`
@@ -309,6 +321,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
           )}
         </div>
       )}
+      {failed && <TryAgain />}
     </article>
   );
 }

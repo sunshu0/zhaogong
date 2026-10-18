@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { Refused } from "@/app/admin/actions";
+import { isFailed, ready, type Failed } from "@/app/admin/load-state";
 import { AI_DAYS, WEEKS, waitZh, type ModerationStats } from "@/app/admin/moderation-stats";
 import { moderatorLabel } from "@/app/admin/moderation";
 import { getModerationStats } from "@/app/admin/stats-actions";
 import { Loading } from "@/app/admin/_components/Empty";
+import { LoadFailed } from "@/app/admin/_components/Failed";
+import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import { Section } from "@/components/ui/Section";
 
 const weekLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "long", day: "numeric" });
@@ -19,24 +21,20 @@ const dayLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "lon
 const figure = new Intl.NumberFormat("zh-CN");
 
 /** 审核数据 (#70), asked for again whenever `version` changes (after each decision in the queue). */
-export function useModerationStats(version: number): ModerationStats | Refused | undefined {
-  const [stats, setStats] = useState<ModerationStats | Refused>();
-  useEffect(() => {
-    let live = true;
-    getModerationStats()
-      .then((s) => {
-        if (live) setStats(s);
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [version]);
-  return stats;
+export function useModerationStats(version: number): ModerationStats | Refused | Failed | undefined {
+  return useAdminLoad<ModerationStats | Refused>(getModerationStats, version);
 }
 
-/** The queue now, above the tabs: what waits for review, and for how long. */
-export function ModerationSummary({ stats }: { stats?: ModerationStats }) {
+/** The queue now, above the tabs: what waits for review, and for how long. Says so when none came (#183). */
+export function ModerationSummary({
+  stats: answer,
+  onRetry,
+}: {
+  stats?: ModerationStats | Refused | Failed;
+  onRetry: () => void;
+}) {
+  if (isFailed(answer)) return <LoadFailed what="审核数据" onRetry={onRetry} />;
+  const stats = ready(answer);
   if (!stats) return <Loading cards={1} height="h-20" />;
   const waited = (since?: string) => (since ? `最早的等了 ${waitZh(stats.at - Date.parse(since))}` : "没有在等的");
   return (

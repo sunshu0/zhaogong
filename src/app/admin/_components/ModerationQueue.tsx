@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import type { Report } from "@/lib/types";
@@ -14,9 +14,12 @@ import {
   type QueueItem,
   type Refused,
 } from "@/app/admin/actions";
+import { isFailed, ready, settle } from "@/app/admin/load-state";
 import { moderatorLabel } from "@/app/admin/moderation";
 import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
+import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
+import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { useVerificationQueue, VerificationQueue } from "@/app/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/admin/_components/ExternalReview";
@@ -54,33 +57,23 @@ const time = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function ModerationQueue() {
-  // Refused: not a moderator, or no signed-in session (it expired, or the browser's copy was stale).
-  const [answer, setAnswer] = useState<Queue | Refused>();
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
   const [version, setVersion] = useState(0);
   const reload = useCallback(() => setVersion((v) => v + 1), []);
+  // Refused: not a moderator, or no signed-in session (it expired, or the browser's copy was stale).
+  const answer = useAdminLoad<Queue | Refused>(getModerationQueue, version);
   const stats = useModerationStats(version); // #70
   const verifications = useVerificationQueue(version); // #78
   const external = useExternalReview(version); // #112
-
-  useEffect(() => {
-    let live = true;
-    getModerationQueue().then((q) => {
-      if (live) setAnswer(q);
-    });
-    return () => {
-      live = false;
-    };
-  }, [version]);
 
   const done = (r: AdminResult) => {
     setResult(r);
     reload();
   };
 
-  if (answer && "refused" in answer) {
+  if (answer && !isFailed(answer) && "refused" in answer) {
     return (
       <div className="space-y-4">
         <h1 className={TITLE}>审核后台</h1>
@@ -88,7 +81,8 @@ export function ModerationQueue() {
       </div>
     );
   }
-  const queue = answer;
+  const queue = ready(answer);
+  const statsNow = ready(stats);
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "flagged", label: "发布时被标记", count: queue?.flagged.length },
@@ -96,12 +90,12 @@ export function ModerationQueue() {
     {
       key: "verification",
       label: "企业验证",
-      count: verifications && !("refused" in verifications) ? verifications.length : undefined,
+      count: ready(verifications)?.length,
     },
     {
       key: "external",
       label: "外部职位",
-      count: external && !("refused" in external) ? external.pending.length : undefined,
+      count: ready(external)?.pending.length,
     },
     { key: "log", label: "操作记录", count: queue?.log.length },
     { key: "stats", label: "审核数据" },
@@ -111,7 +105,7 @@ export function ModerationQueue() {
   return (
     <div className="space-y-4">
       <h1 className={TITLE}>审核后台</h1>
-      <ModerationSummary stats={stats && !("refused" in stats) ? stats : undefined} />
+      <ModerationSummary stats={stats} onRetry={reload} />
       <TabList
         label="审核队列"
         idBase="admin"
@@ -137,19 +131,23 @@ export function ModerationQueue() {
         {tab === "moderators" ? (
           <ModeratorList onDone={setResult} />
         ) : tab === "verification" ? (
-          <VerificationQueue queue={verifications} onDone={done} />
+          <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
         ) : tab === "external" ? (
-          <ExternalReview queue={external} onDone={done} />
+          <ExternalReview queue={external} onDone={done} onRetry={reload} />
         ) : tab === "stats" ? (
-          stats && !("refused" in stats) ? (
+          statsNow ? (
             <div className="space-y-section">
-              <ModerationWeeks stats={stats} />
-              <ModeratorWeeks stats={stats} />
-              <AiPostingUsage stats={stats} />
+              <ModerationWeeks stats={statsNow} />
+              <ModeratorWeeks stats={statsNow} />
+              <AiPostingUsage stats={statsNow} />
             </div>
+          ) : isFailed(stats) ? (
+            <LoadFailed what="审核数据" onRetry={reload} />
           ) : (
             <Loading />
           )
+        ) : isFailed(answer) ? (
+          <LoadFailed what="审核队列" onRetry={reload} />
         ) : !queue ? (
           <Loading />
         ) : tab === "log" ? (
@@ -224,9 +222,15 @@ function QueueCard({
   // Which button was pressed, so only that one shows it is on its way.
   const [pressed, setPressed] = useState<string>();
   const [confirmBan, setConfirmBan] = useState(false);
+  const [failed, setFailed] = useState(false); // #183: no answer came; the card stays as it was
   const run = (key: string, action: () => Promise<AdminResult>) => {
     setPressed(key);
-    startTransition(async () => onDone(await action()));
+    setFailed(false);
+    startTransition(async () => {
+      const result = await settle(action);
+      if (result) onDone(result);
+      else setFailed(true);
+    });
   };
   const busy = (key: string) => pending && pressed === key;
 
@@ -329,6 +333,11 @@ function QueueCard({
             </Button>
           ))}
       </div>
+      {failed && (
+        <div className="mt-3">
+          <TryAgain />
+        </div>
+      )}
     </article>
   );
 }

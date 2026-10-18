@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useId, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import type { AdminResult } from "@/app/admin/actions";
 import type { Refused } from "@/app/admin/actions";
+import { isFailed, settle, type Failed } from "@/app/admin/load-state";
 import {
   approveVerification,
   getVerificationQueue,
@@ -10,6 +11,8 @@ import {
 } from "@/app/admin/verification-actions";
 import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
+import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
+import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import {
   KIND_LABELS,
   missingChecks,
@@ -34,27 +37,20 @@ const time = new Intl.DateTimeFormat("zh-CN", {
 
 /** The 企业验证 applications waiting, loaded again whenever `version` changes; the count is for the tab. */
 export function useVerificationQueue(version: number) {
-  const [queue, setQueue] = useState<VerificationItem[] | Refused>();
-  useEffect(() => {
-    let live = true;
-    getVerificationQueue().then((q) => {
-      if (live) setQueue(q);
-    });
-    return () => {
-      live = false;
-    };
-  }, [version]);
-  return queue;
+  return useAdminLoad<VerificationItem[] | Refused>(getVerificationQueue, version);
 }
 
 /** 企业验证 (#78): each application beside the register entry, with the checklist to work through. */
 export function VerificationQueue({
   queue,
   onDone,
+  onRetry,
 }: {
-  queue?: VerificationItem[] | Refused;
+  queue?: VerificationItem[] | Refused | Failed;
   onDone: (result: AdminResult) => void;
+  onRetry: () => void;
 }) {
+  if (isFailed(queue)) return <LoadFailed what="企业验证申请" onRetry={onRetry} />;
   if (!queue) return <Loading />;
   if ("refused" in queue) return <Empty>{queue.error_zh}</Empty>;
   if (queue.length === 0) return <Empty>没有待审核的企业验证。</Empty>;
@@ -81,8 +77,16 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   const [reason, setReason] = useState<RejectReason>();
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState(false); // #183: no answer came; the ticks, reason and note stay
   const missing = missingChecks(checklist, checks);
-  const run = (action: () => Promise<AdminResult>) => startTransition(async () => onDone(await action()));
+  const run = (action: () => Promise<AdminResult>) => {
+    setFailed(false);
+    startTransition(async () => {
+      const result = await settle(action);
+      if (result) onDone(result);
+      else setFailed(true);
+    });
+  };
   const set = (id: keyof Checklist, change: Partial<{ done: boolean; note: string }>) =>
     setChecks((c) => ({ ...c, [id]: { done: false, ...c[id], ...change } }));
   const registerMatches = register?.legalName === request.legalName && register.status === "registered";
@@ -185,6 +189,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
           )}
         </div>
       )}
+      {failed && <TryAgain />}
     </article>
   );
 }
