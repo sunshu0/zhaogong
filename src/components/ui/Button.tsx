@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ComponentProps } from "react";
+import { busyProps } from "@/components/ui/busy";
 
 /**
  * Three levels of action (Round 11): `primary` is solid brand, at most one per screen; `secondary` is outlined;
@@ -50,7 +51,8 @@ export function Spinner({ className = "size-4" }: { className?: string }) {
 
 /**
  * `loading`: the action is on its way. The button shows a spinner before its label, says so to screen readers
- * (aria-busy) and ignores more presses until it is done, so a slow answer is never sent twice.
+ * (aria-busy) and ignores more presses until it is done, so a slow answer is never sent twice. It stays focusable
+ * meanwhile (busyProps, #202): `disabled` is for a button that cannot be pressed yet, not for one that is working.
  */
 export function Button({
   variant = "primary",
@@ -68,9 +70,9 @@ export function Button({
     <button
       type={type}
       className={`${buttonClass(variant, { block, size, pill })} ${className}`.trim()}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
+      disabled={disabled}
       {...props}
+      {...busyProps(loading)}
     >
       {loading && <Spinner />}
       {children}
