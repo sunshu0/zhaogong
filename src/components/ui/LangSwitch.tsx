@@ -24,7 +24,11 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
       className={look === "header" ? "hidden md:inline-flex" : undefined}
       onClick={() =>
         startTransition(async () => {
+          const hash = location.hash;
           await setLang(lang === "en" ? "zh" : "en");
+          // The cookie set in the answer makes Next refresh the page, which can drop a #hash from the address (#90):
+          // put it back, so the reload comes back to the same place.
+          if (hash && location.hash !== hash) history.replaceState(history.state, "", hash);
           location.reload();
         })
       }

@@ -45,3 +45,17 @@ test("an address with no page shows the 404 card in the page's language", async 
   await expect(page.getByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "en-NZ");
 });
+
+test("a file name that isn't a file is a 404 too, not the home page (#235 review)", async ({ page, baseURL }) => {
+  // Through the proxy: the card in the cookie's language.
+  await page.context().addCookies([{ name: "zg_lang", value: "en", url: baseURL! }]);
+  for (const path of ["/favicon.ico", "/ads.txt"]) {
+    expect((await page.goto(path))?.status(), path).toBe(404);
+    await expect(page.getByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeVisible();
+  }
+  // The kinds of file the proxy leaves alone reach app/[lang] with the name as the language: the root layout turns
+  // them away to app/global-not-found.tsx, in both languages.
+  expect((await page.goto("/no-such-icon.png"))?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("这个页面不存在 · This page doesn't exist");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+});

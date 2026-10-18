@@ -92,6 +92,9 @@ export function LoginForm({
   const sentTypoFix = emailTypoFix(email); // the code went to a mistyped address
   // #189: signed in on the code step and the business step comes next: its heading takes the focus that 登录 had.
   const [fromCodeStep, setFromCodeStep] = useState(false);
+  // Round 20: sign-in switched the page's language to the account's; after the business step the next page loads
+  // whole, in it.
+  const [reloadNext, setReloadNext] = useState(false);
   // #202: buttons that go away when pressed hand the focus on — 改用 … to the code field, 换个邮箱 to the email
   // field — instead of dropping it to the top of the page.
   const codeInput = useRef<HTMLInputElement>(null);
@@ -158,7 +161,8 @@ export function LoginForm({
         focusHeading={fromCodeStep}
         onDone={(employer) => {
           setIdentity({ activeRole: "employer", employer });
-          router.replace(next);
+          if (reloadNext) location.assign(next);
+          else router.replace(next);
         }}
       />
     );
@@ -238,6 +242,7 @@ export function LoginForm({
       startSession(account.email, { activeRole: "seeker" });
       setCheckedFor(account.email);
       setFromCodeStep(true);
+      setReloadNext(Boolean(reload));
       return;
     }
     startSession(account.email, reconcileIdentity(role, account));

@@ -29,6 +29,7 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-// Every page: not Next's own files, the API, or files with an extension (icons, robots.txt, sitemap.xml, the
-// manifest).
-export const config = { matcher: ["/((?!_next/|api/|.*\\..*).*)"] };
+// Every page: not Next's own files, the API, robots.txt, sitemap.xml, or the kinds of file in public/ (icons, the
+// manifest; proxy.test.ts checks every file there). Any other address with a dot comes through too, so /favicon.ico
+// or /ads.txt gets the 404 in the cookie's language, and an id with a dot still reaches its page.
+export const config = { matcher: ["/((?!_next/|api/|robots\\.txt|sitemap\\.xml|.*\\.(?:png|svg|webmanifest)).*)"] };

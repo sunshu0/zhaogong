@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { lang as rootLang } from "next/root-params";
 import { Suspense } from "react";
 import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
@@ -10,7 +12,7 @@ import { LangSwitch } from "@/components/ui/LangSwitch";
 import { Toaster } from "@/components/ui/Toast";
 import { LangProvider } from "@/i18n/client";
 import { PRODUCT_NAME } from "@/i18n/labels";
-import { LANGS, localeTag } from "@/i18n/lang";
+import { LANGS, isLang, localeTag } from "@/i18n/lang";
 import { uiMessages } from "@/i18n/messages/ui";
 import { messages, serverLang } from "@/i18n/server";
 import "../globals.css";
@@ -41,6 +43,10 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
+  // Cache Components has no dynamicParams = false: an address that skipped the proxy (a file name it doesn't exclude,
+  // /favicon.ico) lands here with that name as the language. Turn it away (app/global-not-found.tsx, 404) instead of
+  // showing the Chinese home page.
+  if (!isLang(await rootLang())) notFound();
   const lang = await serverLang();
   const { site } = await messages(uiMessages);
   return (

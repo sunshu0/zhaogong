@@ -25,6 +25,8 @@ const nextConfig: NextConfig = {
   // The frontend uses local icons and browser-generated avatars; serve them without an image service.
   images: { unoptimized: true },
   cacheComponents: true,
+  // app/global-not-found.tsx: the 404 for an address app/[lang]/layout.tsx turns away (no language to render in).
+  experimental: { globalNotFound: true },
   htmlLimitedBots: HTML_LIMITED_BOTS,
   partialPrefetching: true,
   turbopack: {

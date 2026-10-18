@@ -99,7 +99,7 @@ export const uiMessages: Dictionary<typeof uiZh> = {
       post: "Post",
       candidates: "Suggested candidates",
       workspace: "Workspace",
-      main: "Main",
+      main: "Main navigation",
       bottom: "Bottom bar",
       more: "More",
     },
