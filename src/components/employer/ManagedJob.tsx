@@ -41,6 +41,7 @@ export function ManagedJob({
   numbers,
   renewals,
   applications,
+  poster,
   now,
   onDone,
 }: {
@@ -52,6 +53,8 @@ export function ManagedJob({
   renewals?: RenewalCounts[string];
   /** Applications (#84). */
   applications?: ApplicationCount;
+  /** Who posted it, e.g. 小李发布 (#182); null when not worth saying. */
+  poster?: string | null;
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -69,7 +72,15 @@ export function ManagedJob({
 
   return (
     <article className="py-4">
-      <JobSummary job={job} phase={phase} numbers={numbers} renewals={renewals} applications={applications} now={now} />
+      <JobSummary
+        job={job}
+        phase={phase}
+        numbers={numbers}
+        renewals={renewals}
+        applications={applications}
+        poster={poster}
+        now={now}
+      />
       <StatusNote
         job={job}
         phase={phase}
@@ -119,6 +130,7 @@ function JobSummary({
   numbers,
   renewals,
   applications,
+  poster,
   now,
 }: {
   job: Job;
@@ -126,6 +138,7 @@ function JobSummary({
   numbers: JobNumbers;
   renewals?: RenewalCounts[string];
   applications?: ApplicationCount;
+  poster?: string | null;
   now: number;
 }) {
   const hires = hiresLabelZh(job);
@@ -140,6 +153,7 @@ function JobSummary({
             </span>{" "}
             · {regionById(job.country, job.regionId)?.nameZh}
           </p>
+          {poster && <p className="text-meta text-muted">{poster}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <PhaseTag phase={phase} />

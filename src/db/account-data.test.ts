@@ -71,7 +71,7 @@ async function fullAccount(email: string) {
   await ensureAccount(email);
   const business = await createEmployer({ name: `测试店 ${email}`, regionId: "akl-central" });
   await openEmployerIdentity(email, business.id);
-  const job = await createJob(jobFor(business.id));
+  const job = await createJob(jobFor(business.id), email);
   const auth = databaseAuthStore();
   await auth.insertSession({
     id: `session-${email}`,
@@ -141,6 +141,9 @@ describe("exportAccountData (#54)", () => {
     expect(data?.employer?.renewals).toMatchObject([
       { jobId: job.id, days: 30, expiresAfter: "2026-12-01T00:00:00.000Z" },
     ]);
+    expect(data?.jobsPosted).toEqual([{ jobId: job.id, employerId: business.id, postedAt: job.postedAt }]);
+    // Who posted a job is the team's to know, never part of the job (#182).
+    expect(data?.employer?.jobs[0]).not.toHaveProperty("postedBy");
     expect(data?.employer?.page).toEqual({
       page: { bio: "测试店的介绍" },
       updatedAt: "2026-10-17T00:00:00.000Z",
@@ -256,6 +259,8 @@ describe("deleteAccount (#54)", () => {
 
     const removed = await getJob(job.id);
     expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
+    const [postedRow] = await db.select().from(t.jobs).where(eq(t.jobs.id, job.id));
+    expect(postedRow?.postedBy).toBe(DELETED_ACCOUNT);
     // Nobody is left to keep the business's page (ADR 0022); the other business keeps its own.
     expect(await getEmployerPage(business.id)).toBeUndefined();
     expect((await getEmployerPage(other.business.id))?.updatedByEmail).toBe("stays.here@example.com");
@@ -320,6 +325,7 @@ describe("deleteAccount (#54)", () => {
       "resume_shares.email",
       "seeker_profiles.email",
       "employer_profiles.updated_by_email",
+      "jobs.posted_by_email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",

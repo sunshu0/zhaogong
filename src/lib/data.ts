@@ -105,11 +105,12 @@ export async function listJobsByEmployer(employerId: string): Promise<Job[]> {
   return selectJobs(eq(t.jobs.employerId, employerId));
 }
 
-export async function createJob(job: Omit<Job, "id">): Promise<Job> {
+/** `postedBy`: the account that posts it (#182); demo and test jobs have none. */
+export async function createJob(job: Omit<Job, "id">, postedBy?: string): Promise<Job> {
   const db = await database();
   return db.transaction(async (tx) => {
     const created = { ...normalizeJob({ ...job }), id: await nextId(tx, t.jobs, t.jobs.id, "j") };
-    await tx.insert(t.jobs).values(fromJob(created));
+    await tx.insert(t.jobs).values({ ...fromJob(created), postedBy: postedBy ? normalizeEmail(postedBy) : null });
     return created;
   });
 }

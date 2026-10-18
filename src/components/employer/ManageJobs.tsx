@@ -6,6 +6,7 @@ import type { ChangeResult } from "@/app/employer/actions";
 import { jobPhase, type Phase } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";
+import { posterLabel } from "@/components/employer/job-poster";
 import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -45,7 +46,7 @@ export function ManageJobs() {
 
 function Manage({ me }: { me: EmployerIdentity }) {
   const asked = useSearchParams().get("tab");
-  const { ready, reload } = useMyJobs(me.email);
+  const { ready, reload } = useMyJobs(me.email, { withPosters: true });
   const { profile } = useEmployerProfile(me.email);
   const [tab, setTab] = useState<TabKey>(() => tabFrom(asked));
   const [notice, setNotice] = useState<Notice>();
@@ -163,6 +164,7 @@ function JobsInTab({
             numbers={ready.numbers[job.id] ?? NO_NUMBERS}
             renewals={ready.renewals[job.id]}
             applications={ready.applications[job.id]}
+            poster={posterLabel(ready.posters.posters[job.id], ready.posters.teamSize)}
             now={ready.now}
             onDone={onDone}
           />

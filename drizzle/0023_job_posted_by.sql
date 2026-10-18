@@ -1,0 +1,1 @@
+ALTER TABLE `jobs` ADD `posted_by_email` text;

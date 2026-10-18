@@ -52,11 +52,12 @@ test("an admin invites a teammate, who accepts on 我的 and posts for the busin
   await expect(staff.page.getByText("只有团队管理员能申请企业验证").filter({ visible: true })).toBeVisible();
   await expect(staff.page.getByRole("button", { name: "查询" })).toHaveCount(0);
 
-  // The member posts; the admin sees the job among the business's jobs.
+  // The member posts; the admin sees the job among the business's jobs, and who posted it (#182).
   const title = uniqueTitle("团队发的职位", testInfo);
   await publishJob(staff.page, title);
   await page.goto("/employer/jobs");
   await expect(page.getByText(title).filter({ visible: true }).first()).toBeVisible();
+  await expect(page.getByRole("article").filter({ hasText: title })).toContainText("小李发布");
 
   // The only admin cannot leave; after making the member an admin, they can.
   await page.goto("/employer/team");

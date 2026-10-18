@@ -33,6 +33,7 @@ const {
   editMyJob,
   getMyJobDays,
   getMyJobNumbers,
+  getMyJobPosters,
   getMyJobRenewals,
   getMyEmployer,
   getMyJob,
@@ -81,6 +82,16 @@ describe("publishJob", () => {
     expect(result.job).toMatchObject({ employerId: "e1", status: "active", titleZh: "前厅服务员" });
     expect((await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id)).toContain(result.job.id);
     expect((await as(E.e1, () => getMyJobs()))[0].id).toBe(result.job.id);
+  });
+
+  it("records the session's account as who posted it, for the team's eyes only (#182)", async () => {
+    const { draft } = await parseDraft(MESSAGE);
+    const result = await as(E.e2, () => publishJob(draft));
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.job).not.toHaveProperty("postedBy");
+    expect((await as(E.e2, () => getMyJobPosters())).posters[result.job.id]).toEqual({ kind: "you" });
+    cookies.clear();
+    expect(await getMyJobPosters()).toEqual({ teamSize: 0, posters: {} });
   });
 
   it("sends a high-risk draft to review instead of the list", async () => {

@@ -84,6 +84,12 @@ export const jobs = sqliteTable("jobs", {
   urgent: integer("urgent", { mode: "boolean" }).notNull(),
   hiresConfirmed: integer("hires_confirmed"),
   hiresConfirmedAt: text("hires_confirmed_at"),
+  /**
+   * The account that posted it (#182, migration 0023): set from the session when publishing, null on jobs from
+   * before and on demo jobs, deleted-account once that account is gone. Not part of `Job`: only the business's own
+   * team sees it (`listJobPosters`), never the job's public page.
+   */
+  postedBy: text("posted_by_email"),
 });
 
 export const reports = sqliteTable("reports", {

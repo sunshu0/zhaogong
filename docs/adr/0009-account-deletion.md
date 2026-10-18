@@ -9,7 +9,7 @@
 
 一个人的数据分在两处：
 
-- **服务器**（`src/db/schema.ts`）：账号、登录会话、验证码、两种身份的聊天记录和已读通知（`chat_records`）、看过哪些职位的联系方式（`contact_views`）、收藏的职位和求职进度（`saved_jobs`，#52）、职位提醒和提醒过的职位（`job_alerts`、`job_alert_hits`，#53）、求职者主页（`seeker_profiles`，#104）、审核员身份（`moderators`）；雇主身份还有企业（`employers`）、它发布的职位（`jobs`）和企业主页（`employer_profiles`，ADR 0022：存过的人删号后改成 `deleted-account`，企业最后一个人删号时删掉）。
+- **服务器**（`src/db/schema.ts`）：账号、登录会话、验证码、两种身份的聊天记录和已读通知（`chat_records`）、看过哪些职位的联系方式（`contact_views`）、收藏的职位和求职进度（`saved_jobs`，#52）、职位提醒和提醒过的职位（`job_alerts`、`job_alert_hits`，#53）、求职者主页（`seeker_profiles`，#104）、审核员身份（`moderators`）；雇主身份还有企业（`employers`）、它发布的职位（`jobs`；职位上的发布人 `posted_by_email` 删号后改成 `deleted-account`，#182）和企业主页（`employer_profiles`，ADR 0022：存过的人删号后改成 `deleted-account`，企业最后一个人删号时删掉）。
 - **浏览器**：企业主页和求职者主页的本机副本、发出的举报、浏览记录、还没发到服务器的聊天改动，按身份存在 `localStorage` 的 `zhaogong:` 开头的键里。
 
 有些记录不只关于这个人：举报和审核记录关系到被举报的职位和平台安全；联系方式的查看次数是雇主的职位数据；企业被封禁后，删掉账号不应该让这家企业重新干净地出现。

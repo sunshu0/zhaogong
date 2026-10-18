@@ -51,6 +51,8 @@ import {
   renewState,
 } from "@/components/employer/job-status";
 import { teamCan } from "@/components/employer/team";
+import type { JobPoster } from "@/components/employer/job-poster";
+import { listJobPosters } from "@/db/job-posters";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
 /**
@@ -89,6 +91,17 @@ export async function getMyJobNumbers(): Promise<Record<string, JobNumbers>> {
   const employer = await postingEmployer();
   if (typeof employer === "string") return {};
   return jobNumbers((await listJobsByEmployer(employer.id)).map((j) => j.id));
+}
+
+/**
+ * Who posted each of the business's jobs (#182), as the signed-in person should hear it, and how many people the
+ * team has (a business of one need not say "you" on every job). Jobs from before #182 are left out.
+ */
+export async function getMyJobPosters(): Promise<{ teamSize: number; posters: Record<string, JobPoster> }> {
+  const session = await getCurrentSession();
+  const employer = session && (await getAccountEmployer(session.email));
+  if (!session || !employer) return { teamSize: 0, posters: {} };
+  return listJobPosters(employer.id, session.email);
 }
 
 /** How often each of the account's jobs was renewed, and when last (#69). */
@@ -176,7 +189,8 @@ export async function publishJob(input: unknown): Promise<PublishResult> {
   const decision = publishDecision(findings);
   const job = decision.canPublish ? completeJob(draft, employer.id, Date.now(), decision.status) : undefined;
   if (!job) return { ok: false, reason: "not_ready", findings, missing };
-  const created = await createJob(job);
+  // Who posts it is the session's account (#182), never what the browser says.
+  const created = await createJob(job, (await getCurrentSession())?.email);
   await matchJobAlerts(created); // live at once: tell job seekers whose alerts it matches (#53)
   return { ok: true, job: created };
 }
