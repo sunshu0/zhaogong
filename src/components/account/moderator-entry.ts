@@ -3,9 +3,17 @@
 import { useEffect, useState } from "react";
 import { canModerate } from "@/app/[lang]/admin/entry-actions";
 import { useSession } from "@/components/seeker/session-client";
+import type { Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { accountMessages } from "@/i18n/messages/account";
 
-/** The link to the moderation pages (#73), shown only where useCanModerate() says yes. */
-export const ADMIN_ENTRY = { href: "/admin", label: "审核后台" } as const;
+/** The link to the moderation pages (#73), shown only where useCanModerate() says yes; adminEntry(lang) to name it. */
+export const ADMIN_ENTRY = { href: "/admin", label: accountMessages.zh.rows.admin } as const;
+
+/** The same link named in the page's language: 审核后台 / Moderation. */
+export function adminEntry(lang: Lang): { href: string; label: string } {
+  return { href: ADMIN_ENTRY.href, label: pick(accountMessages, lang).rows.admin };
+}
 
 /**
  * Whether to show 审核后台 for the signed-in account: the server decides (canModerate), the browser only asks.

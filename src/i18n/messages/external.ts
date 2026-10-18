@@ -142,6 +142,15 @@ const externalZh = {
     factsNote: "只列原文写明的事实；签证一项只照录原文，不是签证建议。详细要求、职责和申请方式以官网为准。",
     applyNote: "申请直接交给公司，找工看不到也不经手你的申请。",
   },
+  // lib/external-jobs/alerts.ts: an alert on a section, its conditions in words and its first name.
+  alerts: {
+    kindNotStated: (notStated: string) => `类型${notStated}`,
+    experience: (option: string) => `经验：${option}`,
+    visa: (option: string) => `签证：${option}`,
+    paid: "写了薪资",
+    name: (section: string, conditions: readonly string[]) => `${section}：${conditions.join("、")}`,
+    all: (section: string) => `全部${section}`,
+  },
   takedown: {
     heading: "公司要求删除",
     text: "外部职位的信息来自各公司招聘系统公开的职位接口，只列事实，不转载原文，也不代表公司和找工有合作。公司不希望在这里出现，请联系我们，我们当天下架这家公司的全部职位。",
@@ -287,6 +296,14 @@ export const externalMessages: Dictionary<typeof externalZh> = {
       factsNote:
         "Only facts the posting states. The visa line just repeats the posting; it isn't visa advice. The company's site has the full requirements, duties and how to apply.",
       applyNote: "Your application goes straight to the company; 找工 never sees or handles it.",
+    },
+    alerts: {
+      kindNotStated: (notStated) => `Type ${notStated.toLowerCase()}`,
+      experience: (option) => `Experience: ${option}`,
+      visa: (option) => `Visa: ${option}`,
+      paid: "States pay",
+      name: (section, conditions) => `${section}: ${conditions.join(", ")}`,
+      all: (section) => `All ${section.toLowerCase()}`,
     },
     takedown: {
       heading: "Removal requested by the company",

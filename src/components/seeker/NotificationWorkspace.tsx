@@ -15,6 +15,19 @@ import { notificationsMessages } from "@/i18n/messages/notifications";
 const ROW =
   "pressable-row flex min-h-16 w-full gap-3 px-4 py-3.5 text-left hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand lg:px-5";
 
+/** The data's own keys for a notification's kind (申请, 面试…), by their key in the dictionary. */
+const TYPE_KEYS: Record<string, keyof (typeof notificationsMessages)["zh"]["types"]> = {
+  申请: "application",
+  招聘: "hiring",
+  团队: "team",
+  验证: "verification",
+  提醒: "alert",
+  面试: "interview",
+  聊天: "chat",
+  简历: "resume",
+  职位: "job",
+};
+
 export function NotificationWorkspace() {
   const { items, unread, markRead } = useNotifications();
   useFreshAlertNotifications();
@@ -93,7 +106,7 @@ function NotificationContent({ item, hasLink }: { item: Notification; hasLink: b
       <span
         className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-meta font-semibold ${item.unread ? "bg-brand text-white" : "bg-neutral-soft text-muted"}`}
       >
-        {item.type.slice(0, 1)}
+        {(TYPE_KEYS[item.type] ? t.types[TYPE_KEYS[item.type]] : item.type).slice(0, 1)}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">

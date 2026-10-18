@@ -2,15 +2,13 @@
 // section is the section's filter kept as its query string, as an alert on the job list is (#53), plus the section.
 import { ALERT_NAME_MAX } from "@/components/seeker/job-alerts";
 import {
-  EXPERIENCE_OPTIONS,
   parseExternalFilter,
   SECTION_PATHS,
-  SECTION_TITLES,
-  VISA_OPTIONS,
   type ExternalFilter,
   type ExternalSection,
 } from "@/lib/external-jobs/filter";
-import { CITY_LABELS, FIELD_LABELS, KIND_LABELS, NOT_STATED } from "@/lib/external-jobs/labels";
+import { externalWords } from "@/lib/external-jobs/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 
 export const EXTERNAL_SECTIONS: ExternalSection[] = ["internship", "professional"];
 
@@ -46,23 +44,31 @@ export function externalAlertHref(alert: { section: ExternalSection; query: stri
 }
 
 /** The conditions in words, in the order of the filter form; empty for every new job of the section. */
-export function externalAlertConditions(alert: { section: ExternalSection; query: string }): string[] {
+export function externalAlertConditions(
+  alert: { section: ExternalSection; query: string },
+  lang: Lang = DEFAULT_LANG,
+): string[] {
   const f = externalAlertFilter(alert);
+  const w = externalWords(lang);
   return [
-    f.field && FIELD_LABELS[f.field],
-    f.kind && (f.kind === "unstated" ? `类型${NOT_STATED}` : KIND_LABELS[f.kind]),
-    f.experience && `经验：${EXPERIENCE_OPTIONS[f.experience]}`,
-    f.visa && `签证：${VISA_OPTIONS[f.visa]}`,
-    f.city && CITY_LABELS[f.city],
-    f.paid && "写了薪资",
+    f.field && w.fields[f.field],
+    f.kind && (f.kind === "unstated" ? w.alerts.kindNotStated(w.notStated) : w.kinds[f.kind]),
+    f.experience && w.alerts.experience(w.filter.experienceOptions[f.experience]),
+    f.visa && w.alerts.visa(w.filter.visaOptions[f.visa]),
+    f.city && w.cities[f.city],
+    f.paid && w.alerts.paid,
   ].filter((label): label is string => Boolean(label));
 }
 
 /** The name an alert on a section starts with: the section, then its conditions, shortened to fit. */
-export function defaultExternalAlertName(alert: { section: ExternalSection; query: string }): string {
-  const title = SECTION_TITLES[alert.section];
-  const conditions = externalAlertConditions(alert);
-  const name = conditions.length ? `${title}：${conditions.join("、")}` : `全部${title}`;
+export function defaultExternalAlertName(
+  alert: { section: ExternalSection; query: string },
+  lang: Lang = DEFAULT_LANG,
+): string {
+  const w = externalWords(lang);
+  const title = w.sections[alert.section];
+  const conditions = externalAlertConditions(alert, lang);
+  const name = conditions.length ? w.alerts.name(title, conditions) : w.alerts.all(title);
   return name.length > ALERT_NAME_MAX ? `${name.slice(0, ALERT_NAME_MAX - 1)}…` : name;
 }
 

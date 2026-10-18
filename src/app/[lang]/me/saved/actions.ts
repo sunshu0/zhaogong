@@ -31,7 +31,7 @@ import {
   parseSavedStage,
   type SavedStage,
 } from "@/components/seeker/saved-jobs";
-import { CITY_LABELS, payLabel } from "@/lib/external-jobs/labels";
+import { externalWords, payLabel } from "@/lib/external-jobs/labels";
 import { isShown } from "@/lib/external-jobs/visibility";
 import { placeName } from "@/components/seeker/format";
 import { requestLang } from "@/i18n/server";
@@ -90,9 +90,9 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
         external: true,
         titleZh: job.title,
         titleEn: "",
-        payText: job.pay ? payLabel(job.pay) : undefined,
+        payText: job.pay ? payLabel(job.pay, lang) : undefined,
         country: "NZ",
-        region: CITY_LABELS[job.city],
+        region: externalWords(lang).cities[job.city],
         employerName: job.companyName,
         gone: !isShown(job, now),
         savedAt: row.savedAt,

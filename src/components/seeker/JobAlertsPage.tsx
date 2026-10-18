@@ -12,8 +12,8 @@ import { cardClass } from "@/components/ui/Card";
 import { inputClass } from "@/components/ui/input-class";
 import { busyProps } from "@/components/ui/busy";
 import { SkeletonList } from "@/components/ui/Skeleton";
-import { SECTION_TITLES } from "@/lib/external-jobs/filter";
-import { useMessages } from "@/i18n/client";
+import { externalWords } from "@/lib/external-jobs/labels";
+import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
 
@@ -126,6 +126,7 @@ function AlertRow({
   onDelete: () => Promise<void>;
 }) {
   const a = useMessages(seekerMeMessages).alerts;
+  const sections = externalWords(useLang()).sections;
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -184,7 +185,7 @@ function AlertRow({
             <span lang={contentLang(alert.name)} className="min-w-0 truncate">
               {alert.name}
             </span>
-            {alert.section && <Tag kind="neutral">{a.external(SECTION_TITLES[alert.section])}</Tag>}
+            {alert.section && <Tag kind="neutral">{a.external(sections[alert.section])}</Tag>}
             {alert.paused && <Tag kind="neutral">{a.paused}</Tag>}
           </h3>
         )}
@@ -192,7 +193,7 @@ function AlertRow({
           {alert.conditions.length
             ? alert.conditions.join(" · ")
             : alert.section
-              ? a.anyInSection(SECTION_TITLES[alert.section])
+              ? a.anyInSection(sections[alert.section])
               : a.anyJobs}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3">

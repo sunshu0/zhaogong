@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
-import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
+import { adminEntry, useCanModerate } from "@/components/account/moderator-entry";
 import { employerSignUpHref, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { ACCOUNT_DATA_PATH, navRole, showsPostJob } from "@/components/ui/nav";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
 
@@ -22,6 +22,7 @@ function useAccountSync() {
  * switch (the rest is on 我的); from 768 px it also lists the workspace pages and 退出登录.
  */
 export function AccountMenu() {
+  const lang = useLang();
   const t = useMessages(seekerMeMessages).accountMenu;
   const hydrated = useHydrated();
   const session = useSession();
@@ -127,8 +128,8 @@ export function AccountMenu() {
               {t.data}
             </Link>
             {moderator && (
-              <Link href={ADMIN_ENTRY.href} className={pageItem} onClick={close}>
-                {ADMIN_ENTRY.label}
+              <Link href={adminEntry(lang).href} className={pageItem} onClick={close}>
+                {adminEntry(lang).label}
               </Link>
             )}
             {employer ? (

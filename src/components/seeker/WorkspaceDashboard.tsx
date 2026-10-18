@@ -33,7 +33,7 @@ export function WorkspaceDashboard() {
   // than list a stale to-do.
   const loading = (isEmployer && (!jobs || !employer || verification === undefined)) || !interviews;
 
-  const progress = profileProgress(profileChecklist(profile, isEmployer, employer?.verification));
+  const progress = profileProgress(profileChecklist(profile, isEmployer, employer?.verification, lang));
   const todos = workspaceTodos({
     isEmployer,
     conversations,
@@ -47,6 +47,7 @@ export function WorkspaceDashboard() {
     now: jobs?.now ?? 0,
     profileMissing: { count: progress.missing.length, labels: progress.missing.map((item) => item.label) },
     verification,
+    lang,
   });
 
   return (

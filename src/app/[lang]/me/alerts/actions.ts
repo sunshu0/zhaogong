@@ -48,7 +48,7 @@ function view(alert: JobAlert, lang: Lang): JobAlertView {
       paused,
       section,
       href: externalAlertHref(external),
-      conditions: externalAlertConditions(external),
+      conditions: externalAlertConditions(external, lang),
     };
   }
   return { id, name, query, paused, section, href: jobsHref(query), conditions: alertConditions(alert, lang) };
@@ -76,7 +76,7 @@ export async function saveMyJobAlert(query: string, section?: ExternalSection): 
   const on = parseSection(section);
   const stored = on ? normalizeExternalQuery(query, on) : normalizeAlertQuery(query, DEFAULT_COUNTRY);
   const name = on
-    ? defaultExternalAlertName({ section: on, query: stored })
+    ? defaultExternalAlertName({ section: on, query: stored }, await requestLang())
     : defaultAlertName({ country: DEFAULT_COUNTRY, query: stored }, await requestLang());
   const result = await createJobAlert(email, { country: DEFAULT_COUNTRY, query: stored, name, section: on });
   if (result.status === "no_account") return null; // a session always has its account

@@ -57,8 +57,8 @@ export function ProfileWorkspace() {
     return saved || undefined;
   };
 
-  const progress = profileProgress(profileChecklist(profile, isEmployer, verification));
-  const keyItems = profileChecklist(profile, isEmployer, verification).filter((item) => item.key);
+  const progress = profileProgress(profileChecklist(profile, isEmployer, verification, lang));
+  const keyItems = profileChecklist(profile, isEmployer, verification, lang).filter((item) => item.key);
   const optionalMissing = progress.missing.filter((item) => !item.key).length;
 
   return (
