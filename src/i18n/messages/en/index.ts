@@ -17,6 +17,14 @@ import { employerPageEn } from "./employer-page";
 import { chatEn } from "./chat";
 import { complianceEn } from "./compliance";
 import { candidateMatchingEn } from "./candidate-matching";
+import { loginEn } from "./login";
+import { accountEn } from "./account";
+import { notificationsEn } from "./notifications";
+import { adminEn } from "./admin";
+import { adminStatsEn } from "./admin-stats";
+import { adminVerificationEn } from "./admin-verification";
+import { adminExternalEn } from "./admin-external";
+import { externalEn } from "./external";
 // imports (scripts/i18n-split-en.mjs)
 
 export const english: Record<string, unknown> = {
@@ -36,5 +44,13 @@ export const english: Record<string, unknown> = {
   chat: chatEn,
   compliance: complianceEn,
   candidateMatching: candidateMatchingEn,
+  login: loginEn,
+  account: accountEn,
+  notifications: notificationsEn,
+  admin: adminEn,
+  adminStats: adminStatsEn,
+  adminVerification: adminVerificationEn,
+  adminExternal: adminExternalEn,
+  external: externalEn,
   // entries (scripts/i18n-split-en.mjs)
 };
