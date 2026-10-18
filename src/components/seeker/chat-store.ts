@@ -13,6 +13,20 @@ import {
   type ExchangePayload,
 } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReport } from "@/lib/chat-report";
+import type { Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
+
+/**
+ * The time a message or a conversation row gets before the server gives it one. Stored as is (it also marks the
+ * messages not on the server yet), shown with shownTime() in the reader's language.
+ */
+export const JUST_NOW = "刚刚";
+
+/** A stored message or row time as the reader sees it: JUST_NOW in their language, any other time as it is. */
+export function shownTime(time: string, lang: Lang): string {
+  return time === JUST_NOW ? pick(chatMessages, lang).times.justNow : time;
+}
 
 export type Message = {
   from: "me" | "them";
@@ -107,7 +121,7 @@ export function markConversationRead(record: ChatRecord, id: string, now: string
 }
 
 export function addSentMessage(record: ChatRecord, id: string, text: string, now: string, by?: string): ChatRecord {
-  const message: Message = { from: "me", text, time: "刚刚", sentAt: now, ...(by ? { by } : {}) };
+  const message: Message = { from: "me", text, time: JUST_NOW, sentAt: now, ...(by ? { by } : {}) };
   return { ...record, added: { ...record.added, [id]: [...(record.added[id] ?? []), message] } };
 }
 
@@ -194,7 +208,7 @@ export function migrateLegacyChat(value: unknown, demo: ChatDemo): ChatRecord | 
       ? thread
       : start.every((m, i) => thread[i]?.from === m.from && thread[i]?.text === m.text)
         ? thread.slice(start.length)
-        : thread.filter((m) => m.from === "me" && (m.sentAt || m.time === "刚刚"));
+        : thread.filter((m) => m.from === "me" && (m.sentAt || m.time === JUST_NOW));
     if (own.length) added[id] = own;
     const reads = thread.flatMap((m) => (m.from === "them" && m.readAt ? [m.readAt] : [])).sort();
     const lastRead = reads[reads.length - 1];

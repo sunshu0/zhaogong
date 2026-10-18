@@ -93,6 +93,8 @@ const chatZh = {
     justNow: "刚刚",
     /** The title of an exchange the reader may not see (withdrawn, turned down). */
     withheld: "资料",
+    /** The default name of a job seeker without a page (db/conversations.ts stores it). */
+    seekerName: "求职者",
   },
 
   activity: {
@@ -342,6 +344,7 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       yesterday: "Yesterday",
       justNow: "Just now",
       withheld: "Details",
+      seekerName: "Job seeker",
     },
 
     activity: {

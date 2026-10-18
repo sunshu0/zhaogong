@@ -24,6 +24,7 @@ import {
   parseChats as parseStoredChats,
   type ChatRecord,
   type Conversation,
+  JUST_NOW,
 } from "@/components/seeker/chat-store";
 
 export type { Conversation, Message } from "@/components/seeker/chat-store";
@@ -269,7 +270,7 @@ export function useChat() {
           id,
           person: employer.name,
           title: job.titleZh,
-          time: "刚刚",
+          time: JUST_NOW,
           avatar: employer.name.slice(0, 1),
           job: job.id,
           employerId: employer.id,

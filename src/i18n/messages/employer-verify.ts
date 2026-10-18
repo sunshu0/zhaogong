@@ -37,7 +37,9 @@ const employerVerifyZh = {
     business: "公司",
     contact: "联系人",
     sentAt: "提交",
-    contactLine: (name: string, role: string, phone: string) => `${name}（${role}）· ${phone}`,
+    /** Around the contact's role, between the name and the phone (both marked as the employer's own words). */
+    contactRoleOpen: "（",
+    contactRoleClose: "）· ",
   },
 
   /** The application form, in VerifyBusiness.tsx. */
@@ -183,7 +185,8 @@ export const employerVerifyMessages: Dictionary<typeof employerVerifyZh> = {
       business: "Business",
       contact: "Contact",
       sentAt: "Sent",
-      contactLine: (name, role, phone) => `${name} (${role}) · ${phone}`,
+      contactRoleOpen: " (",
+      contactRoleClose: ") · ",
     },
 
     form: {

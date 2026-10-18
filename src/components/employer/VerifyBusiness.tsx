@@ -137,7 +137,13 @@ function LatestRequest({ request }: { request: MyVerification }) {
           <span lang="en">{request.legalName}</span> · {words.verify.nzbn(request.nzbn)}
         </dd>
         <dt className="text-muted">{t.contact}</dt>
-        <dd>{t.contactLine(request.contactName, request.contactRole, request.companyPhone)}</dd>
+        <dd>
+          <span lang={contentLang(request.contactName)}>{request.contactName}</span>
+          {t.contactRoleOpen}
+          <span lang={contentLang(request.contactRole)}>{request.contactRole}</span>
+          {t.contactRoleClose}
+          {request.companyPhone}
+        </dd>
         <dt className="text-muted">{t.sentAt}</dt>
         <dd>
           <time dateTime={request.submittedAt}>{formatDate(request.submittedAt, lang, WHEN)}</time>

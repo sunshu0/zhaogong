@@ -1,7 +1,7 @@
 // The other side of a demo conversation, for development and the browser tests only: the demo counterparts are
 // not real accounts, so their replies and read receipts are written here (POST /api/dev/chat-reply). Never in
 // production; on in the browser tests' build (#139). Server only.
-import type { ChatRecord, Message } from "@/components/seeker/chat-store";
+import { JUST_NOW, type ChatRecord, type Message } from "@/components/seeker/chat-store";
 import { devHelpersEnabled } from "@/lib/test-build";
 
 export function devRepliesEnabled(): boolean {
@@ -20,6 +20,6 @@ export function counterpartActs(
     ? thread.map((m): Message => (m.from === "me" && !m.readAt ? { ...m, readAt: now } : m))
     : thread;
   const reply = act.reply?.trim();
-  const next = reply ? [...read, { from: "them" as const, text: reply, time: "刚刚", sentAt: now }] : read;
+  const next = reply ? [...read, { from: "them" as const, text: reply, time: JUST_NOW, sentAt: now }] : read;
   return { ...record, added: { ...record.added, [conversationId]: next } };
 }

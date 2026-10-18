@@ -121,7 +121,12 @@ export function sharedPart(rows: SharedConversation[], side: Side, now: number, 
     const id = sharedConversationId(row, side);
     const mine = side === "seeker" ? row.seekerReadAt : row.employerReadAt;
     const theirs = side === "seeker" ? row.employerReadAt : row.seekerReadAt;
-    const person = side === "seeker" ? row.employerName : row.seekerName;
+    const person =
+      side === "seeker"
+        ? row.employerName
+        : row.seekerName === chatMessages.zh.times.seekerName
+          ? pick(chatMessages, lang).times.seekerName
+          : row.seekerName;
     part.conversations.push({
       id,
       person,

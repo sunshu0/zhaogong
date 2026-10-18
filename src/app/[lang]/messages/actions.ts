@@ -27,8 +27,6 @@ import {
 import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/[lang]/messages/server-notifications";
 import { requestLang } from "@/i18n/server";
-import { pick } from "@/i18n/messages";
-import { chatMessages } from "@/i18n/messages/chat";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import {
   parsePayload,
@@ -48,6 +46,7 @@ import {
   openConversation,
   parseChatRecord,
   type ChatRecord,
+  JUST_NOW,
 } from "@/components/seeker/chat-store";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
@@ -375,7 +374,7 @@ async function openFor(
         id,
         person: demo.name,
         title: job.titleZh,
-        time: pick(chatMessages, await requestLang()).times.justNow,
+        time: JUST_NOW,
         avatar: demo.name.slice(0, 1),
         job: job.id,
         candidateId: demo.id,

@@ -8,9 +8,10 @@ import { ChatThread } from "@/components/seeker/ChatThread";
 import { RetryBoundary } from "@/components/seeker/RetryBoundary";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { useSession } from "@/components/seeker/session-client";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
+import { shownTime } from "@/components/seeker/chat-store";
 import { isDemoAccount } from "@/lib/demo-accounts";
 
 export function MessageWorkspace({ initialId }: { initialId: string | null }) {
@@ -150,6 +151,7 @@ function ConversationRow({
   unreadCount: number;
   onSelect: () => void;
 }) {
+  const lang = useLang();
   return (
     <button
       type="button"
@@ -166,7 +168,7 @@ function ConversationRow({
           >
             {conversation.person}
           </span>
-          <span className="shrink-0 text-meta text-muted">{conversation.time}</span>
+          <span className="shrink-0 text-meta text-muted">{shownTime(conversation.time, lang)}</span>
         </span>
         <span
           lang={contentLang(preview)}

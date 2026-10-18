@@ -10,6 +10,7 @@ import { teamSignature } from "@/components/employer/team";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
+import { shownTime } from "@/components/seeker/chat-store";
 
 /** The messages of one conversation, then its exchange requests; keeps the newest in view. */
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
@@ -71,7 +72,7 @@ function MessageBubble({
               {by}
             </span>
           )}
-          <span>{message.time}</span>
+          <span>{shownTime(message.time, lang)}</span>
           <span data-message-read="" aria-label={mine ? t.counterpartRead(readLabel) : readLabel}>
             {readLabel}
           </span>
