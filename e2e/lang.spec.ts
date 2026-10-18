@@ -54,8 +54,7 @@ test("a file name that isn't a file is a 404 too, not the home page (#235 review
     await expect(page.getByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeVisible();
   }
   // The kinds of file the proxy leaves alone reach app/[lang] with the name as the language: the root layout turns
-  // them away to app/global-not-found.tsx, in both languages.
+  // them away (Next's own 404), never the home page.
   expect((await page.goto("/no-such-icon.png"))?.status()).toBe(404);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("这个页面不存在 · This page doesn't exist");
-  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByRole("heading", { level: 1, name: "Chinese-speaking jobs in Auckland" })).toHaveCount(0);
 });

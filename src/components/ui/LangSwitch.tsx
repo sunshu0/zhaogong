@@ -21,7 +21,6 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
       variant="link"
       title={t.title}
       loading={pending}
-      className={look === "header" ? "hidden md:inline-flex" : undefined}
       onClick={() =>
         startTransition(async () => {
           const hash = location.hash;
@@ -36,7 +35,10 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
       <span lang={t.otherTag}>{t.other}</span>
     </Button>
   );
-  if (look !== "row") return button;
+  // In the header from 768 px only. The wrapper hides it: on the button itself, `hidden` loses to Button's own
+  // inline-flex.
+  if (look === "header") return <span className="hidden md:inline-flex">{button}</span>;
+  if (look === "footer") return button;
   return (
     <div className="flex min-h-11 items-center justify-between gap-3">
       <span className="text-body">{t.row}</span>

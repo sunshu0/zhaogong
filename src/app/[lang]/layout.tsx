@@ -43,8 +43,8 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
-  // Cache Components has no dynamicParams = false: an address that skipped the proxy (a file name it doesn't exclude,
-  // /favicon.ico) lands here with that name as the language. Turn it away (app/global-not-found.tsx, 404) instead of
+  // Cache Components has no dynamicParams = false: an address that skipped the proxy (a missing file of a kind it
+  // leaves alone, /no-such.png) lands here with that name as the language. Turn it away (Next's own 404) instead of
   // showing the Chinese home page.
   if (!isLang(await rootLang())) notFound();
   const lang = await serverLang();
