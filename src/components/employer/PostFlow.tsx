@@ -151,7 +151,7 @@ function StepBar({ view }: { view: PostingView }) {
     <BottomBar wide={false}>
       <PreviewBar
         shopName={view.shopName}
-        disabled={view.banned || posting.pending}
+        disabled={view.banned}
         pending={posting.pending}
         needsReview={view.needsReview}
         onBack={posting.backFromPreview}

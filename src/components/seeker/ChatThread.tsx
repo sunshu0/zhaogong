@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { crashForTests } from "@/lib/test-crash";
 import { ArrowLeft, Send } from "lucide-react";
 import { conversationProfileHref, useChat, type Conversation } from "@/components/seeker/chat-client";
@@ -153,13 +153,22 @@ function MessageComposer({
 }) {
   // A reminder while writing; the message can still be sent.
   const warning = outgoingWarning(draft);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const send = useRef<HTMLButtonElement>(null);
+  // #202: the draft empties and 发送 turns disabled; after a press on it the focus goes back to the box.
+  const submit = (event: FormEvent) => {
+    const pressed = document.activeElement === send.current;
+    onSubmit(event);
+    if (pressed) box.current?.focus();
+  };
   return (
-    <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
+    <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
       {tools}
       <label className="sr-only" htmlFor="message-draft">
         输入消息
       </label>
       <textarea
+        ref={box}
         id="message-draft"
         value={draft}
         onChange={(event) => onDraftChange(event.target.value)}
@@ -169,6 +178,7 @@ function MessageComposer({
         className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
       />
       <button
+        ref={send}
         type="submit"
         disabled={!draft.trim()}
         className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-brand px-5 py-2 text-body font-medium text-white hover:opacity-90 disabled:opacity-50"

@@ -203,7 +203,7 @@ function ApplyForm({
             placeholder="例如：Demo Yuemei 或 9429000000004"
             className="h-11 min-w-0 flex-1 rounded-control border border-border bg-surface px-3"
           />
-          <Button type="submit" loading={pending && !chosen} disabled={pending || !query.trim()}>
+          <Button type="submit" loading={pending && !chosen} disabled={!query.trim() || (pending && !!chosen)}>
             查询
           </Button>
         </div>

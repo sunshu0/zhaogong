@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { cancelMyApplicantInterview, inviteMyApplicant } from "@/app/[lang]/employer/interview-actions";
 import {
   aucklandToInstant,
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { toast } from "@/components/ui/Toast";
+import { busyProps } from "@/components/ui/busy";
 
 const inputClass = "w-full rounded-control border border-border bg-background px-3 text-body focus:border-brand";
 
@@ -40,6 +41,15 @@ export function InterviewInvite({
   const [openAt, setOpenAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  // #202: after 取消面试, a sent invitation or a closed form, the focus goes back to the button that opens the form.
+  const openButton = useId();
+  // Set by the handlers; the render that shows the button again moves the focus to it.
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current || openAt) return;
+    refocus.current = false;
+    document.getElementById(openButton)?.focus();
+  });
   // An invitation still in play can be changed or called off; after 婉拒 or 取消 the employer may invite again.
   const live = interview && ["proposed", "confirmed", "counter"].includes(interview.status);
 
@@ -50,6 +60,7 @@ export function InterviewInvite({
     setPending(false);
     if (!next) return setError("没有取消成功，请再试一次。");
     onChange(next);
+    refocus.current = true;
   }
 
   return (
@@ -68,7 +79,10 @@ export function InterviewInvite({
           initial={live ? interview : null}
           name={name}
           pending={pending}
-          onCancel={() => setOpenAt(null)}
+          onCancel={() => {
+            setOpenAt(null);
+            refocus.current = true;
+          }}
           onSend={async (invite) => {
             setPending(true);
             setError("");
@@ -80,16 +94,21 @@ export function InterviewInvite({
             if (!result.ok) return setError(result.error);
             onChange(result.interview);
             setOpenAt(null);
+            refocus.current = true;
             toast("邀约已发出");
           }}
         />
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setOpenAt(instantToAuckland(new Date().toISOString()))}>
+          <Button
+            id={openButton}
+            variant="secondary"
+            onClick={() => setOpenAt(instantToAuckland(new Date().toISOString()))}
+          >
             {live ? "改时间" : "约面试"}
           </Button>
           {live && (
-            <Button variant="link" onClick={() => void cancel()} disabled={pending}>
+            <Button variant="link" onClick={() => void cancel()} {...busyProps(pending)}>
               取消面试
             </Button>
           )}

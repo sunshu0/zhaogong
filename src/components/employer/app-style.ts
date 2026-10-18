@@ -8,7 +8,7 @@ export const APP_CARD = "rounded-card bg-surface p-4 shadow-card lg:p-5";
 
 /** A small outlined action in a card (查看, 续期, 保存): 44px high, 12px corners, answers a press. */
 export const ACTION_BUTTON =
-  "pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 text-body hover:border-muted disabled:cursor-not-allowed disabled:opacity-40 aria-busy:cursor-progress";
+  "pressable inline-flex min-h-11 items-center justify-center gap-2 rounded-control border border-border bg-surface px-4 text-body hover:border-muted disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:opacity-60 aria-busy:cursor-progress";
 
 /**
  * A choice pill holding a radio or checkbox (续期多久, 招到了吗, 岗位类别): filled in the brand's soft colour when

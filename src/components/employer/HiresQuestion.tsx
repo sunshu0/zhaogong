@@ -5,6 +5,7 @@ import { MAX_HIRES, type HiresAnswer } from "@/components/employer/hires";
 import { CHOICE_DOT, CHOICE_PILL } from "@/components/employer/app-style";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 
 const COUNTS = Array.from({ length: MAX_HIRES }, (_, i) => ({ value: String(i + 1), label: `${i + 1} 人` }));
 
@@ -83,10 +84,10 @@ export function HiresQuestion({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={pending || (!optional && !answer)}
-          aria-busy={pending || undefined}
+          disabled={!optional && !answer}
           onClick={() => onSubmit(answer)}
           className={submitClassName}
+          {...busyProps(pending)}
         >
           {pending && <Spinner />}
           {submitLabel}

@@ -42,6 +42,24 @@ async function focused(page: Page): Promise<Focused> {
   });
 }
 
+/** Holds this page's Server Function calls (POSTs to `path`) until the returned release() is called (#202). */
+async function holdCalls(page: Page, path: string): Promise<() => void> {
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  let held = true;
+  await page.route(
+    (url) => url.pathname === path,
+    async (route) => {
+      if (held && route.request().method() === "POST") await gate;
+      await route.fallback();
+    },
+  );
+  return () => {
+    held = false;
+    release();
+  };
+}
+
 /** Presses Tab until `done` says the focus has arrived, checking every stop on the way. */
 async function tabUntil(page: Page, done: (f: Focused) => boolean, max = 80): Promise<Focused[]> {
   const stops: Focused[] = [];
@@ -151,9 +169,30 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await tabUntil(page, (f) => f.label === "确定结束招聘");
+  // #202: while the answer is on its way the button stays focused and busy, not disabled.
+  const release = await holdCalls(page, "/employer/jobs");
   await page.keyboard.press("Enter");
+  const end = card.getByRole("button", { name: "确定结束招聘" });
+  await expect(end).toHaveAttribute("aria-busy", "true");
+  await expect(end).toBeFocused();
+  release();
   await expect(page.getByRole("status")).toBeFocused();
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 2 人`);
+});
+
+test("团队: 保存称呼 keeps the focus while it saves, then the notice takes it (#202)", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo, "/employer/team");
+  const name = page.getByLabel(/^称呼/);
+  await name.fill("小王");
+  const release = await holdCalls(page, "/employer/team");
+  await tabUntil(page, (f) => f.label === "保存称呼");
+  await page.keyboard.press("Enter");
+  const save = page.getByRole("button", { name: "保存称呼" });
+  await expect(save).toHaveAttribute("aria-busy", "true");
+  await expect(save).toBeFocused();
+  release();
+  const notice = page.getByRole("status").filter({ hasText: "称呼已保存。" });
+  await expect(notice).toBeFocused();
 });
 
 test("chat with the keyboard only: type, Enter, Shift+Tab to the quick replies", async ({ page }, testInfo) => {

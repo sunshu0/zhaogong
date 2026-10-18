@@ -23,6 +23,7 @@ import {
   type MyTeam,
 } from "@/app/[lang]/employer/team-actions";
 import { inputClass } from "@/components/ui/input-class";
+import { busyProps } from "@/components/ui/busy";
 
 const INPUT = inputClass();
 
@@ -152,7 +153,7 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
         <span>称呼（最多 {TEAM_NAME_MAX} 个字）</span>
         <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} maxLength={TEAM_NAME_MAX} />
       </label>
-      <Button type="submit" variant="secondary" disabled={disabled}>
+      <Button type="submit" variant="secondary" {...busyProps(disabled)}>
         保存称呼
       </Button>
     </form>
@@ -217,12 +218,12 @@ function MemberRow({
             </Button>
           )}
           {isAdmin && mine && member.role === "admin" && (
-            <Button variant="link" disabled={disabled} onClick={() => onRole("member")}>
+            <Button variant="link" onClick={() => onRole("member")} {...busyProps(disabled)}>
               改为成员
             </Button>
           )}
           {(mine || isAdmin) && (
-            <Button variant="link" disabled={disabled} onClick={() => setConfirming(true)}>
+            <Button variant="link" onClick={() => setConfirming(true)} {...busyProps(disabled)}>
               {mine ? "退出团队" : "移出团队"}
             </Button>
           )}
@@ -278,7 +279,7 @@ function Invite({
             </Radio>
           ))}
         </fieldset>
-        <Button type="submit" disabled={disabled || !email.trim()}>
+        <Button type="submit" disabled={!email.trim()} {...busyProps(disabled)}>
           发送邀请
         </Button>
       </form>
@@ -297,7 +298,7 @@ function Invite({
                     <span className="ml-2 text-meta text-muted">已过期（{INVITE_DAYS} 天没回复，可以再邀请）</span>
                   )}
                 </span>
-                <Button variant="link" disabled={disabled} onClick={() => onCancel(invite.id)}>
+                <Button variant="link" onClick={() => onCancel(invite.id)} {...busyProps(disabled)}>
                   撤回邀请
                 </Button>
               </li>

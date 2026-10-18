@@ -87,6 +87,7 @@ const employerTeamZh = {
     nameLabel: (max: number) => `你在团队里的称呼（例如「王经理」，最多 ${max} 个字）`,
     accept: "接受并加入",
     decline: "婉拒",
+    declined: (businessName: string) => `已婉拒「${businessName}」的邀请。`,
   },
 
   /** src/app/[lang]/employer/team-actions.ts */
@@ -201,6 +202,7 @@ export const employerTeamMessages: Dictionary<typeof employerTeamZh> = {
       nameLabel: (max) => `Your name in the team (for example “Mr Wang”, up to ${max} characters)`,
       accept: "Accept and join",
       decline: "Decline",
+      declined: (businessName) => `Declined the invitation from ${businessName}.`,
     },
 
     teamActions: {

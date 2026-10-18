@@ -18,6 +18,7 @@ import { BACK_LINK } from "@/components/employer/app-style";
 import { toast } from "@/components/ui/Toast";
 import { Tag } from "@/components/ui/Tag";
 import { buttonClass } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { InterviewInvite } from "@/components/employer/InterviewInvite";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
@@ -234,7 +235,7 @@ function ApplicantCard({
         <button
           type="button"
           className={buttonClass("primary")}
-          disabled={opening}
+          {...busyProps(opening)}
           onClick={async () => {
             // The conversation is the one the job seeker has too (#110); its id comes from the server.
             setOpening(true);

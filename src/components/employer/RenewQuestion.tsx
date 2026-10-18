@@ -10,6 +10,7 @@ import {
 } from "@/components/employer/job-status";
 import { CHOICE_DOT, CHOICE_PILL } from "@/components/employer/app-style";
 import { Spinner } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 
 /**
  * 续期多久？ — 14, 30 or 60 days, each with the closing date it gives (#69). Lengths that would close the job more
@@ -64,10 +65,10 @@ export function RenewQuestion({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={pending || days === undefined}
-          aria-busy={pending || undefined}
+          disabled={days === undefined}
           onClick={() => days && onSubmit(days)}
           className={submitClassName}
+          {...busyProps(pending)}
         >
           {pending && <Spinner />}
           确定续期

@@ -6,6 +6,8 @@ import { Section } from "@/components/ui/Section";
 import { TEAM_NAME_MAX, TEAM_ROLE_LABEL } from "@/components/employer/team";
 import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/[lang]/employer/team-actions";
 import { setIdentity } from "@/components/seeker/session-client";
+import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
+import { busyProps } from "@/components/ui/busy";
 
 const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
@@ -18,6 +20,9 @@ export function TeamInvites({ email }: { email: string }) {
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
+  // #202: 婉拒 removes its card; this line takes its place and the focus, even when it was the last invitation.
+  const [declined, setDeclined] = useState<string>();
+  const declinedRef = useFocusOnChange<HTMLParagraphElement>(declined);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,11 +36,11 @@ export function TeamInvites({ email }: { email: string }) {
   }, [email, version]);
 
   const list = invites?.email === email ? invites.list : [];
-  if (!list.length) return null;
+  if (!list.length && !declined) return null;
 
-  const answer = (id: string, accept: boolean, name = "") =>
+  const answer = (invite: MyTeamInvite, accept: boolean, name = "") =>
     startTransition(async () => {
-      const result = await answerTeamInvite(id, accept ? { accept, name } : { accept }).catch(() => null);
+      const result = await answerTeamInvite(invite.id, accept ? { accept, name } : { accept }).catch(() => null);
       if (!result) return setError("网络有问题，请稍后再试。");
       if (!result.ok) {
         setError(result.error_zh);
@@ -45,7 +50,10 @@ export function TeamInvites({ email }: { email: string }) {
       if (result.employer) {
         setIdentity({ activeRole: "employer", employer: result.employer });
         router.push("/employer/team");
-      } else setVersion((v) => v + 1);
+      } else {
+        setDeclined(invite.employerName);
+        setVersion((v) => v + 1);
+      }
     });
 
   return (
@@ -60,13 +68,18 @@ export function TeamInvites({ email }: { email: string }) {
               {error}
             </p>
           )}
+          {declined && (
+            <p ref={declinedRef} tabIndex={-1} role="status" className="text-body text-muted outline-none">
+              已婉拒「{declined}」的邀请。
+            </p>
+          )}
           {list.map((invite) => (
             <InviteCard
               key={invite.id}
               invite={invite}
               disabled={pending}
-              onAccept={(name) => answer(invite.id, true, name)}
-              onDecline={() => answer(invite.id, false)}
+              onAccept={(name) => answer(invite, true, name)}
+              onDecline={() => answer(invite, false)}
             />
           ))}
         </div>
@@ -112,10 +125,10 @@ function InviteCard({
         />
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={disabled || !name.trim()}>
+        <Button type="submit" disabled={!name.trim()} {...busyProps(disabled)}>
           接受并加入
         </Button>
-        <Button variant="link" disabled={disabled} onClick={onDecline}>
+        <Button variant="link" onClick={onDecline} {...busyProps(disabled)}>
           婉拒
         </Button>
       </div>

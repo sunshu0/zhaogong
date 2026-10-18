@@ -52,6 +52,8 @@ export function ChatPost({
     setError(undefined);
     setSending(m);
     setText("");
+    // #202: 发送 is disabled once the box is empty; a press on it would drop the focus to the page.
+    input.current?.focus();
     startTransition(async () => {
       try {
         const next = await chatTurn(chat, m);
