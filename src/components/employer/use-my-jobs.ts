@@ -2,13 +2,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@/lib/types";
 import { getMyJob, getMyJobNumbers, getMyJobPosters, getMyJobRenewals, getMyJobs } from "@/app/employer/actions";
-import type { JobPoster } from "@/components/employer/job-poster";
+import type { JobPosters } from "@/db/job-posters";
 import type { JobNumbers } from "@/db/job-stats";
 import type { RenewalCounts } from "@/db/job-renewals";
 import { getMyApplicationCounts } from "@/app/employer/applicant-actions";
 import type { ApplicationCount } from "@/db/job-applications";
 
-const NO_POSTERS = { teamSize: 0, posters: {} };
+const NO_POSTERS: JobPosters = { teamSize: 0, posters: {}, contactsFrom: {} };
 
 type Loaded = {
   email: string;
@@ -17,8 +17,8 @@ type Loaded = {
   renewals: RenewalCounts;
   /** Applications to each job (#84); jobs nobody applied to are left out. */
   applications: Record<string, ApplicationCount>;
-  /** Who posted each job (#182), and how many people the team has; only when asked for. */
-  posters: { teamSize: number; posters: Record<string, JobPoster> };
+  /** Who posted each job (#182), how many people the team has, stale contact details (#186); only when asked for. */
+  posters: JobPosters;
   now: number;
 };
 

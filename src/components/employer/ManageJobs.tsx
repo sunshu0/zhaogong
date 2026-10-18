@@ -165,6 +165,7 @@ function JobsInTab({
             renewals={ready.renewals[job.id]}
             applications={ready.applications[job.id]}
             poster={posterLabel(ready.posters.posters[job.id], ready.posters.teamSize)}
+            contactFrom={ready.posters.contactsFrom[job.id]}
             now={ready.now}
             onDone={onDone}
           />

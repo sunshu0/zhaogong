@@ -12,7 +12,7 @@ import { normalizeEmail } from "@/components/seeker/session";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { SharedConversation } from "@/lib/chat-server/shared-view";
 import type { EmployerPage } from "@/components/employer/employer-page";
-import { listJobsPostedBy } from "@/db/job-posters";
+import { listJobContactsBy, listJobsPostedBy } from "@/db/job-posters";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -40,6 +40,8 @@ export interface ServerAccountData {
   } | null;
   /** The jobs this account posted (#182), in whichever business; the jobs themselves are under `employer`. */
   jobsPosted: { jobId: string; employerId: string; postedAt: string }[];
+  /** The jobs whose contact details this account changed last (#186); the details are on the jobs. */
+  jobContactsChanged: { jobId: string; employerId: string }[];
   /** Each identity's chat records and the notifications it has read. */
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /**
@@ -129,6 +131,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     : [];
   const renewals = await listRenewals(jobs.map((j) => j.id));
   const jobsPosted = await listJobsPostedBy(address);
+  const jobContactsChanged = await listJobContactsBy(address);
   const [businessPage] = business
     ? await db.select().from(t.employerProfiles).where(eq(t.employerProfiles.employerId, business.id))
     : [];
@@ -243,6 +246,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
         }
       : null,
     jobsPosted,
+    jobContactsChanged,
     chats: chats.map((row) => ({
       identity: row.scope,
       record: row.record ?? null,
@@ -395,6 +399,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .where(eq(t.contactViews.viewerEmail, address));
     // Jobs the person posted stay the business's, without the email (#182).
     await tx.update(t.jobs).set({ postedBy: DELETED_ACCOUNT }).where(eq(t.jobs.postedBy, address));
+    await tx.update(t.jobs).set({ contactBy: DELETED_ACCOUNT }).where(eq(t.jobs.contactBy, address));
     // The business's page stays the team's; it no longer says who saved it last (ADR 0022).
     await tx
       .update(t.employerProfiles)

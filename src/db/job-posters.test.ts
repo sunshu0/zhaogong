@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listJobPosters, listJobsPostedBy } from "@/db/job-posters";
+import { listJobContactsBy, listJobPosters, listJobsPostedBy, recordContactBy } from "@/db/job-posters";
 import { answerInvite, changeTeam, inviteToTeam } from "@/db/team";
 import { deleteAccount } from "@/db/account-data";
 import { createEmployer, createJob, ensureAccount, getJob, openEmployerIdentity } from "@/lib/data";
@@ -47,6 +47,7 @@ describe("listJobPosters (#182)", () => {
         [lees.id]: { kind: "teammate", name: "小李" },
         [quiets.id]: { kind: "teammate", name: "小王" },
       },
+      contactsFrom: {},
     });
     expect((await listJobPosters(employer.id, lee)).posters[lees.id]).toEqual({ kind: "you" });
 
@@ -66,6 +67,31 @@ describe("listJobPosters (#182)", () => {
     const { boss, lee, employer } = await team();
     const job = await createJob(jobFor(employer.id), boss);
     expect((await listJobPosters(employer.id, lee)).posters[job.id]).toEqual({ kind: "teammate", name: boss });
+  });
+});
+
+describe("contact details filled by someone who left (#186)", () => {
+  it("lists public contacts of people no longer in the team, until a teammate changes them", async () => {
+    const { boss, lee, quiet, employer } = await team();
+    const lees = await createJob({ ...jobFor(employer.id), contactPublic: true, contact: { wechat: "lee_wx" } }, lee);
+    const leesPrivate = await createJob({ ...jobFor(employer.id), contactPublic: false, contact: {} }, lee);
+    const quiets = await createJob(
+      { ...jobFor(employer.id), contactPublic: true, contact: { phone: "09 055 0101" } },
+      quiet,
+    );
+    expect((await listJobPosters(employer.id, boss)).contactsFrom).toEqual({});
+
+    await changeTeam(employer.id, lee, { type: "leave" });
+    expect(await deleteAccount(quiet)).toBe("deleted");
+    expect((await listJobPosters(employer.id, boss)).contactsFrom).toEqual({
+      [lees.id]: { kind: "left", email: lee },
+      [quiets.id]: { kind: "deleted" },
+    });
+    expect((await listJobPosters(employer.id, boss)).contactsFrom[leesPrivate.id]).toBeUndefined();
+
+    await recordContactBy(lees.id, boss);
+    expect(Object.keys((await listJobPosters(employer.id, boss)).contactsFrom)).toEqual([quiets.id]);
+    expect(await listJobContactsBy(boss)).toEqual([{ jobId: lees.id, employerId: employer.id }]);
   });
 });
 

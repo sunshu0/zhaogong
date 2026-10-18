@@ -16,6 +16,9 @@ import {
 } from "@/lib/data";
 import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
 import { countAiCalls, listAiUsageOf } from "@/db/ai-usage";
+import { database } from "@/db/ready";
+import * as t from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -91,7 +94,7 @@ describe("publishJob", () => {
     expect(result.job).not.toHaveProperty("postedBy");
     expect((await as(E.e2, () => getMyJobPosters())).posters[result.job.id]).toEqual({ kind: "you" });
     cookies.clear();
-    expect(await getMyJobPosters()).toEqual({ teamSize: 0, posters: {} });
+    expect(await getMyJobPosters()).toEqual({ teamSize: 0, posters: {}, contactsFrom: {} });
   });
 
   it("sends a high-risk draft to review instead of the list", async () => {
@@ -195,6 +198,21 @@ describe("managing published jobs", () => {
       postedAt: job.postedAt,
     });
     expect(edited.ok && edited.job.shiftsZh).toBeUndefined();
+  });
+
+  it("makes changed contact details the editor's, and leaves them alone on other edits (#186)", async () => {
+    const { draft } = await parseDraft(MESSAGE);
+    const published = await as(E.e4, () => publishJob(draft));
+    if (!published.ok) throw new Error(published.reason);
+    const contactBy = async () => {
+      const db = await database();
+      return (await db.select().from(t.jobs).where(eq(t.jobs.id, published.job.id)))[0]?.contactBy;
+    };
+    const job = published.job;
+    await as(E.e4, () => editMyJob(job.id, { ...job, titleZh: "前厅领班" }));
+    expect(await contactBy()).toBeNull();
+    await as(E.e4, () => editMyJob(job.id, { ...job, contactPublic: true, contact: { wechat: "new_manager_wx" } }));
+    expect(await contactBy()).toBe(E.e4);
   });
 
   it("gives each job's views, chats started and contact reveals without saying who (#55)", async () => {

@@ -55,14 +55,14 @@
 | `getMyJobs()` | | 本企业所有职位，按发布时间从新到旧，任何状态 | `[]` |
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
 | `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
-| `getMyJobPosters()` | | `{ teamSize, posters: { [jobId]: poster } }`（#182）：企业每个职位是谁发的，按看的人说：`{ kind: "you" }`、`{ kind: "teammate", name }`（团队里的称呼，没设就是邮箱）、`{ kind: "left", email }`（已离开团队）、`{ kind: "deleted" }`（已删号）；#182 之前的职位不在里面。`teamSize` 是团队现在的人数 | 没有企业时 `{ teamSize: 0, posters: {} }` |
+| `getMyJobPosters()` | | `{ teamSize, posters: { [jobId]: poster } }`（#182）：企业每个职位是谁发的，按看的人说：`{ kind: "you" }`、`{ kind: "teammate", name }`（团队里的称呼，没设就是邮箱）、`{ kind: "left", email }`（已离开团队）、`{ kind: "deleted" }`（已删号）；#182 之前的职位不在里面。`teamSize` 是团队现在的人数。`contactsFrom`（#186）：公开联系方式、而且联系方式是已离开团队的人（`left`）或已删号的账号（`deleted`）填的职位 | 没有企业时 `{ teamSize: 0, posters: {}, contactsFrom: {} }` |
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |
 | `getMyJobDays(jobId)` | 本企业的职位 | `{ job, days, funnel }`：最近 14 个新西兰日，从旧到新，每天 `{ day, views, chats, contactViews }`，没有数据的日子是 0；`funnel` 是从发布到现在的 `{ applied, interviewed, hired }`（#105：申请人数、约过面试的人数，不算已取消的、录用人数） | `null`（未登录、不是雇主、不是本企业的职位） |
 | `parseDraft(text)` | 招聘文字，最多取前 5000 字 | `ParsedPost`：`{ draft, missing, notes_zh }`（规则解析，以后换成模型调用，签名不变） | — |
 | `chatTurn(state, message)` | 浏览器保存的对话状态（服务器先重建和清洗）；本轮输入 | 下一轮的 `ChatState`（问题、快捷选项、草稿）。生产环境由 Claude 回答（#102，`src/lib/ai-post/model/`）：模型用结构化输出交回下一句话、快捷回复和草稿字段，服务器再用 `sanitizeDraft` 清洗、跑合规规则。没配 key、超时或出错时 `unavailable: true`，对话里说明「暂时不可用」。调用模型（`claude`、`fake`）要登录，没登录时 `unavailable: true`，说「登录后才能用 AI 发帖助手」。**限额**：每个账号最近 60 秒 6 次、最近 24 小时 100 次，超了不调用模型，`unavailable: true`，说明稍后再试或明天再继续。每次调用在 `ai_usage` 记一行（模型、四种 token、结果 `ok` / `error` / `refused` / `unreadable`，被限额挡下的记 `limited`）；脚本不计数，也不记 | — |
 | `chatAssistantKind()` | — | 谁在回答：`claude`、`unavailable`（生产环境没配 key）、`script`（开发环境的规则脚本，页面标明不是 AI）、`fake`（开发和测试用的固定回答模型，浏览器带 `zg_ai_fake=1` cookie 时） | — |
 | `publishJob(input)` | 职位草稿，服务器重新清洗和检查 | `{ ok: true, job }`，状态是 `active`，命中需人工审核的规则时是 `pending_review`；发布人记成会话里的账号（`jobs.posted_by_email`，#182），不在 `job` 里，公开页也没有 | `{ ok: false, reason, findings, missing }`：`signed_out`、`no_identity`、`banned`、`not_ready`（有拦截或必须改写的问题，或必填项没填） |
-| `editMyJob(jobId, input)` | 修改后的草稿 | `{ ok: true, job }`；在线的职位改出需审核的内容会回到审核 | `{ ok: false, error_zh, findings? }`：「这个职位已被下架，不能修改。」「还有问题没处理或必填项没填。」 |
+| `editMyJob(jobId, input)` | 修改后的草稿 | `{ ok: true, job }`；在线的职位改出需审核的内容会回到审核；联系方式改了的话，记成改的人填的（`jobs.contact_by_email`，#186） | `{ ok: false, error_zh, findings? }`：「这个职位已被下架，不能修改。」「还有问题没处理或必填项没填。」 |
 | `closeMyJob(jobId, hires?)` | `hires`：`{ hired: true, count: 1–20 }` 或 `{ hired: false }`，可省略 | `{ ok: true, job }`，状态 `expired` | 「这个职位已经结束或已被下架。」「人数请填 1 到 20。」 |
 | `confirmHires(jobId, hires)` | 同上，用于事后更正 | `{ ok: true, job }` | 「职位结束后才能记录招到几人。」「请选择招到了，或者没有 / 不确定。」 |
 | `refreshMyJob(jobId)` | | `{ ok: true, job }`：在招的职位排到前面，至少再开 30 天（续期后更晚的截止日不变） | 「不能刷新：…」（24 小时内只能刷新一次、已截止等）、「这个职位不符合现在的发布规则，请先编辑。」 |

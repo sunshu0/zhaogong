@@ -26,6 +26,7 @@ import type { RenewalCounts } from "@/db/job-renewals";
 import type { ApplicationCount } from "@/db/job-applications";
 import { applicantsLabelZh, cardNumbers } from "@/components/employer/job-card";
 import { Figures, PhaseTag } from "@/components/employer/StatusTag";
+import { staleContactNote, type JobPoster } from "@/components/employer/job-poster";
 import { Pay } from "@/components/ui/Pay";
 
 /** Tells the list what happened, with the text to show when it worked. */
@@ -42,6 +43,7 @@ export function ManagedJob({
   renewals,
   applications,
   poster,
+  contactFrom,
   now,
   onDone,
 }: {
@@ -55,6 +57,8 @@ export function ManagedJob({
   applications?: ApplicationCount;
   /** Who posted it, e.g. 小李发布 (#182); null when not worth saying. */
   poster?: string | null;
+  /** Someone no longer in the team, when the job shows contact details they filled (#186). */
+  contactFrom?: Extract<JobPoster, { kind: "left" | "deleted" }>;
   now: number;
   onDone: JobChangeDone;
 }) {
@@ -63,6 +67,7 @@ export function ManagedJob({
   const [sharing, setSharing] = useState(false);
   const status = effectiveStatus(job, now);
   const phase = jobPhase(job, now);
+  const staleContact = staleContactNote(contactFrom, phase);
 
   const run: Run = (action, okText) =>
     startTransition(async () => {
@@ -81,6 +86,15 @@ export function ManagedJob({
         poster={poster}
         now={now}
       />
+      {staleContact && (
+        // #186: only the team sees this; the job's public page never says who left.
+        <p className="mt-2 text-body text-warn">
+          {staleContact}
+          <Link href={`/employer/jobs/${job.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
+            编辑联系方式
+          </Link>
+        </p>
+      )}
       <StatusNote
         job={job}
         phase={phase}

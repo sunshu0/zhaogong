@@ -16,6 +16,7 @@ import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { getEmployerPage, saveEmployerPage } from "@/db/employer-profiles";
+import { recordContactBy } from "@/db/job-posters";
 import { inviteToInterview } from "@/db/interviews";
 import { addSharedMessage, openSharedConversation } from "@/db/conversations";
 import { listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
@@ -104,6 +105,7 @@ async function fullAccount(email: string) {
   await saveResumeShare(email, RESUME, new Date("2026-10-17T00:00:00.000Z"));
   await saveSeekerProfile(email, { name: "王芳", bio: "会做咖啡" }, new Date("2026-10-17T00:00:00.000Z"));
   await saveEmployerPage(email, { bio: "测试店的介绍" }, new Date("2026-10-17T00:00:00.000Z"));
+  await recordContactBy(job.id, email);
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
@@ -142,6 +144,7 @@ describe("exportAccountData (#54)", () => {
       { jobId: job.id, days: 30, expiresAfter: "2026-12-01T00:00:00.000Z" },
     ]);
     expect(data?.jobsPosted).toEqual([{ jobId: job.id, employerId: business.id, postedAt: job.postedAt }]);
+    expect(data?.jobContactsChanged).toEqual([{ jobId: job.id, employerId: business.id }]);
     // Who posted a job is the team's to know, never part of the job (#182).
     expect(data?.employer?.jobs[0]).not.toHaveProperty("postedBy");
     expect(data?.employer?.page).toEqual({
@@ -260,7 +263,7 @@ describe("deleteAccount (#54)", () => {
     const removed = await getJob(job.id);
     expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
     const [postedRow] = await db.select().from(t.jobs).where(eq(t.jobs.id, job.id));
-    expect(postedRow?.postedBy).toBe(DELETED_ACCOUNT);
+    expect(postedRow).toMatchObject({ postedBy: DELETED_ACCOUNT, contactBy: DELETED_ACCOUNT });
     // Nobody is left to keep the business's page (ADR 0022); the other business keeps its own.
     expect(await getEmployerPage(business.id)).toBeUndefined();
     expect((await getEmployerPage(other.business.id))?.updatedByEmail).toBe("stays.here@example.com");
@@ -326,6 +329,7 @@ describe("deleteAccount (#54)", () => {
       "seeker_profiles.email",
       "employer_profiles.updated_by_email",
       "jobs.posted_by_email",
+      "jobs.contact_by_email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",

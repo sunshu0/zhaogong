@@ -19,8 +19,9 @@ function present<T extends object>(o: T): { [K in keyof T]: Exclude<T[K], null> 
 }
 
 export function toJob(r: JobRow): Job {
-  const { payMin, payMax, hoursMin, hoursMax, postedBy, ...rest } = r;
-  void postedBy; // who posted it (#182) stays on the server: a Job goes to public pages
+  // Who posted it and who filled its contact (#182, #186) stay on the server: a Job goes to public pages.
+  const { payMin, payMax, hoursMin, hoursMax, postedBy, contactBy, ...rest } = r;
+  void [postedBy, contactBy];
   return {
     ...(present(rest) as Omit<Job, "pay" | "hoursPerWeek">),
     pay: payMax != null ? { min: toDollars(payMin), max: toDollars(payMax) } : { min: toDollars(payMin) },
@@ -28,8 +29,8 @@ export function toJob(r: JobRow): Job {
   };
 }
 
-/** The job's row; who posted it is written by createJob (#182). */
-export function fromJob(job: Job): Omit<JobRow, "postedBy"> {
+/** The job's row; who posted it is written by createJob (#182), who changed its contact by editMyJob (#186). */
+export function fromJob(job: Job): Omit<JobRow, "postedBy" | "contactBy"> {
   const { pay, hoursPerWeek, ...rest } = job;
   return {
     ...rest,

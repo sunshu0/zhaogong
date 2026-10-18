@@ -2,7 +2,15 @@
 // the same business — its jobs, and one shared set of chats that says who sent each message.
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { freshEmail, signIn } from "../helpers";
-import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+import {
+  cardMenuItem,
+  CLEAN_MESSAGE,
+  openTheForm,
+  publishFromPreview,
+  publishJob,
+  signUpEmployer,
+  uniqueTitle,
+} from "./helpers";
 
 /** A second browser with a fresh account signed in, on 我的. Close it with `page.context().close()`. */
 async function secondPerson(browser: Browser, testInfo: TestInfo): Promise<{ page: Page; email: string }> {
@@ -130,4 +138,43 @@ test("the 企业主页 is the business's: visitors and the team see what an admi
   await expect(guest.getByRole("heading", { name: shop, exact: true })).toBeVisible();
   await expect(guest.getByRole("region", { name: "企业介绍", exact: true })).toContainText(bio);
   await visitor.close();
+});
+
+test("a job showing the contact details of someone who left asks the team to change them (#186)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const shop = await signUpEmployer(page, testInfo, "/employer/team");
+  const staff = await secondPerson(browser, testInfo);
+  await invitedAndJoined(page, staff, shop);
+
+  // The member posts a job with public contact details, then leaves the team.
+  const title = uniqueTitle("离职前发的职位", testInfo);
+  await staff.page.goto("/employer/post");
+  await openTheForm(staff.page);
+  await staff.page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await staff.page.getByRole("button", { name: "整理成职位" }).click();
+  await staff.page.getByLabel("职位名称（中文）").fill(title);
+  await staff.page.getByRole("radio", { name: /^公开给登录的求职者/ }).check();
+  await staff.page.getByLabel("电话").fill("09 055 0197");
+  await staff.page.getByRole("button", { name: "预览", exact: true }).click();
+  await publishFromPreview(staff.page);
+  await staff.page.goto("/employer/team");
+  const me = staff.page.getByRole("listitem", { name: "小李，成员" });
+  await me.getByRole("button", { name: "退出团队" }).click();
+  await me.getByRole("button", { name: "确认退出" }).click();
+  await expect(staff.page).toHaveURL("/account");
+  await staff.page.context().close();
+
+  await page.goto("/employer/jobs");
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await expect(card).toContainText("联系方式是已离开团队的");
+  await (await cardMenuItem(card, "编辑")).click();
+  await expect(page.getByRole("heading", { name: "编辑职位" })).toBeVisible();
+  await page.getByLabel("电话").fill("09 055 0196");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByText("已保存").filter({ visible: true })).toBeVisible();
+  await page.goto("/employer/jobs");
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("联系方式是已离开团队的");
 });

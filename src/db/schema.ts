@@ -90,6 +90,11 @@ export const jobs = sqliteTable("jobs", {
    * team sees it (`listJobPosters`), never the job's public page.
    */
   postedBy: text("posted_by_email"),
+  /**
+   * Who last changed the job's contact details (#186, migration 0024); null while they are the poster's. 职位管理
+   * warns the team when that person is no longer in it. Never part of `Job`, like `postedBy`.
+   */
+  contactBy: text("contact_by_email"),
 });
 
 export const reports = sqliteTable("reports", {

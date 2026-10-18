@@ -51,8 +51,8 @@ import {
   renewState,
 } from "@/components/employer/job-status";
 import { teamCan } from "@/components/employer/team";
-import type { JobPoster } from "@/components/employer/job-poster";
-import { listJobPosters } from "@/db/job-posters";
+import { listJobPosters, recordContactBy, type JobPosters } from "@/db/job-posters";
+import { sameContact } from "@/components/employer/job-poster";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
 /**
@@ -94,13 +94,14 @@ export async function getMyJobNumbers(): Promise<Record<string, JobNumbers>> {
 }
 
 /**
- * Who posted each of the business's jobs (#182), as the signed-in person should hear it, and how many people the
- * team has (a business of one need not say "you" on every job). Jobs from before #182 are left out.
+ * Who posted each of the business's jobs (#182), as the signed-in person should hear it, how many people the team
+ * has (a business of one need not say "you" on every job), and which jobs show contact details of someone who left
+ * the team (#186). Jobs from before #182 are left out.
  */
-export async function getMyJobPosters(): Promise<{ teamSize: number; posters: Record<string, JobPoster> }> {
+export async function getMyJobPosters(): Promise<JobPosters> {
   const session = await getCurrentSession();
   const employer = session && (await getAccountEmployer(session.email));
-  if (!session || !employer) return { teamSize: 0, posters: {} };
+  if (!session || !employer) return { teamSize: 0, posters: {}, contactsFrom: {} };
   return listJobPosters(employer.id, session.email);
 }
 
@@ -299,7 +300,11 @@ export async function editMyJob(jobId: string, input: unknown): Promise<ChangeRe
 
   const live = job.status === "active" || job.status === "pending_review";
   const status = live ? decision.status : job.status;
-  return { ok: true, job: (await updateJob(job.id, { ...editPatch(edited), status }))! };
+  const updated = (await updateJob(job.id, { ...editPatch(edited), status }))!;
+  // New contact details are the editor's from now on (#186): 职位管理 stops warning about someone who left.
+  const session = await getCurrentSession();
+  if (!sameContact(updated, job) && session) await recordContactBy(job.id, session.email);
+  return { ok: true, job: updated };
 }
 
 // ---- business verification (B7) ----
