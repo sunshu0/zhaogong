@@ -21,6 +21,15 @@ import { buttonClass } from "@/components/ui/Button";
 import { InterviewInvite } from "@/components/employer/InterviewInvite";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
+import {
+  APPLICANT_FILTERS,
+  applicantFilterCounts,
+  filterApplicants,
+  type ApplicantFilter,
+} from "@/components/employer/applicant-filter";
+
+const FILTER_ID_BASE = "applicant-filter";
 
 const appliedAt = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "Pacific/Auckland",
@@ -32,8 +41,8 @@ const appliedAt = new Intl.DateTimeFormat("zh-CN", {
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
- * and 合适 / 不合适 / 已录用 (#105), a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No contact details: those follow the
- * job's two rules (ADR 0002).
+ * and 合适 / 不合适 / 已录用 (#105), a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No
+ * contact details: those follow the job's two rules (ADR 0002). Pills above the list show one kind at a time (#192).
  */
 export function JobApplicants({ jobId }: { jobId: string }) {
   return (
@@ -44,6 +53,7 @@ export function JobApplicants({ jobId }: { jobId: string }) {
 function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; applicants: Applicant[] } | null }>();
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState<ApplicantFilter>("all");
 
   useEffect(() => {
     let live = true;
@@ -130,20 +140,55 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           <p className="py-group text-center text-body text-muted">还没有人申请这个职位。</p>
         </Section>
       ) : (
-        <ul aria-label="申请人列表" className="space-y-3">
-          {applicants.map((a) => (
-            <li key={a.id}>
-              <ApplicantCard
-                applicant={a}
-                job={job}
-                onDecide={(d) => void decide(a.id, d)}
-                onInterview={(interview) => setInterview(a.id, interview)}
-              />
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-3">
+          <ApplicantFilterTabs applicants={applicants} value={filter} onChange={setFilter} />
+          <TabPanel idBase={FILTER_ID_BASE} value={filter}>
+            {filterApplicants(applicants, filter).length === 0 ? (
+              <Section look="app">
+                <p className="py-group text-center text-body text-muted">这一类还没有人。</p>
+              </Section>
+            ) : (
+              <ul aria-label="申请人列表" className="space-y-3">
+                {filterApplicants(applicants, filter).map((a) => (
+                  <li key={a.id}>
+                    <ApplicantCard
+                      applicant={a}
+                      job={job}
+                      onDecide={(d) => void decide(a.id, d)}
+                      onInterview={(interview) => setInterview(a.id, interview)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </TabPanel>
+        </div>
       )}
     </div>
+  );
+}
+
+/** 全部 / 未处理 / 合适 / 已录用 / 不合适, each with how many (#192); the same pills as 职位管理's statuses. */
+function ApplicantFilterTabs({
+  applicants,
+  value,
+  onChange,
+}: {
+  applicants: Applicant[];
+  value: ApplicantFilter;
+  onChange: (filter: ApplicantFilter) => void;
+}) {
+  const counts = applicantFilterCounts(applicants);
+  return (
+    <TabList
+      label="按处理状态"
+      idBase={FILTER_ID_BASE}
+      tabs={APPLICANT_FILTERS.map((f) => ({ key: f.key, label: `${f.label} ${counts[f.key]}` }))}
+      value={value}
+      onChange={onChange}
+      className={PILL_TABS}
+      tabClassName={pillTab}
+    />
   );
 }
 

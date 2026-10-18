@@ -53,6 +53,13 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
 
   await applicant.getByRole("button", { name: "合适", exact: true }).click();
   await expect(applicant.getByRole("button", { name: "合适", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // The pills above the list show one kind at a time (#192).
+  const filters = page.getByRole("tablist", { name: "按处理状态" });
+  await filters.getByRole("tab", { name: "未处理 0" }).click();
+  await expect(page.getByText("这一类还没有人。")).toBeVisible();
+  await filters.getByRole("tab", { name: "合适 1" }).click();
+  await expect(applicant).toBeVisible();
+  await filters.getByRole("tab", { name: "全部 1" }).click();
   await seeker.goto("/me/saved");
   const mine = seeker.getByRole("region", { name: /^我的申请/ }).getByRole("article", { name: title });
   await expect(mine).toContainText("雇主觉得合适");
