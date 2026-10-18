@@ -17,6 +17,7 @@ import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
 import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
+import { useSwapFocus } from "@/app/admin/_components/use-swap-focus";
 import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { HIDE_REASONS, type HideReason } from "@/lib/external-jobs/review";
 import { Button } from "@/components/ui/Button";
@@ -111,6 +112,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
     });
   };
   const approved = job.review === "approved";
+  const { opener: hideOpenerRef, form: hideFormRef } = useSwapFocus(hiding);
 
   return (
     <article aria-label={`外部职位：${job.title}`} className="space-y-3 py-4">
@@ -158,7 +160,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
       </p>
 
       {hiding ? (
-        <fieldset className="space-y-2 rounded-control border border-danger/40 p-3">
+        <fieldset ref={hideFormRef} className="space-y-2 rounded-control border border-danger/40 p-3">
           <legend className="px-1 text-body font-medium">不显示的理由</legend>
           <div className="grid gap-x-4 px-2 sm:grid-cols-2">
             {(Object.keys(HIDE_REASONS) as HideReason[]).map((r) => (
@@ -190,7 +192,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
           </div>
         </fieldset>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div ref={hideOpenerRef} className="flex flex-wrap items-center gap-2">
           {!approved && (
             <Button
               disabled={job.flags.length > 0 && !flagsChecked}
@@ -240,6 +242,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
           ? `条款已核对：${company.terms.checkedBy}，${company.terms.checkedOn}`
           : `条款不允许展示（${company.terms.checkedBy}，${company.terms.checkedOn}）`
         : "条款还没核对，不导入";
+  const { opener: companyOpenerRef, form: companyFormRef } = useSwapFocus(form !== undefined);
 
   return (
     <article aria-label={`外部公司：${company.name}`} className="space-y-2 py-3">
@@ -256,7 +259,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
       </div>
       <p className="text-meta text-muted">{status}</p>
       {form ? (
-        <fieldset className="space-y-2 rounded-control border border-border p-3">
+        <fieldset ref={companyFormRef} className="space-y-2 rounded-control border border-border p-3">
           <legend className="px-1 text-body font-medium">
             {form === "stop" ? "停用这家公司" : form === "takedown" ? "记录公司的删除请求" : "恢复导入"}
           </legend>
@@ -304,7 +307,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
           </div>
         </fieldset>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div ref={companyOpenerRef} className="flex flex-wrap gap-2">
           {company.block ? (
             <Button variant="secondary" onClick={() => setForm("resume")}>
               恢复导入

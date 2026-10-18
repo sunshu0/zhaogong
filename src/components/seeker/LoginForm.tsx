@@ -89,6 +89,8 @@ export function LoginForm({
   const [leftEmail, setLeftEmail] = useState("");
   const typoFix = emailTypoFix(leftEmail);
   const sentTypoFix = emailTypoFix(email); // the code went to a mistyped address
+  // #189: signed in on the code step and the business step comes next: its heading takes the focus that 登录 had.
+  const [fromCodeStep, setFromCodeStep] = useState(false);
   const next = safeNext(nextParam, role === "employer" ? "/employer/post" : "/jobs");
 
   // Next keeps visited pages alive (hidden) for back navigation. A sign-in should start fresh on every visit,
@@ -105,6 +107,7 @@ export function LoginForm({
       setCheckedFor(null);
       setResendAt(0);
       setLeftEmail("");
+      setFromCodeStep(false);
     };
   }, []);
 
@@ -141,6 +144,7 @@ export function LoginForm({
       <BusinessStep
         email={session.email}
         businesses={businesses}
+        focusHeading={fromCodeStep}
         onDone={(employer) => {
           setIdentity({ activeRole: "employer", employer });
           router.replace(next);
@@ -218,6 +222,7 @@ export function LoginForm({
       // Signed in; the business step comes next.
       startSession(account.email, { activeRole: "seeker" });
       setCheckedFor(account.email);
+      setFromCodeStep(true);
       return;
     }
     startSession(account.email, reconcileIdentity(role, account));
@@ -360,12 +365,19 @@ export function LoginForm({
 function BusinessStep({
   email,
   businesses,
+  focusHeading = false,
   onDone,
 }: {
   email: string;
   businesses: DemoBusiness[];
+  /** Coming from the code step, whose 登录 button had the focus (#189). */
+  focusHeading?: boolean;
   onDone: (employer: { id: string; name: string }) => void;
 }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusHeading) heading.current?.focus();
+  }, [focusHeading]);
   // Shops the server refused as taken since this page loaded (someone bound one in the meantime).
   const [takenHere, setTakenHere] = useState<readonly string[]>([]);
   const shops = businesses.map((b) => (takenHere.includes(b.id) ? { ...b, claimed: true } : b));
@@ -399,7 +411,9 @@ function BusinessStep({
   return (
     <form onSubmit={submit} noValidate className={`space-y-5 ${CARD}`}>
       <div>
-        <h2 className="text-subtitle font-semibold">开通雇主身份</h2>
+        <h2 ref={heading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
+          开通雇主身份
+        </h2>
         <p className="mt-1 text-meta text-muted">
           已登录：<span className="break-all">{email}</span>
           。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。

@@ -1,5 +1,5 @@
 "use client";
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useTransition, type RefObject } from "react";
 import type { AdminResult } from "@/app/admin/actions";
 import type { Refused } from "@/app/admin/actions";
 import { isFailed, settle, type Failed } from "@/app/admin/load-state";
@@ -13,6 +13,7 @@ import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
 import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
+import { useSwapFocus } from "@/app/admin/_components/use-swap-focus";
 import {
   KIND_LABELS,
   missingChecks,
@@ -90,6 +91,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   const set = (id: keyof Checklist, change: Partial<{ done: boolean; note: string }>) =>
     setChecks((c) => ({ ...c, [id]: { done: false, ...c[id], ...change } }));
   const registerMatches = register?.legalName === request.legalName && register.status === "registered";
+  const { opener: rejectOpenerRef, form: rejectFormRef } = useSwapFocus(rejecting);
 
   return (
     <article aria-label={`企业验证：${request.tradingName}`} className={`space-y-4 ${cardClass()}`}>
@@ -164,6 +166,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
 
       {rejecting ? (
         <RejectForm
+          formRef={rejectFormRef}
           reason={reason}
           note={note}
           pending={pending}
@@ -173,7 +176,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
           onCancel={() => setRejecting(false)}
         />
       ) : (
-        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+        <div ref={rejectOpenerRef} className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
           <Button
             disabled={missing.length > 0}
             loading={pending}
@@ -253,6 +256,7 @@ function CheckRow({
 }
 
 function RejectForm({
+  formRef,
   reason,
   note,
   pending,
@@ -261,6 +265,7 @@ function RejectForm({
   onSubmit,
   onCancel,
 }: {
+  formRef: RefObject<HTMLFieldSetElement | null>;
   reason?: RejectReason;
   note: string;
   pending: boolean;
@@ -271,7 +276,7 @@ function RejectForm({
 }) {
   const id = useId();
   return (
-    <fieldset className="space-y-2 rounded-control border border-danger/40 p-3">
+    <fieldset ref={formRef} className="space-y-2 rounded-control border border-danger/40 p-3">
       <legend className="px-1 text-body font-medium">驳回理由（雇主会看到）</legend>
       <div className="grid gap-x-4 px-2 sm:grid-cols-2">
         {(Object.keys(REJECT_REASONS) as RejectReason[]).map((r) => (

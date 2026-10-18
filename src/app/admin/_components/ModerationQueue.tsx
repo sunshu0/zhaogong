@@ -20,6 +20,7 @@ import { Cancel } from "@/app/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
 import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
+import { useSwapFocus } from "@/app/admin/_components/use-swap-focus";
 import { ModeratorList } from "@/app/admin/_components/ModeratorList";
 import { useVerificationQueue, VerificationQueue } from "@/app/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/admin/_components/ExternalReview";
@@ -233,6 +234,8 @@ function QueueCard({
     });
   };
   const busy = (key: string) => pending && pressed === key;
+  // 确定封禁 takes focus itself (autoFocus); 取消 brings it back to 封禁雇主 (#189).
+  const { opener: banOpenerRef } = useSwapFocus<HTMLSpanElement>(confirmBan);
 
   return (
     <article className={cardClass()}>
@@ -312,26 +315,28 @@ function QueueCard({
           下架
         </Button>
         {/* Without the employer's record there is nobody to name or ban. */}
-        {employer &&
-          !employer.bannedAt &&
-          (confirmBan ? (
-            <>
-              <Button
-                variant="danger"
-                disabled={pending}
-                loading={busy("ban")}
-                onClick={() => run("ban", () => banJobEmployer(job.id))}
-                autoFocus
-              >
-                确定封禁「{employer.name}」并下架全部职位
+        <span ref={banOpenerRef} className="contents">
+          {employer &&
+            !employer.bannedAt &&
+            (confirmBan ? (
+              <>
+                <Button
+                  variant="danger"
+                  disabled={pending}
+                  loading={busy("ban")}
+                  onClick={() => run("ban", () => banJobEmployer(job.id))}
+                  autoFocus
+                >
+                  确定封禁「{employer.name}」并下架全部职位
+                </Button>
+                <Cancel onClick={() => setConfirmBan(false)} />
+              </>
+            ) : (
+              <Button variant="danger-secondary" onClick={() => setConfirmBan(true)}>
+                封禁雇主
               </Button>
-              <Cancel onClick={() => setConfirmBan(false)} />
-            </>
-          ) : (
-            <Button variant="danger-secondary" onClick={() => setConfirmBan(true)}>
-              封禁雇主
-            </Button>
-          ))}
+            ))}
+        </span>
       </div>
       {failed && (
         <div className="mt-3">
