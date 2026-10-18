@@ -15,6 +15,7 @@ import { Section } from "@/components/ui/Section";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
+import { contentLang } from "@/i18n/lang";
 
 /** 总览 (/workspace): only what needs doing, most urgent first; one sentence and one button when nothing does. */
 export function WorkspaceDashboard() {
@@ -55,9 +56,12 @@ export function WorkspaceDashboard() {
       <header>
         <h1 className="text-title font-semibold">{workspaceTitle(isEmployer, lang)}</h1>
         <p className="mt-0.5 text-meta text-muted">
-          {[isEmployer && session?.employerName, !loading && todos.length > 0 && t.toDo(todos.length)]
-            .filter(Boolean)
-            .join(" · ")}
+          {/* #243: the business's name is its own words, marked so the English page reads it as Chinese. */}
+          {isEmployer && session?.employerName && (
+            <span lang={contentLang(session.employerName)}>{session.employerName}</span>
+          )}
+          {isEmployer && session?.employerName && !loading && todos.length > 0 && " · "}
+          {!loading && todos.length > 0 && t.toDo(todos.length)}
         </p>
       </header>
       {loading ? (

@@ -97,6 +97,10 @@ const chatZh = {
     withheld: "资料",
     /** The default name of a job seeker without a page (db/conversations.ts stores it). */
     seekerName: "求职者",
+    /** Times stored as Chinese words (demo chats, older records), shown by shownTime() in chat-store.ts. */
+    weekdays: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+    minutesAgo: (n: number) => `${n} 分钟前`,
+    hoursAgo: (n: number) => `${n} 小时前`,
   },
 
   activity: {
@@ -353,6 +357,9 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       justNow: "Just now",
       withheld: "Details",
       seekerName: "Job seeker",
+      weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      minutesAgo: (n) => (n === 1 ? "1 minute ago" : `${n} minutes ago`),
+      hoursAgo: (n) => (n === 1 ? "1 hour ago" : `${n} hours ago`),
     },
 
     activity: {

@@ -23,9 +23,21 @@ import { chatMessages } from "@/i18n/messages/chat";
  */
 export const JUST_NOW = "刚刚";
 
-/** A stored message or row time as the reader sees it: JUST_NOW in their language, any other time as it is. */
+/**
+ * A stored message or row time as the reader sees it. The demo chats and older records store Chinese words —
+ * JUST_NOW, 昨天, 周一…周日, N 分钟前, N 小时前 — which read in the reader's language (#243); clock times (10:42) and
+ * anything else show as stored.
+ */
 export function shownTime(time: string, lang: Lang): string {
-  return time === JUST_NOW ? pick(chatMessages, lang).times.justNow : time;
+  const zh = chatMessages.zh.times;
+  const t = pick(chatMessages, lang).times;
+  if (time === JUST_NOW) return t.justNow;
+  if (time === zh.yesterday) return t.yesterday;
+  const day = zh.weekdays.indexOf(time);
+  if (day >= 0) return t.weekdays[day];
+  const ago = /^(\d+) (分钟|小时)前$/.exec(time);
+  if (ago) return ago[2] === "分钟" ? t.minutesAgo(Number(ago[1])) : t.hoursAgo(Number(ago[1]));
+  return time;
 }
 
 export type Message = {

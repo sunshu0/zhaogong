@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { shownTime } from "@/components/seeker/chat-store";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import {
   EMPTY_CHAT,
@@ -235,5 +236,22 @@ describe("exchanges", () => {
     expect(view.exchanges["mt-eden"].map((x) => x.id)).toEqual([seekerDemo.exchanges["mt-eden"][0].id, "mine"]);
     expect(view.exchanges["clean-home"]).toEqual([]);
     expect(answerExchange(record, seekerDemo, "north-tea", "nope", "rejected")).toBe(record);
+  });
+});
+
+describe("shownTime", () => {
+  it("shows stored Chinese times as they are in Chinese and in words in English (#243)", () => {
+    const times = ["刚刚", "昨天", "周一", "周日", "10 分钟前", "1 小时前", "10:42", "10月2日"];
+    expect(times.map((t) => shownTime(t, "zh"))).toEqual(times);
+    expect(times.map((t) => shownTime(t, "en"))).toEqual([
+      "Just now",
+      "Yesterday",
+      "Mon",
+      "Sun",
+      "10 minutes ago",
+      "1 hour ago",
+      "10:42",
+      "10月2日",
+    ]);
   });
 });
