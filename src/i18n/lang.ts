@@ -32,12 +32,19 @@ export function sitePath(pathname: string): string {
   return pathname.replace(/^\/(zh|en)(?=\/|$)/, "") || "/";
 }
 
+const FORWARDED_ROUTE = /^\/(?:\[lang\]|%5Blang%5D)(\/.*)?$/i;
+
 /**
  * Where the proxy sends a page request (ADR 0023 §2). An address with a language segment goes back, permanently,
  * to the one without it (one address per page until English gets its own, §9); any other is served from the copy
  * in the cookie's language, Chinese without one. The address in the browser does not change.
  */
 export function langRoute(pathname: string, cookie: string | undefined): { redirect: string } | { rewrite: string } {
+  // A Server Action the current page doesn't have is forwarded by Next to a page that does, at that page's route
+  // name: /[lang]/notifications. Served in the cookie's language like any other address (the combined run of
+  // Round 20 found the header's actions answering 404 on /employer/jobs).
+  const route = FORWARDED_ROUTE.exec(pathname);
+  if (route) return { rewrite: `/${langFrom(cookie)}${route[1] ?? ""}` };
   const plain = sitePath(pathname);
   if (plain !== pathname) return { redirect: plain };
   return { rewrite: `/${langFrom(cookie)}${pathname === "/" ? "" : pathname}` };

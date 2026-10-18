@@ -40,6 +40,12 @@ describe("languages", () => {
     expect(langRoute("/zh", undefined)).toEqual({ redirect: "/" });
   });
 
+  it("serves a Server Action Next forwards to another page's route name in the cookie's language", () => {
+    expect(langRoute("/[lang]/notifications", "en")).toEqual({ rewrite: "/en/notifications" });
+    expect(langRoute("/%5Blang%5D/account/data", undefined)).toEqual({ rewrite: "/zh/account/data" });
+    expect(langRoute("/[lang]", "en")).toEqual({ rewrite: "/en" });
+  });
+
   it("marks a person's text Chinese when it has Chinese in it, and leaves Latin text alone", () => {
     expect(contentLang("前厅服务员")).toBe("zh-CN");
     expect(contentLang("川味小馆 Sichuan")).toBe("zh-CN");
