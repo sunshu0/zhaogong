@@ -1,4 +1,4 @@
-import { pick } from "@/i18n/messages";
+import { pick, type Dictionary } from "@/i18n/messages";
 import { describe, expect, it } from "vitest";
 import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -62,7 +62,7 @@ function texts(side: unknown, path = ""): [string, string][] {
 
 describe("line B's dictionaries", () => {
   it.each(Object.entries(DICTIONARIES))("%s: the English side has no Chinese left but the name 找工", (name, d) => {
-    const left = texts(d.en).filter(
+    const left = texts(pick(d as Dictionary<object>, "en")).filter(
       ([p, t]) => /[㐀-鿿　-〿＀-￯]/.test(t.replaceAll("找工", "")) && !CHINESE_IN_ENGLISH.includes(`${name}:${p}`),
     );
     expect(left).toEqual([]);
@@ -70,7 +70,7 @@ describe("line B's dictionaries", () => {
 
   it.each(Object.entries(DICTIONARIES))("%s: both sides give the same paths, none of them empty", (name, d) => {
     const zh = texts(d.zh);
-    const en = texts(d.en);
+    const en = texts(pick(d as Dictionary<object>, "en"));
     expect(en.map(([p]) => p)).toEqual(zh.map(([p]) => p));
     const empty = ([p, t]: [string, string]) => !t.trim() && !EMPTY.includes(`${name}:${p}`);
     expect(zh.filter(empty)).toEqual([]);

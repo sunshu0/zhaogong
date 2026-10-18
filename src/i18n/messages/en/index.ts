@@ -7,6 +7,16 @@ import { seekerMeEn } from "./seeker-me";
 import { seekerProfileEn } from "./seeker-profile";
 import { seekerHomeEn } from "./seeker-home";
 import { seekerEmployerEn } from "./seeker-employer";
+import { employerPostEn } from "./employer-post";
+import { employerJobsEn } from "./employer-jobs";
+import { employerApplicantsEn } from "./employer-applicants";
+import { employerTeamEn } from "./employer-team";
+import { employerVerifyEn } from "./employer-verify";
+import { employerCommonEn } from "./employer-common";
+import { employerPageEn } from "./employer-page";
+import { chatEn } from "./chat";
+import { complianceEn } from "./compliance";
+import { candidateMatchingEn } from "./candidate-matching";
 // imports (scripts/i18n-split-en.mjs)
 
 export const english: Record<string, unknown> = {
@@ -16,5 +26,15 @@ export const english: Record<string, unknown> = {
   seekerProfile: seekerProfileEn,
   seekerHome: seekerHomeEn,
   seekerEmployer: seekerEmployerEn,
+  employerPost: employerPostEn,
+  employerJobs: employerJobsEn,
+  employerApplicants: employerApplicantsEn,
+  employerTeam: employerTeamEn,
+  employerVerify: employerVerifyEn,
+  employerCommon: employerCommonEn,
+  employerPage: employerPageEn,
+  chat: chatEn,
+  compliance: complianceEn,
+  candidateMatching: candidateMatchingEn,
   // entries (scripts/i18n-split-en.mjs)
 };
