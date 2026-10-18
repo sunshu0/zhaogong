@@ -40,6 +40,31 @@ test("a new code only once a minute, counted down on the button; in development 
   await expect(waiting).toBeDisabled();
 });
 
+test("a mistyped mail domain gets its right spelling offered on both steps; sending is never stopped (#185)", async ({
+  page,
+}) => {
+  const name = freshEmail("typo").split("@")[0];
+  await page.goto("/login");
+  const field = page.getByLabel("邮箱", { exact: true });
+  await field.fill(`${name}@gmial.com`);
+  await field.blur();
+  const fix = page.getByRole("button", { name: `改成 ${name}@gmail.com` });
+  await expect(fix).toBeVisible();
+  await fix.click();
+  await expect(field).toHaveValue(`${name}@gmail.com`);
+  await expect(fix).toBeHidden();
+
+  // Sent to a mistyped address all the same (the hint comes as the field is left, under the button): the code step
+  // offers the right one, and the code goes there.
+  await field.fill(`${name}@qq.con`);
+  await page.getByRole("button", { name: "获取验证码" }).click();
+  await expect(page.getByRole("main")).toContainText(`验证码已发送到 ${name}@qq.con`);
+  await page.getByRole("button", { name: `改用 ${name}@qq.com` }).click();
+  await expect(page.getByRole("main")).toContainText(`验证码已发送到 ${name}@qq.com`);
+  await expect(page.getByRole("button", { name: /^改用/ })).toHaveCount(0);
+  await expect(page.getByTestId("dev-sign-in-code")).toHaveText(/^\d{6}$/);
+});
+
 test("editing localStorage signs nobody in and makes nobody an employer", async ({ page }) => {
   await page.goto("/jobs/j1");
   await page.evaluate((address) => {

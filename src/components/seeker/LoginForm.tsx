@@ -19,6 +19,7 @@ import {
   reconcileIdentity,
 } from "@/components/seeker/identity";
 import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
+import { emailTypoFix } from "@/components/seeker/email-typos";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
@@ -42,6 +43,9 @@ const CARD = cardClass();
 const labelClass = "mb-1.5 block text-body font-medium";
 const linkButtonClass =
   "pressable min-h-11 w-full rounded-control text-body text-muted underline underline-offset-2 hover:text-foreground disabled:opacity-50";
+/** The address a mistyped domain should have been (#185): a link-like button inside a sentence. */
+const fixButtonClass =
+  "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50";
 
 const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
   { role: "seeker", title: "我要找工作", text: "浏览职位，和雇主在线沟通、交换联系方式" },
@@ -80,6 +84,11 @@ export function LoginForm({
   const [now, setNow] = useState(0);
   const resendLeft = secondsLeft(resendAt, now);
   const counting = resendLeft > 0;
+  // #185: the email field as it was when it was last left, for the hint about a mistyped domain.
+  const emailInput = useRef<HTMLInputElement>(null);
+  const [leftEmail, setLeftEmail] = useState("");
+  const typoFix = emailTypoFix(leftEmail);
+  const sentTypoFix = emailTypoFix(email); // the code went to a mistyped address
   const next = safeNext(nextParam, role === "employer" ? "/employer/post" : "/jobs");
 
   // Next keeps visited pages alive (hidden) for back navigation. A sign-in should start fresh on every visit,
@@ -95,6 +104,7 @@ export function LoginForm({
       setError(null);
       setCheckedFor(null);
       setResendAt(0);
+      setLeftEmail("");
     };
   }, []);
 
@@ -241,6 +251,12 @@ export function LoginForm({
           inputMode="email"
           autoComplete="email"
           defaultValue={email}
+          ref={emailInput}
+          onBlur={(e) => setLeftEmail(e.currentTarget.value)}
+          // Once the hint shows, it follows the typing, so it goes as soon as the domain is put right.
+          onChange={(e) => {
+            if (typoFix) setLeftEmail(e.currentTarget.value);
+          }}
           placeholder="you@example.com"
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}
@@ -251,6 +267,27 @@ export function LoginForm({
       <Button type="submit" size="lg" block loading={pending}>
         {pending ? "正在发送…" : "获取验证码"}
       </Button>
+      {/* Below the button, so a hint that appears as the field is left (tapping the button) does not move it. */}
+      <p className="sr-only" aria-live="polite">
+        {typoFix ? `邮箱是不是 ${typoFix}？` : ""}
+      </p>
+      {typoFix && (
+        <p className="text-body">
+          是不是{" "}
+          <button
+            type="button"
+            aria-label={`改成 ${typoFix}`}
+            onClick={() => {
+              if (emailInput.current) emailInput.current.value = typoFix;
+              setLeftEmail(typoFix);
+            }}
+            className={fixButtonClass}
+          >
+            {typoFix}
+          </button>
+          ？
+        </p>
+      )}
       <p className="text-meta text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
     </form>
   ) : (
@@ -258,6 +295,14 @@ export function LoginForm({
       <p className="text-body">
         验证码已发送到 <span className="font-medium break-all">{email}</span>
       </p>
+      {sentTypoFix && (
+        <p className="text-body">
+          地址是不是拼错了？{" "}
+          <button type="button" disabled={pending} onClick={() => sendCode(sentTypoFix)} className={fixButtonClass}>
+            改用 {sentTypoFix}
+          </button>
+        </p>
+      )}
       {devCode ? (
         <p className="rounded-control bg-brand-soft px-3 py-2 text-meta text-brand">
           开发环境没有接邮件服务，验证码打印在服务器日志里：
