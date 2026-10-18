@@ -4,13 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
 import { publishJob } from "@/app/employer/actions";
-import { DraftEditor } from "@/components/employer/DraftEditor";
 import { canCopy, canRepublish, closeDateZh } from "@/components/employer/job-status";
-import { formFromDraft } from "@/components/employer/post-form";
 import { PUBLISH_ERRORS } from "@/components/employer/post-flow-state";
 import { Published } from "@/components/employer/Published";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
-import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
+import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear } from "@/components/employer/use-draft-form";
+import { JobFormPart, KeptChangesNote, useKeptJobForm } from "@/components/employer/KeptJobForm";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJob } from "@/components/employer/use-my-jobs";
@@ -92,7 +91,7 @@ function RepublishForm({
 }) {
   const router = useRouter();
   const { profile } = useEmployerProfile(email);
-  const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true }, profile);
+  const { state, restored, startOver, finish } = useKeptJobForm(mode, job, email, country, profile);
   const [pending, startTransition] = useTransition();
   const [published, setPublished] = useState<Job>();
   const heading = useFocusOnChange<HTMLHeadingElement>(published?.id);
@@ -102,8 +101,10 @@ function RepublishForm({
     setError(undefined);
     startTransition(async () => {
       const result = await publishJob(state.draft);
-      if (result.ok) setPublished(result.job);
-      else setError(PUBLISH_ERRORS[result.reason]);
+      if (result.ok) {
+        finish();
+        setPublished(result.job);
+      } else setError(PUBLISH_ERRORS[result.reason]);
       window.scrollTo({ top: 0 });
     });
   }
@@ -136,8 +137,9 @@ function RepublishForm({
         )}
       </div>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
+      {restored && <KeptChangesNote onStartOver={startOver} />}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
-        <DraftEditor state={state} country={country} />
+        <JobFormPart state={state} country={country} />
       </div>
       <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">

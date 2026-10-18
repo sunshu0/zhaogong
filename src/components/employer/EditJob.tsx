@@ -3,11 +3,10 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
 import { editMyJob } from "@/app/employer/actions";
-import { DraftEditor } from "@/components/employer/DraftEditor";
 import { canEdit } from "@/components/employer/job-status";
-import { formFromDraft } from "@/components/employer/post-form";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
-import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear, useDraftForm } from "@/components/employer/use-draft-form";
+import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear } from "@/components/employer/use-draft-form";
+import { JobFormPart, KeptChangesNote, useKeptJobForm } from "@/components/employer/KeptJobForm";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJob } from "@/components/employer/use-my-jobs";
@@ -16,7 +15,10 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
 
-/** Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. */
+/**
+ * Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. Unsaved changes
+ * stay in this tab and the form has its own error boundary (#193).
+ */
 export function EditJob({ jobId, country }: { jobId: string; country: CountryCode }) {
   return (
     <EmployerGate next={`/employer/jobs/${jobId}`}>
@@ -45,7 +47,7 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
 
 function EditForm({ job, email, country }: { job: Job; email: string; country: CountryCode }) {
   const { profile } = useEmployerProfile(email);
-  const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true }, profile);
+  const { state, restored, startOver, finish } = useKeptJobForm("edit", job, email, country, profile);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Job>();
   const heading = useFocusOnChange<HTMLHeadingElement>(saved?.id);
@@ -57,8 +59,10 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
     setError(undefined);
     startTransition(async () => {
       const result = await editMyJob(job.id, state.draft);
-      if (result.ok) setSaved(result.job);
-      else setError(result.error_zh);
+      if (result.ok) {
+        finish();
+        setSaved(result.job);
+      } else setError(result.error_zh);
       window.scrollTo({ top: 0 });
     });
   }
@@ -99,8 +103,9 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
     <div className="space-y-4 pb-24">
       <h1 className="text-title font-semibold">编辑职位</h1>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
+      {restored && <KeptChangesNote onStartOver={startOver} />}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
-        <DraftEditor state={state} country={country} />
+        <JobFormPart state={state} country={country} />
       </div>
       <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">

@@ -3,7 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { freshEmail, signIn } from "./helpers";
-import { openTheForm, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { openTheForm, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { TEST_CRASH_KEY } from "../src/lib/test-crash";
 
 test.use({ reducedMotion: "reduce" });
@@ -71,4 +71,33 @@ test("an open chat that fails keeps the unsent words; 重试 opens it again", as
   await failed.getByRole("button", { name: "重试" }).click();
   await expect(page.getByLabel("输入消息")).toHaveValue("我明天下午有空，");
   await expect(page.getByRole("log")).toBeVisible();
+});
+
+test("editing a job: a form that fails keeps the changes, a reload picks them up, 放弃改动 goes back (#193)", async ({
+  page,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  const title = uniqueTitle("编辑出错测试", testInfo);
+  const jobId = await publishJob(page, title);
+  await page.goto(`/employer/jobs/${jobId}`);
+  await expect(page.getByRole("heading", { name: "编辑职位" })).toBeVisible();
+  const name = page.getByLabel("职位名称（中文）");
+  await name.fill(`${title}乙`);
+
+  await failNext(page, "job-form");
+  await name.fill(`${title}丙`);
+  const failed = page.getByRole("alert").filter({ hasText: "表单没显示出来" });
+  await expect(failed).toBeVisible();
+  await expect(failed).toContainText("你改的内容还在");
+  await expectNoViolations(page);
+
+  await stopFailing(page);
+  await failed.getByRole("button", { name: "重试" }).click();
+  await expect(name).toHaveValue(`${title}丙`);
+
+  await page.reload();
+  await expect(page.getByRole("status").filter({ hasText: "接着上次没保存的改动继续" })).toBeVisible();
+  await expect(page.getByLabel("职位名称（中文）")).toHaveValue(`${title}丙`);
+  await page.getByRole("button", { name: "放弃改动" }).click();
+  await expect(page.getByLabel("职位名称（中文）")).toHaveValue(title);
 });
