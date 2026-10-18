@@ -25,18 +25,18 @@ export function heroCounts(
 ): { value: number; label: string }[] {
   const t = pick(seekerHomeMessages, lang).counts;
   return [
-    { value: openJobs, label: t.openJobs },
-    { value: verifiedEmployers, label: t.verifiedEmployers },
+    { value: openJobs, label: t.openJobs(openJobs) },
+    { value: verifiedEmployers, label: t.verifiedEmployers(verifiedEmployers) },
     ...visibleStats(stats)
       .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
-      .map(({ key, value }) => ({ value, label: t[key] })),
+      .map(({ key, value }) => ({ value, label: t[key](value) })),
   ];
 }
 
 /** visibleStats with their words in the page's language (the no-JavaScript summary). */
 export function statLines(stats: PlatformStats, lang: Lang = DEFAULT_LANG) {
   const t = pick(seekerHomeMessages, lang).counts;
-  return visibleStats(stats).map(({ key, value }) => ({ key, value, label: t[key] }));
+  return visibleStats(stats).map(({ key, value }) => ({ key, value, label: t[key](value) }));
 }
 
 export type FeatureIcon = "chat" | "language" | "check" | "shield";

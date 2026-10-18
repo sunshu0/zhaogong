@@ -7,7 +7,8 @@ import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { PrintButton } from "@/components/seeker/PrintButton";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { ResumePrintStyle, ResumeSheet } from "@/components/seeker/ResumeSheet";
-import { messages } from "@/i18n/server";
+import { formatDate } from "@/i18n/format";
+import { messages, serverLang } from "@/i18n/server";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 // A shared 中英文简历 (#86): read-only, for people who are not on the platform, so no sign-in. The link is the only
@@ -37,7 +38,7 @@ async function SharedResume({ params }: Pick<PageProps<"/[lang]/resume/[id]">, "
     <div className="space-y-4 py-2">
       <ResumePrintStyle />
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <p className="text-meta text-muted">{t.resume.sharedBy(shared.updatedAt.slice(0, 10))}</p>
+        <p className="text-meta text-muted">{t.resume.sharedBy(formatDate(shared.updatedAt, await serverLang()))}</p>
         <PrintButton variant="secondary" />
       </div>
       <ResumeSheet doc={shared.resume} />

@@ -57,7 +57,7 @@ export async function jobSummary(jobId: string): Promise<JobSummary | null> {
   return {
     id: job.id,
     title: job.titleZh,
-    pay: formatPay(job.pay, job.country),
+    pay: formatPay(job.pay, job.country, await requestLang()),
     open: job.status === "active" && !isExpired(job, Date.now()),
   };
 }

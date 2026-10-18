@@ -314,7 +314,7 @@ export const seekerMeMessages: Dictionary<typeof seekerMeZh> = {
     },
     applications: {
       title: "My applications",
-      count: (n) => plural(n, "job", "jobs"),
+      count: (n) => String(n),
       open: "Open",
       ended: "Ended",
       groupLabel: (group) => `${group} applications`,

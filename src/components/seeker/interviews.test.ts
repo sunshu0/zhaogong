@@ -5,6 +5,7 @@ import {
   formatSlot,
   instantToAuckland,
   interviewIcs,
+  interviewModeName,
   interviewTodo,
   parseInvite,
   parseResponse,
@@ -195,5 +196,20 @@ describe("the calendar file", () => {
     expect(ics).not.toContain("DTEND");
     for (const line of ics.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
     expect(ics.replace(/\r\n /g, "")).toContain(`DESCRIPTION:到店面试\\n${"带上简历".repeat(10)}`);
+  });
+
+  it("names the kind of interview in the page's language", () => {
+    const ics = interviewIcs({
+      uid: "abc",
+      start: "2026-10-20T01:30:00.000Z",
+      title: "Interview",
+      mode: "in_person",
+      place: "",
+      note: "",
+      stamp: "2026-10-17T01:00:00.000Z",
+      lang: "en",
+    });
+    expect(ics).toContain(`DESCRIPTION:${interviewModeName("in_person", "en")}\r\n`);
+    expect(ics).not.toContain("到店");
   });
 });

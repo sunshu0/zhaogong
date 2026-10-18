@@ -3,6 +3,7 @@ import { COUNTRIES, regionById } from "@/config/countries";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { CountryCode, Employer, EmployerVerification, Job, PayRange } from "@/lib/types";
 import { DAY_MS, formatMoney, formatPay } from "@/components/seeker/format";
+import { formatDate } from "@/i18n/format";
 import { DEFAULT_LANG, localeTag, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
@@ -29,7 +30,9 @@ export function minimumWageNote(pay: PayRange, country: CountryCode, lang: Lang 
 
   const t = pick(seekerJobsMessages, lang).minimumWage;
   const name = lang === "en" ? config.nameEn : config.nameZh;
-  const rate = t.rate(name, `${config.currencySymbol}${formatMoney(hourly, lang)}`, effectiveFrom);
+  // The date as configured in Chinese (2026-04-01), the way people write it in English (1 Apr 2026).
+  const from = lang === "en" ? formatDate(effectiveFrom, lang) : effectiveFrom;
+  const rate = t.rate(name, `${config.currencySymbol}${formatMoney(hourly, lang)}`, from);
   const cents = Math.round(pay.min * 100) - Math.round(hourly * 100);
   if (cents < 0) return { level: "below", text: t.below(rate) };
   if (cents === 0) return { level: "at", text: t.at(rate) };

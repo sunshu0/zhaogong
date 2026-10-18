@@ -6,6 +6,7 @@ import type { InterviewTodo } from "@/app/[lang]/me/interview-notifications";
 import type { DemoSession } from "@/components/seeker/session";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { interviewIcs, type InterviewView } from "@/components/seeker/interviews";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 
 /**
  * The identity's interview to-dos (#103) from the server; undefined until they arrive, so 总览 waits rather than
@@ -29,7 +30,13 @@ export function useInterviewTodos(session: DemoSession | null): InterviewTodo[] 
 }
 
 /** Saves the confirmed interview as a calendar file (.ics); nothing is sent to any calendar service. */
-export function downloadInterviewIcs(interview: InterviewView, id: string, title: string, filename = "面试.ics") {
+export function downloadInterviewIcs(
+  interview: InterviewView,
+  id: string,
+  title: string,
+  filename = "面试.ics",
+  lang: Lang = DEFAULT_LANG,
+) {
   if (!interview.chosenSlot) return;
   const file = interviewIcs({
     uid: id,
@@ -39,6 +46,7 @@ export function downloadInterviewIcs(interview: InterviewView, id: string, title
     place: interview.place,
     note: interview.note,
     stamp: new Date().toISOString(),
+    lang,
   });
   const url = URL.createObjectURL(new Blob([file], { type: "text/calendar;charset=utf-8" }));
   const link = document.createElement("a");

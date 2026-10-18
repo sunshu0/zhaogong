@@ -115,7 +115,7 @@ describe("contactKinds", () => {
 describe("in English (Round 20)", () => {
   it("names the adult minimum wage, the badge's meaning, the dates and the contact kinds", () => {
     expect(minimumWageNote({ min: 23.95 }, "NZ", "en")?.text).toBe(
-      "The same as the adult minimum wage in New Zealand, $23.95 an hour (from 2026-04-01).",
+      "The same as the adult minimum wage in New Zealand, $23.95 an hour (from 1 Apr 2026).",
     );
     expect(verificationNote("business_verified", "NZ", "en")).toContain("NZBN");
     expect(formatJobDate("2026-10-10T11:30:00Z", "NZ", "en")).toBe("11 October");

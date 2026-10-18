@@ -27,6 +27,10 @@ describe("heroCounts (#51: the home page's one line of numbers)", () => {
         .slice(0, 2)
         .map((p) => p.label),
     ).toEqual(["open jobs, from", "verified employers"]);
+    // One of each reads in the singular.
+    expect(heroCounts(1, 1, stats, "en").map((p) => p.label)).toEqual(
+      expect.arrayContaining(["open job, from", "verified employer"]),
+    );
     const rest = parts.slice(2).map((p) => p.label);
     expect(rest).not.toContain("个职位");
     expect(rest).not.toContain("家雇主发布过招聘");

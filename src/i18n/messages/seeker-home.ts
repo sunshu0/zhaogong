@@ -6,6 +6,12 @@
 
 import type { Dictionary } from "@/i18n/messages";
 
+/** Words after a figure that don't change with it (Chinese); English gives each count its own function. */
+const sameFor =
+  (words: string): ((n: number) => string) =>
+  () =>
+    words;
+
 const homeZh = {
   // metadata
   title: "奥克兰的中文工作平台",
@@ -31,14 +37,14 @@ const homeZh = {
     professional: "专业职位",
     externalAfter: "（来自公司官网）",
   },
-  // heroCounts() and config/landing.ts: the words after each figure.
+  // heroCounts() and statLines(): the words after each figure, for that figure (English has one and many).
   counts: {
-    openJobs: "个职位在招，来自",
-    verifiedEmployers: "家已验证雇主",
-    employersPosting: "家雇主发布过招聘",
-    jobsPosted: "个职位",
-    hiresConfirmed: "人通过这里找到工作",
-    contactViews: "次咨询雇主",
+    openJobs: sameFor("个职位在招，来自"),
+    verifiedEmployers: sameFor("家已验证雇主"),
+    employersPosting: sameFor("家雇主发布过招聘"),
+    jobsPosted: sameFor("个职位"),
+    hiresConfirmed: sameFor("人通过这里找到工作"),
+    contactViews: sameFor("次咨询雇主"),
   },
   stats: "平台数据",
   demoData: "演示数据",
@@ -61,7 +67,7 @@ const homeZh = {
     trustText:
       "核对过企业登记的雇主带认证标志；联系方式只给登录的人，或在聊天中双方同意后交换；每个职位都能举报，有人审核。",
     chineseTitle: "中文为主",
-    chineseText: "全中文页面，职位中英文对照；求职者浏览、注册、联系雇主都不收费。",
+    chineseText: "中英文界面，职位中英文对照；求职者浏览、注册、联系雇主都不收费。",
   },
   // ChatReplay.tsx
   replay: {
@@ -121,12 +127,13 @@ export const seekerHomeMessages: Dictionary<typeof homeZh> = {
       externalAfter: " (from company sites)",
     },
     counts: {
-      openJobs: "open jobs, from",
-      verifiedEmployers: "verified employers",
-      employersPosting: "employers have posted jobs",
-      jobsPosted: "jobs posted",
-      hiresConfirmed: "people found work here",
-      contactViews: "times job seekers contacted an employer",
+      openJobs: (n) => (n === 1 ? "open job, from" : "open jobs, from"),
+      verifiedEmployers: (n) => (n === 1 ? "verified employer" : "verified employers"),
+      employersPosting: (n) => (n === 1 ? "employer has posted jobs" : "employers have posted jobs"),
+      jobsPosted: (n) => (n === 1 ? "job posted" : "jobs posted"),
+      hiresConfirmed: (n) => (n === 1 ? "person found work here" : "people found work here"),
+      contactViews: (n) =>
+        n === 1 ? "time a job seeker contacted an employer" : "times job seekers contacted an employer",
     },
     stats: "On 找工",
     demoData: "Demo data",
@@ -151,7 +158,7 @@ export const seekerHomeMessages: Dictionary<typeof homeZh> = {
         "Employers whose business registration we've checked carry a badge. Contact details go only to signed-in people, or are swapped in chat once both sides agree. Every job can be reported, and a person reviews it.",
       chineseTitle: "Chinese first",
       chineseText:
-        "Pages in Chinese, jobs in Chinese and English. Browsing, signing up and contacting employers are free for job seekers.",
+        "Pages in Chinese and English, jobs in both. Browsing, signing up and contacting employers are free for job seekers.",
     },
     replay: {
       assistant: "找工 posting assistant",

@@ -282,7 +282,7 @@ const icsTime = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "")
 
 /**
  * A calendar file for a confirmed interview with a time. It has a start only: how long it takes is the employer's
- * to say, so no end is made up.
+ * to say, so no end is made up. The kind of interview in the page's language; the note as the employer wrote it.
  */
 export function interviewIcs(input: {
   uid: string;
@@ -292,8 +292,10 @@ export function interviewIcs(input: {
   place: string;
   note: string;
   stamp: string;
+  lang?: Lang;
 }): string {
-  const description = [input.mode && INTERVIEW_MODES[input.mode], input.note].filter(Boolean).join("\n");
+  const mode = input.mode && interviewModeName(input.mode, input.lang);
+  const description = [mode, input.note].filter(Boolean).join("\n");
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
