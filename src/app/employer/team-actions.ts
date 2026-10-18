@@ -17,6 +17,7 @@ import {
   type InviteResult,
 } from "@/db/team";
 import {
+  INVITES_PER_DAY,
   TEAM_REFUSAL_TEXT,
   checkTeamName,
   type TeamChange,
@@ -76,6 +77,7 @@ const INVITE_ERRORS: Record<Exclude<InviteResult["status"], "invited">, string> 
   has_business: "这个账号已经属于另一家企业，不能再加入。",
   pending: "已经邀请过这个人，等对方回复。",
   full: "团队最多 10 人（包括还没回复的邀请）。",
+  too_many: `这家企业 24 小时内已经发了 ${INVITES_PER_DAY} 条邀请，明天再邀请。`,
   ...TEAM_REFUSAL_TEXT,
 };
 

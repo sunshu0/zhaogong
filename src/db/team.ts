@@ -1,10 +1,11 @@
 // 雇主多人管理 (#87, PRD R-38, ADR 0012): a business's team and its invitations. Every change is checked with the
 // rules in src/components/employer/team.ts inside the transaction that writes it. Server only.
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import {
+  INVITES_PER_DAY,
   TEAM_MAX,
   checkTeamChange,
   inviteExpired,
@@ -45,6 +46,7 @@ export type InviteResult =
   | { status: "has_business" } // works for another business
   | { status: "pending" } // already invited and not answered yet
   | { status: "full" }
+  | { status: "too_many" } // INVITES_PER_DAY sent in the last 24 hours (#197)
   | { status: TeamRefusal };
 
 /** An admin invites an existing account that has no business yet. */
@@ -74,6 +76,12 @@ export async function inviteToTeam(
     const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
     if (pending.some((p) => p.email === address)) return { status: "pending" };
     if (members.length + pending.length >= TEAM_MAX) return { status: "full" };
+    const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
+    const [{ sent }] = await tx
+      .select({ sent: sql<number>`count(*)` })
+      .from(t.teamInvites)
+      .where(and(eq(t.teamInvites.employerId, employerId), gt(t.teamInvites.createdAt, dayAgo)));
+    if (Number(sent) >= INVITES_PER_DAY) return { status: "too_many" };
     for (const old of waiting.filter((p) => p.email === address))
       await tx
         .update(t.teamInvites)

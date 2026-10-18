@@ -27,6 +27,12 @@ export const TEAM_MAX = 10;
  */
 export const INVITE_DAYS = 14;
 
+/**
+ * Invitations one business may send in 24 hours, whatever became of them (#197): each lands in the invited account's
+ * 通知, so sending, cancelling and sending again must not reach any number of people.
+ */
+export const INVITES_PER_DAY = 20;
+
 export function inviteExpired(createdAt: string, now: number): boolean {
   return now - Date.parse(createdAt) > INVITE_DAYS * 86_400_000;
 }

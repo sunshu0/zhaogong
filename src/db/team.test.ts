@@ -8,7 +8,7 @@ import {
   getAccountEmployer,
   openEmployerIdentity,
 } from "@/lib/data";
-import { TEAM_MAX } from "@/components/employer/team";
+import { INVITES_PER_DAY, TEAM_MAX } from "@/components/employer/team";
 import { deleteAccount, exportAccountData } from "@/db/account-data";
 import { createJob, getJob } from "@/lib/data";
 import { MOCK_JOBS } from "@/mock/data";
@@ -249,5 +249,19 @@ describe("invitations expire after 14 days (#194)", () => {
     expect(await answerInvite(others[0], again.invite.id, { accept: true, name: "新管理员" }, LATER)).toMatchObject({
       status: "accepted",
     });
+  });
+});
+
+describe("invitation limit (#197)", () => {
+  it("lets a business send 20 invitations in 24 hours, cancelled ones included, then more a day later", async () => {
+    const { boss, employer, others } = await shop(1);
+    const at = (minutes: number) => new Date(T0.getTime() + minutes * 60_000);
+    for (let i = 0; i < INVITES_PER_DAY; i += 1) {
+      const sent = await inviteToTeam(employer.id, boss, others[0], "member", at(i));
+      if (sent.status !== "invited") throw new Error(`${i}: ${sent.status}`);
+      await cancelInvite(employer.id, boss, sent.invite.id, at(i));
+    }
+    expect(await inviteToTeam(employer.id, boss, others[0], "member", at(30))).toEqual({ status: "too_many" });
+    expect((await inviteToTeam(employer.id, boss, others[0], "member", at(24 * 60 + 1))).status).toBe("invited");
   });
 });

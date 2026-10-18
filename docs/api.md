@@ -85,7 +85,7 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `getMyTeam()` | | `{ employer: { id, name }, me: { email, role, name }, members, invites }`：成员按管理员在前、加入时间排序，每人 `{ email, role, name, joinedAt }`；`invites` 是没回复的邀请 `{ id, email, role, createdAt, expired }`，只给管理员（成员是 `[]`）；`expired` 是 14 天没回复、已经过期（#194） | `null` |
-| `inviteTeammate(email, role)` | 对方注册找工用的邮箱；`role` 是 `admin` 或 `member`（默认） | `{ ok: true }` | 「请填写对方注册找工用的邮箱。」「这个邮箱还没有注册找工。…」「这个人已经在团队里了。」「这个账号已经属于另一家企业，不能再加入。」「已经邀请过这个人，等对方回复。」「团队最多 10 人（包括还没回复的邀请）。」 |
+| `inviteTeammate(email, role)` | 对方注册找工用的邮箱；`role` 是 `admin` 或 `member`（默认） | `{ ok: true }` | 「请填写对方注册找工用的邮箱。」「这个邮箱还没有注册找工。…」「这个人已经在团队里了。」「这个账号已经属于另一家企业，不能再加入。」「已经邀请过这个人，等对方回复。」「团队最多 10 人（包括还没回复的邀请）。」「这家企业 24 小时内已经发了 20 条邀请，明天再邀请。」（#197） |
 | `cancelTeamInvite(inviteId)` | | `{ ok: true }` | 「这条邀请已经回复或撤回了。」 |
 | `changeMyTeam(change)` | `{ type: "role", email, role }`、`{ type: "remove", email }` 或 `{ type: "leave" }` | `{ ok: true }`；退出后会话切回求职者身份 | 见上；「看不懂这个操作。」 |
 | `setMyTeamName(name)` | 称呼，去掉首尾空格后 1–12 个字，不能有邮箱或电话 | `{ ok: true, name }` | 「请填写称呼，例如「王经理」。」「称呼最多 12 个字。」「称呼里不要写邮箱或电话。」 |
