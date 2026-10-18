@@ -1,11 +1,13 @@
 // npm run db:migrate — apply the migrations in drizzle/ to the database DATABASE_URL points at.
-// npm run db:seed — migrate, then load the demo data (src/mock) if the database is still empty.
+// npm run db:seed — migrate, then load the demo data (src/mock) if the database is still empty, and import the real
+// external jobs into it (demo-import.ts; offline, or with EXTERNAL_JOBS=demo, the made-up ones stay).
 // npm run admin:grant <email> — make the account a moderator (creating the account if needed): how the first
 // moderator comes about; after that moderators add each other in /admin. npm run admin:revoke <email> takes it away
 // (never from the last one).
 // npm run import:external [-- --dry-run] [company ids] — read the public job feeds of the companies in
 // src/config/external-companies.ts and store the facts (Round 18, #111, ADR 0014). --dry-run prints the facts
 // and stores nothing; it may read a company whose terms are not checked yet, to judge the facts before asking.
+// A full import that read real jobs takes the demo's made-up external jobs down. New jobs wait in 审核后台.
 // All use the local file data/zhaogong.db unless DATABASE_URL says otherwise.
 import { EXTERNAL_COMPANIES } from "@/config/external-companies";
 import { databaseUrl } from "@/db/client";
@@ -14,6 +16,7 @@ import { grantModerator, revokeModerator } from "@/db/moderators";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 import { ensureAccount } from "@/lib/data";
 import { isValidEmail } from "@/components/seeker/session";
+import { describeDemoImport, importRealJobsIntoDemo, retireDemoExternalJobs } from "@/lib/external-jobs/demo-import";
 import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { politeFetcher } from "@/lib/external-jobs/polite-fetch";
 
@@ -53,6 +56,10 @@ async function importExternal(args: string[]): Promise<number> {
   const companies = ids.length > 0 ? EXTERNAL_COMPANIES.filter((c) => ids.includes(c.id)) : EXTERNAL_COMPANIES;
   const reports = await importExternalJobs({ companies, getJson: politeFetcher({ fetch }), dryRun });
   if (ids.length === 0 && !dryRun) reports.push(...(await takeDownUnlisted(EXTERNAL_COMPANIES)));
+  if (ids.length === 0 && !dryRun && reports.some((r) => r.status === "imported" && r.kept > 0)) {
+    const retired = await retireDemoExternalJobs();
+    if (retired > 0) console.log(`demo data: took down ${retired} made-up external jobs`);
+  }
   for (const r of reports) {
     if (r.status === "stopped") {
       console.log(
@@ -99,6 +106,9 @@ async function main(command: string | undefined, arg: string | undefined, rest: 
   }
   const n = await seedDemoData();
   console.log(`Loaded the demo data: ${n.employers} employers, ${n.jobs} jobs, ${n.contactViews} contact views.`);
+  if (process.env.EXTERNAL_JOBS !== "demo") {
+    console.log(describeDemoImport(await importRealJobsIntoDemo({ getJson: politeFetcher({ fetch }) })));
+  }
   return 0;
 }
 

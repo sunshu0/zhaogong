@@ -56,6 +56,7 @@ export function ExternalReview({
   return (
     <div className="space-y-4">
       <p className="text-meta text-muted">{t.intro}</p>
+      {queue.demoJobs > 0 && <p className="rounded-control bg-warn-soft p-3 text-body">{t.demoJobs(queue.demoJobs)}</p>}
       <Section look="app" title={t.pending(queue.pending.length)}>
         {queue.pending.length === 0 ? (
           <p className="py-group text-body text-muted">{t.noPending}</p>

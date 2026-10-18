@@ -63,6 +63,8 @@ describe("外部职位 in /admin (#112)", () => {
     const q = await queue();
     expect(q.pending.map((j) => j.id)).toEqual(["demo-kowhai:4002", "demo-tui:6f1d3a0e-0002"]);
     expect(q.approved.map((j) => [j.id, j.shown])).toEqual(expect.arrayContaining([["demo-tui:6f1d3a0e-0001", true]]));
+    // Only made-up jobs in the test database: 审核后台 says so (导师 10-19).
+    expect(q.demoJobs).toBe([...q.pending, ...q.approved].length);
     const clearPoint = q.companies.find((c) => c.id === "clearpoint");
     expect(clearPoint).toMatchObject({ onList: true, terms: { allowsDisplay: true }, imported: true, pending: 0 });
     expect(q.companies.find((c) => c.id === "demo-kowhai")).toMatchObject({

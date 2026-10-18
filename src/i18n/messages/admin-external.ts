@@ -8,6 +8,9 @@ const adminExternalZh = {
   name: "外部职位",
   intro:
     "外部职位从公司招聘系统的公开接口导入，只存事实，审核通过后才出现在「实习」「专业职位」里。请点「看官网原文」对照：事实提取错了、不是软件或电子电气岗位、或有按国籍或种族招人的要求，就选「不显示」。",
+  // Shown while the demo's made-up external jobs are up (ExternalReviewQueue.demoJobs).
+  demoJobs: (n: number) =>
+    `这里有 ${n} 个演示用的假外部职位（不在名单里的公司，没有真的官网）：建演示库时没连上公司官网，或者这是测试数据。联网后运行 npm run import:external 导入真实职位，假职位会自动下架；新导入的职位要在这里审核通过才显示。`,
   pending: (n: number) => `待审核 ${n}`,
   noPending: "没有待审核的外部职位。",
   approvedHeading: (n: number) => `已通过 ${n}`,
@@ -83,6 +86,8 @@ export const adminExternalMessages: Dictionary<typeof adminExternalZh> = {
     name: "external jobs",
     intro:
       "External jobs come in from the public feeds of companies' hiring systems. We keep only the facts, and a job shows under Internships or Professional jobs only once approved. Use “See the original posting” to compare: if a fact was read wrongly, it isn't a software or electrical and electronic role, or it asks for a nationality or race, choose “Don't show”.",
+    demoJobs: (n) =>
+      `${n} of these external jobs are made-up demo jobs (companies not on the list, with no real company site): the companies' sites couldn't be reached when the demo database was made, or this is test data. With a connection, run npm run import:external to import real jobs; the made-up ones come down by themselves, and new jobs show once approved here.`,
     pending: (n) => `Waiting for review ${n}`,
     noPending: "No external jobs waiting for review.",
     approvedHeading: (n) => `Approved ${n}`,

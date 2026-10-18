@@ -72,6 +72,8 @@ test("审核后台 · 外部职位: the lists, a flagged job's tick, the 不显�
   await admin.goto("/admin");
   await admin.getByRole("tab", { name: /^外部职位/ }).click();
   await expect(admin.getByRole("heading", { name: /^待审核 \d+$/ })).toBeVisible();
+  // The test database has only the made-up jobs, and 审核后台 says so (导师 10-19).
+  await expect(admin.getByText(/^这里有 \d+ 个演示用的假外部职位/)).toBeVisible();
   await expectNoViolations(admin, "/admin 外部职位");
 
   // The demo data has a flagged job waiting, unless another spec on this server has decided it already.

@@ -14,6 +14,29 @@ export function demoDataWanted(): boolean {
   return /^(1|true|yes)$/i.test(process.env.DEMO_DATA ?? fallback);
 }
 
+/**
+ * EXTERNAL_JOBS: whether a fresh demo database imports the real external jobs (lib/external-jobs/demo-import.ts).
+ * By default only on `next dev`: the test build (ZG_E2E=1), unit tests and production keep the made-up ones.
+ * EXTERNAL_JOBS=demo keeps the made-up ones on `next dev` too; EXTERNAL_JOBS=real imports anywhere.
+ */
+export function realExternalJobsWanted(env: Record<string, string | undefined> = process.env): boolean {
+  if (env.EXTERNAL_JOBS === "demo") return false;
+  if (env.EXTERNAL_JOBS === "real") return true;
+  return env.NODE_ENV === "development" && env.ZG_E2E !== "1";
+}
+
+/** In the background, so the first page does not wait for the companies' sites; it shows the made-up jobs meanwhile. */
+function importRealExternalJobs(): void {
+  if (!realExternalJobsWanted()) return;
+  void (async () => {
+    const [{ describeDemoImport, importRealJobsIntoDemo }, { politeFetcher }] = await Promise.all([
+      import("@/lib/external-jobs/demo-import"),
+      import("@/lib/external-jobs/polite-fetch"),
+    ]);
+    console.log(describeDemoImport(await importRealJobsIntoDemo({ getJson: politeFetcher({ fetch }) })));
+  })().catch((error) => console.error("External jobs: the import failed; the demo keeps its made-up ones.", error));
+}
+
 async function prepare(): Promise<Db> {
   try {
     await migrateDb();
@@ -23,11 +46,14 @@ async function prepare(): Promise<Db> {
     await migrateDb();
   }
   if (demoDataWanted() && (await isDatabaseEmpty())) {
+    let loaded = false;
     try {
       await seedDemoData();
+      loaded = true;
     } catch (error) {
       if (await isDatabaseEmpty()) throw error; // otherwise another instance loaded it first
     }
+    if (loaded) importRealExternalJobs();
   }
   return getDb();
 }

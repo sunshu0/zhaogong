@@ -16,6 +16,7 @@ import {
 } from "@/db/external-jobs";
 import { matchExternalJobAlerts } from "@/db/external-job-alerts";
 import { addModerationLog } from "@/lib/data";
+import { isDemoCompany } from "@/lib/external-jobs/demo";
 import { approvalProblem, hideReasons, parseHide, parseNote, parseTakedown } from "@/lib/external-jobs/review";
 import { isShown } from "@/lib/external-jobs/visibility";
 import type { ExternalSource } from "@/lib/external-jobs/types";
@@ -57,6 +58,8 @@ export interface ExternalReviewQueue {
   pending: ExternalJobItem[];
   /** Approved and still in the feed; `shown` is false when its last refresh is too old or its closing day is over. */
   approved: ExternalJobItem[];
+  /** The demo's made-up jobs still up (isDemoCompany): offline when the demo database was made, or test data. */
+  demoJobs: number;
 }
 
 export async function getExternalReview(): Promise<ExternalReviewQueue | Refused> {
@@ -92,6 +95,7 @@ export async function getExternalReview(): Promise<ExternalReviewQueue | Refused
       .filter((job) => job.review === "pending")
       .sort((a, b) => b.flags.length - a.flags.length || a.firstSeenAt.localeCompare(b.firstSeenAt)),
     approved: up.filter((job) => job.review === "approved"),
+    demoJobs: up.filter((job) => isDemoCompany(job.companyId)).length,
   };
 }
 
