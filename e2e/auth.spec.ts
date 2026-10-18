@@ -21,13 +21,23 @@ test("the session lives in an httpOnly, SameSite=Lax cookie for 30 days, out of 
   expect(await page.evaluate(() => document.cookie)).not.toContain("zg_session");
 });
 
-test("a new code only once a minute; in development the code shows on the page", async ({ page }) => {
+test("a new code only once a minute, counted down on the button; in development the code shows on the page", async ({
+  page,
+}) => {
+  await page.clock.install();
   await page.goto("/login");
   await page.getByLabel("邮箱", { exact: true }).fill(freshEmail("resend"));
   await page.getByRole("button", { name: "获取验证码" }).click();
   await expect(page.getByTestId("dev-sign-in-code")).toHaveText(/^\d{6}$/);
+  // #184: the wait shows on the button, which opens again when it is over.
+  const waiting = page.getByRole("button", { name: /^\d+ 秒后可重新获取$/ });
+  await expect(waiting).toBeDisabled();
+  await expect(waiting).toHaveText(/^(60|59) 秒后可重新获取$/);
+  // The page's clock a minute on; the server's is not, so it still refuses, and the button counts down from its figure.
+  await page.clock.fastForward(61_000);
   await page.getByRole("button", { name: "重新获取验证码" }).click();
   await expect(page.getByRole("main").getByRole("alert")).toHaveText(/^验证码刚发过，请 \d+ 秒后再获取$/);
+  await expect(waiting).toBeDisabled();
 });
 
 test("editing localStorage signs nobody in and makes nobody an employer", async ({ page }) => {

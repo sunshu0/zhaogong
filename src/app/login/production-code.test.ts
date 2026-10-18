@@ -35,7 +35,7 @@ describe("验证码 with a mail service", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("AUTH_SECRET", "production secret");
     const result = await requestSignInCode("mail@example.com");
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, resendInSec: 60 });
     expect(result).not.toHaveProperty("devCode");
     expect(sent).toEqual([{ email: "mail@example.com", code: expect.stringMatching(/^\d{6}$/) }]);
     expect(await signInAccount("mail@example.com", sent[0].code, "seeker")).toMatchObject({ ok: true });
@@ -43,6 +43,6 @@ describe("验证码 with a mail service", () => {
 
   it("in development: the same code also comes back for the page to show", async () => {
     const result = await requestSignInCode("dev@example.com");
-    expect(result).toEqual({ ok: true, devCode: sent[0].code });
+    expect(result).toEqual({ ok: true, devCode: sent[0].code, resendInSec: 60 });
   });
 });

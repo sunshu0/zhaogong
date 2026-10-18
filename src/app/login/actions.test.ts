@@ -35,11 +35,21 @@ afterEach(() => {
 describe("注册或登录", () => {
   it("sends a code (shown on the page outside production), at most once a minute, and refuses a bad email", async () => {
     expect(await requestSignInCode("nope")).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
-    expect(await requestSignInCode("New@Example.com")).toEqual({ ok: true, devCode: expect.stringMatching(/^\d{6}$/) });
-    expect(await requestSignInCode("new@example.com")).toEqual({
+    expect(await requestSignInCode("New@Example.com")).toEqual({
+      ok: true,
+      devCode: expect.stringMatching(/^\d{6}$/),
+      resendInSec: 60, // #184: for the page's countdown
+    });
+    const again = await requestSignInCode("new@example.com");
+    expect(again).toEqual({
       ok: false,
       error: expect.stringMatching(/^验证码刚发过，请 \d+ 秒后再获取$/),
+      retryAfterSec: expect.any(Number),
     });
+    if (again.ok) throw new Error("a second code within the minute");
+    expect(again.error).toBe(`验证码刚发过，请 ${again.retryAfterSec} 秒后再获取`);
+    expect(again.retryAfterSec).toBeGreaterThan(0);
+    expect(again.retryAfterSec).toBeLessThanOrEqual(60);
   });
 
   it("in production never hands the code to the page (no mail service yet: it refuses instead)", async () => {

@@ -18,6 +18,7 @@ import {
   openErrorMessage,
   reconcileIdentity,
 } from "@/components/seeker/identity";
+import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
@@ -74,6 +75,11 @@ export function LoginForm({
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
   const [checkedFor, setCheckedFor] = useState<string | null>(null);
+  // #184: when another code may be asked for (the server's once-a-minute rule), counted down on 重新获取验证码.
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(0);
+  const resendLeft = secondsLeft(resendAt, now);
+  const counting = resendLeft > 0;
   const next = safeNext(nextParam, role === "employer" ? "/employer/post" : "/jobs");
 
   // Next keeps visited pages alive (hidden) for back navigation. A sign-in should start fresh on every visit,
@@ -88,8 +94,15 @@ export function LoginForm({
       setDevCode(null);
       setError(null);
       setCheckedFor(null);
+      setResendAt(0);
     };
   }, []);
+
+  useEffect(() => {
+    if (!counting) return;
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
+  }, [counting]);
 
   const signedInEmail = session?.email;
   useEffect(() => {
@@ -147,12 +160,23 @@ export function LoginForm({
     );
   }
 
+  function waitBeforeResend(seconds: number) {
+    const at = Date.now();
+    setNow(at);
+    setResendAt(at + seconds * 1000);
+  }
+
   function sendCode(address: string) {
     setError(null);
     startTransition(async () => {
       const result = await requestSignInCode(address).catch(() => null);
       if (!result) return setError("网络有问题，请稍后再试");
-      if (!result.ok) return setError(result.error);
+      if (!result.ok) {
+        // Asked too soon (another tab, say): count down from what the server says is left.
+        if (result.retryAfterSec) waitBeforeResend(result.retryAfterSec);
+        return setError(result.error);
+      }
+      waitBeforeResend(result.resendInSec);
       setEmail(address);
       setDevCode(result.devCode ?? null);
       setStep("code");
@@ -263,8 +287,13 @@ export function LoginForm({
         登录
       </Button>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={pending} onClick={() => sendCode(email)} className={linkButtonClass}>
-          重新获取验证码
+        <button
+          type="button"
+          disabled={pending || counting}
+          onClick={() => sendCode(email)}
+          className={linkButtonClass}
+        >
+          {resendLabel(resendLeft)}
         </button>
         <button
           type="button"

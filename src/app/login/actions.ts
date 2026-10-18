@@ -10,6 +10,7 @@ import {
   verifyCode,
   type SessionView,
 } from "@/lib/auth";
+import { RESEND_AFTER_MS } from "@/lib/auth/config";
 import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
@@ -28,13 +29,23 @@ function validEmail(email: unknown): string | null {
   return isValidEmail(normalized) ? normalized : null;
 }
 
-/** Step 1 of 注册或登录: send a code. Outside production the code comes back for the page to show. */
-export async function requestSignInCode(email: string): Promise<{ ok: true; devCode?: string } | Failure> {
+/**
+ * Step 1 of 注册或登录: send a code. Outside production the code comes back for the page to show. The answer says
+ * when another may be asked for (`resendInSec`), or, asked too soon, how long is left (`retryAfterSec`), for the
+ * page to count down on 重新获取验证码 (#184).
+ */
+export async function requestSignInCode(
+  email: string,
+): Promise<{ ok: true; devCode?: string; resendInSec: number } | (Failure & { retryAfterSec?: number })> {
   const address = validEmail(email);
   if (!address) return { ok: false, error: "请输入正确的邮箱地址" };
   const result = await requestCode(address);
-  if (result.ok) return result.devCode ? { ok: true, devCode: result.devCode } : { ok: true };
-  if (result.reason === "throttled") return { ok: false, error: `验证码刚发过，请 ${result.retryAfterSec} 秒后再获取` };
+  const resendInSec = RESEND_AFTER_MS / 1000;
+  if (result.ok) return result.devCode ? { ok: true, devCode: result.devCode, resendInSec } : { ok: true, resendInSec };
+  if (result.reason === "throttled") {
+    const { retryAfterSec } = result;
+    return { ok: false, error: `验证码刚发过，请 ${retryAfterSec} 秒后再获取`, retryAfterSec };
+  }
   return { ok: false, error: "邮件服务还没有配置，暂时无法发送验证码" };
 }
 
