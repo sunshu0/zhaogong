@@ -28,8 +28,11 @@ test("signed in: saved and applied, job alerts, history and reports, the workspa
   page,
   baseURL,
 }) => {
+  // The shared signIn() reads the Chinese sign-in page: sign in first, then switch the browser to English. (The
+  // account keeps Chinese as its choice; the cookie decides the pages until the next sign-in.)
+  await signIn(page, "/jobs", freshEmail("english.seeker"));
   await useEnglish(page, baseURL);
-  await signIn(page, "/jobs?industry=retail", freshEmail("english.seeker"));
+  await page.goto("/jobs?industry=retail");
   await page.getByRole("button", { name: "Save as an alert" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved as an alert" })).toBeVisible();
 
