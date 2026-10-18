@@ -155,6 +155,13 @@
       "when": 1792197960701,
       "tag": "0017_shared_conversations",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1792293347450,
+      "tag": "0022_employer_profiles",
+      "breakpoints": true
     }
   ]
 }

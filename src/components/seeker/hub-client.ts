@@ -17,21 +17,28 @@ import { MOCK_CANDIDATES } from "@/mock/candidates";
 import { recommendedCandidates } from "@/app/profile/candidate-actions";
 import type { Candidate } from "@/lib/candidate-matching";
 import { employerPublicProfile } from "@/lib/employer-public-profile";
+import { usePublicPage } from "@/components/employer/public-pages-client";
 
 const NOTIFICATIONS_KEY = "zhaogong:notifications-by-identity";
 
 // The profile store and its sync with the account moved to profile-client.ts (#104); importers keep this path.
 export { useProfile, useProfileSave } from "@/components/seeker/profile-client";
 
-/** Every stored identity's profile with defaults filled in: 企业主页 for their public pages (only in this browser). */
+/** Every stored identity's profile with defaults filled in: this browser's 企业主页 until the server's arrives. */
 function useAllProfiles() {
   const stored = profileChanges.useValue();
   return useMemo(() => resolveProfiles(stored), [stored]);
 }
 const notificationReads = createLocalStore(NOTIFICATIONS_KEY, parseNotificationReads);
 
+/**
+ * A business's public page (ADR 0022): the server's, the same for every visitor; undefined when it has none. While
+ * the server has not answered, this browser's own copy (when it is the business's) stands in.
+ */
 export function usePublicEmployerProfile(employerId: string) {
-  return employerPublicProfile(useAllProfiles(), employerId);
+  const local = employerPublicProfile(useAllProfiles(), employerId);
+  const server = usePublicPage(employerId);
+  return server === undefined ? local : (server ?? undefined);
 }
 
 // 推荐人才 (#104): the job seekers who allowed it come from their accounts, fetched once per employer identity per

@@ -22,6 +22,7 @@ import type { InterviewMode, InterviewStatus } from "@/components/seeker/intervi
 import type { Profile } from "@/components/seeker/hub-state";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
+import type { EmployerPage } from "@/components/employer/employer-page";
 import type {
   DegreeLevel,
   DegreeSubject,
@@ -658,6 +659,22 @@ export const seekerProfiles = sqliteTable("seeker_profiles", {
     .references(() => accounts.email),
   profile: text("profile", { mode: "json" }).$type<Partial<Profile>>().notNull(),
   updatedAt: text("updated_at").notNull(),
+});
+
+// ---- 企业主页 on the server (ADR 0022) ----
+
+/**
+ * A business's 企业主页, one per business (ADR 0022): the public fields only (`parseEmployerPage`), as what was
+ * changed from the empty page, like `seeker_profiles`. Everyone in the team and the public page read it; only an admin
+ * writes it. `updated_by_email` is who saved last (deleted-account once that account is gone).
+ */
+export const employerProfiles = sqliteTable("employer_profiles", {
+  employerId: text("employer_id")
+    .primaryKey()
+    .references(() => employers.id),
+  page: text("page", { mode: "json" }).$type<EmployerPage>().notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedByEmail: text("updated_by_email").notNull(),
 });
 
 // ---- AI 发帖用量 (#102) ----

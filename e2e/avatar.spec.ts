@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
-import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 const AVATAR =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
-test("profile avatar upload persists and appears on employer job cards and public home", async ({ page }) => {
+test("profile avatar upload persists, and a demo business without a page on the server shows none", async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     if (localStorage.getItem("zhaogong:profiles-by-identity")) return;
     const scope = JSON.stringify(["avatar@example.com", "employer", "e3"]);
@@ -37,6 +39,7 @@ test("profile avatar upload persists and appears on employer job cards and publi
   await openOptionalProfile(page);
   await expect(page.getByRole("img", { name: "头像预览" })).toBeVisible();
 
+  // #181: a business's page and avatar come from the server; this browser's copy only stands in until the answer.
   await page.evaluate((avatar) => {
     const key = "zhaogong:profiles-by-identity";
     const stored = JSON.parse(localStorage.getItem(key)!);
@@ -63,16 +66,9 @@ test("profile avatar upload persists and appears on employer job cards and publi
       }),
     );
   }, AVATAR);
-  await page.goto("/jobs");
-  const job = page.locator("article").filter({ has: page.locator('a[href="/jobs/j5"]') });
-  await expect(job.getByRole("img", { name: "东区亚洲超市头像" })).toBeVisible();
-  await page.goto("/jobs/j5");
-  const employer = page.getByRole("region", { name: "雇主", exact: true });
-  await expect(employer.getByRole("img", { name: "东区亚洲超市头像" })).toBeVisible();
-  await expect(employer).not.toContainText("雇主ID"); // A29: name, badge and its explanation only
   await page.goto("/employers/e3");
-  await expect(page.getByRole("img", { name: "东区亚洲超市头像" }).first()).toBeVisible();
   await expect(page.getByText("雇主主页 · 演示企业 · ID：e3", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "东区亚洲超市头像" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -98,6 +94,14 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
       .getByRole("img", { name: `${shop}头像` }),
   ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await searchJobList(page, title);
+  await expect(jobCard(page, title).getByRole("img", { name: `${shop}头像` })).toBeVisible();
+  await jobCard(page, title)
+    .getByRole("link", { name: new RegExp(`^${title}`) })
+    .click();
+  const employer = page.getByRole("region", { name: "雇主", exact: true });
+  await expect(employer.getByRole("img", { name: `${shop}头像` })).toBeVisible();
+  await expect(employer).not.toContainText("雇主ID"); // A29: name, badge and its explanation only
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

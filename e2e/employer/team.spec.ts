@@ -98,3 +98,35 @@ test("the team shares the business's chats, and each message says who sent it", 
   await expect(page.getByRole("log").locator("[data-message-by]")).toHaveText(["王老板", "小李"]);
   await staff.page.context().close();
 });
+
+test("the 企业主页 is the business's: visitors and the team see what an admin saved; a member reads it (#181)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const shop = await signUpEmployer(page, testInfo, "/employer/team");
+  await saveName(page, "王老板");
+  const staff = await secondPerson(browser, testInfo);
+  await invitedAndJoined(page, staff, shop);
+
+  await page.goto("/profile");
+  const bio = `团队一起维护的企业介绍 ${testInfo.project.name}`;
+  await page.getByLabel("企业介绍", { exact: true }).fill(bio);
+  await expect(page.getByText(/^已保存到企业主页/)).toBeVisible();
+  const publicUrl = await page.getByRole("link", { name: "查看公开主页", exact: true }).getAttribute("href");
+
+  // A member sees the saved page, read-only, and is told who can change it.
+  await staff.page.goto("/profile");
+  await expect(staff.page.getByText("企业主页只有管理员（王老板）能改", { exact: false })).toBeVisible();
+  const field = staff.page.getByLabel("企业介绍", { exact: true });
+  await expect(field).toHaveValue(bio);
+  await expect(field).toBeDisabled();
+  await staff.page.context().close();
+
+  // Someone who is not signed in, in another browser, sees it on the public page.
+  const visitor = await browser.newContext({ ...testInfo.project.use });
+  const guest = await visitor.newPage();
+  await guest.goto(publicUrl!);
+  await expect(guest.getByRole("heading", { name: shop, exact: true })).toBeVisible();
+  await expect(guest.getByRole("region", { name: "企业介绍", exact: true })).toContainText(bio);
+  await visitor.close();
+});

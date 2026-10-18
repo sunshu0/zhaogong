@@ -34,6 +34,12 @@ describe("team permissions (#87)", () => {
     expect(teamCan("admin", "team")).toBe(true);
     expect(teamCan(undefined, "post")).toBe(false);
   });
+
+  it("leaves the business's 企业主页 to admins (ADR 0022)", () => {
+    expect(teamCan("admin", "page")).toBe(true);
+    expect(teamCan("member", "page")).toBe(false);
+    expect(teamCan(undefined, "page")).toBe(false);
+  });
 });
 
 describe("team changes (#87)", () => {

@@ -24,5 +24,6 @@
 | [0019](0019-application-outcomes-at-read-time.md) | 已录用和职位结束：录用存在申请上，「职位已结束」和给申请人的通知在读取时算 | 已采纳 |
 | [0020](0020-external-saved-and-alerts.md) | 外部职位的收藏和提醒：新表，提醒表加分区 | 已采纳 |
 | [0021](0021-round19-interface-conventions.md) | Round 19 的界面约定：卡片、整张卡的链接、共用的 Select 和骨架屏 | 已采纳 |
+| [0022](0022-employer-page-on-the-server.md) | 企业主页存到服务器，属于企业：团队和访客看同一份，只有管理员能改，私密交换资料留在各人浏览器 | 已采纳 |
 
 新编号由执行 C 统一分配：要写新 ADR 时先在队列里要一个号，避免两条线撞号。

@@ -6,9 +6,10 @@ export type TeamRole = "admin" | "member";
 
 export type TeamInviteStatus = "pending" | "accepted" | "declined" | "cancelled";
 
-export type TeamPermission = "post" | "jobs" | "applicants" | "chat" | "verify" | "team";
+/** `page`: the business's 企业主页 (ADR 0022). */
+export type TeamPermission = "post" | "jobs" | "applicants" | "chat" | "verify" | "team" | "page";
 
-const ADMIN_ONLY: readonly TeamPermission[] = ["verify", "team"];
+const ADMIN_ONLY: readonly TeamPermission[] = ["verify", "team", "page"];
 
 export function teamCan(role: TeamRole | undefined, permission: TeamPermission): boolean {
   if (!role) return false;

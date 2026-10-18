@@ -11,6 +11,7 @@ import * as t from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { SharedConversation } from "@/lib/chat-server/shared-view";
+import type { EmployerPage } from "@/components/employer/employer-page";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -26,8 +27,16 @@ export interface ServerAccountData {
   moderator: { grantedAt: string; grantedBy: string | null } | null;
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
-  /** The business of the employer identity, every job it posted whatever their status, and their renewals (#69). */
-  employer: { business: Employer; jobs: Job[]; renewals: JobRenewal[] } | null;
+  /**
+   * The business of the employer identity, every job it posted whatever their status, and their renewals (#69); its
+   * 企业主页 (ADR 0022), and whether this account saved it last.
+   */
+  employer: {
+    business: Employer;
+    jobs: Job[];
+    renewals: JobRenewal[];
+    page: { page: EmployerPage; updatedAt: string; savedByYou: boolean } | null;
+  } | null;
   /** Each identity's chat records and the notifications it has read. */
   chats: { identity: string; record: unknown; notificationsRead: string[]; updatedAt: string }[];
   /**
@@ -116,6 +125,9 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     ? await db.select().from(t.jobs).where(eq(t.jobs.employerId, business.id)).orderBy(asc(t.jobs.postedAt))
     : [];
   const renewals = await listRenewals(jobs.map((j) => j.id));
+  const [businessPage] = business
+    ? await db.select().from(t.employerProfiles).where(eq(t.employerProfiles.employerId, business.id))
+    : [];
   const chats = await db
     .select()
     .from(t.chatRecords)
@@ -212,7 +224,20 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       jobId: a.jobId,
       employerId: a.employerId,
     })),
-    employer: business ? { business: toEmployer(business), jobs: jobs.map(toJob), renewals } : null,
+    employer: business
+      ? {
+          business: toEmployer(business),
+          jobs: jobs.map(toJob),
+          renewals,
+          page: businessPage
+            ? {
+                page: businessPage.page,
+                updatedAt: businessPage.updatedAt,
+                savedByYou: businessPage.updatedByEmail === address,
+              }
+            : null,
+        }
+      : null,
     chats: chats.map((row) => ({
       identity: row.scope,
       record: row.record ?? null,
@@ -363,6 +388,11 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
       .where(eq(t.contactViews.viewerEmail, address));
+    // The business's page stays the team's; it no longer says who saved it last (ADR 0022).
+    await tx
+      .update(t.employerProfiles)
+      .set({ updatedByEmail: DELETED_ACCOUNT })
+      .where(eq(t.employerProfiles.updatedByEmail, address));
     // The calls to the AI 发帖 model stay in 审核数据's totals, without the email (#102).
     await tx.update(t.aiUsage).set({ email: DELETED_ACCOUNT }).where(eq(t.aiUsage.email, address));
     await tx
@@ -391,8 +421,10 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     // else in its team carries on, nobody posts for it any more: its jobs come down and the contact details on them,
     // the person's own, are cleared, and invitations nobody answered are cancelled (#87).
     if (account.employerId && !teammates.length) {
-      // The business's shared chats (#87) were only ever this person's side of the conversations.
+      // The business's shared chats (#87) were only ever this person's side of the conversations. Its page goes too:
+      // nobody is left to keep it (ADR 0022); the public page shows the business's name only.
       await tx.delete(t.teamChats).where(eq(t.teamChats.employerId, account.employerId));
+      await tx.delete(t.employerProfiles).where(eq(t.employerProfiles.employerId, account.employerId));
       await tx
         .update(t.teamInvites)
         .set({ status: "cancelled" })

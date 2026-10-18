@@ -15,6 +15,7 @@ import { getExternalJob } from "@/db/external-jobs";
 import { addApplication } from "@/db/job-applications";
 import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
+import { getEmployerPage, saveEmployerPage } from "@/db/employer-profiles";
 import { inviteToInterview } from "@/db/interviews";
 import { addSharedMessage, openSharedConversation } from "@/db/conversations";
 import { listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
@@ -102,6 +103,7 @@ async function fullAccount(email: string) {
     await inviteToInterview("e1", application.id, INVITE, new Date("2026-10-17T00:00:00.000Z"));
   await saveResumeShare(email, RESUME, new Date("2026-10-17T00:00:00.000Z"));
   await saveSeekerProfile(email, { name: "王芳", bio: "会做咖啡" }, new Date("2026-10-17T00:00:00.000Z"));
+  await saveEmployerPage(email, { bio: "测试店的介绍" }, new Date("2026-10-17T00:00:00.000Z"));
   await recordChatStart("j1", email);
   await createJobAlert(email, { name: "全部新职位", country: "NZ", query: "" }, new Date("2026-10-16T00:00:00.000Z"));
   await matchJobAlerts(await getJob("j2").then((j) => ({ ...j!, expiresAt: "2099-01-01T00:00:00.000Z" })));
@@ -139,6 +141,11 @@ describe("exportAccountData (#54)", () => {
     expect(data?.employer?.renewals).toMatchObject([
       { jobId: job.id, days: 30, expiresAfter: "2026-12-01T00:00:00.000Z" },
     ]);
+    expect(data?.employer?.page).toEqual({
+      page: { bio: "测试店的介绍" },
+      updatedAt: "2026-10-17T00:00:00.000Z",
+      savedByYou: true,
+    });
     expect(data?.chats.map((c) => c.identity).sort()).toEqual(
       [scopeOf(email, "employer", business.id), scopeOf(email, "seeker")].sort(),
     );
@@ -249,6 +256,9 @@ describe("deleteAccount (#54)", () => {
 
     const removed = await getJob(job.id);
     expect(removed).toMatchObject({ status: "removed", contactPublic: false, contact: {} });
+    // Nobody is left to keep the business's page (ADR 0022); the other business keeps its own.
+    expect(await getEmployerPage(business.id)).toBeUndefined();
+    expect((await getEmployerPage(other.business.id))?.updatedByEmail).toBe("stays.here@example.com");
     const [stillThere] = await db.select().from(t.employers).where(eq(t.employers.id, business.id));
     expect(stillThere?.name).toBe(business.name);
 
@@ -309,6 +319,7 @@ describe("deleteAccount (#54)", () => {
       "job_applications.seeker_email",
       "resume_shares.email",
       "seeker_profiles.email",
+      "employer_profiles.updated_by_email",
       "job_chat_starts.seeker_email",
       "job_alerts.email",
       "job_alert_hits.email",

@@ -169,9 +169,21 @@
 | --- | --- | --- | --- |
 | `payReferenceFor(industry, regionId, exclude?)` | 行业；地区（可不填）；不计入的职位编号（编辑中的职位） | `{ reference, at }`：`reference` 是 `{ scope, place, min, median, max, count }` 或 `{ scope: "none", count }`；`at` 是计算时间 | 行业不认识时 `null` |
 
+## 企业主页 — `src/app/employer/page-actions.ts`
+
+#181，ADR 0022。企业主页存在 `employer_profiles`（迁移 0022）：企业是主键，`page` 是改过的内容，只有公开的几项（名称、招聘简介、地区、招聘联系人、沟通语言、联系时间、企业介绍、头像；`parseEmployerPage`），私密交换资料不上服务器。人和企业都从会话读；团队里每个人都能读，只有管理员能存。浏览器怎么同步见 `src/components/seeker/profile-client.ts`。
+
+`EmployerPageSnapshot`：`{ scope, page, updatedAt, canEdit, admins }`。`scope` 是回答对应的身份；还没人存过时 `page`、`updatedAt` 是 `null`；`canEdit` 是这个人能不能改，`admins` 是管理员的称呼（没设称呼就是邮箱）。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myEmployerPage()` | | 企业主页的 `EmployerPageSnapshot` | 未登录、求职者身份或没有企业时 `null` |
+| `saveMyEmployerPage(page)` | 浏览器里的整份主页（只留企业的那几项） | 存下后的 `EmployerPageSnapshot`；成员存时什么都不改，回答里 `canEdit` 是 `false` | 未登录、求职者身份、没有企业、不是主页或超过 250 kB 时 `null` |
+| `employerPublicPages(employerIds)` | 企业编号的数组，一次最多 50 个；不用登录 | `{ [employerId]: { name, headline, location, languages, availability, bio, contactName, avatar? } }`：`name` 没填时是企业名称 | 还没有主页、被封禁或编号不对的企业不在回答里；参数不是数组时 `{}` |
+
 ## 我的主页 — `src/app/profile/actions.ts`
 
-#104（PRD 第 17 轮）。求职者主页存在 `seeker_profiles`（迁移 0019）：账号是主键，`profile` 是用户改过的内容（和浏览器存的一样，`parseProfilePatch` 的形状），`updated_at` 是最后一次保存。账号取自会话，只有求职者身份能读写；企业主页还在浏览器里。浏览器怎么和它同步见 `src/components/seeker/profile-client.ts` 和 ADR 0017。
+#104（PRD 第 17 轮）。求职者主页存在 `seeker_profiles`（迁移 0019）：账号是主键，`profile` 是用户改过的内容（和浏览器存的一样，`parseProfilePatch` 的形状），`updated_at` 是最后一次保存。账号取自会话，只有求职者身份能读写；企业主页见上一节。浏览器怎么和它同步见 `src/components/seeker/profile-client.ts` 和 ADR 0017。
 
 `ProfileSnapshot`：`{ scope, profile, updatedAt }`，`scope` 是回答对应的身份（浏览器只在当前身份相同时才用），账号还没存过时 `profile`、`updatedAt` 是 `null`。
 
