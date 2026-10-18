@@ -63,3 +63,25 @@ test("ending a job asks how many were hired; the count shows and can be correcte
   await expect(page.getByRole("status")).toHaveText(`${title}：已记录，没有通过找工招到人`);
   await expect(card).toContainText("没有通过找工招到人");
 });
+
+test("复制为新职位 starts a new job from a live one; both are listed (#190)", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  const title = uniqueTitle("前厅服务员", testInfo);
+  await publishJob(page, title);
+
+  await page.goto("/employer/jobs");
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
+  await (await cardMenuItem(card, "复制为新职位")).click();
+  await expect(page.getByRole("heading", { name: "复制为新职位" })).toBeVisible();
+  const copyTitle = uniqueTitle("收银员", testInfo);
+  const name = page.getByLabel("职位名称（中文）");
+  await expect(name).toHaveValue(title);
+  await name.fill(copyTitle);
+  await page.getByRole("button", { name: "发布", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
+
+  await page.goto("/employer/jobs");
+  const copy = page.getByRole("article").filter({ has: page.getByRole("heading", { name: copyTitle }) });
+  await expect(copy).toContainText("申请人 0");
+  await expect(card).toBeVisible();
+});

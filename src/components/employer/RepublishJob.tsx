@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
 import { publishJob } from "@/app/employer/actions";
 import { DraftEditor } from "@/components/employer/DraftEditor";
-import { canRepublish, closeDateZh } from "@/components/employer/job-status";
+import { canCopy, canRepublish, closeDateZh } from "@/components/employer/job-status";
 import { formFromDraft } from "@/components/employer/post-form";
 import { PUBLISH_ERRORS } from "@/components/employer/post-flow-state";
 import { Published } from "@/components/employer/Published";
@@ -22,40 +22,74 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 const BOX = "rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted";
 
 /**
- * 重新发布 (#69): a job that closed more than 14 days ago, as a new draft with its content. It goes through the same
- * form and checks as posting — the rules of today, such as the minimum wage — and is published as a new job; the
- * old one stays ended.
+ * 重新发布 (#69): a job that closed more than 14 days ago, as a new draft with its content; 复制为新职位 (#190): the
+ * same for a live or ended job. Both go through the same form and checks as posting — the rules of today, such as
+ * the minimum wage — and publish a new job, with no applicants, renewals or numbers of the old one, posted by whoever
+ * publishes it (#182). The old job stays as it was.
  */
-export function RepublishJob({ jobId, country }: { jobId: string; country: CountryCode }) {
+export type CopyMode = "republish" | "copy";
+
+export function RepublishJob({
+  jobId,
+  country,
+  mode = "republish",
+}: {
+  jobId: string;
+  country: CountryCode;
+  mode?: CopyMode;
+}) {
   return (
-    <EmployerGate next={`/employer/jobs/${jobId}/republish`}>
-      {(me) => <Load jobId={jobId} me={me} country={country} />}
+    <EmployerGate next={`/employer/jobs/${jobId}/${mode}`}>
+      {(me) => <Load jobId={jobId} me={me} country={country} mode={mode} />}
     </EmployerGate>
   );
 }
 
-function Load({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
+function Load({
+  jobId,
+  me,
+  country,
+  mode,
+}: {
+  jobId: string;
+  me: EmployerIdentity;
+  country: CountryCode;
+  mode: CopyMode;
+}) {
   const job = useMyJob(jobId, me.email);
   // The time the page opened decides whether the job may be published again; it stays fixed while the form is open.
   const [openedAt] = useState(() => Date.now());
 
   if (job === undefined) return <SkeletonList count={2} />;
-  if (!job || !canRepublish(job, openedAt)) {
+  const allowed = job && (mode === "copy" ? canCopy(job) : canRepublish(job, openedAt));
+  if (!job || !allowed) {
     return (
       <div className={BOX}>
-        {job
-          ? "只有截止超过 14 天的职位才需要重新发布。这个职位可以在职位管理里续期。"
-          : "找不到这个职位，或者它不属于你登录的店铺。"}
+        {!job
+          ? "找不到这个职位，或者它不属于你登录的店铺。"
+          : mode === "copy"
+            ? "下架的职位和还在审核的职位不能复制。"
+            : "只有截止超过 14 天的职位才需要重新发布。这个职位可以在职位管理里续期。"}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           回到职位管理
         </Link>
       </div>
     );
   }
-  return <RepublishForm key={job.id} job={job} email={me.email} country={country} />;
+  return <RepublishForm key={job.id} job={job} email={me.email} country={country} mode={mode} />;
 }
 
-function RepublishForm({ job, email, country }: { job: Job; email: string; country: CountryCode }) {
+function RepublishForm({
+  job,
+  email,
+  country,
+  mode,
+}: {
+  job: Job;
+  email: string;
+  country: CountryCode;
+  mode: CopyMode;
+}) {
   const router = useRouter();
   const { profile } = useEmployerProfile(email);
   const state = useDraftForm(country, { form: formFromDraft(job), englishByHand: true }, profile);
@@ -88,11 +122,18 @@ function RepublishForm({ job, email, country }: { job: Job; email: string; count
   return (
     <div className="space-y-4 pb-24">
       <div>
-        <h1 className="text-title font-semibold">重新发布</h1>
-        <p className="mt-1 text-body text-muted">
-          用「{job.titleZh}」（{closeDateZh(job.expiresAt)}
-          截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。
-        </p>
+        <h1 className="text-title font-semibold">{mode === "copy" ? "复制为新职位" : "重新发布"}</h1>
+        {mode === "copy" ? (
+          <p className="mt-1 text-body text-muted">
+            用「{job.titleZh}
+            」的内容新建一条职位，改好后发布。新职位从零开始：没有原职位的申请人、续期和浏览数据；发布前照常检查。原来的职位不变。
+          </p>
+        ) : (
+          <p className="mt-1 text-body text-muted">
+            用「{job.titleZh}」（{closeDateZh(job.expiresAt)}
+            截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。
+          </p>
+        )}
       </div>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>

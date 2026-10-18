@@ -20,6 +20,8 @@ import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { answerInvite, changeTeam, inviteToTeam } from "@/db/team";
+import { addApplication } from "@/db/job-applications";
+import { renewJob } from "@/db/job-renewals";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -587,6 +589,44 @@ describe("refused without the right session (#19)", () => {
     }
     expect(r.jobs.every((j) => j.employerId === "e1")).toBe(true);
     await untouched();
+  });
+});
+
+describe("复制为新职位 (#190)", () => {
+  it("publishes a new job with the content only: no applicants, renewals or numbers, posted by whoever copied", async () => {
+    const original = await as(E.e6, async () => publishJob((await parseDraft(MESSAGE)).draft));
+    if (!original.ok) throw new Error(original.reason);
+    const seeker = "copy.applicant@example.com";
+    await ensureAccount(seeker);
+    await addApplication({
+      email: seeker,
+      jobId: original.job.id,
+      employerId: "e6",
+      note: "",
+      profile: {
+        name: "复制测试",
+        headline: "",
+        location: "",
+        languages: "",
+        availability: "",
+        bio: "",
+        resume: { skills: "", employmentTypes: [], regionIds: [] },
+      },
+    });
+    await renewJob(original.job.id, { expiresAt: "2099-01-01T00:00:00.000Z", status: "active", days: 30 });
+    await recordJobView(original.job.id, "copy-visitor");
+
+    // The copy page sends the old job's content through publishJob, like 重新发布.
+    const copied = await as(E.e6, () => publishJob({ ...original.job, titleZh: "收银员" }));
+    if (!copied.ok) throw new Error(copied.reason);
+    expect(copied.job.id).not.toBe(original.job.id);
+    expect(copied.job).toMatchObject({ titleZh: "收银员", status: "active", employerId: "e6" });
+    const overview = await as(E.e6, () => getMyJobsOverview({ withPosters: true }));
+    expect(overview.applications[copied.job.id]).toBeUndefined();
+    expect(overview.applications[original.job.id]?.total).toBe(1);
+    expect(overview.renewals[copied.job.id]).toBeUndefined();
+    expect(overview.numbers[copied.job.id]).toMatchObject({ views: 0 });
+    expect(overview.posters.posters[copied.job.id]).toEqual({ kind: "you" });
   });
 });
 

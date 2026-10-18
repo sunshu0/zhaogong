@@ -35,7 +35,7 @@ describe("cardActions", () => {
   it("gives a live job one main button, 查看, and the rest under 更多", () => {
     const a = cardActions(job, NOW, { asking: undefined, sharing: false });
     expect(a.main).toEqual({ label: "查看", href: `/jobs/${job.id}` });
-    expect(keys(a)).toEqual(["edit", "renew", "refresh", "share", "close"]);
+    expect(keys(a)).toEqual(["edit", "renew", "refresh", "share", "copy", "close"]);
     expect(a.more.find((m) => m.key === "renew")).toMatchObject({ label: "续期", disabled: false });
     expect(a.more.find((m) => m.key === "refresh")).toMatchObject({ label: "刷新", disabled: false });
     expect(a.more.find((m) => m.key === "close")).toMatchObject({ label: "结束招聘", danger: true });
@@ -52,7 +52,7 @@ describe("cardActions", () => {
     const ended = { ...job, status: "expired" as const, expiresAt: new Date(NOW - 2 * day).toISOString() };
     const a = cardActions(ended, NOW, { asking: undefined, sharing: false });
     expect(a.main.label).toBe("查看");
-    expect(a.more.map((m) => m.label)).toEqual(["编辑", "续期", "记录招到几人"]);
+    expect(a.more.map((m) => m.label)).toEqual(["编辑", "续期", "复制为新职位", "记录招到几人"]);
     const corrected = cardActions({ ...ended, hiresConfirmed: 2 }, NOW, { asking: undefined, sharing: false });
     expect(corrected.more.at(-1)?.label).toBe("更正招到人数");
   });
@@ -78,6 +78,14 @@ describe("cardActions", () => {
     expect(a.main).toEqual({ label: "编辑", href: `/employer/jobs/${job.id}` });
     expect(keys(a)).toEqual(["refresh", "close"]);
     expect(a.more[0]).toMatchObject({ label: "审核通过后才能刷新", disabled: true });
+  });
+
+  it("offers 复制为新职位 for a live or ended job, never for one taken down or waiting for review (#190)", () => {
+    expect(cardActions(job, NOW, { asking: undefined, sharing: false }).more.at(-1)?.key).toBe("close");
+    const removed = { ...job, status: "removed" as const };
+    expect(keys(cardActions(removed, NOW, { asking: undefined, sharing: false }))).not.toContain("copy");
+    const waiting = { ...job, status: "pending_review" as const };
+    expect(keys(cardActions(waiting, NOW, { asking: undefined, sharing: false }))).not.toContain("copy");
   });
 
   it("hides 结束招聘 and the hires item while a question is already open", () => {

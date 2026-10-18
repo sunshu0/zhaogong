@@ -2,12 +2,19 @@
 import type { Job } from "@/lib/types";
 import type { JobNumbers } from "@/db/job-stats";
 import type { ApplicationCount } from "@/db/job-applications";
-import { canClose, canRepublish, effectiveStatus, refreshState, renewState } from "@/components/employer/job-status";
+import {
+  canClose,
+  canCopy,
+  canRepublish,
+  effectiveStatus,
+  refreshState,
+  renewState,
+} from "@/components/employer/job-status";
 
 /** Which question is open on the card: ending the job, recording hires, or how long to renew it for. */
 export type Asking = "close" | "hires" | "renew" | undefined;
 
-export type CardActionKey = "edit" | "renew" | "republish" | "refresh" | "share" | "close" | "hires";
+export type CardActionKey = "edit" | "renew" | "republish" | "refresh" | "share" | "copy" | "close" | "hires";
 
 export interface CardActions {
   main: { label: string; href: string };
@@ -31,7 +38,8 @@ type CardJob = Pick<Job, "id" | "status" | "postedAt" | "expiresAt" | "hiresConf
  * 查看 opens the job as seekers see it, so it is the main button while seekers can open the job (live or
  * ended); while it waits for review the main button is 编辑. A live job can be renewed and refreshed (refresh is
  * listed even when it cannot run, with the reason as its label); an ended one is renewed for 14 days after it
- * closed, and after that published again as a new job (#69).
+ * closed, and after that published again as a new job (#69). Until then any live or ended job can be copied into a
+ * new one (#190); 结束招聘 stays the last item.
  */
 export function cardActions(
   job: CardJob,
@@ -56,6 +64,7 @@ export function cardActions(
       disabled: !refresh.allowed,
     });
   if (status === "active") more.push({ key: "share", label: sharing ? "收起文案" : "复制文案" });
+  if (canCopy(job) && !canRepublish(job, now)) more.push({ key: "copy", label: "复制为新职位" });
   if (canClose(job, now) && !asking) more.push({ key: "close", label: "结束招聘", danger: true });
   if (status === "expired" && !asking)
     more.push({ key: "hires", label: job.hiresConfirmed == null ? "记录招到几人" : "更正招到人数" });

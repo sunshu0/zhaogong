@@ -340,6 +340,7 @@
 | `/employer` | 雇主介绍 | — |
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
 | `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
+| `/employer/jobs/[id]/copy` | 复制为新职位：用在招或已结束职位的内容新建一条，同一个表单，走 `publishJob`（#190） | 雇主身份 |
 | `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87） | 雇主身份 |
 | `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |

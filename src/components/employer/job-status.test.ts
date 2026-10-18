@@ -5,6 +5,7 @@ import {
   daysLeft,
   effectiveStatus,
   expiryLabelZh,
+  canCopy,
   canRepublish,
   jobPhase,
   refreshedDates,
@@ -142,5 +143,12 @@ describe("closing soon, renewing and publishing again (#69)", () => {
     expect(canRepublish(job("active", -3), now)).toBe(false);
     expect(canRepublish(job("active", 10), now)).toBe(false);
     expect(canRepublish(job("removed", -30), now)).toBe(false);
+  });
+
+  it("copies a live or ended job, not one taken down or under review (#190)", () => {
+    expect(canCopy(job("active", 10))).toBe(true);
+    expect(canCopy(job("expired", -30))).toBe(true);
+    expect(canCopy(job("removed", -1))).toBe(false);
+    expect(canCopy(job("pending_review", 30))).toBe(false);
   });
 });

@@ -149,6 +149,14 @@ export function renewState(job: Pick<Job, "status" | "expiresAt">, now: number):
 }
 
 /** An ended job can be published again as a new one once it can no longer be renewed. */
+/**
+ * 复制为新职位 (#190): a job that is live or ended can start a new one with its content. One taken down by moderation
+ * cannot, nor one still waiting for review.
+ */
+export function canCopy(job: Pick<Job, "status">): boolean {
+  return job.status === "active" || job.status === "expired";
+}
+
 export function canRepublish(job: Pick<Job, "status" | "expiresAt">, now: number): boolean {
   const state = renewState(job, now);
   return !state.allowed && state.republish === true;

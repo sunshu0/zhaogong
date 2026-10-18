@@ -42,6 +42,7 @@ export function JobActions({
     republish: `/employer/jobs/${job.id}/republish`,
     refresh: () => run(() => refreshMyJob(job.id), "已刷新，排到前面"),
     share: onToggleShare,
+    copy: `/employer/jobs/${job.id}/copy`,
     close: () => onAsk("close"),
     hires: () => onAsk("hires"),
   };
