@@ -62,7 +62,10 @@ export function useKeptJobForm(
   };
 }
 
-/** The line that says the form picked up kept changes, with 放弃改动. */
+/**
+ * The line that says the form picked up kept changes, with 放弃改动. Pressing it takes the line away, so the page
+ * around it moves the focus to its heading (#202: EditJob.tsx, RepublishJob.tsx).
+ */
 export function KeptChangesNote({ onStartOver }: { onStartOver: () => void }) {
   const t = useMessages(employerPostMessages).keptForm;
   return (

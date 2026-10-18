@@ -38,12 +38,13 @@ import { contentLang, type Lang } from "@/i18n/lang";
 
 const FILTER_ID_BASE = "applicant-filter";
 
-const APPLIED_AT: Intl.DateTimeFormatOptions = {
+/** 「10/16 15:05」 / "16/10, 3:05 pm": English reads a padded hour as "03:05 pm", so there the hour is plain. */
+const appliedAtOptions = (lang: Lang): Intl.DateTimeFormatOptions => ({
   month: "numeric",
   day: "numeric",
-  hour: "2-digit",
+  hour: lang === "en" ? "numeric" : "2-digit",
   minute: "2-digit",
-};
+});
 
 /** Whether a fact is the 「待补充」 of candidateFacts(), which applicant-actions.ts builds in the request's language. */
 const isMissingFact = (value: string, lang: Lang) => value === pick(candidateMatchingMessages, lang).facts.missing;
@@ -237,7 +238,7 @@ function ApplicantCard({
             </p>
           )}
         </div>
-        <p className="text-meta text-muted">{t.appliedAt(formatDate(a.appliedAt, lang, APPLIED_AT))}</p>
+        <p className="text-meta text-muted">{t.appliedAt(formatDate(a.appliedAt, lang, appliedAtOptions(lang)))}</p>
       </div>
 
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-body">

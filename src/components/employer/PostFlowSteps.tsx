@@ -3,6 +3,7 @@
 import { DuplicateJobNote } from "@/components/employer/DuplicateJobNote";
 import type { ReactNode, RefObject } from "react";
 import { SAMPLE_POST } from "@/lib/ai-post";
+import type { ParseNote } from "@/lib/ai-post/parse";
 import type { CountryCode, Employer, Job } from "@/lib/types";
 import type { DraftFormState } from "@/components/employer/use-draft-form";
 import { DraftEditor } from "@/components/employer/DraftEditor";
@@ -121,7 +122,7 @@ export function FormStep({
   headingRef: HeadingRef;
   form: DraftFormState;
   country: CountryCode;
-  notes: string[];
+  notes: ParseNote[];
 }) {
   const t = useMessages(employerPostMessages).steps;
   return (

@@ -57,6 +57,8 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState<Job>();
   const heading = useFocusOnChange<HTMLHeadingElement>(saved?.id);
+  // #202: 放弃改动 takes itself away, so the heading above the form takes the focus.
+  const formHeading = useFocusOnChange<HTMLHeadingElement>(restored);
   const [error, setError] = useState<string>();
   const live = job.status === "active";
   const willReview = live && state.decision.status === "pending_review";
@@ -107,7 +109,9 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
 
   return (
     <div className="space-y-4 pb-24">
-      <h1 className="text-title font-semibold">{t.heading}</h1>
+      <h1 ref={formHeading} tabIndex={-1} className="text-title font-semibold outline-none">
+        {t.heading}
+      </h1>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       {restored && <KeptChangesNote onStartOver={startOver} />}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>

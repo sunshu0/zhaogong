@@ -109,8 +109,9 @@ function DraftTitle({ draft }: { draft: JobDraft }) {
       <h2 lang={contentLang(draft.titleZh)} className="text-subtitle font-semibold">
         {draft.titleZh}
       </h2>
+      {/* The English title is the employer's own: Latin text is English, but they may have typed Chinese. */}
       {draft.titleEn && (
-        <p lang="en" className="text-meta text-muted">
+        <p lang={contentLang(draft.titleEn) ?? "en"} className="text-meta text-muted">
           {draft.titleEn}
         </p>
       )}
@@ -119,8 +120,11 @@ function DraftTitle({ draft }: { draft: JobDraft }) {
 }
 
 function ChecklistRow({ item, enabled, onAsk }: { item: ChecklistItem; enabled: boolean; onAsk: (m: string) => void }) {
+  const lang = useLang();
   const t = useMessages(employerPostMessages).draftCard;
   const tone = item.done ? "" : item.required ? "text-warn" : "text-muted";
+  // The labels are four characters wide in Chinese; English ones ("Meals and accommodation") need the room.
+  const labelWidth = lang === "en" ? "w-28" : "w-16";
   return (
     <button
       type="button"
@@ -128,7 +132,7 @@ function ChecklistRow({ item, enabled, onAsk }: { item: ChecklistItem; enabled: 
       onClick={() => onAsk(item.ask)}
       className="pressable-row -mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-3 rounded-control px-2 py-1.5 text-left enabled:hover:bg-background disabled:cursor-default"
     >
-      <span className="w-16 shrink-0 text-muted">{item.label}</span>
+      <span className={`${labelWidth} shrink-0 text-muted`}>{item.label}</span>
       {/* The answer as the employer gave it (the title, the shifts, the description): theirs, not the dictionary's. */}
       <span lang={contentLang(item.value)} className={`min-w-0 flex-1 ${tone}`}>
         {item.value ?? (item.required ? t.toFill : t.optional)}

@@ -84,8 +84,11 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
 }
 
 export function ContactSection({ kit }: { kit: FieldKit }) {
+  const lang = useLang();
   const t = useMessages(employerPostMessages).form;
   const { form, set, state, box } = kit;
+  // 电话 / 微信号 / 邮箱 fit in three characters; "WeChat ID" needs more room before the input.
+  const labelWidth = lang === "en" ? "w-20" : "w-12";
   // The employer's choice first: private (the default, swapped in chat) or shown to signed-in job seekers.
   const contactChoices = [
     [false, t.contactPrivateChoice, t.contactPrivateNote],
@@ -125,7 +128,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
           <div className="space-y-2">
             {contactFields.map(({ key, label, type, placeholder }) => (
               <label key={key} className="flex items-center gap-2">
-                <span className="w-12 shrink-0 text-body">{label}</span>
+                <span className={`${labelWidth} shrink-0 text-body`}>{label}</span>
                 <input
                   type={type}
                   value={form[key]}

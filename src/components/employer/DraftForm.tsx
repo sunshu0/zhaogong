@@ -1,7 +1,7 @@
 "use client";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS } from "@/i18n/labels";
 import type { RequiredField } from "@/lib/ai-post";
-import type { Finding } from "@/lib/compliance";
+import { wageFromDate, type Finding } from "@/lib/compliance";
 import type { CountryCode, EmploymentType, Industry, VisaAccepted } from "@/lib/types";
 import type { PostForm } from "@/components/employer/post-form";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
@@ -21,6 +21,7 @@ import { JobRolesField } from "@/components/employer/JobRolesField";
 import { PayReferenceHint } from "@/components/employer/PayReferenceHint";
 import { Select } from "@/components/ui/Select";
 import { useLang, useMessages } from "@/i18n/client";
+import { formatAmount } from "@/i18n/format";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 type Props = {
@@ -179,8 +180,8 @@ function PaySection({ kit }: { kit: FieldKit }) {
   const wage = config.minimumWage;
   const hint = t.payHint(
     lang === "en" ? config.nameEn : config.nameZh,
-    `${config.currencySymbol}${wage.hourly}`,
-    wage.effectiveFrom,
+    `${config.currencySymbol}${formatAmount(wage.hourly, lang)}`,
+    wageFromDate(wage.effectiveFrom, lang),
   );
   return (
     <Section title={t.paySection}>

@@ -105,7 +105,12 @@ export function ChatReportDialog({
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4" noValidate>
-          <p className="text-body">{t.target(conversation.person, isEmployer ? t.roleSeeker : t.roleEmployer)}</p>
+          {/* The other person's name is their own words, so it carries its own lang inside the line. */}
+          <p className="text-body">
+            {t.targetBefore}
+            <span lang={contentLang(conversation.person)}>{conversation.person}</span>
+            {t.targetAfter(isEmployer ? t.roleSeeker : t.roleEmployer)}
+          </p>
           <Select
             name="report-reason"
             label={t.reasonLabel}

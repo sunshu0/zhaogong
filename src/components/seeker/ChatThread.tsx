@@ -12,7 +12,7 @@ import { ConversationJob } from "@/components/seeker/ConversationJob";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/MoreMenu";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
-import { outgoingWarning } from "@/components/seeker/chat-warnings";
+import { outgoingWarningParts } from "@/components/seeker/chat-warnings";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -111,9 +111,11 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
   const t = useMessages(chatMessages).thread;
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // Only when there is no job strip under the header (it names the job already).
+  // The job's title is what the employer wrote, so it carries its own lang inside the dictionary's line.
   const job = conversation.job ? null : (
     <p className="truncate text-meta text-muted">
-      {isEmployer ? t.appliedFor(conversation.title) : t.hiringFor(conversation.title)}
+      {isEmployer ? t.appliedFor : t.hiringFor}
+      <span lang={contentLang(conversation.title)}>{conversation.title}</span>
     </p>
   );
   if (!profileHref) {
@@ -164,8 +166,8 @@ function MessageComposer({
 }) {
   const t = useMessages(chatMessages).thread;
   const lang = useLang();
-  // A reminder while writing; the message can still be sent.
-  const warning = outgoingWarning(draft, lang);
+  // A reminder while writing; the message can still be sent. The words it quotes are the writer's own.
+  const warning = outgoingWarningParts(draft, lang);
   const box = useRef<HTMLTextAreaElement>(null);
   const send = useRef<HTMLButtonElement>(null);
   // #202: the draft empties and 发送 turns disabled; after a press on it the focus goes back to the box.
@@ -201,7 +203,9 @@ function MessageComposer({
       </button>
       {warning && (
         <p id="message-draft-warning" role="status" className="basis-full text-meta leading-relaxed text-warn">
-          {warning}
+          {warning.before}
+          <span lang={contentLang(warning.words)}>{warning.words}</span>
+          {warning.after}
         </p>
       )}
     </form>

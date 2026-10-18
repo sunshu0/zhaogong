@@ -35,13 +35,28 @@ export function incomingWarnings(text: string, lang: Lang = DEFAULT_LANG): ChatW
   }));
 }
 
-/** A hint while writing a message that hits the chat rules; sending is not blocked. */
-export function outgoingWarning(text: string, lang: Lang = DEFAULT_LANG): string | undefined {
+/** A hint while writing a message that hits the chat rules; `words` is quoted from the message itself. */
+export type OutgoingWarning = { before: string; words: string; after: string };
+
+/**
+ * A hint while writing a message that hits the chat rules; sending is not blocked. In three parts, so whoever
+ * shows it can mark the quoted words as what they are: the writer's own words, not the interface's language.
+ */
+export function outgoingWarningParts(text: string, lang: Lang = DEFAULT_LANG): OutgoingWarning | undefined {
   const findings = checkChatMessage(text);
   if (!findings.length) return undefined;
   const t = pick(chatMessages, lang).warnings;
   const { quote, joiner } = pick(complianceMessages, lang).words;
   const rules = ruleWords(lang);
-  const words = [...new Set(findings.flatMap((f) => f.matches))].map((word) => quote(word)).join(joiner);
-  return t.outgoing(words, findings.map((f) => rules[f.rule].forbidden).join(t.forbiddenJoiner));
+  return {
+    before: t.outgoingBefore,
+    words: [...new Set(findings.flatMap((f) => f.matches))].map((word) => quote(word)).join(joiner),
+    after: t.outgoingAfter(findings.map((f) => rules[f.rule].forbidden).join(t.forbiddenJoiner)),
+  };
+}
+
+/** The same hint as one line, for anywhere that cannot mark the quoted words. */
+export function outgoingWarning(text: string, lang: Lang = DEFAULT_LANG): string | undefined {
+  const parts = outgoingWarningParts(text, lang);
+  return parts && `${parts.before}${parts.words}${parts.after}`;
 }

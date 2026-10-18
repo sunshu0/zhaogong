@@ -20,6 +20,7 @@ import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
+import { contentLang } from "@/i18n/lang";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 const BOX = "rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted";
@@ -98,6 +99,8 @@ function RepublishForm({
   const [pending, startTransition] = useTransition();
   const [published, setPublished] = useState<Job>();
   const heading = useFocusOnChange<HTMLHeadingElement>(published?.id);
+  // #202: 放弃改动 takes itself away, so the heading above the form takes the focus.
+  const formHeading = useFocusOnChange<HTMLHeadingElement>(restored);
   const [error, setError] = useState<string>();
 
   function publish() {
@@ -126,11 +129,16 @@ function RepublishForm({
   return (
     <div className="space-y-4 pb-24">
       <div>
-        <h1 className="text-title font-semibold">{mode === "copy" ? t.copyHeading : t.republishHeading}</h1>
+        <h1 ref={formHeading} tabIndex={-1} className="text-title font-semibold outline-none">
+          {mode === "copy" ? t.copyHeading : t.republishHeading}
+        </h1>
+        {/* The job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
         <p className="mt-1 text-body text-muted">
+          {mode === "copy" ? t.copyNoteBefore : t.republishNoteBefore}
+          <span lang={contentLang(job.titleZh)}>{job.titleZh}</span>
           {mode === "copy"
-            ? t.copyNote(job.titleZh)
-            : t.republishNote(job.titleZh, formatDate(job.expiresAt, lang, { month: "long", day: "numeric" }))}
+            ? t.copyNoteAfter
+            : t.republishNoteAfter(formatDate(job.expiresAt, lang, { month: "long", day: "numeric" }))}
         </p>
       </div>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}

@@ -43,13 +43,18 @@ export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallb
   );
 }
 
-/** The pay as text from the server, set like Pay (Round 13): the figure narrow in brand colour, 「/小时」 small. */
+/**
+ * The pay as text from the server, set like Pay (Round 13): the figure narrow in brand colour, the unit small.
+ * The unit comes at the end in either language and starts at the first 「/」 or space:「$25/小时」, "$25 an hour".
+ */
 function PayText({ pay }: { pay: string }) {
-  const [amount, unit] = pay.split("/");
+  const match = /^([^/\s]*)\s*(.*)$/.exec(pay.trim());
+  const amount = match?.[1] ?? pay;
+  const unit = match?.[2] ?? "";
   return (
     <span className="inline-flex shrink-0 items-baseline text-brand">
       <span className="font-figure text-[1.25rem]">{amount}</span>
-      {unit && <span className="ml-0.5 text-meta text-muted">/{unit}</span>}
+      {unit && <span className={`${unit.startsWith("/") ? "ml-0.5" : "ml-1"} text-meta text-muted`}>{unit}</span>}
     </span>
   );
 }

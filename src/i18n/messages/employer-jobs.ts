@@ -31,8 +31,8 @@ const employerJobsZh = {
     },
     banned: "这个雇主账号已被停用，职位已全部下架，不能再发布。",
     loading: "正在加载职位",
-    /** What a change said when it worked: the job's title, then the result. */
-    notice: (title: string, text: string) => `${title}：${text}`,
+    /** What a change said when it worked: between the job's own title and the result, each in its own element. */
+    noticeSeparator: "：",
     noneYet: "还没有发布过职位。",
     noneInTab: "这个状态下没有职位。",
     noMatch: (query: string) => `没有名称里有「${query}」的职位。`,
@@ -186,8 +186,10 @@ const employerJobsZh = {
     andMore: (n: number) => `等 ${n} 条`,
     pendingReview: "（审核中）",
     closesOn: (closeDate: string) => `（${closeDate}截止）`,
-    note: (title: string, when: string, andMore: string) =>
-      `你已经有一条在招的「${title}」${when}${andMore}。要多招几个人，续期或编辑那条就行；确实是另一份工（比如另一家门店、另一个班次），照常发布。`,
+    /** Around the job's own title, which is rendered as the employer wrote it. */
+    noteBefore: "你已经有一条在招的「",
+    noteAfter: (when: string, andMore: string) =>
+      `」${when}${andMore}。要多招几个人，续期或编辑那条就行；确实是另一份工（比如另一家门店、另一个班次），照常发布。`,
     link: "去看看那条",
   },
 
@@ -243,7 +245,7 @@ export const employerJobsMessages: Dictionary<typeof employerJobsZh> = {
       },
       banned: "This employer account is suspended. All its jobs are taken down and it cannot post again.",
       loading: "Loading jobs",
-      notice: (title, text) => `${title}: ${text}`,
+      noticeSeparator: ": ",
       noneYet: "You haven't posted a job yet.",
       noneInTab: "No jobs with this status.",
       noMatch: (query) => `No jobs with “${query}” in the title.`,
@@ -393,8 +395,9 @@ export const employerJobsMessages: Dictionary<typeof employerJobsZh> = {
       andMore: (n) => (n === 2 ? " and 1 other" : ` and ${n - 1} others`),
       pendingReview: " (under review)",
       closesOn: (closeDate) => ` (closes ${closeDate})`,
-      note: (title, when, andMore) =>
-        `You already have “${title}” open${when}${andMore}. To hire a few more people, just renew or edit that one; if this really is a different job (another shop, another shift), post it as usual.`,
+      noteBefore: "You already have “",
+      noteAfter: (when, andMore) =>
+        `” open${when}${andMore}. To hire a few more people, just renew or edit that one; if this really is a different job (another shop, another shift), post it as usual.`,
       link: "Go and look at it",
     },
 

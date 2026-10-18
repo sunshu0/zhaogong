@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { TEAM_NAME_MAX } from "@/components/employer/team";
 import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { employerTeamMessages } from "@/i18n/messages/employer-team";
 import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/[lang]/employer/team-actions";
 import { setIdentity } from "@/components/seeker/session-client";
@@ -24,7 +25,8 @@ export function TeamInvites({ email }: { email: string }) {
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   // #202: 婉拒 removes its card; this line takes its place and the focus, even when it was the last invitation.
-  const [declined, setDeclined] = useState<string>();
+  // Keyed by the invitation, not the business: declining a second invitation from the same business moves it again.
+  const [declined, setDeclined] = useState<{ id: string; name: string }>();
   const declinedRef = useFocusOnChange<HTMLParagraphElement>(declined);
   const router = useRouter();
 
@@ -54,7 +56,7 @@ export function TeamInvites({ email }: { email: string }) {
         setIdentity({ activeRole: "employer", employer: result.employer });
         router.push("/employer/team");
       } else {
-        setDeclined(invite.employerName);
+        setDeclined({ id: invite.id, name: invite.employerName });
         setVersion((v) => v + 1);
       }
     });
@@ -73,7 +75,9 @@ export function TeamInvites({ email }: { email: string }) {
           )}
           {declined && (
             <p ref={declinedRef} tabIndex={-1} role="status" className="text-body text-muted outline-none">
-              {t.declined(declined)}
+              {t.declinedBefore}
+              <span lang={contentLang(declined.name)}>{declined.name}</span>
+              {t.declinedAfter}
             </p>
           )}
           {list.map((invite) => (
@@ -115,8 +119,11 @@ function InviteCard({
       aria-label={t.cardLabel(invite.employerName)}
       className="space-y-2 rounded-card bg-surface p-4 shadow-card"
     >
-      {/* One sentence from the dictionary (ADR 0023): the business's name leads it in either language. */}
-      <p className="text-body">{t.invitedBy(invite.employerName, words.team.roleLabel[invite.role])}</p>
+      {/* One sentence from the dictionary (ADR 0023): the business's name leads it, in its own lang. */}
+      <p className="text-body">
+        <span lang={contentLang(invite.employerName)}>{invite.employerName}</span>
+        {t.invitedBy(words.team.roleLabel[invite.role])}
+      </p>
       <label className="block space-y-1 text-body">
         <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
         <input

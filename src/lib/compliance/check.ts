@@ -1,6 +1,6 @@
 // Compliance check run on every draft before it can be published. Pure functions, no I/O.
 import { COUNTRIES } from "@/config/countries";
-import { formatMoney } from "@/i18n/format";
+import { formatDate, formatMoney } from "@/i18n/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { complianceMessages } from "@/i18n/messages/compliance";
@@ -104,6 +104,15 @@ function findWords(text: string, rule: WordRule): string[] {
 }
 
 /**
+ * The day a minimum wage starts, as each language writes it: Chinese keeps the config's own 2026-04-01, English
+ * reads 1 April 2026. The config's date is a New Zealand day, so it is formatted in New Zealand time (format.ts).
+ */
+export function wageFromDate(effectiveFrom: string, lang: Lang): string {
+  if (lang !== "en") return effectiveFrom;
+  return formatDate(`${effectiveFrom}T00:00:00+12:00`, lang, { day: "numeric", month: "long", year: "numeric" });
+}
+
+/**
  * Everything that stops or holds this draft, most serious first. An empty list means it can go live.
  * With the employer, it also checks what only some employers may offer (AEWV holders).
  * The messages are written in `lang` (Round 20); `message_zh` keeps its name across the codebase.
@@ -128,7 +137,7 @@ export function checkJob(
         formatMoney(draft.pay.min, lang, config.currency),
         lang === "en" ? config.nameEn : config.nameZh,
         formatMoney(wage.hourly, lang, config.currency),
-        wage.effectiveFrom,
+        wageFromDate(wage.effectiveFrom, lang),
       ),
     });
   }

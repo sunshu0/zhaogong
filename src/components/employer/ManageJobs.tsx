@@ -44,7 +44,8 @@ function tabFrom(value: string | null): TabKey {
 const TAB_ID_BASE = "manage";
 
 type Loaded = NonNullable<ReturnType<typeof useMyJobs>["ready"]>;
-type Notice = { ok: boolean; text: string };
+/** `title` is the job's own title, shown in its own element; an error from the server comes as text only. */
+type Notice = { ok: boolean; title?: string; text: string };
 
 export function ManageJobs() {
   return <EmployerGate next="/employer/jobs">{(me) => <Manage me={me} />}</EmployerGate>;
@@ -66,7 +67,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
   const searched = ready && searchable ? { ...ready, jobs: searchJobs(ready.jobs, query) } : ready;
 
   const done: JobChangeDone = (result, okText) => {
-    setNotice(noticeFor(result, okText, t.manage.notice));
+    setNotice(noticeFor(result, okText));
     reload();
   };
 
@@ -102,9 +103,9 @@ function Manage({ me }: { me: EmployerIdentity }) {
   );
 }
 
-function noticeFor(result: ChangeResult, okText: string, notice: (title: string, text: string) => string): Notice {
+function noticeFor(result: ChangeResult, okText: string): Notice {
   // An error comes from the Server Function already worded (actions.ts): it is shown as it is.
-  return result.ok ? { ok: true, text: notice(result.job.titleZh, okText) } : { ok: false, text: result.error_zh };
+  return result.ok ? { ok: true, title: result.job.titleZh, text: okText } : { ok: false, text: result.error_zh };
 }
 
 function ManageHeader({ name, employer, lang }: { name: string; employer?: Employer; lang: Lang }) {
@@ -156,8 +157,16 @@ function tabCount(key: TabKey, ready: Loaded | undefined, counts: Map<string, nu
 }
 
 function NoticeLine({ notice, noticeRef }: { notice: Notice; noticeRef: RefObject<HTMLParagraphElement | null> }) {
+  const t = useMessages(employerJobsMessages).manage;
   return (
     <p ref={noticeRef} tabIndex={-1} role="status" className={noticeClass(notice.ok)}>
+      {/* The job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
+      {notice.title != null && (
+        <>
+          <span lang={contentLang(notice.title)}>{notice.title}</span>
+          {t.noticeSeparator}
+        </>
+      )}
       {notice.text}
     </p>
   );

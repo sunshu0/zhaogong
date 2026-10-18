@@ -45,7 +45,7 @@ export const complianceMessages: Dictionary<typeof complianceZh> = {
     },
     aewvUnaccredited: {
       message:
-        "Only an accredited employer can hire AEWV holders (Accredited Employer Work Visa). Remove it from the visas you accept.",
+        "Only an accredited employer can hire Accredited Employer Work Visa (AEWV) holders. Remove AEWV holders from the visas you accept.",
     },
 
     rules: {

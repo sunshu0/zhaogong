@@ -25,7 +25,8 @@ export function PostFlow({ country }: { country: CountryCode }) {
 function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }) {
   const t = useMessages(employerPostMessages).postFlow;
   const posting = usePosting(me.email, country);
-  const heading = useFocusOnChange<HTMLHeadingElement>(posting.step);
+  // #202: the step's heading takes the focus on a new step, and when 清空重来 removes the button that was pressed.
+  const heading = useFocusOnChange<HTMLHeadingElement>(`${posting.step}:${posting.restored}`);
 
   // The badge and a ban come from the server; the session only has the name.
   const { profile } = useEmployerProfile(me.email);

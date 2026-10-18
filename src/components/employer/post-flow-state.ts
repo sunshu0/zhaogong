@@ -10,6 +10,7 @@ import {
   type TransitionStartFunction,
 } from "react";
 import { resumeChat, startChat, type ChatState } from "@/lib/ai-post";
+import { isParseNote, type ParseNote } from "@/lib/ai-post/parse";
 import type { CountryCode, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/[lang]/employer/actions";
 import { emptyForm, formFromDraft } from "@/components/employer/post-form";
@@ -46,8 +47,9 @@ export interface PostingState {
   text: string;
   setText: Setter<string>;
   form: DraftFormState;
-  notes: string[];
-  setNotes: Setter<string[]>;
+  /** The parser's notes about the pasted text, by id; DraftEditor looks their words up (Round 20). */
+  notes: ParseNote[];
+  setNotes: Setter<ParseNote[]>;
   previewAt: number;
   setPreviewAt: Setter<number>;
   published?: Job;
@@ -80,7 +82,8 @@ function usePostingState(country: CountryCode, email: string): PostingState {
   // The badge decides which visas the form offers; it comes from the server, not the session.
   const { profile } = useEmployerProfile(email);
   const form = useDraftForm(country, saved ? { form: saved.form, englishByHand: saved.englishByHand } : {}, profile);
-  const [notes, setNotes] = useState<string[]>(saved?.notes ?? []);
+  // A draft kept by an older version holds the notes' Chinese; anything that is not a note id is dropped.
+  const [notes, setNotes] = useState<ParseNote[]>(() => (saved?.notes ?? []).filter(isParseNote));
   const [previewAt, setPreviewAt] = useState(0);
   const [published, setPublished] = useState<Job>();
   const [error, setError] = useState<string>();
@@ -152,7 +155,7 @@ function parsePasted(state: PostingState) {
   state.startTransition(async () => {
     const result = await parseDraft(state.text);
     state.form.reset(formFromDraft(result.draft));
-    state.setNotes(result.notes_zh);
+    state.setNotes(result.notes);
     state.setStep("form");
     window.scrollTo({ top: 0 });
   });

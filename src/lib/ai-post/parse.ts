@@ -23,11 +23,22 @@ export const REQUIRED_FIELDS = [
 
 export type RequiredField = (typeof REQUIRED_FIELDS)[number];
 
+/**
+ * Things the employer should know about the result, e.g. a weekly wage that needs an hourly rate. The parser only
+ * names them; the words shown at the check step come from the employer-post dictionary (Round 20, ADR 0023).
+ */
+export const PARSE_NOTES = ["otherPeriodPay"] as const;
+export type ParseNote = (typeof PARSE_NOTES)[number];
+
+export const isParseNote = (value: string): value is ParseNote => (PARSE_NOTES as readonly string[]).includes(value);
+
 export interface ParsedPost {
   draft: JobDraft;
   /** Required fields the text did not give, for the form to highlight. */
   missing: RequiredField[];
-  /** Things the employer should know about the result, e.g. a weekly wage that needs an hourly rate. */
+  /** What to tell the employer about the result, by note id; the interface looks the wording up. */
+  notes: ParseNote[];
+  /** The same notes in Chinese, as the parser has always returned them (not what the interface shows). */
   notes_zh: string[];
 }
 
@@ -260,8 +271,9 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
   const original = raw.trim();
   const text = original.normalize("NFKC");
   const draft: JobDraft = { country };
+  const notes: ParseNote[] = [];
   const notes_zh: string[] = [];
-  if (!text) return { draft, missing: missingFields(draft), notes_zh };
+  if (!text) return { draft, missing: missingFields(draft), notes, notes_zh };
   const lower = text.toLowerCase();
 
   const title = findTitle(text, lower);
@@ -273,7 +285,10 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
 
   const pay = findPay(lower);
   if (pay) draft.pay = pay;
-  else if (OTHER_PERIOD_PAY.test(lower)) notes_zh.push("原文写的是周薪、月薪或年薪，请换算成时薪填写。");
+  else if (OTHER_PERIOD_PAY.test(lower)) {
+    notes.push("otherPeriodPay");
+    notes_zh.push("原文写的是周薪、月薪或年薪，请换算成时薪填写。");
+  }
   const hours = findHours(lower);
   if (hours) draft.hoursPerWeek = hours;
   const employmentType = findEmploymentType(lower, hours);
@@ -307,7 +322,7 @@ function parseText(raw: string, country: CountryCode): ParsedPost {
   );
   draft.descriptionEn = englishSummary(draft, country);
 
-  return { draft, missing: missingFields(draft), notes_zh };
+  return { draft, missing: missingFields(draft), notes, notes_zh };
 }
 
 // ---- one field at a time: the chat (chat.ts) asks one question per turn and reads short answers ----

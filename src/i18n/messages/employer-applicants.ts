@@ -180,7 +180,7 @@ export const employerApplicantsMessages: Dictionary<typeof employerApplicantsZh>
       cardLabel: (name) => `Applicant ${name}`,
       isNew: "New",
       appliedAt: (when) => `Applied ${when}`,
-      noteLabel: "Message to the employer: ",
+      noteLabel: "Their message: ",
       startChat: "Start a chat",
       markGroupLabel: (name) => `Mark ${name}`,
     },

@@ -27,9 +27,6 @@ export function teamRoleLabel(lang: Lang = DEFAULT_LANG): Record<TeamRole, strin
   return words(lang).roleLabel;
 }
 
-/** The Chinese labels, for callers that have no language to hand. */
-export const TEAM_ROLE_LABEL: Record<TeamRole, string> = teamRoleLabel();
-
 /** People in one business, the admins included. */
 export const TEAM_MAX = 10;
 
@@ -103,9 +100,6 @@ export function checkTeamChange(members: TeamMember[], actor: string, change: Te
 export function teamRefusalText(lang: Lang = DEFAULT_LANG): Record<TeamRefusal, string> {
   return words(lang).refusal;
 }
-
-/** The Chinese texts, for callers that have no language to hand. */
-export const TEAM_REFUSAL_TEXT: Record<TeamRefusal, string> = teamRefusalText();
 
 /** Admins first, then by when they joined (the founder's join time is when the business was opened). */
 export function sortTeam(members: TeamMember[]): TeamMember[] {

@@ -11,16 +11,23 @@ import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { canApplyFor, kindLabels, rejectReasons, type VerifyKind } from "@/components/employer/verification";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 import { Button, buttonClass } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BACK_LINK, noticeClass } from "@/components/employer/app-style";
 import { useLang, useMessages } from "@/i18n/client";
-import { contentLang } from "@/i18n/lang";
+import { contentLang, type Lang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
 import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 
 /** When an application was sent: 10月18日 15:05 / 18 Oct, 3:05 pm, always New Zealand time. */
-const WHEN: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
+/** When the request was sent: the Chinese as before (09:05), English without the leading zero (9:05 am). */
+const whenOptions = (lang: Lang): Intl.DateTimeFormatOptions => ({
+  month: "numeric",
+  day: "numeric",
+  hour: lang === "en" ? "numeric" : "2-digit",
+  minute: "2-digit",
+});
 
 const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
@@ -49,6 +56,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
   const kinds = (Object.keys(kindLabel) as VerifyKind[]).filter((kind) => canApplyFor(employer.verification, kind));
+  const admins = adminNames(team).join(t.adminsJoiner);
   const canApply = request !== undefined && request?.status !== "pending" && kinds.length > 0 && !employer.bannedAt;
 
   const submitted = (result: { ok: true; request: MyVerification } | { ok: false; error_zh: string }) => {
@@ -64,7 +72,12 @@ function Verify({ me }: { me: EmployerIdentity }) {
       <header className="space-y-1">
         <h1 className="text-title font-semibold">{t.heading}</h1>
         <p className="flex flex-wrap items-center gap-2 text-body">
-          {t.nowIs(employer.name)} <VerificationBadge verification={employer.verification} lang={lang} />
+          {/* The business's name is its own words, so it leads the line in its own lang. */}
+          <span>
+            <span lang={contentLang(employer.name)}>{employer.name}</span>
+            {t.nowIs}
+          </span>{" "}
+          <VerificationBadge verification={employer.verification} lang={lang} />
           {employer.businessNumber && <span className="text-muted">{t.nzbn(employer.businessNumber)}</span>}
         </p>
       </header>
@@ -85,7 +98,12 @@ function Verify({ me }: { me: EmployerIdentity }) {
       <BadgeMeaning />
 
       {canApply && isMember && (
-        <p className="rounded-card bg-surface p-4 text-body shadow-card">{t.adminOnly(adminNames(team))}</p>
+        <p className="rounded-card bg-surface p-4 text-body shadow-card">
+          {t.adminOnlyBefore}
+          {/* The admins' names are their own words. */}
+          <span lang={contentLang(admins)}>{admins}</span>
+          {t.adminOnlyAfter}
+        </p>
       )}
 
       {canApply && team && !isMember && (
@@ -125,8 +143,11 @@ function LatestRequest({ request }: { request: MyVerification }) {
       </h2>
       {request.status === "pending" && <p>{t.pendingNote}</p>}
       {request.status === "rejected" && request.rejectReason && (
+        // The note is the moderator's own words, so it carries its own lang.
         <p className="text-danger">
-          {t.rejection(rejectReasons(lang)[request.rejectReason], request.rejectNote ?? "")}
+          {rejectReasons(lang)[request.rejectReason]}
+          {t.rejectionJoiner}
+          <span lang={contentLang(request.rejectNote)}>{request.rejectNote ?? ""}</span>
         </p>
       )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-meta">
@@ -146,7 +167,7 @@ function LatestRequest({ request }: { request: MyVerification }) {
         </dd>
         <dt className="text-muted">{t.sentAt}</dt>
         <dd>
-          <time dateTime={request.submittedAt}>{formatDate(request.submittedAt, lang, WHEN)}</time>
+          <time dateTime={request.submittedAt}>{formatDate(request.submittedAt, lang, whenOptions(lang))}</time>
         </dd>
       </dl>
     </section>
@@ -205,7 +226,8 @@ function ApplyForm({
             placeholder={t.queryPlaceholder}
             className="h-11 min-w-0 flex-1 rounded-control border border-border bg-surface px-3"
           />
-          <Button type="submit" loading={pending && !chosen} disabled={!query.trim() || (pending && !!chosen)}>
+          {/* #202: disabled only while there is nothing to search for; a search on its way keeps the focus. */}
+          <Button type="submit" loading={pending && !chosen} disabled={!query.trim()} {...busyProps(pending)}>
             {t.search}
           </Button>
         </div>
@@ -229,11 +251,13 @@ function ApplyForm({
               <p className={`mt-1 text-body ${entry.status === "registered" ? "text-ok" : "text-danger"}`}>
                 {entry.status === "registered" ? t.statusRegistered : t.statusRemoved}
               </p>
+              {/* #202: a business that was removed from the register can never be chosen; pending only holds. */}
               <button
                 type="button"
-                disabled={entry.status !== "registered" || pending}
+                disabled={entry.status !== "registered"}
                 onClick={() => setChosen(entry)}
                 className={`${buttonClass("secondary", { block: true })} mt-3`}
+                {...busyProps(pending)}
               >
                 {t.choose}
               </button>

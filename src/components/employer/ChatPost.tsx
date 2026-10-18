@@ -112,8 +112,9 @@ export function ChatPost({
                     }`}
                   >
                     <span className="sr-only">{m.from === "assistant" ? t.fromAssistant : t.fromYou}</span>
-                    {/* What the employer typed is theirs; the assistant's own words are the product speaking. */}
-                    {m.from === "assistant" ? m.text : <span lang={contentLang(m.text)}>{m.text}</span>}
+                    {/* What the employer typed is theirs; the assistant answers in Chinese whatever the page's
+                        language is (phase 1), so both sides say which language they are in. */}
+                    <span lang={contentLang(m.text)}>{m.text}</span>
                   </p>
                 </li>
               ))}
@@ -143,7 +144,8 @@ export function ChatPost({
                     onClick={() => send(q.value ?? q.label)}
                     className="pressable min-h-11 rounded-full bg-surface px-4 text-body text-brand shadow-card hover:bg-brand-soft"
                   >
-                    {q.label}
+                    {/* The assistant writes its quick replies in Chinese too (lib/ai-post). */}
+                    <span lang={contentLang(q.label)}>{q.label}</span>
                   </button>
                 ))}
               </div>

@@ -20,6 +20,38 @@ export type Exchange = {
 /** What the two sides may swap, in Chinese; a reader's own language comes from the chat dictionary. */
 export const EXCHANGE_LABELS: Record<ExchangeKind, string> = chatMessages.zh.exchangeKinds;
 
+/**
+ * The field names a payload may carry. A payload is stored and read by both sides, so a field keeps its key here
+ * (never a word in the writer's language) and each reader turns it into a label with its own dictionary
+ * (payloadFields, by PayloadView).
+ */
+export const PAYLOAD_FIELD_KEYS = [
+  "phone",
+  "wechat",
+  "email",
+  "businessName",
+  "personName",
+  "headline",
+  "businessBio",
+  "personBio",
+  "languages",
+  "availability",
+  "skills",
+  "experience",
+  "wanted",
+] as const;
+export type PayloadFieldKey = (typeof PAYLOAD_FIELD_KEYS)[number];
+
+/** Payloads stored before the keys (and the demo ones) carry the Chinese label itself. */
+const LABEL_KEYS: Record<string, PayloadFieldKey> = Object.fromEntries(
+  PAYLOAD_FIELD_KEYS.map((key) => [chatMessages.zh.payloadFields[key], key]),
+);
+
+/** Which field a stored label stands for: its key, or the Chinese label an older payload was stored with. */
+export function payloadFieldKey(label: string): PayloadFieldKey | undefined {
+  return (PAYLOAD_FIELD_KEYS as readonly string[]).includes(label) ? (label as PayloadFieldKey) : LABEL_KEYS[label];
+}
+
 export function parsePayload(value: unknown): ExchangePayload | undefined {
   if (!value || typeof value !== "object") return undefined;
   const input = value as ExchangePayload;
@@ -125,26 +157,27 @@ export function profilePayload(
   lang: Lang = DEFAULT_LANG,
 ): ExchangePayload | undefined {
   const t = pick(chatMessages, lang);
-  const names = t.payloadFields;
   const fields: ExchangePayload["fields"] = [];
-  const add = (label: string, value: string | undefined) => {
+  // The label is the field's key: the other side reads it in its own language (PayloadView). The values are the
+  // person's own words and are stored as they wrote them; 岗位经验 keeps the number, so each side reads「3 年」
+  // or "3 years".
+  const add = (label: PayloadFieldKey, value: string | undefined) => {
     if (value?.trim()) fields.push({ label, value: value.trim().slice(0, 4000) });
   };
   if (kind === "contact") {
-    add(names.phone, profile.privateDetails?.phone);
-    add(names.wechat, profile.privateDetails?.wechat);
-    add(names.email, profile.privateDetails?.email);
+    add("phone", profile.privateDetails?.phone);
+    add("wechat", profile.privateDetails?.wechat);
+    add("email", profile.privateDetails?.email);
   } else {
     if (!(profile.bio.trim() || profile.resume?.skills.trim())) return undefined;
-    add(isEmployer ? names.businessName : names.personName, profile.name);
-    add(names.headline, profile.headline);
-    add(isEmployer ? names.businessBio : names.personBio, profile.bio);
-    add(names.languages, profile.languages);
-    add(names.availability, profile.availability);
-    add(names.skills, profile.resume?.skills);
-    if (profile.resume?.experienceYears != null)
-      add(names.experience, names.experienceYears(profile.resume.experienceYears));
-    add(names.wanted, profile.resume ? formatEmploymentTypes(profile.resume.employmentTypes) : undefined);
+    add(isEmployer ? "businessName" : "personName", profile.name);
+    add("headline", profile.headline);
+    add(isEmployer ? "businessBio" : "personBio", profile.bio);
+    add("languages", profile.languages);
+    add("availability", profile.availability);
+    add("skills", profile.resume?.skills);
+    if (profile.resume?.experienceYears != null) add("experience", String(profile.resume.experienceYears));
+    add("wanted", profile.resume ? formatEmploymentTypes(profile.resume.employmentTypes) : undefined);
   }
   return fields.length ? { title: t.exchangeKinds[kind], fields } : undefined;
 }

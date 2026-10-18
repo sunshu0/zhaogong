@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonList } from "@/components/ui/Skeleton";
@@ -38,12 +38,13 @@ function Team({ me }: { me: EmployerIdentity }) {
   const t = words.teamPage;
   const roles = words.team.roleLabel;
   const { team, reload } = useMyTeam(me.email);
-  const [message, setMessage] = useState<{ ok: boolean; text: string }>();
+  // What a change did, in a line that may carry a person's own name in its own lang.
+  const [message, setMessage] = useState<{ ok: boolean; text: ReactNode }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
   const [pending, startTransition] = useTransition();
 
   /** Runs one change on the server, says how it went, and reloads the team. */
-  const run = (action: () => Promise<Done>, okText: string, after?: () => void) =>
+  const run = (action: () => Promise<Done>, okText: ReactNode, after?: () => void) =>
     startTransition(async () => {
       const result = await action().catch(() => ({ ok: false as const, error_zh: t.networkError }));
       setMessage(result.ok ? { ok: true, text: okText } : { ok: false, text: result.error_zh });
@@ -67,7 +68,11 @@ function Team({ me }: { me: EmployerIdentity }) {
     <div className="space-y-5">
       <header className="space-y-1">
         <h1 className="text-title font-semibold">{t.title}</h1>
-        <p className="text-body text-muted">{t.intro(team.employer.name, TEAM_MAX)}</p>
+        {/* The business's name is its own words, so it leads the line in its own lang (ADR 0023). */}
+        <p className="text-body text-muted">
+          <span lang={contentLang(team.employer.name)}>{team.employer.name}</span>
+          {t.intro(TEAM_MAX)}
+        </p>
       </header>
 
       {message && (
@@ -88,25 +93,31 @@ function Team({ me }: { me: EmployerIdentity }) {
           {t.membersHeading(team.members.length)}
         </h2>
         <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
-          {team.members.map((member) => (
-            <MemberRow
-              key={member.email}
-              member={member}
-              mine={member.email === team.me.email}
-              isAdmin={isAdmin}
-              disabled={pending}
-              onRole={(role) =>
-                run(
-                  () => changeMyTeam({ type: "role", email: member.email, role }),
-                  t.roleChanged(member.name ?? member.email, roles[role]),
-                )
-              }
-              onRemove={() =>
-                run(() => changeMyTeam({ type: "remove", email: member.email }), t.removed(member.name ?? member.email))
-              }
-              onLeave={leave}
-            />
-          ))}
+          {team.members.map((member) => {
+            const who = member.name ?? member.email;
+            // 已把 <name> 设为管理员。 — the name is the person's own, so it carries its own lang.
+            const said = (end: ReactNode) => (
+              <>
+                {t.changedBefore}
+                <span lang={contentLang(who)}>{who}</span>
+                {end}
+              </>
+            );
+            return (
+              <MemberRow
+                key={member.email}
+                member={member}
+                mine={member.email === team.me.email}
+                isAdmin={isAdmin}
+                disabled={pending}
+                onRole={(role) =>
+                  run(() => changeMyTeam({ type: "role", email: member.email, role }), said(t.roleChanged(roles[role])))
+                }
+                onRemove={() => run(() => changeMyTeam({ type: "remove", email: member.email }), said(t.removed))}
+                onLeave={leave}
+              />
+            );
+          })}
         </ul>
       </section>
 
@@ -125,6 +136,7 @@ function Team({ me }: { me: EmployerIdentity }) {
 function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; onSave: (name: string) => void }) {
   const t = useMessages(employerTeamMessages).teamPage.myName;
   const [name, setName] = useState(team.me.name ?? "");
+  const example = teamSignature(team.employer.name, name.trim() || t.exampleName);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onSave(name);
@@ -138,7 +150,12 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
       <h2 id="team-my-name" className="font-semibold">
         {t.heading}
       </h2>
-      <p className="text-meta text-muted">{t.hint(teamSignature(team.employer.name, name.trim() || t.exampleName))}</p>
+      {/* The example is the business's name with the name being typed: both are their own words. */}
+      <p className="text-meta text-muted">
+        {t.hintBefore}
+        <span lang={contentLang(example)}>{example}</span>
+        {t.hintAfter}
+      </p>
       <label className="block space-y-1 text-body">
         <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
         <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} maxLength={TEAM_NAME_MAX} />
@@ -186,7 +203,7 @@ function MemberRow({
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
-            disabled={disabled}
+            {...busyProps(disabled)}
             onClick={() => {
               setConfirming(false);
               if (mine) onLeave();
@@ -204,8 +221,8 @@ function MemberRow({
           {isAdmin && !mine && (
             <Button
               variant="link"
-              disabled={disabled}
               onClick={() => onRole(member.role === "admin" ? "member" : "admin")}
+              {...busyProps(disabled)}
             >
               {member.role === "admin" ? t.makeMember : t.makeAdmin}
             </Button>

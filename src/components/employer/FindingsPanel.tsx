@@ -1,7 +1,9 @@
 "use client";
+import type { ReactNode } from "react";
 import { useLang, useMessages } from "@/i18n/client";
-import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { contentLang, DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
+import { complianceMessages } from "@/i18n/messages/compliance";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 import type { RequiredField } from "@/lib/ai-post";
 import type { Finding, FindingLevel, JobDraft } from "@/lib/compliance";
@@ -20,9 +22,34 @@ const levelLabel = (level: FindingLevel, lang: Lang): string => {
   return level === "block" ? t.levelBlock : level === "rewrite" ? t.levelRewrite : t.levelReview;
 };
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * The message with the words it quotes in their own elements: those are the employer's own words (Finding.matches),
+ * and the quoting is the dictionary's (compliance.words.quote), so a quoted word is split off and marked as theirs.
+ * A message built in another language than the one shown, as the moderation queue does, simply finds nothing.
+ */
+function messageParts(finding: Finding, lang: Lang): ReactNode {
+  const matches = finding.matches ?? [];
+  if (!matches.length) return finding.message_zh;
+  const quote = pick(complianceMessages, lang).words.quote;
+  const quoted = matches.map(quote);
+  const parts = finding.message_zh.split(new RegExp(`(${quoted.map(escapeRegExp).join("|")})`, "g"));
+  return parts.map((part, i) => {
+    const word = matches[quoted.indexOf(part)];
+    return word == null ? (
+      part
+    ) : (
+      <span key={i} lang={contentLang(word)}>
+        {part}
+      </span>
+    );
+  });
+}
+
 /**
  * One finding: how serious it is, then what the checks said. The message itself comes from the rules
- * (lib/compliance) and is Chinese; the moderation queue renders this without a language and keeps Chinese.
+ * (lib/compliance); the moderation queue renders this without a language and keeps Chinese.
  */
 export function FindingItem({ finding, lang = DEFAULT_LANG }: { finding: Finding; lang?: Lang }) {
   const style = LEVEL_STYLES[finding.level];
@@ -33,7 +60,7 @@ export function FindingItem({ finding, lang = DEFAULT_LANG }: { finding: Finding
         {levelLabel(finding.level, lang)}
         {suffix}
       </span>
-      {finding.message_zh}
+      {messageParts(finding, lang)}
     </p>
   );
 }

@@ -42,6 +42,7 @@ export function ShareTexts({ job, employer }: { job: Job; employer?: Employer })
         </p>
         <textarea
           readOnly
+          lang="zh-CN"
           value={texts[platform]}
           rows={platform === "wechat" ? 7 : 12}
           aria-label={t.textLabel(name)}

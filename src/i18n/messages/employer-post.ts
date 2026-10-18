@@ -1,6 +1,6 @@
 // Round 20 (ADR 0023): the employer's posting flow, in both languages. Covers /employer/post (PostFlow.tsx,
-// PostFlowSteps.tsx, PostFlowBars.tsx, post-flow-state.ts, ChatPost.tsx, DraftCard.tsx, draft-checklist.ts,
-// app/employer/post/page.tsx and error.tsx), the job form (DraftForm.tsx, DraftFormParts.tsx,
+// PostFlowSteps.tsx, PostFlowBars.tsx, post-flow-state.ts, ChatPost.tsx, DraftCard.tsx, DraftEditor.tsx,
+// draft-checklist.ts, app/employer/post/page.tsx and error.tsx), the job form (DraftForm.tsx, DraftFormParts.tsx,
 // DraftFormSections.tsx, JobRolesField.tsx, PayReferenceHint.tsx, FindingsPanel.tsx), what comes after posting
 // (Published.tsx) and editing, reposting and copying a job (EditJob.tsx, RepublishJob.tsx, KeptJobForm.tsx and
 // the jobs/[id], /copy and /republish pages).
@@ -71,6 +71,14 @@ const employerPostZh = {
     previewBanned: "这个雇主账号已被停用，职位已全部下架，不能再发布。",
   },
 
+  /**
+   * DraftEditor.tsx: what the parser (lib/ai-post/parse.ts) wants the employer to know about the text it read,
+   * by note id. The parser only names the note; the wording is here, in the page's language.
+   */
+  parseNotes: {
+    otherPeriodPay: "原文写的是周薪、月薪或年薪，请换算成时薪填写。",
+  },
+
   /** PostFlowBars.tsx: the sticky bar under the form and under the preview. */
   bars: {
     back: "上一步",
@@ -78,7 +86,9 @@ const employerPostZh = {
     readyNeedsReview: "可以发布，需人工审核",
     ready: "可以发布",
     backToEdit: "返回修改",
-    postingAs: (shopName: string) => `以「${shopName}」发布`,
+    /** Around the shop's own name, which is rendered as the employer wrote it. */
+    postingAsBefore: "以「",
+    postingAsAfter: "」发布",
     /** holdReason() in use-draft-form.ts, also shown by EditJob.tsx and RepublishJob.tsx. */
     holdReason: (problems: number, missing: number) =>
       [problems && `${problems} 个问题要处理`, missing && `${missing} 项没填`].filter(Boolean).join("，"),
@@ -175,7 +185,10 @@ const employerPostZh = {
 
     paySection: "工资和福利",
     pay: "时薪",
-    /** The unit beside the pay boxes; `symbol` is the country's currency symbol. */
+    /**
+     * The unit beside the pay boxes; `symbol` is the country's currency symbol. English writes the symbol in front
+     * of the figure ($25 an hour), so after the boxes it only marks which currency the figures are in.
+     */
     payUnit: (symbol: string) => `${symbol}/小时`,
     /** `country` is the country's name, `amount` the hourly minimum with its symbol, `from` the date it starts. */
     payHint: (country: string, amount: string, from: string) =>
@@ -297,10 +310,13 @@ const employerPostZh = {
     backToJobs: "回到职位管理",
     copyHeading: "复制为新职位",
     republishHeading: "重新发布",
-    copyNote: (title: string) =>
-      `用「${title}」的内容新建一条职位，改好后发布。新职位从零开始：没有原职位的申请人、续期和浏览数据；发布前照常检查。原来的职位不变。`,
-    republishNote: (title: string, closeDate: string) =>
-      `用「${title}」（${closeDate}截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。`,
+    /** Around the job's own title, which is rendered as the employer wrote it. */
+    copyNoteBefore: "用「",
+    copyNoteAfter:
+      "」的内容新建一条职位，改好后发布。新职位从零开始：没有原职位的申请人、续期和浏览数据；发布前照常检查。原来的职位不变。",
+    republishNoteBefore: "用「",
+    republishNoteAfter: (closeDate: string) =>
+      `」（${closeDate}截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。`,
     cancel: "取消",
     readyNeedsReview: "发布后需要审核",
     ready: "可以发布",
@@ -357,7 +373,7 @@ export const employerPostMessages: Dictionary<typeof employerPostZh> = {
       form: "Check",
       preview: "Preview and post",
       modeLabel: "How to post",
-      modeChat: "Post by chat",
+      modeChat: "Post with AI",
       modeForm: "Fill in the form",
       pasteHeading: "Post a job in a minute",
       pasteLabel:
@@ -376,13 +392,18 @@ export const employerPostMessages: Dictionary<typeof employerPostZh> = {
       previewBanned: "This employer account has been stopped. All its jobs are taken down and it can't post any more.",
     },
 
+    parseNotes: {
+      otherPeriodPay: "The text gives a weekly, monthly or yearly wage. Work out the hourly rate and fill that in.",
+    },
+
     bars: {
       back: "Back",
       preview: "Preview",
       readyNeedsReview: "Ready to post, needs review by a person",
       ready: "Ready to post",
       backToEdit: "Back to edit",
-      postingAs: (shopName) => `Posting as ${shopName}`,
+      postingAsBefore: "Posting as “",
+      postingAsAfter: "”",
       holdReason: (problems, missing) =>
         [
           problems && (problems === 1 ? "1 problem to fix" : `${problems} problems to fix`),
@@ -478,7 +499,7 @@ export const employerPostMessages: Dictionary<typeof employerPostZh> = {
 
       paySection: "Pay and extras",
       pay: "Pay per hour",
-      payUnit: (symbol) => `${symbol} an hour`,
+      payUnit: (symbol) => `an hour (${symbol})`,
       payHint: (country, amount, from) =>
         `Adult minimum wage in ${country}: ${amount} an hour (from ${from}). If there is only one figure, fill in the left box only.`,
       meals: "Meals provided",
@@ -596,10 +617,12 @@ export const employerPostMessages: Dictionary<typeof employerPostZh> = {
       backToJobs: "Back to my jobs",
       copyHeading: "Copy as a new job",
       republishHeading: "Repost",
-      copyNote: (title) =>
-        `Makes a new job from “${title}”. Change what you need, then post. The new job starts fresh: none of the old job's applicants, renewals or view numbers, and the usual checks before posting. The old job stays as it is.`,
-      republishNote: (title, closeDate) =>
-        `Makes a new job from “${title}” (closed ${closeDate}). It is checked again against today's rules, such as the adult minimum wage, before posting. The old job stays closed.`,
+      copyNoteBefore: "Makes a new job from “",
+      copyNoteAfter:
+        "”. Change what you need, then post. The new job starts fresh: none of the old job's applicants, renewals or view numbers, and the usual checks before posting. The old job stays as it is.",
+      republishNoteBefore: "Makes a new job from “",
+      republishNoteAfter: (closeDate) =>
+        `” (closed ${closeDate}). It is checked again against today's rules, such as the adult minimum wage, before posting. The old job stays closed.`,
       cancel: "Cancel",
       readyNeedsReview: "Posting sends it for review",
       ready: "Ready to post",

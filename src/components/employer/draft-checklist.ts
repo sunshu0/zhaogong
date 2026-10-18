@@ -2,6 +2,7 @@
 // says what to send to go back to it (改一下时薪 …), so a tap asks that question again. The 「改一下…」 messages
 // go to the Chinese-only posting assistant, so they stay Chinese whatever the interface language is.
 import { COUNTRIES, regionById } from "@/config/countries";
+import { formatAmount } from "@/i18n/format";
 import { VISA_LABELS } from "@/i18n/labels";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -41,7 +42,6 @@ export interface Checklist {
 type Words = ReturnType<typeof checklistWords>;
 const checklistWords = (lang: Lang) => pick(employerPostMessages, lang).checklist;
 
-const money = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const range = (r: { min: number; max?: number }, f: (n: number) => string = String) =>
   r.max != null && r.max !== r.min ? `${f(r.min)}–${f(r.max)}` : f(r.min);
 
@@ -97,7 +97,7 @@ export function draftChecklist(
     {
       key: "pay",
       label: t.payLabel,
-      value: draft.pay && t.payValue(`${symbol}${range(draft.pay, money)}`),
+      value: draft.pay && t.payValue(`${symbol}${range(draft.pay, (n) => formatAmount(n, lang))}`),
       required: true,
       ask: "改一下时薪",
       fields: ["pay"],

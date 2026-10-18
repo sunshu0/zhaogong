@@ -41,6 +41,7 @@ const chatZh = {
     listLabel: "聊天列表",
     recent: "最近联系",
     conversationCount: (n: number) => `${n} 个会话`,
+    /** Read with emptyEmployer or emptySeeker after it on the same line (the English ends with a space). */
     empty: "还没有聊天。",
     emptyEmployer: "在申请人列表或推荐人才里点「发起聊天」，就会出现在这里。",
     emptySeeker: "在职位详情里点「立即沟通」，就会出现在这里。",
@@ -61,8 +62,9 @@ const chatZh = {
     back: "返回会话列表",
     more: (person: string) => `更多：${person}`,
     viewProfile: (person: string) => `查看${person}的主页`,
-    appliedFor: (title: string) => `应聘：${title}`,
-    hiringFor: (title: string) => `招聘：${title}`,
+    /** Before the job's title, which is the employer's own words (marked separately). */
+    appliedFor: "应聘：",
+    hiringFor: "招聘：",
     composerLabel: "输入消息",
     composerPlaceholder: "输入消息…",
     send: "发送",
@@ -190,6 +192,7 @@ const chatZh = {
     mineLabel: "我的交换内容",
     agreeHeading: "同意后给对方的资料",
     askHeading: "发出请求时给对方的资料",
+    /** Read with nothingYetAgree or nothingYetAsk after it on the same line (the English ends with a space). */
     nothingYet: (kind: string) => `你还没有填写${kind}。`,
     nothingYetAgree: "填好后才能同意交换。",
     nothingYetAsk: "先填好自己的，才能发起交换。",
@@ -221,7 +224,9 @@ const chatZh = {
     sentNote: "前端演示：举报及聊天证据已保存到本机，尚未送交平台处理；不会通知对方。",
     close: "关闭",
     toast: "举报已记录",
-    target: (person: string, role: string) => `举报对象：${person} · ${role}`,
+    /** Around the other person's name, which is their own words (marked separately). */
+    targetBefore: "举报对象：",
+    targetAfter: (role: string) => ` · ${role}`,
     roleSeeker: "求职者",
     roleEmployer: "雇主",
     reasonLabel: "举报原因",
@@ -250,7 +255,9 @@ const chatZh = {
     ethnicForbidden: "找工不允许按种族或国籍招人",
     ethnicCaution: "请谨慎，可以举报。",
     incoming: (forbidden: string, caution: string) => `${forbidden}。${caution}`,
-    outgoing: (words: string, forbidden: string) => `这条消息提到${words}：${forbidden}，建议修改后再发。`,
+    /** Around the words quoted from the message itself, which stay as they were written (marked separately). */
+    outgoingBefore: "这条消息提到",
+    outgoingAfter: (forbidden: string) => `：${forbidden}，建议修改后再发。`,
     /** Between the rules of one outgoing warning. */
     forbiddenJoiner: "；",
   },
@@ -299,7 +306,8 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       listLabel: "Chats",
       recent: "Recent chats",
       conversationCount: (n) => (n === 1 ? "1 chat" : `${n} chats`),
-      empty: "No chats yet.",
+      /** Followed on the same line by emptyEmployer or emptySeeker, so it ends with the space between them. */
+      empty: "No chats yet. ",
       emptyEmployer: 'Tap "Start a chat" in the applicants list or suggested candidates and it will show here.',
       emptySeeker: 'Tap "Chat now" on a job and it will show here.',
       previewEmpty: "No messages yet",
@@ -318,8 +326,8 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       back: "Back to the chat list",
       more: (person) => `More: ${person}`,
       viewProfile: (person) => `View ${person}'s page`,
-      appliedFor: (title) => `Applying for: ${title}`,
-      hiringFor: (title) => `Hiring for: ${title}`,
+      appliedFor: "Applying for: ",
+      hiringFor: "Hiring for: ",
       composerLabel: "Write a message",
       composerPlaceholder: "Write a message…",
       send: "Send",
@@ -335,7 +343,7 @@ export const chatMessages: Dictionary<typeof chatZh> = {
     log: {
       label: "Messages",
       empty: "No messages yet",
-      counterpartRead: (state) => `Other person · ${state}`,
+      counterpartRead: (state) => `The other person: ${state}`,
       warningsLabel: "Rule reminder",
       reportMessage: "Report this message",
     },
@@ -351,7 +359,8 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       chatLabel: "Chat status",
       employerSummaryLabel: "How this employer replies",
       employerJobLabel: "How this employer replies about jobs",
-      counterpart: (state) => `Other person · ${state}`,
+      counterpart: (state) => `The other person: ${state}`,
+      /** The English states say "Last online …" themselves, so the line needs nothing around them. */
       lastSeen: (state) => state,
       loadingLastActive: "Loading when they were last online",
       repliedByMe: (n) =>
@@ -369,16 +378,18 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       unread: "Unread",
       readUnknown: "Read status unknown",
       unreadByMe: "I have not read it",
+      /** Each one says "last online" itself: they are read on their own, after 「对方」, and after 「最近在线：」. */
       lastActiveUnknown: "Last online not known",
-      onlineJustNow: "Online just now",
-      onlineMinutes: (n) => (n === 1 ? "Online about 1 minute ago" : `Online about ${n} minutes ago`),
-      onlineHours: (n) => (n === 1 ? "Online about 1 hour ago" : `Online about ${n} hours ago`),
-      onlineDays: (n) => (n === 1 ? "Online about 1 day ago" : `Online about ${n} days ago`),
-      onlineOverAWeek: "Online over a week ago",
+      onlineJustNow: "Last online just now",
+      onlineMinutes: (n) => (n === 1 ? "Last online about 1 minute ago" : `Last online about ${n} minutes ago`),
+      onlineHours: (n) => (n === 1 ? "Last online about 1 hour ago" : `Last online about ${n} hours ago`),
+      onlineDays: (n) => (n === 1 ? "Last online about 1 day ago" : `Last online about ${n} days ago`),
+      onlineOverAWeek: "Last online over a week ago",
     },
 
+    /** Always read inside a sentence ("Ask to swap contact details"), so it is not capitalised. */
     exchangeKinds: {
-      contact: "Contact details",
+      contact: "contact details",
       resume: "CV and business details",
     },
 
@@ -440,7 +451,7 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       mineLabel: "What I am giving",
       agreeHeading: "What they get if you agree",
       askHeading: "What they get when you send the request",
-      nothingYet: (kind) => `You have not filled in your ${kind} yet.`,
+      nothingYet: (kind) => `You have not filled in your ${kind} yet. `,
       nothingYetAgree: "Fill it in before you can agree to a swap.",
       nothingYetAsk: "Fill in yours first, then you can ask for a swap.",
       editMine: "Edit my details",
@@ -471,7 +482,8 @@ export const chatMessages: Dictionary<typeof chatZh> = {
         "Demo: the report and the chat evidence are saved on this device only. Nothing has gone to 找工 yet, and the other person is not told.",
       close: "Close",
       toast: "Report saved",
-      target: (person, role) => `Reporting: ${person} · ${role}`,
+      targetBefore: "Reporting: ",
+      targetAfter: (role) => ` · ${role}`,
       roleSeeker: "Job seeker",
       roleEmployer: "Employer",
       reasonLabel: "Reason",
@@ -500,8 +512,8 @@ export const chatMessages: Dictionary<typeof chatZh> = {
       ethnicForbidden: "找工 does not allow hiring by race or nationality",
       ethnicCaution: "Be careful. You can report it.",
       incoming: (forbidden, caution) => `${forbidden}. ${caution}`,
-      outgoing: (words, forbidden) =>
-        `This message mentions ${words}: ${forbidden}. Consider changing it before you send.`,
+      outgoingBefore: "This message mentions ",
+      outgoingAfter: (forbidden) => `: ${forbidden}. Consider changing it before you send.`,
       forbiddenJoiner: "; ",
     },
 

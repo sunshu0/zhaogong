@@ -7,7 +7,7 @@ import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
-import type { Lang } from "@/i18n/lang";
+import { contentLang, type Lang } from "@/i18n/lang";
 import type { Messages } from "@/i18n/messages";
 
 type Bars = Messages<(typeof employerPostMessages)["zh"]["bars"]>;
@@ -68,7 +68,12 @@ export function PreviewBar({
       <button type="button" onClick={onBack} className={BAR_TEXT_ACTION}>
         {t.backToEdit}
       </button>
-      <p className="flex-1 text-meta text-muted">{t.postingAs(shopName)}</p>
+      {/* The shop's name is the employer's own, so it says which language it is in (ADR 0023 §6). */}
+      <p className="flex-1 text-meta text-muted">
+        {t.postingAsBefore}
+        <span lang={contentLang(shopName)}>{shopName}</span>
+        {t.postingAsAfter}
+      </p>
       <Button size="lg" loading={pending} disabled={disabled} onClick={onPublish} className="px-6">
         {publishLabel(pending, needsReview, t)}
       </Button>

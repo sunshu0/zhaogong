@@ -87,10 +87,13 @@ const candidateMatchingZh = {
     missing: "可工作工时待补充",
   },
 
-  /** The 期望时薪 factor. `max` is null when the job gives one number. */
+  /**
+   * The 期望时薪 factor. `max` is null when the job gives one number. The figures come formatted
+   * (i18n/format.ts: 25, 23.50), so only the symbol and the wording are here.
+   */
   pay: {
-    job: (min: number, max: number | null) => `$${min}${max ? `–${max}` : ""} / 小时`,
-    expected: (pay: number) => `期望最低 $${pay} / 小时`,
+    job: (min: string, max: string | null) => `$${min}${max ? `–${max}` : ""} / 小时`,
+    expected: (pay: string) => `期望最低 $${pay} / 小时`,
     missing: "期望时薪待补充",
   },
 
@@ -106,7 +109,7 @@ const candidateMatchingZh = {
     /** Between the candidate's own availability text and their hours. */
     joiner: " · ",
     hours: (min: number, max: number) => `每周 ${min}–${max} 小时`,
-    payFrom: (pay: number) => `$${pay} 起`,
+    payFrom: (pay: string) => `$${pay} 起`,
     noExperience: "无经验",
     years: (years: number) => `${years} 年`,
     missing: "待补充",
@@ -156,7 +159,7 @@ export const candidateMatchingMessages: Dictionary<typeof candidateMatchingZh> =
       skillNote: (skills) => `; skills: ${skills}`,
       ticked: (roles, note) => `Picked ${roles}${note}`,
       mentioned: (roles, note) => `Profile mentions ${roles}${note}`,
-      sameIndustry: (roles, industry, note) => `Wants ${roles}, also ${industry}${note}`,
+      sameIndustry: (roles, industry, note) => `Wants ${roles}, also in the same industry (${industry})${note}`,
       wants: (roles, note) => `Wants ${roles}${note}`,
     },
 

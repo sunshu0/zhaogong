@@ -1,6 +1,7 @@
 import { COUNTRIES, regionById, type Region } from "@/config/countries";
 import { JOB_ROLE_IDS, JOB_ROLES, type JobRoleId } from "@/config/job-roles";
 import { jobRoles, parseJobRoles, roleFitsIndustry } from "@/lib/job-roles";
+import { formatAmount } from "@/i18n/format";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -275,8 +276,8 @@ export function matchCandidate(candidate: Candidate, job: Job, lang: Lang = DEFA
     "pay",
     5,
     resume.expectedMinPay == null ? null : resume.expectedMinPay <= (job.pay.max ?? job.pay.min) ? 1 : 0,
-    t.pay.job(job.pay.min, job.pay.max ?? null),
-    resume.expectedMinPay == null ? t.pay.missing : t.pay.expected(resume.expectedMinPay),
+    t.pay.job(formatAmount(job.pay.min, lang), job.pay.max == null ? null : formatAmount(job.pay.max, lang)),
+    resume.expectedMinPay == null ? t.pay.missing : t.pay.expected(formatAmount(resume.expectedMinPay, lang)),
   );
   const applicable = factors.filter((item) => item.status !== "not_required");
   const totalWeight = applicable.reduce((sum, item) => sum + item.weight, 0);
@@ -318,7 +319,7 @@ export function candidateFacts(candidate: Candidate, lang: Lang = DEFAULT_LANG):
   const values = [
     [candidate.availability.trim(), hours].filter(Boolean).join(t.joiner),
     regions || candidate.location.trim(),
-    resume.expectedMinPay != null ? t.payFrom(resume.expectedMinPay) : "",
+    resume.expectedMinPay != null ? t.payFrom(formatAmount(resume.expectedMinPay, lang)) : "",
     candidate.languages.trim(),
     resume.experienceYears == null
       ? ""

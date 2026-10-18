@@ -13,14 +13,16 @@ const employerVerifyZh = {
   /** VerifyBusiness.tsx */
   verify: {
     heading: "企业验证",
-    /** Followed by the badge itself: 「悦美发型工作室 现在是 [未验证]」. */
-    nowIs: (business: string) => `${business} 现在是`,
+    /** Between the business's own name and the badge itself: 「悦美发型工作室 现在是 [未验证]」. */
+    nowIs: " 现在是",
     nzbn: (number: string) => `NZBN ${number}`,
     submitted: "已提交，审核员核对后会在通知里告诉你结果。",
     banned: "账号已被停用，不能申请验证。",
     nothingLeft: (badge: string) => `你的店铺已经是「${badge}」，不需要再申请。`,
-    adminOnly: (admins: readonly string[]) =>
-      `只有团队管理员能申请企业验证。请找你们店的管理员（${admins.join("、")}）。`,
+    /** Around the admins' own names, joined with adminsJoiner (marked separately). */
+    adminOnlyBefore: "只有团队管理员能申请企业验证。请找你们店的管理员（",
+    adminsJoiner: "、",
+    adminOnlyAfter: "）。",
     backToJobs: "回到职位管理",
   },
 
@@ -32,7 +34,8 @@ const employerVerifyZh = {
     rejectedTitle: "上次申请没有通过",
     pendingNote:
       "审核员会核对企业登记，并打公开渠道查到的公司电话确认你在这家公司。审核期间照样可以发职位，标识显示「未验证」。结果会在通知里告诉你。",
-    rejection: (reason: string, note: string) => `${reason}：${note}`,
+    /** Between the reason and the moderator's own note (marked separately). */
+    rejectionJoiner: "：",
     appliedFor: "申请",
     business: "公司",
     contact: "联系人",
@@ -163,13 +166,14 @@ export const employerVerifyMessages: Dictionary<typeof employerVerifyZh> = {
 
     verify: {
       heading: "Business verification",
-      nowIs: (business) => `${business} is currently`,
+      nowIs: " is currently",
       nzbn: (number) => `NZBN ${number}`,
       submitted: "Sent. A moderator will check it and tell you the result in your notifications.",
       banned: "This account is suspended, so it cannot apply for verification.",
       nothingLeft: (badge) => `Your business is already "${badge}", so there is nothing to apply for.`,
-      adminOnly: (admins) =>
-        `Only a team admin can apply for business verification. Ask an admin (${admins.join(", ")}).`,
+      adminOnlyBefore: "Only a team admin can apply for business verification. Ask an admin (",
+      adminsJoiner: ", ",
+      adminOnlyAfter: ").",
       backToJobs: "Back to my jobs",
     },
 
@@ -180,7 +184,7 @@ export const employerVerifyMessages: Dictionary<typeof employerVerifyZh> = {
       rejectedTitle: "Your last application was not approved",
       pendingNote:
         "A moderator checks the business register and calls the business phone number listed in public sources to confirm that you work there. You can keep posting jobs while they check; your badge stays Not verified. You will get the result in your notifications.",
-      rejection: (reason, note) => `${reason}: ${note}`,
+      rejectionJoiner: ": ",
       appliedFor: "Applied for",
       business: "Business",
       contact: "Contact",

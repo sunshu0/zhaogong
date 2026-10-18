@@ -53,7 +53,7 @@ export const employerPageMessages: Dictionary<typeof employerPageZh> = {
         location: "Area",
         contactName: "Contact person",
         languages: "Languages",
-        availability: "When to contact you",
+        availability: "Contact time",
       },
       rule: {
         fee: "You can't charge job seekers a deposit, a finder's fee or any other fee. Please take it out.",

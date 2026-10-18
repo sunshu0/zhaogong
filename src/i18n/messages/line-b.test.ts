@@ -28,7 +28,12 @@ const DICTIONARIES = {
 // Texts allowed to break the rules below, each on purpose: the job form's Chinese-title field shows a Chinese
 // example in English too; declining a team invite says nothing; Chinese runs matched words together.
 const CHINESE_IN_ENGLISH = ["employer-post:form.titleZhPlaceholder"];
-const EMPTY = ["employer-team:teamActions.answer.declined", "compliance:words.joiner"];
+// …and the English for a changed role starts with the name ("Ann's role is now: Admin."), so nothing goes before it.
+const EMPTY = [
+  "employer-team:teamActions.answer.declined",
+  "compliance:words.joiner",
+  "employer-team:teamPage.changedBefore",
+];
 
 // Sample arguments for the wording functions: numbers, words and lists.
 const SAMPLE_ARGS = [2, "x", ["a", "b"], true];

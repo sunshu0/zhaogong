@@ -180,7 +180,8 @@ function JobSummary({
             {job.titleZh}
           </h2>
           <p className="truncate text-meta text-muted">
-            <span lang="en" className="font-latin">
+            {/* The English title is the employer's own: Latin text is English, but they may have typed Chinese. */}
+            <span lang={contentLang(job.titleEn) ?? "en"} className="font-latin">
               {job.titleEn}
             </span>{" "}
             · {regionName(job, lang)}

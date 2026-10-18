@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { getMyLiveJobsTitled, type JobTwin } from "@/app/[lang]/employer/actions";
 import { closeDateZh } from "@/components/employer/job-status";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 /** Asks the server once the title has stopped changing for a moment. */
@@ -40,7 +41,10 @@ export function DuplicateJobNote({ titleZh }: { titleZh: string }) {
   const when = first.status === "pending_review" ? t.pendingReview : t.closesOn(closeDateZh(first.expiresAt, lang));
   return (
     <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-      {t.note(first.titleZh, when, more)}
+      {/* The other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
+      {t.noteBefore}
+      <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>
+      {t.noteAfter(when, more)}
       <Link href={`/employer/jobs/${first.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
         {t.link}
       </Link>

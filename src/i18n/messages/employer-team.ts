@@ -33,19 +33,24 @@ const employerTeamZh = {
     noEmployerRole: "需要先开通雇主身份。",
     networkError: "网络有问题，请稍后再试。",
     title: "团队",
-    intro: (businessName: string, max: number) =>
-      `${businessName} 的团队，最多 ${max} 人。成员可以发职位、管理职位、处理申请和回复聊天；管理员还能管理团队和申请企业验证。`,
+    /** After the business's name, which leads the line in its own lang. */
+    intro: (max: number) =>
+      ` 的团队，最多 ${max} 人。成员可以发职位、管理职位、处理申请和回复聊天；管理员还能管理团队和申请企业验证。`,
     left: "你已退出团队。",
     nameSaved: "称呼已保存。",
-    roleChanged: (who: string, role: string) => `已把 ${who} 设为${role}。`,
-    removed: (who: string) => `已把 ${who} 移出团队。`,
+    /** Around the person's name, which is their own words (marked separately). */
+    changedBefore: "已把 ",
+    roleChanged: (role: string) => ` 设为${role}。`,
+    removed: " 移出团队。",
     invited: (email: string) => `已邀请 ${email}，对方在「我的」里接受后加入。`,
     inviteCancelled: "邀请已撤回。",
     membersHeading: (n: number) => `成员（${n}）`,
 
     myName: {
       heading: "我的称呼",
-      hint: (example: string) => `团队里的人在聊天里能看到每条回复是谁发的，例如「${example}」。`,
+      /** Around the example signature, which is the business's and the person's own names. */
+      hintBefore: "团队里的人在聊天里能看到每条回复是谁发的，例如「",
+      hintAfter: "」。",
       exampleName: "王经理",
       nameLabel: (max: number) => `称呼（最多 ${max} 个字）`,
       save: "保存称呼",
@@ -82,12 +87,15 @@ const employerTeamZh = {
     heading: "团队邀请",
     networkError: "网络有问题，请稍后再试。",
     cardLabel: (businessName: string) => `${businessName} 的邀请`,
-    invitedBy: (businessName: string, role: string) =>
-      `${businessName} 邀请你加入团队，做${role}。加入后可以切换到雇主身份，为这家店发职位、处理申请和回复聊天。`,
+    /** After the business's name, which leads the line in its own lang. */
+    invitedBy: (role: string) =>
+      ` 邀请你加入团队，做${role}。加入后可以切换到雇主身份，为这家店发职位、处理申请和回复聊天。`,
     nameLabel: (max: number) => `你在团队里的称呼（例如「王经理」，最多 ${max} 个字）`,
     accept: "接受并加入",
     decline: "婉拒",
-    declined: (businessName: string) => `已婉拒「${businessName}」的邀请。`,
+    /** Around the business's name, which is its own words. */
+    declinedBefore: "已婉拒「",
+    declinedAfter: "」的邀请。",
   },
 
   /** src/app/[lang]/employer/team-actions.ts */
@@ -149,19 +157,21 @@ export const employerTeamMessages: Dictionary<typeof employerTeamZh> = {
       noEmployerRole: "Set up hiring first.",
       networkError: "Network problem. Try again shortly.",
       title: "Team",
-      intro: (businessName, max) =>
-        `${businessName}'s team, up to ${max} people. Members can post jobs, manage jobs, handle applications and reply in chats. Admins can also manage the team and apply for business verification.`,
+      intro: (max) =>
+        `'s team, up to ${max} people. Members can post jobs, manage jobs, handle applications and reply in chats. Admins can also manage the team and apply for business verification.`,
       left: "You have left the team.",
       nameSaved: "Your name is saved.",
-      roleChanged: (who, role) => `${who}'s role is now: ${role}.`,
-      removed: (who) => `${who} has been removed from the team.`,
+      changedBefore: "",
+      roleChanged: (role) => `'s role is now: ${role}.`,
+      removed: " has been removed from the team.",
       invited: (email) => `${email} has been invited. They join once they accept under Me.`,
       inviteCancelled: "The invitation has been withdrawn.",
       membersHeading: (n) => `Members (${n})`,
 
       myName: {
         heading: "My name",
-        hint: (example) => `Your team sees who sent each reply in a chat, for example “${example}”.`,
+        hintBefore: "Your team sees who sent each reply in a chat, for example “",
+        hintAfter: "”.",
         exampleName: "Mr Wang",
         nameLabel: (max) => `Name (up to ${max} characters)`,
         save: "Save name",
@@ -197,12 +207,13 @@ export const employerTeamMessages: Dictionary<typeof employerTeamZh> = {
       heading: "Team invitations",
       networkError: "Network problem. Try again shortly.",
       cardLabel: (businessName) => `Invitation from ${businessName}`,
-      invitedBy: (businessName, role) =>
-        `${businessName} has invited you to join their team. Your role: ${role}. Once you join you can switch to the employer role to post jobs, handle applications and reply in chats for this business.`,
+      invitedBy: (role) =>
+        ` has invited you to join their team. Your role: ${role}. Once you join you can switch to the employer role to post jobs, handle applications and reply in chats for this business.`,
       nameLabel: (max) => `Your name in the team (for example “Mr Wang”, up to ${max} characters)`,
       accept: "Accept and join",
       decline: "Decline",
-      declined: (businessName) => `Declined the invitation from ${businessName}.`,
+      declinedBefore: "Declined the invitation from ",
+      declinedAfter: ".",
     },
 
     teamActions: {
