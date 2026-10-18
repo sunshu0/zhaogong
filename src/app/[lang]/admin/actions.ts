@@ -19,8 +19,14 @@ import {
 import type { Employer, Job, ModerationLogEntry, Report } from "@/lib/types";
 import { refreshedDates } from "@/components/employer/job-status";
 import { describeAction, groupOpenReports } from "@/app/[lang]/admin/moderation";
-import { REFUSED_ZH, requireModerator } from "@/app/[lang]/admin/moderator";
+import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
+import { pick } from "@/i18n/messages";
+import { adminMessages } from "@/i18n/messages/admin";
+import { requestLang } from "@/i18n/server";
 import { isValidEmail } from "@/components/seeker/session";
+
+/** This module's answers to the moderator, in the language of the request. */
+const words = async () => pick(adminMessages, await requestLang()).errors;
 
 export interface QueueItem {
   job: Job;
@@ -45,7 +51,7 @@ async function item(job: Job): Promise<QueueItem> {
 /** The queue, for a moderator. */
 export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
   const me = await requireModerator();
-  if (!me.ok) return { refused: me.reason, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
   const jobs = await listAllJobs(DEFAULT_COUNTRY);
   const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map(item));
   const groups = groupOpenReports(await listReports());
@@ -57,7 +63,8 @@ export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
       }),
     )
   ).filter((r) => r != null);
-  const log = (await listModerationLog()).map((e) => ({ ...e, text: describeAction(e) }));
+  const lang = await requestLang();
+  const log = (await listModerationLog()).map((e) => ({ ...e, text: describeAction(e, lang) }));
   return { flagged, reported, log };
 }
 
@@ -66,7 +73,7 @@ export type AdminResult = { ok: true; text: string } | { ok: false; error_zh: st
 /** The signed-in moderator, who goes into the log (#60), or the refusal as an AdminResult. */
 async function acting(): Promise<{ email: string; refused?: never } | { refused: AdminResult }> {
   const me = await requireModerator();
-  return me.ok ? { email: me.email } : { refused: { ok: false, error_zh: REFUSED_ZH[me.reason] } };
+  return me.ok ? { email: me.email } : { refused: { ok: false, error_zh: await refusedText(me.reason) } };
 }
 
 async function openReportsFor(jobId: string): Promise<Report[]> {
@@ -98,10 +105,10 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   const me = await acting();
   if (me.refused) return me.refused;
   const s = await subject(jobId);
-  if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: "这个职位不在待审核列表里。" };
-  if (s.employer?.bannedAt) return { ok: false, error_zh: "雇主已被封禁，不能通过。" };
+  if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: (await words()).notPending };
+  if (s.employer?.bannedAt) return { ok: false, error_zh: (await words()).employerBanned };
   const findings = checkJob(s.job, s.job.country, s.employer);
-  if (!publishDecision(findings).canPublish) return { ok: false, error_zh: "这个职位仍有不能发布的问题，只能下架。" };
+  if (!publishDecision(findings).canPublish) return { ok: false, error_zh: (await words()).stillBlocked };
   const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now(), s.job.expiresAt) });
   if (approved) await matchJobAlerts(approved); // now live: tell job seekers whose alerts it matches (#53)
   const entry = await addModerationLog({
@@ -110,7 +117,7 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
     rules: findings.map((f) => f.rule),
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, await requestLang()) };
 }
 
 /** Takes a job down and closes its open reports as acted on. */
@@ -118,7 +125,7 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
   const me = await acting();
   if (me.refused) return me.refused;
   const s = await subject(jobId);
-  if (!s) return { ok: false, error_zh: "找不到这个职位。" };
+  if (!s) return { ok: false, error_zh: (await words()).noJob };
   const reports = await openReportsFor(s.job.id);
   if (s.job.status !== "removed") await updateJob(s.job.id, { status: "removed" });
   await close(reports, "actioned");
@@ -131,7 +138,7 @@ export async function takeDownJob(jobId: string): Promise<AdminResult> {
     rules,
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, await requestLang()) };
 }
 
 /** The reports on this job do not hold up; the job stays as it is. */
@@ -139,9 +146,9 @@ export async function dismissReports(jobId: string): Promise<AdminResult> {
   const me = await acting();
   if (me.refused) return me.refused;
   const s = await subject(jobId);
-  if (!s) return { ok: false, error_zh: "找不到这个职位。" };
+  if (!s) return { ok: false, error_zh: (await words()).noJob };
   const reports = await openReportsFor(s.job.id);
-  if (!reports.length) return { ok: false, error_zh: "这个职位没有待处理的举报。" };
+  if (!reports.length) return { ok: false, error_zh: (await words()).noReports };
   await close(reports, "dismissed");
   const entry = await addModerationLog({
     action: "dismiss",
@@ -149,7 +156,7 @@ export async function dismissReports(jobId: string): Promise<AdminResult> {
     reasons: reports.map((r) => r.reason),
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, await requestLang()) };
 }
 
 /** Bans the employer behind a job: all their jobs come down and reports on them are closed. */
@@ -157,8 +164,8 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
   const me = await acting();
   if (me.refused) return me.refused;
   const s = await subject(jobId);
-  if (!s?.employer) return { ok: false, error_zh: "找不到这个雇主。" };
-  if (s.employer.bannedAt) return { ok: false, error_zh: "这个雇主已经被封禁。" };
+  if (!s?.employer) return { ok: false, error_zh: (await words()).noEmployer };
+  if (s.employer.bannedAt) return { ok: false, error_zh: (await words()).alreadyBanned };
   const takenDown = await banEmployer(s.employer.id);
   const reports = (await listReports()).filter(
     (r) => r.status === "open" && (takenDown.includes(r.jobId) || r.jobId === s.job.id),
@@ -171,7 +178,7 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
     takenDown: takenDown.length,
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, await requestLang()) };
 }
 
 // ---- moderators (#50) ----
@@ -179,29 +186,29 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
 /** The moderators, oldest first, for a moderator. */
 export async function getModerators(): Promise<{ me: string; moderators: Moderator[] } | Refused> {
   const me = await requireModerator();
-  if (!me.ok) return { refused: me.reason, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
   return { me: me.email, moderators: await listModerators() };
 }
 
 /** Makes a signed-up account a moderator. */
 export async function addModerator(email: string): Promise<AdminResult> {
   const me = await requireModerator();
-  if (!me.ok) return { ok: false, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { ok: false, error_zh: await refusedText(me.reason) };
   const address = String(email ?? "").trim();
-  if (!isValidEmail(address)) return { ok: false, error_zh: "请输入正确的邮箱地址。" };
+  if (!isValidEmail(address)) return { ok: false, error_zh: (await words()).invalidEmail };
   const result = await grantModerator(address, me.email);
-  if (result === "no_account") return { ok: false, error_zh: "这个邮箱还没有注册。请对方先用这个邮箱登录一次。" };
-  if (result === "already") return { ok: false, error_zh: "这个账号已经是审核员。" };
-  return { ok: true, text: `添加审核员 ${address.toLowerCase()}` };
+  if (result === "no_account") return { ok: false, error_zh: (await words()).noAccount };
+  if (result === "already") return { ok: false, error_zh: (await words()).alreadyModerator };
+  return { ok: true, text: pick(adminMessages, await requestLang()).added(address.toLowerCase()) };
 }
 
 /** Takes the role away from a moderator, never the last one. */
 export async function removeModerator(email: string): Promise<AdminResult> {
   const me = await requireModerator();
-  if (!me.ok) return { ok: false, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { ok: false, error_zh: await refusedText(me.reason) };
   const address = String(email ?? "").trim();
   const result = await revokeModerator(address);
-  if (result === "last") return { ok: false, error_zh: "至少要留一位审核员，不能移除最后一位。" };
-  if (result === "not_moderator") return { ok: false, error_zh: "这个账号不是审核员。" };
-  return { ok: true, text: `移除审核员 ${address.toLowerCase()}` };
+  if (result === "last") return { ok: false, error_zh: (await words()).lastModerator };
+  if (result === "not_moderator") return { ok: false, error_zh: (await words()).notModerator };
+  return { ok: true, text: pick(adminMessages, await requestLang()).removed(address.toLowerCase()) };
 }

@@ -16,12 +16,21 @@ import {
 } from "@/db/external-jobs";
 import { matchExternalJobAlerts } from "@/db/external-job-alerts";
 import { addModerationLog } from "@/lib/data";
-import { approvalProblem, HIDE_REASONS, parseHide, parseNote, parseTakedown } from "@/lib/external-jobs/review";
+import { approvalProblem, hideReasons, parseHide, parseNote, parseTakedown } from "@/lib/external-jobs/review";
 import { isShown } from "@/lib/external-jobs/visibility";
 import type { ExternalSource } from "@/lib/external-jobs/types";
 import { describeAction } from "@/app/[lang]/admin/moderation";
-import { REFUSED_ZH, requireModerator } from "@/app/[lang]/admin/moderator";
+import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
+import { pick } from "@/i18n/messages";
+import { adminExternalMessages } from "@/i18n/messages/admin-external";
+import { requestLang } from "@/i18n/server";
 import type { AdminResult, Refused } from "@/app/[lang]/admin/actions";
+
+/** The language of the request, and this module's words in it. */
+async function words() {
+  const lang = await requestLang();
+  return { lang, t: pick(adminExternalMessages, lang) };
+}
 
 export interface ExternalCompanyItem {
   id: string;
@@ -52,7 +61,7 @@ export interface ExternalReviewQueue {
 
 export async function getExternalReview(): Promise<ExternalReviewQueue | Refused> {
   const me = await requireModerator();
-  if (!me.ok) return { refused: me.reason, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
   const now = Date.now();
   const [jobs, blocks] = await Promise.all([listExternalJobs(), listCompanyBlocks()]);
   const items = jobs.map((job) => ({ ...job, shown: isShown(job, now) }));
@@ -88,17 +97,18 @@ export async function getExternalReview(): Promise<ExternalReviewQueue | Refused
 
 async function acting(): Promise<{ email: string } | { refused: AdminResult }> {
   const me = await requireModerator();
-  return me.ok ? { email: me.email } : { refused: { ok: false, error_zh: REFUSED_ZH[me.reason] } };
+  return me.ok ? { email: me.email } : { refused: { ok: false, error_zh: await refusedText(me.reason) } };
 }
 
 /** 通过: the job shows in 实习 or 专业职位. A flagged job needs `flagsChecked` (the moderator read the original). */
 export async function approveExternalJob(id: unknown, flagsChecked: unknown): Promise<AdminResult> {
   const me = await acting();
   if ("refused" in me) return me.refused;
+  const { lang, t } = await words();
   const job = typeof id === "string" ? await getExternalJob(id) : undefined;
-  if (!job) return { ok: false, error_zh: "找不到这个职位。" };
-  if (job.review === "approved") return { ok: false, error_zh: "这个职位已经通过了。" };
-  const problem = approvalProblem(job, flagsChecked === true);
+  if (!job) return { ok: false, error_zh: t.errors.noJob };
+  if (job.review === "approved") return { ok: false, error_zh: t.errors.alreadyApproved };
+  const problem = approvalProblem(job, flagsChecked === true, lang);
   if (problem) return { ok: false, error_zh: problem };
   await setExternalReview(job.id, "approved");
   await matchExternalJobAlerts({ ...job, review: "approved" }); // now shown: tell alerts on its section (#131)
@@ -107,32 +117,33 @@ export async function approveExternalJob(id: unknown, flagsChecked: unknown): Pr
     jobId: job.id,
     jobTitle: job.title,
     employerName: job.companyName,
-    ...(job.flags.length > 0 && { note: "已核对原文中的特殊要求" }),
+    ...(job.flags.length > 0 && { note: t.log.flagsChecked }),
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, lang) };
 }
 
 /** 不显示: the job stays out of the sections (also for one already approved), with a reason. */
 export async function hideExternalJob(id: unknown, reason: unknown, note: unknown): Promise<AdminResult> {
   const me = await acting();
   if ("refused" in me) return me.refused;
-  const parsed = parseHide(reason, note);
+  const { lang, t } = await words();
+  const parsed = parseHide(reason, note, lang);
   if (!parsed.ok) return parsed;
   const job = typeof id === "string" ? await getExternalJob(id) : undefined;
-  if (!job) return { ok: false, error_zh: "找不到这个职位。" };
-  if (job.review === "hidden") return { ok: false, error_zh: "这个职位已经不显示了。" };
+  if (!job) return { ok: false, error_zh: t.errors.noJob };
+  if (job.review === "hidden") return { ok: false, error_zh: t.errors.alreadyHidden };
   await setExternalReview(job.id, "hidden");
-  const why = HIDE_REASONS[parsed.value.reason];
+  const why = hideReasons(lang)[parsed.value.reason];
   const entry = await addModerationLog({
     action: "external_hide",
     jobId: job.id,
     jobTitle: job.title,
     employerName: job.companyName,
-    note: parsed.value.note ? `${why}：${parsed.value.note}` : why,
+    note: parsed.value.note ? t.log.reasonWithNote(why, parsed.value.note) : why,
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, lang) };
 }
 
 async function companyName(id: string): Promise<string | undefined> {
@@ -145,12 +156,13 @@ async function companyName(id: string): Promise<string | undefined> {
 export async function stopExternalCompany(companyId: unknown, note: unknown): Promise<AdminResult> {
   const me = await acting();
   if ("refused" in me) return me.refused;
-  const parsed = parseNote(note);
+  const { lang, t } = await words();
+  const parsed = parseNote(note, lang);
   if (!parsed.ok) return parsed;
   const name = typeof companyId === "string" ? await companyName(companyId) : undefined;
-  if (!name) return { ok: false, error_zh: "找不到这家公司。" };
+  if (!name) return { ok: false, error_zh: t.errors.noCompany };
   const done = await blockCompany(companyId as string, { kind: "stopped", note: parsed.value });
-  if (done === "already") return { ok: false, error_zh: "这家公司已经停用了。" };
+  if (done === "already") return { ok: false, error_zh: t.errors.alreadyStopped };
   const entry = await addModerationLog({
     action: "external_stop",
     employerName: name,
@@ -158,7 +170,7 @@ export async function stopExternalCompany(companyId: unknown, note: unknown): Pr
     note: parsed.value,
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, lang) };
 }
 
 /** 公司要求删除: recorded with who asked, the company stops being imported and every job of it comes down today. */
@@ -169,35 +181,37 @@ export async function recordTakedownRequest(
 ): Promise<AdminResult> {
   const me = await acting();
   if ("refused" in me) return me.refused;
-  const parsed = parseTakedown(requester, note);
+  const { lang, t } = await words();
+  const parsed = parseTakedown(requester, note, lang);
   if (!parsed.ok) return parsed;
   const name = typeof companyId === "string" ? await companyName(companyId) : undefined;
-  if (!name) return { ok: false, error_zh: "找不到这家公司。" };
+  if (!name) return { ok: false, error_zh: t.errors.noCompany };
   const done = await blockCompany(companyId as string, { kind: "takedown", ...parsed.value });
-  if (done === "already") return { ok: false, error_zh: "这家公司的删除请求已经记录过了。" };
+  if (done === "already") return { ok: false, error_zh: t.errors.alreadyTakenDown };
   const entry = await addModerationLog({
     action: "external_takedown",
     employerName: name,
     takenDown: done.takenDown,
-    note: `${parsed.value.requester}：${parsed.value.note}`,
+    note: t.log.requestBy(parsed.value.requester, parsed.value.note),
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, lang) };
 }
 
 /** 恢复导入: the next import reads the company again; its jobs come back waiting for review. */
 export async function resumeExternalCompany(companyId: unknown, note: unknown): Promise<AdminResult> {
   const me = await acting();
   if ("refused" in me) return me.refused;
-  const parsed = parseNote(note);
+  const { lang, t } = await words();
+  const parsed = parseNote(note, lang);
   if (!parsed.ok) return parsed;
   const name = typeof companyId === "string" ? await companyName(companyId) : undefined;
-  if (!name || !(await unblockCompany(companyId as string))) return { ok: false, error_zh: "这家公司没有停用。" };
+  if (!name || !(await unblockCompany(companyId as string))) return { ok: false, error_zh: t.errors.notStopped };
   const entry = await addModerationLog({
     action: "external_resume",
     employerName: name,
     note: parsed.value,
     moderator: me.email,
   });
-  return { ok: true, text: describeAction(entry) };
+  return { ok: true, text: describeAction(entry, lang) };
 }

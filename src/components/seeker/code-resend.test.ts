@@ -19,4 +19,9 @@ describe("重新获取验证码 counted down (#184)", () => {
     expect(resendLabel(1)).toBe("1 秒后可重新获取");
     expect(resendLabel(0)).toBe("重新获取验证码");
   });
+
+  it("says it in English on an English page (Round 20)", () => {
+    expect(resendLabel(42, "en")).toBe("New code in 42 s");
+    expect(resendLabel(0, "en")).toBe("Send a new code");
+  });
 });

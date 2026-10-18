@@ -16,17 +16,21 @@ import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { inputClass } from "@/components/ui/input-class";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import type { Messages } from "@/i18n/messages";
+import { adminMessages } from "@/i18n/messages/admin";
 
 /** Who added a moderator: another moderator, the command line (null), or an account deleted since (#54). */
-function grantedByText(grantedBy: string | null): string {
-  if (!grantedBy) return "在服务器上添加";
-  return grantedBy === DELETED_ACCOUNT ? "由已删除的账号添加" : `由${grantedBy}添加`;
+function grantedByText(grantedBy: string | null, t: Messages<typeof adminMessages.zh>["moderators"]): string {
+  if (!grantedBy) return t.addedOnServer;
+  return grantedBy === DELETED_ACCOUNT ? t.addedByDeleted : t.addedBy(grantedBy);
 }
-
-const day = new Intl.DateTimeFormat("zh-CN", { timeZone: "Pacific/Auckland", dateStyle: "medium" });
 
 /** 审核员 (#50): who may moderate, and adding or removing one by email. The last moderator cannot be removed. */
 export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => void }) {
+  const lang = useLang();
+  const t = useMessages(adminMessages).moderators;
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
   const [version, setVersion] = useState(0);
@@ -62,40 +66,36 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
     );
   };
 
-  if (isFailed(answer)) return <LoadFailed what="审核员名单" onRetry={reload} />;
+  if (isFailed(answer)) return <LoadFailed what={t.listName} onRetry={reload} />;
   if (!answer) return <Loading />;
   if ("refused" in answer) return <Empty>{answer.error_zh}</Empty>;
   const only = answer.moderators.length <= 1;
 
   return (
     <div className="space-y-section">
-      <Section
-        look="app"
-        title={`审核员 · ${answer.moderators.length} 位`}
-        description="审核员可以处理被标记和被举报的职位、封禁雇主，也可以增删审核员。"
-      >
+      <Section look="app" title={t.heading(answer.moderators.length)} description={t.description}>
         <ul className="divide-y divide-border">
           {answer.moderators.map((m) => (
             <li key={m.email} className="flex items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="truncate text-body font-semibold">
                   {m.email}
-                  {m.email === answer.me && <span className="ml-1.5 font-normal text-muted">（你）</span>}
+                  {m.email === answer.me && <span className="ml-1.5 font-normal text-muted">{t.you}</span>}
                 </p>
                 <p className="text-meta text-muted">
-                  {day.format(new Date(m.grantedAt))} {grantedByText(m.grantedBy)}
+                  {formatDate(m.grantedAt, lang, { dateStyle: "medium" })} {grantedByText(m.grantedBy, t)}
                 </p>
               </div>
               <Button
                 variant="danger-secondary"
                 disabled={only || (pending && pressed !== m.email)}
                 loading={pending && pressed === m.email}
-                title={only ? "至少要留一位审核员" : undefined}
+                title={only ? t.keepOne : undefined}
                 onClick={() => run("list", () => removeModerator(m.email), undefined, m.email)}
                 className="shrink-0"
-                aria-label={`移除审核员 ${m.email}`}
+                aria-label={t.removeLabel(m.email)}
               >
-                移除
+                {t.remove}
               </Button>
             </li>
           ))}
@@ -106,10 +106,10 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
           </div>
         )}
       </Section>
-      <Section look="app" title="添加审核员">
+      <Section look="app" title={t.addHeading}>
         <form onSubmit={add} className="space-y-2 py-group">
           <label htmlFor="moderator-email" className="block text-body font-semibold">
-            邮箱
+            {t.emailLabel}
           </label>
           <div className="flex gap-2">
             <input
@@ -118,7 +118,7 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
               autoComplete="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="对方登录用的邮箱"
+              placeholder={t.emailPlaceholder}
               className={`${inputClass()} min-w-0 flex-1`}
             />
             <Button
@@ -126,10 +126,10 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
               disabled={!email.trim() || (pending && pressed !== "add")}
               loading={pending && pressed === "add"}
             >
-              添加
+              {t.add}
             </Button>
           </div>
-          <p className="text-meta text-muted">对方要先用这个邮箱登录过一次。</p>
+          <p className="text-meta text-muted">{t.addNote}</p>
           {failed === "add" && <TryAgain />}
         </form>
       </Section>

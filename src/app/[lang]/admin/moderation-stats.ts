@@ -1,6 +1,9 @@
 // 审核数据 (#70, PRD R-34): what the moderation queue looks like now, and the last eight weeks of reports and
 // decisions. Pure, so the numbers are tested without a database; stats-actions.ts feeds it on the server. The data
 // is small, so it is worked out from whole tables on each request (ADR 0010 says what to do when it is not).
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { adminStatsMessages } from "@/i18n/messages/admin-stats";
 import type { Job, ModerationLogEntry, Report } from "@/lib/types";
 import type { AiUsageResult } from "@/lib/ai-post/model/limits";
 
@@ -249,13 +252,17 @@ function aiPostingStats(entries: readonly AiUsageEntry[], now: number): Moderati
   return { days: [...days.values()], total };
 }
 
-/** A wait in words: 刚刚, 25 分钟, 3 小时, 2 天 5 小时. */
-export function waitZh(ms: number): string {
+/** A wait in words, rounded down: 不到 1 分钟 / under a minute, 25 分钟, 3 小时, 2 天 5 小时 / 2 days 5 hours. */
+export function waitText(ms: number, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(adminStatsMessages, lang).wait;
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return "不到 1 分钟";
-  if (minutes < 60) return `${minutes} 分钟`;
+  if (minutes < 1) return t.underAMinute;
+  if (minutes < 60) return t.minutes(minutes);
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} 小时`;
+  if (hours < 24) return t.hours(hours);
   const days = Math.floor(hours / 24);
-  return hours % 24 ? `${days} 天 ${hours % 24} 小时` : `${days} 天`;
+  return hours % 24 ? t.daysHours(days, hours % 24) : t.days(days);
 }
+
+/** The wait in Chinese (waitText for the page's language). */
+export const waitZh = (ms: number): string => waitText(ms, "zh");

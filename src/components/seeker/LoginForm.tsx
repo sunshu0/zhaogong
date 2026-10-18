@@ -10,7 +10,9 @@ import {
   type AccountStatus,
 } from "@/app/[lang]/login/actions";
 import { COUNTRIES } from "@/config/countries";
+import { useLang, useMessages } from "@/i18n/client";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
+import { loginMessages } from "@/i18n/messages/login";
 import type { EmployerVerification } from "@/lib/types";
 import {
   businessChoice,
@@ -48,10 +50,7 @@ const linkButtonClass =
 const fixButtonClass =
   "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50 aria-disabled:opacity-50";
 
-const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
-  { role: "seeker", title: "我要找工作", text: "浏览职位，和雇主在线沟通、交换联系方式" },
-  { role: "employer", title: "我要招人", text: "开通雇主身份，选择或新建你的企业，然后发布招聘" },
-];
+const ROLES: readonly ActiveRole[] = ["seeker", "employer"];
 
 /**
  * 注册或登录 (the email code does both; A12-1: the code is checked and the session started on the server). Job seekers: email → code → `next`. Employers: email → code → their
@@ -71,6 +70,8 @@ export function LoginForm({
   const router = useRouter();
   const hydrated = useHydrated();
   const session = useSession();
+  const lang = useLang();
+  const t = useMessages(loginMessages);
   const [role, setRole] = useState<ActiveRole>(initialRole);
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -150,7 +151,7 @@ export function LoginForm({
   if (!hydrated) return <Placeholder />;
 
   if (session && role === "employer") {
-    if (checkedFor !== session.email) return <LoginFormSkeleton label="正在核对你的账号…" />;
+    if (checkedFor !== session.email) return <LoginFormSkeleton label={t.checkingAccount} />;
     return (
       <BusinessStep
         email={session.email}
@@ -168,18 +169,19 @@ export function LoginForm({
     return (
       <div className={`space-y-3 ${CARD}`}>
         <p className="text-body">
-          你已登录：<span className="font-medium break-all">{session.email}</span>
+          {t.signedIn.as}
+          <span className="font-medium break-all">{session.email}</span>
         </p>
         <Button size="lg" block onClick={() => router.replace(next)}>
-          继续
+          {t.signedIn.continue}
         </Button>
         {!session.employerId && (
           <button type="button" onClick={() => setRole("employer")} className={linkButtonClass}>
-            开通雇主身份
+            {t.signedIn.setUpHiring}
           </button>
         )}
         <button type="button" onClick={signOut} className={linkButtonClass}>
-          退出登录
+          {t.signedIn.signOut}
         </button>
       </div>
     );
@@ -195,7 +197,7 @@ export function LoginForm({
     setError(null);
     startTransition(async () => {
       const result = await requestSignInCode(address).catch(() => null);
-      if (!result) return setError("网络有问题，请稍后再试");
+      if (!result) return setError(t.networkError);
       if (!result.ok) {
         // Asked too soon (another tab, say): count down from what the server says is left.
         if (result.retryAfterSec) waitBeforeResend(result.retryAfterSec);
@@ -212,18 +214,18 @@ export function LoginForm({
   function submitEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const value = normalizeEmail(String(new FormData(e.currentTarget).get("email") ?? ""));
-    if (!isValidEmail(value)) return setError("请输入正确的邮箱地址");
+    if (!isValidEmail(value)) return setError(t.email.invalid);
     sendCode(value);
   }
 
   function submitCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const code = String(new FormData(e.currentTarget).get("code") ?? "");
-    if (!isValidCode(code)) return setError("请输入 6 位数字验证码");
+    if (!isValidCode(code)) return setError(t.code.invalid);
     setError(null);
     startTransition(async () => {
       const result = await signInAccount(email, code, role).catch(() => null);
-      if (!result) return setError("网络有问题，请稍后再试");
+      if (!result) return setError(t.networkError);
       if (!result.ok) return setError(result.error);
       finishSignIn(result.account, result.reload);
     });
@@ -246,24 +248,22 @@ export function LoginForm({
   return step === "email" ? (
     <form onSubmit={submitEmail} noValidate className={`space-y-5 ${CARD}`}>
       <fieldset>
-        <legend className={labelClass}>你想做什么？</legend>
+        <legend className={labelClass}>{t.roles.legend}</legend>
         <div className="grid gap-2">
-          {ROLE_OPTIONS.map((option) => (
-            <ChoiceCard key={option.role}>
-              <Radio
-                name="role"
-                value={option.role}
-                checked={role === option.role}
-                onChange={() => setRole(option.role)}
-              >
-                <ChoiceText title={option.title} text={option.text} />
+          {ROLES.map((option) => (
+            <ChoiceCard key={option}>
+              <Radio name="role" value={option} checked={role === option} onChange={() => setRole(option)}>
+                <ChoiceText
+                  title={option === "seeker" ? t.roles.seekerTitle : t.roles.employerTitle}
+                  text={option === "seeker" ? t.roles.seekerText : t.roles.employerText}
+                />
               </Radio>
             </ChoiceCard>
           ))}
         </div>
       </fieldset>
       <label className="block">
-        <span className={labelClass}>邮箱</span>
+        <span className={labelClass}>{t.email.label}</span>
         <input
           name="email"
           type="email"
@@ -284,18 +284,18 @@ export function LoginForm({
       </label>
       {error && <ErrorText>{error}</ErrorText>}
       <Button type="submit" size="lg" block loading={pending}>
-        {pending ? "正在发送…" : "获取验证码"}
+        {pending ? t.email.sending : t.email.send}
       </Button>
       {/* Below the button, so a hint that appears as the field is left (tapping the button) does not move it. */}
       <p className="sr-only" aria-live="polite">
-        {typoFix ? `邮箱是不是 ${typoFix}？` : ""}
+        {typoFix ? t.email.typoAnnounce(typoFix) : ""}
       </p>
       {typoFix && (
         <p className="text-body">
-          是不是{" "}
+          {t.email.typoBefore}{" "}
           <button
             type="button"
-            aria-label={`改成 ${typoFix}`}
+            aria-label={t.email.typoFixLabel(typoFix)}
             onClick={() => {
               if (emailInput.current) emailInput.current.value = typoFix;
               setLeftEmail(typoFix);
@@ -304,48 +304,48 @@ export function LoginForm({
           >
             {typoFix}
           </button>
-          ？
+          {t.email.typoAfter}
         </p>
       )}
-      <p className="text-meta text-muted">新邮箱会自动注册。邮箱只用来登录，不会显示给雇主。</p>
+      <p className="text-meta text-muted">{t.email.note}</p>
     </form>
   ) : (
     <form onSubmit={submitCode} noValidate className={`space-y-4 ${CARD}`}>
       <p className="text-body">
-        验证码已发送到 <span className="font-medium break-all">{email}</span>
+        {t.code.sentTo} <span className="font-medium break-all">{email}</span>
       </p>
       {sentTypoFix && (
         <p className="text-body">
-          地址是不是拼错了？{" "}
+          {t.code.typoQuestion}{" "}
           <button
             type="button"
             onClick={() => sendCode(sentTypoFix, () => codeInput.current?.focus())}
             className={fixButtonClass}
             {...busyProps(pending)}
           >
-            改用 {sentTypoFix}
+            {t.code.useInstead(sentTypoFix)}
           </button>
         </p>
       )}
       {devCode ? (
         <p className="rounded-control bg-brand-soft px-3 py-2 text-meta text-brand">
-          开发环境没有接邮件服务，验证码打印在服务器日志里：
+          {t.code.devNote}
           <span data-testid="dev-sign-in-code" className="ml-1 font-mono text-body font-semibold tracking-widest">
             {devCode}
           </span>
         </p>
       ) : (
-        <p className="text-meta text-muted">10 分钟内有效。没收到可以 1 分钟后重新获取。</p>
+        <p className="text-meta text-muted">{t.code.validity}</p>
       )}
       <label className="block">
-        <span className={labelClass}>验证码</span>
+        <span className={labelClass}>{t.code.label}</span>
         <input
           ref={codeInput}
           name="code"
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={6}
-          placeholder="6 位数字"
+          placeholder={t.code.placeholder}
           autoFocus
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "login-error" : undefined}
@@ -354,7 +354,7 @@ export function LoginForm({
       </label>
       {error && <ErrorText>{error}</ErrorText>}
       <Button type="submit" size="lg" block loading={pending}>
-        登录
+        {t.code.submit}
       </Button>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -367,7 +367,7 @@ export function LoginForm({
           className={linkButtonClass}
           {...busyProps(pending)}
         >
-          {resendLabel(resendLeft)}
+          {resendLabel(resendLeft, lang)}
         </button>
         <button
           type="button"
@@ -379,7 +379,7 @@ export function LoginForm({
           }}
           className={linkButtonClass}
         >
-          换个邮箱
+          {t.code.otherEmail}
         </button>
       </div>
     </form>
@@ -399,6 +399,8 @@ function BusinessStep({
   focusHeading?: boolean;
   onDone: (employer: { id: string; name: string }) => void;
 }) {
+  const lang = useLang();
+  const t = useMessages(loginMessages);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (focusHeading) heading.current?.focus();
@@ -422,9 +424,9 @@ function BusinessStep({
     setError(null);
     startTransition(async () => {
       const result = await openEmployerForAccount(email, payload).catch(() => null);
-      if (!result) return setError("网络有问题，请稍后再试");
+      if (!result) return setError(t.networkError);
       if (!result.ok) {
-        if (choice !== "new" && result.error === openErrorMessage("taken")) {
+        if (choice !== "new" && result.error === openErrorMessage("taken", lang)) {
           setTakenHere([...takenHere, choice]); // the choice moves on by itself (businessChoice)
         }
         return setError(result.error);
@@ -437,26 +439,27 @@ function BusinessStep({
     <form onSubmit={submit} noValidate className={`space-y-5 ${CARD}`}>
       <div>
         <h2 ref={heading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
-          开通雇主身份
+          {t.hiring.title}
         </h2>
         <p className="mt-1 text-meta text-muted">
-          已登录：<span className="break-all">{email}</span>
-          。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。
+          {t.hiring.signedInAs}
+          <span className="break-all">{email}</span>
+          {t.hiring.introAfter}
         </p>
       </div>
       <fieldset>
-        <legend className={labelClass}>你的企业</legend>
+        <legend className={labelClass}>{t.hiring.legend}</legend>
         <div className="grid gap-2">
           {shops.map((b) => (
             <Choice key={b.id} value={b.id} current={choice} onPick={setChoice} disabled={b.claimed}>
               <ChoiceText
                 title={b.name}
-                text={`${b.regionName} · ${VERIFICATION_LABELS[b.verification].zh}${b.claimed ? " · 已有团队，需要管理员邀请" : ""}`}
+                text={t.hiring.businessMeta(b.regionName, VERIFICATION_LABELS[b.verification][lang], b.claimed)}
               />
             </Choice>
           ))}
           <Choice value="new" current={choice} onPick={setChoice}>
-            <ChoiceText title="新建企业" text="填写店名和地区；企业验证可以以后再做" />
+            <ChoiceText title={t.hiring.newTitle} text={t.hiring.newText} />
           </Choice>
         </div>
       </fieldset>
@@ -464,22 +467,22 @@ function BusinessStep({
       {choice === "new" && (
         <div className="space-y-4">
           <label className="block">
-            <span className={labelClass}>店名</span>
+            <span className={labelClass}>{t.hiring.nameLabel}</span>
             <input name="name" maxLength={40} autoComplete="organization" className={inputClass()} />
           </label>
           <Select
             name="regionId"
-            label="地区"
-            placeholder="请选择"
+            label={t.hiring.areaLabel}
+            placeholder={t.hiring.areaPlaceholder}
             required
-            options={regions.map((r) => ({ value: r.id, label: r.nameZh }))}
+            options={regions.map((r) => ({ value: r.id, label: lang === "en" ? r.nameEn : r.nameZh }))}
           />
         </div>
       )}
 
       {error && <ErrorText>{error}</ErrorText>}
       <Button type="submit" size="lg" block loading={pending}>
-        {pending ? "正在开通…" : "开通并开始发布招聘"}
+        {pending ? t.hiring.submitting : t.hiring.submit}
       </Button>
     </form>
   );
@@ -534,21 +537,21 @@ function Choice({
 
 /** The page's title and what signing in is (the page and its loading.tsx). */
 export function LoginIntro() {
+  const t = useMessages(loginMessages);
   return (
     <>
-      <h1 className="text-[1.75rem] leading-tight font-black lg:text-[2.125rem]">注册或登录</h1>
-      <p className="mt-2 mb-5 text-body text-muted">
-        用邮箱验证码注册或登录，不用设密码。同一个账号可以找工作，也可以开通雇主身份招人。
-      </p>
+      <h1 className="text-[1.75rem] leading-tight font-black lg:text-[2.125rem]">{t.title}</h1>
+      <p className="mt-2 mb-5 text-body text-muted">{t.intro}</p>
     </>
   );
 }
 
 /** The form's shape while it is on its way: a card with the role choice, a field and the button. Hidden without JavaScript. */
-export function LoginFormSkeleton({ label = "正在加载" }: { label?: string }) {
+export function LoginFormSkeleton({ label }: { label?: string }) {
+  const t = useMessages(loginMessages);
   return (
     <div data-nojs-hide="" aria-busy="true" className={`space-y-5 ${CARD}`}>
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? t.loading}</span>
       <Skeleton className="h-5 w-24" />
       <Skeleton className="h-16 w-full" />
       <Skeleton className="h-16 w-full" />
@@ -559,12 +562,13 @@ export function LoginFormSkeleton({ label = "正在加载" }: { label?: string }
 }
 
 function Placeholder() {
+  const t = useMessages(loginMessages);
   return (
     <>
       <LoginFormSkeleton />
       {/* Signing in runs in the browser (the code step, the session copy): say so instead of an endless placeholder. */}
       <noscript>
-        <p className={`text-body ${CARD}`}>登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。</p>
+        <p className={`text-body ${CARD}`}>{t.noScript}</p>
       </noscript>
     </>
   );

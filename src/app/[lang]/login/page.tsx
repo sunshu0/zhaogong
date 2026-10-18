@@ -9,8 +9,12 @@ import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, LoginFormSkeleton, LoginIntro, type DemoBusiness } from "@/components/seeker/LoginForm";
 import { nextForSignedIn } from "@/components/seeker/session";
+import { loginMessages } from "@/i18n/messages/login";
+import { messages, serverLang } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "注册或登录", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await messages(loginMessages)).title, robots: { index: false } };
+}
 
 // Round 19 (操作质感): the app's type (`type-app`), a large title and the form as a card.
 export default function LoginPage({ searchParams }: PageProps<"/[lang]/login">) {
@@ -43,6 +47,7 @@ async function Login({ searchParams }: Pick<PageProps<"/[lang]/login">, "searchP
 
 /** The businesses an employer can pick at sign-up in the demo (banned ones left out; bound ones marked). */
 async function demoBusinesses(): Promise<DemoBusiness[]> {
+  const lang = await serverLang();
   const ids: readonly string[] = DEMO_BUSINESS_IDS;
   const claimed = new Set(await listClaimedEmployerIds());
   return (await listEmployers())
@@ -50,7 +55,7 @@ async function demoBusinesses(): Promise<DemoBusiness[]> {
     .map((e) => ({
       id: e.id,
       name: e.name,
-      regionName: regionById("NZ", e.regionId)?.nameZh ?? "",
+      regionName: (lang === "en" ? regionById("NZ", e.regionId)?.nameEn : regionById("NZ", e.regionId)?.nameZh) ?? "",
       verification: e.verification,
       claimed: claimed.has(e.id),
     }));

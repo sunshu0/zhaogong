@@ -14,13 +14,11 @@ import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/app/[lang]/admin/_components/use-swap-focus";
-import {
-  KIND_LABELS,
-  missingChecks,
-  REJECT_REASONS,
-  type Checklist,
-  type RejectReason,
-} from "@/components/employer/verification";
+import { missingChecks, type Checklist, type RejectReason } from "@/components/employer/verification";
+import { badgeName, rejectReasonsIn } from "@/app/[lang]/admin/verification-words";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { adminVerificationMessages } from "@/i18n/messages/admin-verification";
 import { Button } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
 import { Checkbox, Radio } from "@/components/ui/Checkbox";
@@ -28,13 +26,8 @@ import { inputClass } from "@/components/ui/input-class";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-const time = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Pacific/Auckland",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+// When an application came in: day and time, New Zealand time (format.ts).
+const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
 
 /** The 企业验证 applications waiting, loaded again whenever `version` changes; the count is for the tab. */
 export function useVerificationQueue(version: number) {
@@ -51,15 +44,14 @@ export function VerificationQueue({
   onDone: (result: AdminResult) => void;
   onRetry: () => void;
 }) {
-  if (isFailed(queue)) return <LoadFailed what="企业验证申请" onRetry={onRetry} />;
+  const t = useMessages(adminVerificationMessages);
+  if (isFailed(queue)) return <LoadFailed what={t.listName} onRetry={onRetry} />;
   if (!queue) return <Loading />;
   if ("refused" in queue) return <Empty>{queue.error_zh}</Empty>;
-  if (queue.length === 0) return <Empty>没有待审核的企业验证。</Empty>;
+  if (queue.length === 0) return <Empty>{t.empty}</Empty>;
   return (
     <>
-      <p className="mb-3 text-meta text-muted">
-        逐项核对后打勾，必做的都打勾才能通过。电话要打公开渠道查到的公司电话，不只打申请人填的号码。核对结果和备注会存进审核记录。
-      </p>
+      <p className="mb-3 text-meta text-muted">{t.howTo}</p>
       <ul className="space-y-3">
         {queue.map((item) => (
           <li key={item.request.id}>
@@ -72,6 +64,8 @@ export function VerificationQueue({
 }
 
 function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (result: AdminResult) => void }) {
+  const lang = useLang();
+  const t = useMessages(adminVerificationMessages);
   const { request, employer, register, checklist } = item;
   const [checks, setChecks] = useState<Checklist>({});
   const [rejecting, setRejecting] = useState(false);
@@ -94,42 +88,40 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   const { opener: rejectOpenerRef, form: rejectFormRef } = useSwapFocus(rejecting);
 
   return (
-    <article aria-label={`企业验证：${request.tradingName}`} className={`space-y-4 ${cardClass()}`}>
+    <article aria-label={t.cardLabel(request.tradingName)} className={`space-y-4 ${cardClass()}`}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-subtitle font-semibold">{request.tradingName}</h2>
-        <Tag kind="neutral">申请{KIND_LABELS[request.kind]}</Tag>
-        {employer && <VerificationBadge verification={employer.verification} />}
-        {employer?.bannedAt && <Tag kind="urgent">已封禁</Tag>}
-        <span className="text-meta text-muted">提交于 {time.format(new Date(request.submittedAt))}</span>
+        <Tag kind="neutral">{t.applyingFor(badgeName(request.kind, lang))}</Tag>
+        {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
+        {employer?.bannedAt && <Tag kind="urgent">{t.banned}</Tag>}
+        <span className="text-meta text-muted">{t.submitted(formatDate(request.submittedAt, lang, TIME))}</span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-control bg-background p-3 text-body">
-          <dt className="col-span-2 text-meta font-medium text-muted">企业登记（示例登记）</dt>
-          <dt className="text-muted">登记名</dt>
-          <dd lang="en">{register?.legalName ?? "登记里没有这个 NZBN"}</dd>
+          <dt className="col-span-2 text-meta font-medium text-muted">{t.register.heading}</dt>
+          <dt className="text-muted">{t.register.legalName}</dt>
+          <dd lang="en">{register?.legalName ?? t.register.notInRegister}</dd>
           <dt className="text-muted">NZBN</dt>
           <dd>{request.nzbn}</dd>
-          <dt className="text-muted">状态</dt>
+          <dt className="text-muted">{t.register.status}</dt>
           <dd className={register?.status === "registered" ? "text-ok" : "text-danger"}>
-            {register ? (register.status === "registered" ? "已登记" : "已注销") : "—"}
+            {register ? (register.status === "registered" ? t.register.registered : t.register.removed) : "—"}
           </dd>
-          <dt className="text-muted">商号</dt>
-          <dd>{register?.tradingNames.join("、") ?? "—"}</dd>
+          <dt className="text-muted">{t.register.tradingNames}</dt>
+          <dd>{register ? t.register.list(register.tradingNames) : "—"}</dd>
         </dl>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-control bg-background p-3 text-body">
-          <dt className="col-span-2 text-meta font-medium text-muted">雇主填的</dt>
-          <dt className="text-muted">公司名</dt>
+          <dt className="col-span-2 text-meta font-medium text-muted">{t.applicant.heading}</dt>
+          <dt className="text-muted">{t.applicant.company}</dt>
           <dd lang="en" className={registerMatches ? "" : "text-danger"}>
             {request.legalName}
           </dd>
-          <dt className="text-muted">联系人</dt>
-          <dd>
-            {request.contactName}（{request.contactRole}）
-          </dd>
-          <dt className="text-muted">公司电话</dt>
+          <dt className="text-muted">{t.applicant.contact}</dt>
+          <dd>{t.applicant.contactWithRole(request.contactName, request.contactRole)}</dd>
+          <dt className="text-muted">{t.applicant.phone}</dt>
           <dd>{request.companyPhone}</dd>
-          <dt className="text-muted">网站</dt>
+          <dt className="text-muted">{t.applicant.website}</dt>
           <dd className="break-all">
             {request.website ? (
               <a
@@ -141,14 +133,14 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
                 {request.website}
               </a>
             ) : (
-              "没有填"
+              t.applicant.notGiven
             )}
           </dd>
         </dl>
       </div>
 
       <fieldset className="space-y-3">
-        <legend className="text-body font-medium">核对清单</legend>
+        <legend className="text-body font-medium">{t.checklist}</legend>
         {checklist.map((check) => (
           <CheckRow
             key={check.id}
@@ -182,13 +174,13 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
             loading={pending}
             onClick={() => run(() => approveVerification(request.id, checks))}
           >
-            通过
+            {t.approve}
           </Button>
           <Button variant="danger-secondary" onClick={() => setRejecting(true)}>
-            驳回
+            {t.reject}
           </Button>
           {missing.length > 0 && (
-            <span className="text-meta text-muted">还没打勾：{missing.map((m) => m.label).join("、")}</span>
+            <span className="text-meta text-muted">{t.unchecked(missing.map((m) => m.label))}</span>
           )}
         </div>
       )}
@@ -217,13 +209,14 @@ function CheckRow({
   onNote: (note: string) => void;
 }) {
   const id = useId();
+  const t = useMessages(adminVerificationMessages);
   return (
     <div
       className={`space-y-1.5 rounded-control border px-3 pt-1 pb-3 transition-colors duration-(--duration-press) ${done ? "border-brand/40 bg-brand-soft/40" : "border-border"}`}
     >
       <Checkbox checked={done} onChange={(e) => onDone(e.target.checked)} className="font-medium">
         {label}
-        {optional && <span className="font-normal text-muted">（选填）</span>}
+        {optional && <span className="font-normal text-muted">{t.optional}</span>}
       </Checkbox>
       <p className="text-meta text-muted">{detail}</p>
       {links.length > 0 && (
@@ -242,13 +235,13 @@ function CheckRow({
         </p>
       )}
       <label htmlFor={`${id}-note`} className="sr-only">
-        {label}的备注
+        {t.noteLabel(label)}
       </label>
       <input
         id={`${id}-note`}
         value={note}
         onChange={(e) => onNote(e.target.value)}
-        placeholder="备注（选填）"
+        placeholder={t.notePlaceholder}
         className={inputClass()}
       />
     </div>
@@ -275,18 +268,21 @@ function RejectForm({
   onCancel: () => void;
 }) {
   const id = useId();
+  const lang = useLang();
+  const t = useMessages(adminVerificationMessages);
+  const reasons = rejectReasonsIn(lang);
   return (
     <fieldset ref={formRef} className="space-y-2 rounded-control border border-danger/40 p-3">
-      <legend className="px-1 text-body font-medium">驳回理由（雇主会看到）</legend>
+      <legend className="px-1 text-body font-medium">{t.rejectLegend}</legend>
       <div className="grid gap-x-4 px-2 sm:grid-cols-2">
-        {(Object.keys(REJECT_REASONS) as RejectReason[]).map((r) => (
+        {(Object.keys(reasons) as RejectReason[]).map((r) => (
           <Radio key={r} name={`${id}-reason`} checked={reason === r} onChange={() => onReason(r)}>
-            {REJECT_REASONS[r]}
+            {reasons[r]}
           </Radio>
         ))}
       </div>
       <label htmlFor={`${id}-note`} className="block text-body">
-        说明
+        {t.rejectNote}
       </label>
       <textarea
         id={`${id}-note`}
@@ -297,7 +293,7 @@ function RejectForm({
       />
       <div className="flex flex-wrap gap-2">
         <Button variant="danger" disabled={!reason || !note.trim()} loading={pending} onClick={onSubmit}>
-          确定驳回
+          {t.confirmReject}
         </Button>
         <Cancel onClick={onCancel} />
       </div>

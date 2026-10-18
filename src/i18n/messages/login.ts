@@ -63,8 +63,9 @@ const loginZh = {
   },
   hiring: {
     title: "开通雇主身份",
-    intro: (email: string) =>
-      `已登录：${email}。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。`,
+    // Around the signed-in email: 已登录：<email>。选择你的企业…
+    signedInAs: "已登录：",
+    introAfter: "。选择你的企业，发布的职位会显示这家企业。演示版可以选下面的演示店，或新建企业。",
     legend: "你的企业",
     // One business to choose: its area, its verification badge's words, and whether a team already runs it.
     businessMeta: (area: string, verification: string, claimed: boolean) =>
@@ -89,6 +90,12 @@ const loginZh = {
     suspended: "这家企业已被停用，不能再绑定。",
     notFound: "找不到这家企业，请重新选择。",
     alreadyBound: "这个账号已经绑定了另一家企业。",
+  },
+  // The sign-in code email (lib/auth/delivery.ts), in the language of the request that asked for it.
+  mail: {
+    subject: (code: string) => `找工登录验证码：${code}`,
+    body: (code: string, minutes: number) =>
+      `你的找工登录验证码是 ${code}，${minutes} 分钟内有效。\n\n不是你本人在登录的话，忽略这封邮件就行，没有验证码别人登录不了你的账号。`,
   },
 };
 
@@ -153,8 +160,9 @@ export const loginMessages: Dictionary<typeof loginZh> = {
     },
     hiring: {
       title: "Set up hiring",
-      intro: (email) =>
-        `Signed in as ${email}. Choose your business; the jobs you post show it. In the demo you can pick a demo shop below or add a business.`,
+      signedInAs: "Signed in as ",
+      introAfter:
+        ". Choose your business; the jobs you post show it. In the demo you can pick a demo shop below or add a business.",
       legend: "Your business",
       businessMeta: (area, verification, claimed) =>
         `${area} · ${verification}${claimed ? " · Has a team: ask its admin for an invite" : ""}`,
@@ -177,6 +185,11 @@ export const loginMessages: Dictionary<typeof loginZh> = {
       suspended: "This business has been suspended and can't be added.",
       notFound: "We couldn't find this business. Choose again.",
       alreadyBound: "This account already belongs to another business.",
+    },
+    mail: {
+      subject: (code) => `Your 找工 sign-in code: ${code}`,
+      body: (code, minutes) =>
+        `Your 找工 sign-in code is ${code}. It works for ${minutes} minutes.\n\nIf you didn't try to sign in, you can ignore this email: no one can sign in to your account without the code.`,
     },
   },
 };

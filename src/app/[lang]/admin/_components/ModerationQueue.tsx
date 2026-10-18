@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
+import { adminMessages } from "@/i18n/messages/admin";
 import type { Report } from "@/lib/types";
 import {
   approveJob,
@@ -31,7 +34,9 @@ import {
   ModeratorWeeks,
   useModerationStats,
 } from "@/app/[lang]/admin/_components/ModerationStats";
-import { FIELD_LABELS, FindingItem } from "@/components/employer/FindingsPanel";
+import { FindingItem } from "@/components/employer/FindingsPanel";
+import { pick } from "@/i18n/messages";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
 
 export const TITLE = "text-[1.75rem] leading-tight font-black";
@@ -49,15 +54,12 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
 type Tab = "flagged" | "reported" | "verification" | "external" | "log" | "stats" | "moderators";
 
-const time = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Pacific/Auckland",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+// When a job was posted, a report made, a decision taken: day and time, New Zealand time (format.ts).
+const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
 
 export function ModerationQueue() {
+  const lang = useLang();
+  const t = useMessages(adminMessages);
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
@@ -77,7 +79,7 @@ export function ModerationQueue() {
   if (answer && !isFailed(answer) && "refused" in answer) {
     return (
       <div className="space-y-4">
-        <h1 className={TITLE}>审核后台</h1>
+        <h1 className={TITLE}>{t.title}</h1>
         <Empty>{answer.error_zh}</Empty>
       </div>
     );
@@ -86,31 +88,31 @@ export function ModerationQueue() {
   const statsNow = ready(stats);
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: "flagged", label: "发布时被标记", count: queue?.flagged.length },
-    { key: "reported", label: "被举报", count: queue?.reported.length },
+    { key: "flagged", label: t.tabs.flagged, count: queue?.flagged.length },
+    { key: "reported", label: t.tabs.reported, count: queue?.reported.length },
     {
       key: "verification",
-      label: "企业验证",
+      label: t.tabs.verification,
       count: ready(verifications)?.length,
     },
     {
       key: "external",
-      label: "外部职位",
+      label: t.tabs.external,
       count: ready(external)?.pending.length,
     },
-    { key: "log", label: "操作记录", count: queue?.log.length },
-    { key: "stats", label: "审核数据" },
-    { key: "moderators", label: "审核员" },
+    { key: "log", label: t.tabs.log, count: queue?.log.length },
+    { key: "stats", label: t.tabs.stats },
+    { key: "moderators", label: t.tabs.moderators },
   ];
 
   return (
     <div className="space-y-4">
-      <h1 className={TITLE}>审核后台</h1>
+      <h1 className={TITLE}>{t.title}</h1>
       <ModerationSummary stats={stats} onRetry={reload} />
       <TabList
-        label="审核队列"
+        label={t.tabs.label}
         idBase="admin"
-        tabs={tabs.map((t) => ({ key: t.key, label: `${t.label} ${t.count ?? ""}` }))}
+        tabs={tabs.map((tab) => ({ key: tab.key, label: `${tab.label} ${tab.count ?? ""}` }))}
         value={tab}
         onChange={setTab}
         className={UNDERLINE_TABS}
@@ -124,7 +126,7 @@ export function ModerationQueue() {
           role="status"
           className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
         >
-          {result.ok ? `已处理：${result.text}` : result.error_zh}
+          {result.ok ? t.queue.done(result.text) : result.error_zh}
         </p>
       )}
 
@@ -143,28 +145,30 @@ export function ModerationQueue() {
               <AiPostingUsage stats={statsNow} />
             </div>
           ) : isFailed(stats) ? (
-            <LoadFailed what="审核数据" onRetry={reload} />
+            <LoadFailed what={t.queue.statsName} onRetry={reload} />
           ) : (
             <Loading />
           )
         ) : isFailed(answer) ? (
-          <LoadFailed what="审核队列" onRetry={reload} />
+          <LoadFailed what={t.queue.queueName} onRetry={reload} />
         ) : !queue ? (
           <Loading />
         ) : tab === "log" ? (
           queue.log.length === 0 ? (
-            <Empty>还没有处理记录。</Empty>
+            <Empty>{t.queue.noLog}</Empty>
           ) : (
             <Section look="app">
               <ol className="divide-y divide-border">
                 {queue.log.map((e) => (
                   <li key={e.id} className="flex gap-3 py-3 text-body">
                     <time dateTime={e.at} className="w-24 shrink-0 text-muted">
-                      {time.format(new Date(e.at))}
+                      {formatDate(e.at, lang, TIME)}
                     </time>
                     <span className="min-w-0">
                       {e.text}
-                      <span className="block text-meta text-muted">操作人：{moderatorLabel(e.moderator)}</span>
+                      <span className="block text-meta text-muted">
+                        {t.queue.by(moderatorLabel(e.moderator, lang))}
+                      </span>
                     </span>
                   </li>
                 ))}
@@ -173,12 +177,10 @@ export function ModerationQueue() {
           )
         ) : (
           <>
-            {tab === "reported" && (
-              <p className="mb-3 text-meta text-muted">这里只收录对职位的举报，聊天里的举报不在这里。</p>
-            )}
+            {tab === "reported" && <p className="mb-3 text-meta text-muted">{t.queue.reportsOnlyJobs}</p>}
             <QueueList
               items={tab === "flagged" ? queue.flagged : queue.reported}
-              empty={tab === "flagged" ? "没有待审核的职位。" : "没有待处理的举报。"}
+              empty={tab === "flagged" ? t.queue.noFlagged : t.queue.noReports}
               onDone={done}
             />
           </>
@@ -218,6 +220,10 @@ function QueueCard({
   reports?: Report[];
   onDone: (r: AdminResult) => void;
 }) {
+  const lang = useLang();
+  const t = useMessages(adminMessages);
+  // Which field of the job a finding is about, named as the posting form names it (B's employer-post dictionary).
+  const fieldNames: Record<string, string | undefined> = pick(employerPostMessages, lang).findings.fields;
   const { job, employer, findings } = item;
   const [pending, startTransition] = useTransition();
   // Which button was pressed, so only that one shows it is on its way.
@@ -249,7 +255,11 @@ function QueueCard({
             <span lang="en" className="font-latin">
               {job.titleEn}
             </span>{" "}
-            · {regionById(job.country, job.regionId)?.nameZh} · {job.id}
+            ·{" "}
+            {lang === "en"
+              ? regionById(job.country, job.regionId)?.nameEn
+              : regionById(job.country, job.regionId)?.nameZh}{" "}
+            · {job.id}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -261,21 +271,26 @@ function QueueCard({
       </div>
       <p className="mt-2 flex flex-wrap items-center gap-2 text-body">
         <span>{employer?.name ?? job.employerId}</span>
-        {employer && <VerificationBadge verification={employer.verification} />}
-        {employer?.bannedAt && <Tag kind="urgent">已封禁</Tag>}
-        <span className="text-meta text-muted">发布于 {time.format(new Date(job.postedAt))}</span>
+        {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
+        {employer?.bannedAt && <Tag kind="urgent">{t.queue.banned}</Tag>}
+        <span className="text-meta text-muted">{t.queue.posted(formatDate(job.postedAt, lang, TIME))}</span>
       </p>
       <p className="mt-2 line-clamp-3 text-body whitespace-pre-line text-muted">{job.descriptionZh}</p>
 
       {reports && (
         <div className="mt-3 space-y-1.5">
-          <h3 className="text-body font-medium">{reports.length} 条举报</h3>
+          <h3 className="text-body font-medium">{t.queue.reportCount(reports.length)}</h3>
           <ul className="space-y-1.5">
             {reports.map((r) => (
               <li key={r.id} className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
-                <span className="font-medium">{REPORT_REASON_LABELS[r.reason].zh}</span>
-                {r.note && <span>：{r.note}</span>}
-                <span className="ml-1 text-meta">{time.format(new Date(r.createdAt))}</span>
+                <span className="font-medium">{REPORT_REASON_LABELS[r.reason][lang]}</span>
+                {r.note && (
+                  <span>
+                    {lang === "en" ? ": " : "："}
+                    {r.note}
+                  </span>
+                )}
+                <span className="ml-1 text-meta">{formatDate(r.createdAt, lang, TIME)}</span>
               </li>
             ))}
           </ul>
@@ -284,10 +299,10 @@ function QueueCard({
 
       {findings.length > 0 && (
         <div className="mt-3 space-y-1.5">
-          <h3 className="text-body font-medium">规则检查</h3>
+          <h3 className="text-body font-medium">{t.queue.ruleChecks}</h3>
           {findings.map((f, i) => (
             <div key={i}>
-              <p className="mb-1 text-meta text-muted">{FIELD_LABELS[f.field] ?? f.field}</p>
+              <p className="mb-1 text-meta text-muted">{fieldNames[f.field] ?? f.field}</p>
               <FindingItem finding={f} />
             </div>
           ))}
@@ -302,7 +317,7 @@ function QueueCard({
             loading={busy("dismiss")}
             onClick={() => run("dismiss", () => dismissReports(job.id))}
           >
-            驳回举报
+            {t.queue.dismiss}
           </Button>
         ) : (
           <Button
@@ -310,7 +325,7 @@ function QueueCard({
             loading={busy("approve")}
             onClick={() => run("approve", () => approveJob(job.id))}
           >
-            没问题，通过
+            {t.queue.approve}
           </Button>
         )}
         <Button
@@ -319,7 +334,7 @@ function QueueCard({
           loading={busy("takedown")}
           onClick={() => run("takedown", () => takeDownJob(job.id))}
         >
-          下架
+          {t.queue.takeDown}
         </Button>
         {/* Without the employer's record there is nobody to name or ban. */}
         <span ref={banOpenerRef} className="contents">
@@ -334,13 +349,13 @@ function QueueCard({
                   onClick={() => run("ban", () => banJobEmployer(job.id))}
                   autoFocus
                 >
-                  确定封禁「{employer.name}」并下架全部职位
+                  {t.queue.confirmBan(employer.name)}
                 </Button>
                 <Cancel onClick={() => setConfirmBan(false)} />
               </>
             ) : (
               <Button variant="danger-secondary" onClick={() => setConfirmBan(true)}>
-                封禁雇主
+                {t.queue.ban}
               </Button>
             ))}
         </span>

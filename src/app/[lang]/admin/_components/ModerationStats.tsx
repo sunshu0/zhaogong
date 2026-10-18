@@ -2,23 +2,30 @@
 
 import type { Refused } from "@/app/[lang]/admin/actions";
 import { isFailed, ready, type Failed } from "@/app/[lang]/admin/load-state";
-import { AI_DAYS, WEEKS, waitZh, type ModerationStats } from "@/app/[lang]/admin/moderation-stats";
+import { AI_DAYS, WEEKS, waitText, type ModerationStats } from "@/app/[lang]/admin/moderation-stats";
 import { moderatorLabel } from "@/app/[lang]/admin/moderation";
 import { getModerationStats } from "@/app/[lang]/admin/stats-actions";
 import { Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { Section } from "@/components/ui/Section";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate, formatNumber } from "@/i18n/format";
+import type { Lang } from "@/i18n/lang";
+import { adminStatsMessages } from "@/i18n/messages/admin-stats";
 
-const weekLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "long", day: "numeric" });
-
-/** 「10月12日」 for a week's Monday (already a New Zealand day, so read it as UTC to keep it as is). */
-function weekStart(day: string): string {
-  return weekLabel.format(new Date(`${day}T00:00:00Z`));
+/**
+ * 「10月12日」 / 「12 October」 for a week's Monday, and 「10月12日周一」 / 「Mon, 12 October」 for a day: already New
+ * Zealand days, so read them as UTC to keep them as they are.
+ */
+function dayOf(day: string, lang: Lang, weekday = false): string {
+  return formatDate(`${day}T00:00:00Z`, lang, {
+    timeZone: "UTC",
+    month: "long",
+    day: "numeric",
+    ...(weekday && { weekday: "short" }),
+  });
 }
-
-const dayLabel = new Intl.DateTimeFormat("zh-CN", { timeZone: "UTC", month: "long", day: "numeric", weekday: "short" });
-const figure = new Intl.NumberFormat("zh-CN");
 
 /** 审核数据 (#70), asked for again whenever `version` changes (after each decision in the queue). */
 export function useModerationStats(version: number): ModerationStats | Refused | Failed | undefined {
@@ -33,30 +40,33 @@ export function ModerationSummary({
   stats?: ModerationStats | Refused | Failed;
   onRetry: () => void;
 }) {
-  if (isFailed(answer)) return <LoadFailed what="审核数据" onRetry={onRetry} />;
+  const lang = useLang();
+  const t = useMessages(adminStatsMessages);
+  if (isFailed(answer)) return <LoadFailed what={t.name} onRetry={onRetry} />;
   const stats = ready(answer);
   if (!stats) return <Loading cards={1} height="h-20" />;
-  const waited = (since?: string) => (since ? `最早的等了 ${waitZh(stats.at - Date.parse(since))}` : "没有在等的");
+  const waited = (since?: string) =>
+    since ? t.now.oldestWaited(waitText(stats.at - Date.parse(since), lang)) : t.now.noneWaiting;
   return (
     <Section look="app">
-      <dl aria-label="审核数据：现在" className="grid grid-cols-2 gap-3 py-group sm:grid-cols-4">
+      <dl aria-label={t.now.label} className="grid grid-cols-2 gap-3 py-group sm:grid-cols-4">
         <div>
-          <dt className="text-meta text-muted">待审核的职位</dt>
+          <dt className="text-meta text-muted">{t.now.jobs}</dt>
           <dd className="font-figure text-title">{stats.pendingJobs}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestPendingJobAt)}</dd>
         </div>
         <div>
-          <dt className="text-meta text-muted">未处理的举报</dt>
+          <dt className="text-meta text-muted">{t.now.reports}</dt>
           <dd className="font-figure text-title">{stats.openReports}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestOpenReportAt)}</dd>
         </div>
         <div>
-          <dt className="text-meta text-muted">待审核的企业验证</dt>
+          <dt className="text-meta text-muted">{t.now.verifications}</dt>
           <dd className="font-figure text-title">{stats.pendingVerifications}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestPendingVerificationAt)}</dd>
         </div>
         <div>
-          <dt className="text-meta text-muted">待审核的外部职位</dt>
+          <dt className="text-meta text-muted">{t.now.external}</dt>
           <dd className="font-figure text-title">{stats.pendingExternal}</dd>
           <dd className="text-meta text-muted">{waited(stats.oldestPendingExternalAt)}</dd>
         </div>
@@ -67,37 +77,33 @@ export function ModerationSummary({
 
 /** The last eight weeks, this week first: reports, closings and how long they took, take-downs and bans. */
 export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
+  const lang = useLang();
+  const t = useMessages(adminStatsMessages).weeks;
   const most = Math.max(1, ...stats.weeks.map((w) => w.reported));
   return (
-    <Section
-      look="app"
-      title={`最近 ${WEEKS} 周`}
-      description="按新西兰时间，每周从周一算起。处理：下架、驳回或封禁时关闭的举报；用时是从提交到关闭的中位数。下架含封禁时一起下架的职位。"
-    >
+    <Section look="app" title={t.title(WEEKS)} description={t.description}>
       <div className="overflow-x-auto">
         <table className="w-full text-body">
-          <caption className="sr-only">
-            最近 {WEEKS} 周每周的新举报、处理的举报、处理用时中位数、下架职位和封禁企业
-          </caption>
+          <caption className="sr-only">{t.caption(WEEKS)}</caption>
           <thead>
             <tr className="border-b border-border text-left text-meta text-muted">
               <th scope="col" className="py-2 pr-2 font-normal">
-                周
+                {t.week}
               </th>
               <th scope="col" className="py-2 pr-2 font-normal">
-                新举报
+                {t.newReports}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                处理
+                {t.handled}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                用时
+                {t.time}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                下架
+                {t.takenDown}
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                封禁
+                {t.banned}
               </th>
             </tr>
           </thead>
@@ -105,7 +111,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
             {stats.weeks.map((w, i) => (
               <tr key={w.week}>
                 <th scope="row" className="py-2 pr-2 text-left font-normal whitespace-nowrap">
-                  {i === 0 ? "本周" : `${weekStart(w.week)}起`}
+                  {i === 0 ? t.thisWeek : t.weekOf(dayOf(w.week, lang))}
                 </th>
                 <td className="py-2 pr-2">
                   <div className="flex items-center gap-2">
@@ -119,7 +125,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
                 </td>
                 <td className="py-2 pr-2 text-right font-figure">{w.handled}</td>
                 <td className="py-2 pr-2 text-right whitespace-nowrap">
-                  {w.medianHandleMs == null ? "—" : waitZh(w.medianHandleMs)}
+                  {w.medianHandleMs == null ? "—" : waitText(w.medianHandleMs, lang)}
                 </td>
                 <td className="py-2 pr-2 text-right font-figure">{w.takenDown}</td>
                 <td className="py-2 text-right font-figure">{w.banned}</td>
@@ -128,50 +134,37 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
           </tbody>
         </table>
       </div>
-      {stats.untimed > 0 && (
-        <p className="py-group text-meta text-muted">
-          另有 {stats.untimed} 条举报在开始记录处理时间之前就处理完了，不计入用时。
-        </p>
-      )}
+      {stats.untimed > 0 && <p className="py-group text-meta text-muted">{t.untimed(stats.untimed)}</p>}
     </Section>
   );
 }
 
-const DECISIONS = [
-  ["approve", "通过"],
-  ["takeDown", "下架"],
-  ["dismiss", "驳回"],
-  ["ban", "封禁"],
-  ["verify", "企业验证"],
-  ["external", "外部职位"],
-] as const;
+const DECISIONS = ["approve", "takeDown", "dismiss", "ban", "verify", "external"] as const;
 
 /** Decisions per moderator over the same eight weeks (#60 names who acted), most first. */
 export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
+  const lang = useLang();
+  const t = useMessages(adminStatsMessages).byModerator;
   return (
-    <Section
-      look="app"
-      title="按审核员"
-      description={`最近 ${WEEKS} 周每位审核员做的处理。封禁一次算一次，不按下架的职位数算。`}
-    >
+    <Section look="app" title={t.title} description={t.description(WEEKS)}>
       {stats.byModerator.length === 0 ? (
-        <p className="py-group text-body text-muted">最近 {WEEKS} 周没有处理记录。</p>
+        <p className="py-group text-body text-muted">{t.none(WEEKS)}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-body">
-            <caption className="sr-only">最近 {WEEKS} 周每位审核员的通过、下架、驳回、封禁和企业验证次数</caption>
+            <caption className="sr-only">{t.caption(WEEKS)}</caption>
             <thead>
               <tr className="border-b border-border text-left text-meta text-muted">
                 <th scope="col" className="py-2 pr-2 font-normal">
-                  审核员
+                  {t.moderator}
                 </th>
-                {DECISIONS.map(([key, label]) => (
+                {DECISIONS.map((key) => (
                   <th key={key} scope="col" className="py-2 pr-2 text-right font-normal">
-                    {label}
+                    {t[key]}
                   </th>
                 ))}
                 <th scope="col" className="py-2 text-right font-normal">
-                  合计
+                  {t.total}
                 </th>
               </tr>
             </thead>
@@ -179,9 +172,9 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
               {stats.byModerator.map((m) => (
                 <tr key={m.moderator ?? ""}>
                   <th scope="row" className="max-w-40 py-2 pr-2 text-left font-normal break-all">
-                    {moderatorLabel(m.moderator)}
+                    {moderatorLabel(m.moderator, lang)}
                   </th>
-                  {DECISIONS.map(([key]) => (
+                  {DECISIONS.map((key) => (
                     <td key={key} className="py-2 pr-2 text-right font-figure">
                       {m[key]}
                     </td>
@@ -199,36 +192,34 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
 
 /** AI 发帖用量 (#102): calls to the posting model over the last seven days, today first, and the seven together. */
 export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
+  const lang = useLang();
+  const t = useMessages(adminStatsMessages).ai;
   const { days, total } = stats.aiPosting;
   const rows = [
-    ...days.map((d, i) => ({ ...d, label: i === 0 ? "今天" : dayLabel.format(new Date(`${d.day}T00:00:00Z`)) })),
-    { ...total, label: `${AI_DAYS} 天合计` },
+    ...days.map((d, i) => ({ ...d, label: i === 0 ? t.today : dayOf(d.day, lang, true) })),
+    { ...total, label: t.total(AI_DAYS) },
   ];
   return (
-    <Section
-      look="app"
-      title="AI 发帖用量"
-      description={`最近 ${AI_DAYS} 天对话发布调用模型的次数，按新西兰时间。token 含输入、输出和缓存；失败是出错、被拒或读不出答案；超限是每个账号每分钟 6 次、每天 100 次的上限挡下的，没有调用模型。`}
-    >
+    <Section look="app" title={t.title} description={t.description(AI_DAYS)}>
       <div className="overflow-x-auto">
         <table className="w-full text-body">
-          <caption className="sr-only">最近 {AI_DAYS} 天每天调用 AI 发帖模型的次数、token、失败和超限次数</caption>
+          <caption className="sr-only">{t.caption(AI_DAYS)}</caption>
           <thead>
             <tr className="border-b border-border text-left text-meta text-muted">
               <th scope="col" className="py-2 pr-2 font-normal">
-                日期
+                {t.date}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                调用
+                {t.calls}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                token
+                {t.tokens}
               </th>
               <th scope="col" className="py-2 pr-2 text-right font-normal">
-                失败
+                {t.failed}
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                超限
+                {t.limited}
               </th>
             </tr>
           </thead>
@@ -239,7 +230,7 @@ export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
                   {d.label}
                 </th>
                 <td className="py-2 pr-2 text-right font-figure">{d.calls}</td>
-                <td className="py-2 pr-2 text-right font-figure">{figure.format(d.tokens)}</td>
+                <td className="py-2 pr-2 text-right font-figure">{formatNumber(d.tokens, lang)}</td>
                 <td className="py-2 pr-2 text-right font-figure">{d.failed}</td>
                 <td className="py-2 text-right font-figure">{d.limited}</td>
               </tr>

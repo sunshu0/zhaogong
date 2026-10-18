@@ -14,6 +14,8 @@ import { Section } from "@/components/ui/Section";
 import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 import { LangSwitch } from "@/components/ui/LangSwitch";
+import { useMessages } from "@/i18n/client";
+import { accountMessages } from "@/i18n/messages/account";
 
 /**
  * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Round 19: cards
@@ -26,34 +28,35 @@ export function AccountHome() {
   const { unread } = useNotifications();
   const { employer, toEmployer, toSeeker, notice } = useIdentitySwitch();
   const moderator = useCanModerate();
+  const t = useMessages(accountMessages);
   if (!session) return null;
   const isEmployer = session.activeRole === "employer";
   const name = (isEmployer ? session.employerName : profile.name) || session.email;
 
   const rows: LinkListItem[] = [
-    { href: "/workspace", label: "总览", detail: "要处理的事" },
-    { href: "/notifications", label: "通知", badge: unread },
+    { href: "/workspace", label: t.rows.workspace, detail: t.rows.workspaceDetail },
+    { href: "/notifications", label: t.rows.notifications, badge: unread },
     isEmployer
-      ? { href: "/profile", label: "企业主页", detail: "企业介绍和招聘联系人" }
-      : { href: "/profile", label: "我的主页", detail: "雇主看到的资料和简历" },
+      ? { href: "/profile", label: t.rows.businessPage, detail: t.rows.businessPageDetail }
+      : { href: "/profile", label: t.rows.profile, detail: t.rows.profileDetail },
     ...(isEmployer
       ? [
-          { href: "/employer/candidates", label: "推荐人才" },
-          { href: "/employer/verify", label: "企业验证", detail: "申请「已验证企业」标识，审核员人工核对" },
-          { href: "/employer/team", label: "团队", detail: "邀请同事一起管理职位和聊天" },
+          { href: "/employer/candidates", label: t.rows.candidates },
+          { href: "/employer/verify", label: t.rows.verify, detail: t.rows.verifyDetail },
+          { href: "/employer/team", label: t.rows.team, detail: t.rows.teamDetail },
         ]
       : [
-          { href: "/me/saved", label: "收藏和进度", detail: "收藏的职位和求职进度" },
-          { href: ALERTS_PATH, label: "职位提醒", detail: "有符合条件的新职位时通知你" },
-          { href: "/me", label: "浏览与举报", detail: "看过的职位和举报记录" },
+          { href: "/me/saved", label: t.rows.saved, detail: t.rows.savedDetail },
+          { href: ALERTS_PATH, label: t.rows.alerts, detail: t.rows.alertsDetail },
+          { href: "/me", label: t.rows.history, detail: t.rows.historyDetail },
         ]),
-    ...(moderator ? [{ ...ADMIN_ENTRY, detail: "审核职位和举报（审核员）" }] : []),
-    { href: ACCOUNT_DATA_PATH, label: "数据与账号", detail: "导出我的数据、删除账号" },
+    ...(moderator ? [{ ...ADMIN_ENTRY, label: t.rows.admin, detail: t.rows.adminDetail }] : []),
+    { href: ACCOUNT_DATA_PATH, label: t.rows.data, detail: t.rows.dataDetail },
   ];
 
   return (
     <div className="space-y-section">
-      <h1 className="sr-only">我的</h1>
+      <h1 className="sr-only">{t.title}</h1>
       <Section look="app">
         <div className="flex items-center gap-3 py-group">
           <AvatarImage avatar={profile.avatar} fallback={name} large />
@@ -64,15 +67,16 @@ export function AccountHome() {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 py-group">
           <p className="text-body">
-            当前身份：<span className="font-medium">{isEmployer ? "雇主" : "求职者"}</span>
+            {t.role.current}
+            <span className="font-medium">{isEmployer ? t.role.employer : t.role.seeker}</span>
           </p>
           {employer ? (
             <Button variant="secondary" onClick={isEmployer ? toSeeker : () => void toEmployer()}>
-              {isEmployer ? "切换为求职者" : `切换为雇主（${employer.name}）`}
+              {isEmployer ? t.role.toSeeker : t.role.toEmployer(employer.name)}
             </Button>
           ) : (
             <ButtonLink variant="secondary" href={employerSignUpHref()}>
-              开通雇主身份
+              {t.role.setUpHiring}
             </ButtonLink>
           )}
         </div>
@@ -100,7 +104,7 @@ export function AccountHome() {
             router.push("/jobs");
           }}
         >
-          退出登录
+          {t.signOut}
         </button>
       </Section>
     </div>

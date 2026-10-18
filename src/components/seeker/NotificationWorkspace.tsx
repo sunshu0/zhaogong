@@ -8,6 +8,8 @@ import { notificationHref, type Notification } from "@/components/seeker/hub-sta
 import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
 import { toast } from "@/components/ui/Toast";
+import { useMessages } from "@/i18n/client";
+import { notificationsMessages } from "@/i18n/messages/notifications";
 
 // Round 19 (操作质感): the list is one card; a row darkens while pressed, and an unread one has a brand tint.
 const ROW =
@@ -18,6 +20,7 @@ export function NotificationWorkspace() {
   useFreshAlertNotifications();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
+  const t = useMessages(notificationsMessages);
   // #202: 全部标为已读 goes away once nothing is unread; the focus moves to the list's heading instead of the page top.
   const listHeading = useRef<HTMLHeadingElement>(null);
 
@@ -26,7 +29,9 @@ export function NotificationWorkspace() {
       <header className="flex items-end justify-between gap-3">
         <div>
           <p className="text-meta font-medium text-brand">{workspaceTitle(isEmployer)}</p>
-          <h1 className="mt-1 text-[1.75rem] leading-tight font-black">{isEmployer ? "招聘通知" : "求职通知"}</h1>
+          <h1 className="mt-1 text-[1.75rem] leading-tight font-black">
+            {isEmployer ? t.employerHeading : t.seekerHeading}
+          </h1>
         </div>
         {unread > 0 && (
           <button
@@ -34,22 +39,22 @@ export function NotificationWorkspace() {
             onClick={() => {
               markRead();
               listHeading.current?.focus();
-              toast("已全部标为已读");
+              toast(t.allMarkedRead);
             }}
             className="pressable -mr-2 inline-flex min-h-11 shrink-0 items-center rounded-control px-2 text-body font-medium text-brand hover:bg-brand-soft"
           >
-            全部标为已读
+            {t.markAllRead}
           </button>
         )}
       </header>
-      <section className="overflow-hidden rounded-card bg-surface shadow-card" aria-label="通知列表">
+      <section className="overflow-hidden rounded-card bg-surface shadow-card" aria-label={t.listLabel}>
         <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:px-5">
           <h2 ref={listHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
-            全部通知
+            {t.all}
           </h2>
-          <span className="text-meta text-muted">{unread ? `${unread} 条未读` : "已全部读完"}</span>
+          <span className="text-meta text-muted">{unread ? t.unreadCount(unread) : t.allRead}</span>
         </div>
-        {items.length === 0 && <p className="px-4 py-10 text-center text-body text-muted">还没有通知。</p>}
+        {items.length === 0 && <p className="px-4 py-10 text-center text-body text-muted">{t.empty}</p>}
         <ul className="divide-y divide-border">
           {items.map((item) => (
             <li key={item.id}>
@@ -82,6 +87,7 @@ function NotificationRow({ item, href, onOpen }: { item: Notification; href?: st
 const tint = (item: Notification) => (item.unread ? "bg-brand-soft/40" : "");
 
 function NotificationContent({ item, hasLink }: { item: Notification; hasLink: boolean }) {
+  const t = useMessages(notificationsMessages);
   return (
     <>
       <span
@@ -92,7 +98,7 @@ function NotificationContent({ item, hasLink }: { item: Notification; hasLink: b
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <strong className={`text-body ${item.unread ? "font-semibold" : "font-medium"}`}>{item.title}</strong>
-          {item.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label="未读" />}
+          {item.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label={t.unread} />}
         </span>
         <span className="mt-0.5 block text-body text-muted">{item.detail}</span>
         <span className="mt-1 block text-meta text-muted">{item.time}</span>

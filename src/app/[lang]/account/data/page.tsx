@@ -3,14 +3,19 @@ import { Suspense } from "react";
 import { AccountDeleted, MyDataPanel } from "@/components/account/MyDataPanel";
 import { WorkHubFrame } from "@/components/seeker/WorkHub";
 import { SignInGate } from "@/components/seeker/SignInGate";
+import { accountMessages } from "@/i18n/messages/account";
+import { messages } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "数据与账号", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await messages(accountMessages)).data.title, robots: { index: false } };
+}
 
-export default function AccountData({ searchParams }: PageProps<"/[lang]/account/data">) {
+export default async function AccountData({ searchParams }: PageProps<"/[lang]/account/data">) {
+  const t = await messages(accountMessages);
   return (
     <WorkHubFrame look="app">
       {/* Round 19 (操作质感): a large title. */}
-      <h1 className="mb-4 text-[1.75rem] leading-tight font-black">数据与账号</h1>
+      <h1 className="mb-4 text-[1.75rem] leading-tight font-black">{t.data.title}</h1>
       <Suspense fallback={<div className="h-40 animate-shimmer rounded-card bg-surface shadow-card" />}>
         <Content searchParams={searchParams} />
       </Suspense>
@@ -22,8 +27,9 @@ export default function AccountData({ searchParams }: PageProps<"/[lang]/account
 async function Content({ searchParams }: Pick<PageProps<"/[lang]/account/data">, "searchParams">) {
   const { deleted } = await searchParams;
   if (deleted === "1") return <AccountDeleted />;
+  const t = await messages(accountMessages);
   return (
-    <SignInGate message="登录后可以导出你的数据或删除账号">
+    <SignInGate message={t.data.signInFor}>
       <MyDataPanel />
     </SignInGate>
   );

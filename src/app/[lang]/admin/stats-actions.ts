@@ -8,12 +8,12 @@ import { moderationStats, type ModerationStats } from "@/app/[lang]/admin/modera
 import { listPendingVerifications } from "@/db/verification-requests";
 import { listExternalJobs } from "@/db/external-jobs";
 import { listAiUsageSince } from "@/db/ai-usage";
-import { REFUSED_ZH, requireModerator } from "@/app/[lang]/admin/moderator";
+import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
 import type { Refused } from "@/app/[lang]/admin/actions";
 
 export async function getModerationStats(): Promise<ModerationStats | Refused> {
   const me = await requireModerator();
-  if (!me.ok) return { refused: me.reason, error_zh: REFUSED_ZH[me.reason] };
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
   const now = Date.now();
   const [jobs, reports, log, verifications, external, aiUsage] = await Promise.all([
     listAllJobs(DEFAULT_COUNTRY),

@@ -1,6 +1,7 @@
 // Filters of the 实习 and 专业职位 sections (#113). Pure: the pages parse the address's query into a filter and
 // apply it to the jobs the sections may show. Every option filters on what the posting states; 「原文未说明」 is
 // an option of its own, never folded into another.
+import { externalMessages } from "@/i18n/messages/external";
 import { sectionOf } from "@/lib/external-jobs/visibility";
 import type { ExternalCity, ExternalFacts, ExternalField, ExternalKind } from "@/lib/external-jobs/types";
 
@@ -10,19 +11,20 @@ export const SECTION_PATHS: Record<ExternalSection, string> = {
   internship: "/internships",
   professional: "/professional",
 };
-export const SECTION_TITLES: Record<ExternalSection, string> = { internship: "实习", professional: "专业职位" };
+/** The sections' names in Chinese (the external dictionary's `sections` for the page's language). */
+export const SECTION_TITLES: Record<ExternalSection, string> = {
+  internship: externalMessages.zh.sections.internship,
+  professional: externalMessages.zh.sections.professional,
+};
 
 export const SECTION_KINDS: Record<ExternalSection, ExternalKind[]> = {
   internship: ["internship", "graduate"],
   professional: ["full_time", "part_time", "contract"],
 };
 
-export const EXPERIENCE_OPTIONS = { le2: "2 年以内", ge3: "3 年以上", unstated: "原文未说明" } as const;
-export const VISA_OPTIONS = {
-  sponsorship: "原文写明可以担保签证",
-  required: "原文写明需要身份或工作权利",
-  unstated: "原文未说明",
-} as const;
+/** The filters' options in Chinese (the external dictionary's `filter` for the page's language). */
+export const EXPERIENCE_OPTIONS = externalMessages.zh.filter.experienceOptions;
+export const VISA_OPTIONS = externalMessages.zh.filter.visaOptions;
 
 export interface ExternalFilter {
   field?: ExternalField;

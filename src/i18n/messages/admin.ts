@@ -89,7 +89,7 @@ const adminZh = {
   removed: (email: string) => `移除审核员 ${email}`,
   // moderation.ts: the names of the checks run when a job is posted.
   rules: {
-    min_wage: "低于最低工资",
+    min_wage: "低于成人最低工资",
     fee: "收费用词",
     visa_selling: "卖签证用词",
     ethnic_preference: "按种族或国籍招人",
@@ -130,7 +130,7 @@ export const adminMessages: Dictionary<typeof adminZh> = {
     signInFor: "Sign in to open Moderation",
     whoBefore: "Only moderators can use Moderation. The first moderator is added on the server with",
     whoCommand: "npm run admin:grant <email>",
-    whoAfter: "; after that, moderators add and remove each other on the Moderators tab.",
+    whoAfter: "— after that, moderators add and remove each other on the Moderators tab.",
     access: {
       signedOut: "Sign in first.",
       notModerator: "Only moderators can use Moderation.",

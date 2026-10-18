@@ -2,6 +2,7 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { authStore } from "@/lib/auth/store";
 import { authSecret, CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { canSendCodes, sendSignInCode } from "@/lib/auth/delivery";
 import { devHelpersEnabled } from "@/lib/test-build";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -37,7 +38,11 @@ function sameHash(a: string, b: string): boolean {
 }
 
 /** Creates a code for the email (replacing any older one) and sends it; at most once a minute per email. */
-export async function requestCode(email: string, now = new Date()): Promise<RequestCodeResult> {
+export async function requestCode(
+  email: string,
+  now = new Date(),
+  lang: Lang = DEFAULT_LANG,
+): Promise<RequestCodeResult> {
   if (!canSendCodes()) return { ok: false, reason: "no_mailer" };
   const address = normalizeEmail(email);
   const store = authStore();
@@ -55,7 +60,7 @@ export async function requestCode(email: string, now = new Date()): Promise<Requ
     attempts: 0,
     createdAt: now.toISOString(),
   });
-  await sendSignInCode(address, code);
+  await sendSignInCode(address, code, lang);
   return devHelpersEnabled() ? { ok: true, devCode: code } : { ok: true };
 }
 

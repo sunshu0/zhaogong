@@ -2,10 +2,14 @@
 // someone waiting for your consent, then unread chats, then interviews (#103), then new applications (#84), then jobs about to close (#69)
 // or under review, then the profile.
 import type { Exchange } from "@/lib/chat-consent";
-import { EXCHANGE_LABELS } from "@/lib/chat-consent";
 import type { Job } from "@/lib/types";
 import { closingReminders } from "@/components/employer/job-reminders";
-import { REJECT_REASONS, type RejectReason, type RequestStatus } from "@/components/employer/verification";
+import type { RejectReason, RequestStatus } from "@/components/employer/verification";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { accountMessages } from "@/i18n/messages/account";
+import { chatMessages } from "@/i18n/messages/chat";
+import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 
 export type Todo = { id: string; title: string; detail?: string; href: string };
 
@@ -24,12 +28,16 @@ export type TodoInput = {
   profileMissing: { count: number; labels: string[] };
   /** The business's latest 企业验证 application (#78), once loaded. */
   verification?: { status: RequestStatus; rejectReason?: RejectReason | null } | null;
+  /** The page's language (Round 20); Chinese when left out. */
+  lang?: Lang;
 };
 
 const CLOSING_HREF = "/employer/jobs?tab=ending";
 const conversationHref = (id: string) => `/messages?conversation=${encodeURIComponent(id)}`;
 
 export function workspaceTodos(input: TodoInput): Todo[] {
+  const lang = input.lang ?? DEFAULT_LANG;
+  const t = pick(accountMessages, lang).todos;
   const todos: Todo[] = [];
 
   for (const conversation of input.conversations) {
@@ -37,8 +45,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       if (exchange.from !== "them" || exchange.status !== "pending") continue;
       todos.push({
         id: `exchange:${exchange.id}`,
-        title: `${conversation.person}想和你交换${EXCHANGE_LABELS[exchange.kind]}`,
-        detail: "等你同意或拒绝",
+        title: t.exchangeAsked(conversation.person, pick(chatMessages, lang).exchangeKinds[exchange.kind]),
+        detail: t.exchangeAskedDetail,
         href: conversationHref(conversation.id),
       });
     }
@@ -49,7 +57,7 @@ export function workspaceTodos(input: TodoInput): Todo[] {
     if (!count) continue;
     todos.push({
       id: `unread:${conversation.id}`,
-      title: `${conversation.person}发来 ${count} 条新消息`,
+      title: t.newMessages(conversation.person, count),
       href: conversationHref(conversation.id),
     });
   }
@@ -62,8 +70,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       if (!count) continue;
       todos.push({
         id: `applications:${job.id}`,
-        title: `${count} 个新申请`,
-        detail: `「${job.titleZh}」`,
+        title: t.newApplications(count),
+        detail: t.jobTitle(job.titleZh),
         href: `/employer/jobs/${encodeURIComponent(job.id)}/applicants`,
       });
     }
@@ -74,8 +82,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
     for (const job of input.jobs.filter((job) => job.status === "pending_review")) {
       todos.push({
         id: `review:${job.id}`,
-        title: `「${job.titleZh}」审核中`,
-        detail: "通过后会出现在职位列表，不需要你操作",
+        title: t.jobInReview(job.titleZh),
+        detail: t.jobInReviewDetail,
         href: "/employer/jobs",
       });
     }
@@ -86,15 +94,15 @@ export function workspaceTodos(input: TodoInput): Todo[] {
     const reason = input.verification.rejectReason;
     todos.push({
       id: "verification",
-      title: "企业验证没有通过",
-      detail: `${reason ? `${REJECT_REASONS[reason]}，` : ""}改好资料重新提交`,
+      title: t.verificationRejected,
+      detail: t.verificationRejectedDetail(reason ? pick(employerVerifyMessages, lang).rejectReasons[reason] : null),
       href: "/employer/verify",
     });
   } else if (input.isEmployer && input.verification?.status === "pending") {
     todos.push({
       id: "verification",
-      title: "企业验证审核中",
-      detail: "审核员核对后会通知你，不需要你操作",
+      title: t.verificationInReview,
+      detail: t.verificationInReviewDetail,
       href: "/employer/verify",
     });
   }
@@ -102,8 +110,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
   if (input.profileMissing.count > 0) {
     todos.push({
       id: "profile",
-      title: `${input.isEmployer ? "企业资料" : "资料"}还差 ${input.profileMissing.count} 项`,
-      detail: `${input.profileMissing.labels.slice(0, 3).join("、")}${input.profileMissing.count > 3 ? " 等" : ""}`,
+      title: t.profileMissing(input.isEmployer, input.profileMissing.count),
+      detail: t.missingItems(input.profileMissing.labels.slice(0, 3), input.profileMissing.count > 3),
       href: "/profile",
     });
   }

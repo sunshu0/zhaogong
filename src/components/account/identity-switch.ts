@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { accountStatus } from "@/app/[lang]/login/actions";
 import { setIdentity, syncAccountIdentity, useSession } from "@/components/seeker/session-client";
+import { useMessages } from "@/i18n/client";
+import { accountMessages } from "@/i18n/messages/account";
 
 /**
  * Switching between 求职者 and 雇主 (account menu and 我的). Both land on the workspace. `notice` explains when the
@@ -12,6 +14,7 @@ import { setIdentity, syncAccountIdentity, useSession } from "@/components/seeke
 export function useIdentitySwitch() {
   const router = useRouter();
   const session = useSession();
+  const t = useMessages(accountMessages).role;
   const [notice, setNotice] = useState<string | null>(null);
   const employer =
     session?.employerId && session.employerName ? { id: session.employerId, name: session.employerName } : null;
@@ -28,10 +31,10 @@ export function useIdentitySwitch() {
       const status = await accountStatus(session.email);
       const current = syncAccountIdentity(requested, status ?? {});
       if (current?.email === requested.email && current.signedInAt === requested.signedInAt && !status?.employer) {
-        setNotice("这个账号的雇主身份已不可用，请重新开通。");
+        setNotice(t.employerGone);
       }
     } catch {
-      setNotice("暂时无法核对雇主身份，请稍后重试。");
+      setNotice(t.checkFailed);
     }
   }
 

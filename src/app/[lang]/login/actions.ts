@@ -16,6 +16,8 @@ import { langOnSignIn } from "@/db/account-lang";
 import { langCookieOptions } from "@/i18n/cookie";
 import { LANG_COOKIE } from "@/i18n/lang";
 import { requestLang } from "@/i18n/server";
+import { pick } from "@/i18n/messages";
+import { loginMessages } from "@/i18n/messages/login";
 import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
@@ -42,16 +44,18 @@ function validEmail(email: unknown): string | null {
 export async function requestSignInCode(
   email: string,
 ): Promise<{ ok: true; devCode?: string; resendInSec: number } | (Failure & { retryAfterSec?: number })> {
+  const lang = await requestLang();
+  const t = pick(loginMessages, lang);
   const address = validEmail(email);
-  if (!address) return { ok: false, error: "请输入正确的邮箱地址" };
-  const result = await requestCode(address);
+  if (!address) return { ok: false, error: t.email.invalid };
+  const result = await requestCode(address, new Date(), lang);
   const resendInSec = RESEND_AFTER_MS / 1000;
   if (result.ok) return result.devCode ? { ok: true, devCode: result.devCode, resendInSec } : { ok: true, resendInSec };
   if (result.reason === "throttled") {
     const { retryAfterSec } = result;
-    return { ok: false, error: `验证码刚发过，请 ${retryAfterSec} 秒后再获取`, retryAfterSec };
+    return { ok: false, error: t.errors.sentRecently(retryAfterSec), retryAfterSec };
   }
-  return { ok: false, error: "邮件服务还没有配置，暂时无法发送验证码" };
+  return { ok: false, error: t.errors.noMailService };
 }
 
 /**
@@ -63,27 +67,28 @@ export async function signInAccount(
   code: string,
   role: ActiveRole = "seeker",
 ): Promise<{ ok: true; account: AccountStatus; reload?: true } | Failure> {
+  const browserLang = await requestLang();
+  const t = pick(loginMessages, browserLang);
   const address = validEmail(email);
-  if (!address) return { ok: false, error: "请输入正确的邮箱地址" };
-  if (typeof code !== "string" || !isValidCode(code)) return { ok: false, error: "请输入 6 位数字验证码" };
+  if (!address) return { ok: false, error: t.email.invalid };
+  if (typeof code !== "string" || !isValidCode(code)) return { ok: false, error: t.code.invalid };
   const result = await verifyCode(address, code);
   if (!result.ok) {
     switch (result.reason) {
       case "no_code":
-        return { ok: false, error: "请先获取验证码" };
+        return { ok: false, error: t.errors.noCode };
       case "expired":
-        return { ok: false, error: "验证码已过期，请重新获取" };
+        return { ok: false, error: t.errors.expired };
       case "too_many":
-        return { ok: false, error: "错误次数太多，请重新获取验证码" };
+        return { ok: false, error: t.errors.tooManyTries };
       case "wrong":
-        return { ok: false, error: `验证码不对，还可以再试 ${result.attemptsLeft} 次` };
+        return { ok: false, error: t.errors.wrongCode(result.attemptsLeft) };
     }
   }
   await ensureAccount(address);
   const account = await createSession(address, role === "employer" ? "employer" : "seeker");
   // The account's language (Round 20, ADR 0023 §5): it comes back on a new device; an account that never chose takes
   // this browser's. When it differs from the page's, the page has to load again in it (`reload`).
-  const browserLang = await requestLang();
   const lang = await langOnSignIn(address, browserLang);
   if (lang === browserLang) return { ok: true, account };
   (await cookies()).set(LANG_COOKIE, lang, langCookieOptions());
@@ -109,22 +114,23 @@ export async function openEmployerForAccount(
   email: string,
   choice: unknown,
 ): Promise<{ ok: true; employer: { id: string; name: string } } | Failure> {
+  const lang = await requestLang();
   const session = await accountStatus(typeof email === "string" ? email : "");
-  if (!session) return { ok: false, error: "请先登录" };
+  if (!session) return { ok: false, error: pick(loginMessages, lang).errors.signInFirst };
   const address = session.email;
 
   const current = await getAccountEmployer(address);
   if (!current) {
     // A banned business stays linked to its account; no second one from here.
-    if ((await getAccount(address))?.employerId) return { ok: false, error: openErrorMessage("banned") };
-    const parsed = parseBusinessChoice(choice, "NZ");
+    if ((await getAccount(address))?.employerId) return { ok: false, error: openErrorMessage("banned", lang) };
+    const parsed = parseBusinessChoice(choice, "NZ", lang);
     if (!parsed.ok) return parsed;
     const employerId =
       parsed.choice.kind === "existing"
         ? parsed.choice.employerId
         : (await createEmployer({ name: parsed.choice.name, regionId: parsed.choice.regionId })).id;
     const opened = await openEmployerIdentity(address, employerId);
-    if (!opened.ok) return { ok: false, error: openErrorMessage(opened.reason) };
+    if (!opened.ok) return { ok: false, error: openErrorMessage(opened.reason, lang) };
   }
   const switched = await switchRole("employer");
   return { ok: true, employer: switched.employer! };

@@ -1,6 +1,9 @@
 // Two identities on one account: every account can look for work, and can open an employer identity for one
 // business. Pure helpers for sign-up, switching and the header's 发布招聘. Client and server both use them.
 import { COUNTRIES } from "@/config/countries";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { loginMessages } from "@/i18n/messages/login";
 import type { CountryCode } from "@/lib/types";
 import {
   clearSession,
@@ -31,18 +34,20 @@ export function parseRole(value: string | string[] | undefined): ActiveRole {
 export function parseBusinessChoice(
   input: unknown,
   country: CountryCode,
+  lang: Lang = DEFAULT_LANG,
 ): { ok: true; choice: BusinessChoice } | { ok: false; error: string } {
+  const t = pick(loginMessages, lang).identity;
   const value = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (value.kind === "new") {
     const name = typeof value.name === "string" ? value.name.trim() : "";
-    if (!name) return { ok: false, error: "请填写店名" };
-    if (name.length > NAME_MAX) return { ok: false, error: `店名最多 ${NAME_MAX} 个字` };
+    if (!name) return { ok: false, error: t.nameMissing };
+    if (name.length > NAME_MAX) return { ok: false, error: t.nameTooLong(NAME_MAX) };
     const regionId = COUNTRIES[country].regions.find((r) => r.id === value.regionId)?.id;
-    if (!regionId) return { ok: false, error: "请选择地区" };
+    if (!regionId) return { ok: false, error: t.areaMissing };
     return { ok: true, choice: { kind: "new", name, regionId } };
   }
   const id = DEMO_BUSINESS_IDS.find((d) => d === value.employerId);
-  if (value.kind !== "existing" || !id) return { ok: false, error: "请选择一家店" };
+  if (value.kind !== "existing" || !id) return { ok: false, error: t.businessMissing };
   return { ok: true, choice: { kind: "existing", employerId: id } };
 }
 
@@ -73,20 +78,25 @@ export function postJobHref(session: DemoSession | null): string {
   return session?.employerId ? POST_JOB_PATH : employerSignUpHref();
 }
 
-export function identityLabel(session: DemoSession): string {
-  return session.activeRole === "employer" && session.employerName ? `雇主 · ${session.employerName}` : "求职者";
+export function identityLabel(session: DemoSession, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(loginMessages, lang).identity;
+  return session.activeRole === "employer" && session.employerName ? t.employerOf(session.employerName) : t.seeker;
 }
 
-export function openErrorMessage(reason: "no_employer" | "banned" | "taken" | "already_employer"): string {
+export function openErrorMessage(
+  reason: "no_employer" | "banned" | "taken" | "already_employer",
+  lang: Lang = DEFAULT_LANG,
+): string {
+  const t = pick(loginMessages, lang).identity;
   switch (reason) {
     case "taken":
-      return "这家店已经有团队在用了。请找这家店的管理员在「团队」里邀请你；也可以新建企业。";
+      return t.claimed;
     case "banned":
-      return "这家企业已被停用，不能再绑定。";
+      return t.suspended;
     case "no_employer":
-      return "找不到这家企业，请重新选择。";
+      return t.notFound;
     case "already_employer":
-      return "这个账号已经绑定了另一家企业。";
+      return t.alreadyBound;
   }
 }
 

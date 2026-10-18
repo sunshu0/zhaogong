@@ -1,25 +1,33 @@
 // What a moderator may do with external jobs and companies (#112, ADR 0014), checked the same way in the browser and
 // on the server. Pure.
-import { FLAG_LABELS } from "@/lib/external-jobs/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { externalWords } from "@/lib/external-jobs/labels";
 import type { ExternalFlag } from "@/lib/external-jobs/types";
 
-export const HIDE_REASONS = {
-  requirement: "有按国籍、种族招人的要求",
-  wrong_field: "不是软件或电子电气岗位",
-  wrong_facts: "提取的事实和原文不符",
-  other: "其他",
-} as const;
-export type HideReason = keyof typeof HIDE_REASONS;
+export type HideReason = "requirement" | "wrong_field" | "wrong_facts" | "other";
+
+/** Why a moderator does not show a job, in the reader's language (Round 20). */
+export function hideReasons(lang: Lang = DEFAULT_LANG): Record<HideReason, string> {
+  return externalWords(lang).hideReasons;
+}
+
+/** The reasons in Chinese, for callers with no language to hand. */
+export const HIDE_REASONS: Record<HideReason, string> = hideReasons();
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error_zh: string };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** 不显示: a reason, and a note when the reason is 其他. */
-export function parseHide(reason: unknown, note: unknown): Parsed<{ reason: HideReason; note: string }> {
-  if (typeof reason !== "string" || !(reason in HIDE_REASONS)) return { ok: false, error_zh: "请选一个不显示的理由。" };
+export function parseHide(
+  reason: unknown,
+  note: unknown,
+  lang: Lang = DEFAULT_LANG,
+): Parsed<{ reason: HideReason; note: string }> {
+  const t = externalWords(lang).reviewErrors;
+  if (typeof reason !== "string" || !(reason in HIDE_REASONS)) return { ok: false, error_zh: t.pickReason };
   const n = text(note, 200);
-  if (reason === "other" && !n) return { ok: false, error_zh: "选「其他」时请写明理由。" };
+  if (reason === "other" && !n) return { ok: false, error_zh: t.otherNeedsNote };
   return { ok: true, value: { reason: reason as HideReason, note: n } };
 }
 
@@ -30,24 +38,30 @@ export function parseHide(reason: unknown, note: unknown): Parsed<{ reason: Hide
 export function approvalProblem(
   job: { removedAt: string | null; flags: ExternalFlag[] },
   flagsChecked: boolean,
+  lang: Lang = DEFAULT_LANG,
 ): string | undefined {
-  if (job.removedAt) return "这个职位已经下架，不能通过。";
-  if (job.flags.length && !flagsChecked)
-    return `请先打开官网原文核对：${job.flags.map((f) => FLAG_LABELS[f]).join("；")}。`;
+  const w = externalWords(lang);
+  if (job.removedAt) return w.reviewErrors.removed;
+  if (job.flags.length && !flagsChecked) return w.reviewErrors.checkFlags(job.flags.map((f) => w.flags[f]));
   return undefined;
 }
 
 /** 停用这家公司 / 恢复导入: a note saying why. */
-export function parseNote(note: unknown): Parsed<string> {
+export function parseNote(note: unknown, lang: Lang = DEFAULT_LANG): Parsed<string> {
   const n = text(note, 200);
-  return n ? { ok: true, value: n } : { ok: false, error_zh: "请写明原因。" };
+  return n ? { ok: true, value: n } : { ok: false, error_zh: externalWords(lang).reviewErrors.reasonMissing };
 }
 
 /** 公司要求删除: who asked (a company address or role) and what they asked. */
-export function parseTakedown(requester: unknown, note: unknown): Parsed<{ requester: string; note: string }> {
+export function parseTakedown(
+  requester: unknown,
+  note: unknown,
+  lang: Lang = DEFAULT_LANG,
+): Parsed<{ requester: string; note: string }> {
+  const t = externalWords(lang).reviewErrors;
   const r = text(requester, 120);
   const n = text(note, 300);
-  if (!r) return { ok: false, error_zh: "请写明是谁提出的（公司邮箱或部门）。" };
-  if (!n) return { ok: false, error_zh: "请写明请求的内容和收到的日期。" };
+  if (!r) return { ok: false, error_zh: t.requesterMissing };
+  if (!n) return { ok: false, error_zh: t.requestMissing };
   return { ok: true, value: { requester: r, note: n } };
 }

@@ -1,17 +1,19 @@
 // Moderation queue helpers: grouping reports and wording the log. The log itself is in data.ts.
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { adminMessages } from "@/i18n/messages/admin";
 import type { RuleId } from "@/lib/compliance";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { ModerationLogEntry, Report, ReportReason } from "@/lib/types";
 
-export const RULE_LABELS: Record<RuleId, string> = {
-  min_wage: "低于最低工资",
-  fee: "收费用词",
-  visa_selling: "卖签证用词",
-  ethnic_preference: "按种族或国籍招人",
-  high_risk: "高风险行业",
-  aewv_unaccredited: "非认证雇主招 AEWV",
-};
+/** The checks run when a job is posted, by name (Chinese; ruleLabel for the page's language). */
+export const RULE_LABELS: Record<RuleId, string> = adminMessages.zh.rules;
+
+export function ruleLabel(rule: string, lang: Lang = DEFAULT_LANG): string {
+  const rules: Record<string, string> = pick(adminMessages, lang).rules;
+  return rules[rule] ?? rule;
+}
 
 export interface ReportGroup {
   jobId: string;
@@ -35,44 +37,46 @@ const unique = <T>(list: T[] = []) => [...new Set(list)];
 const REASON_ORDER = Object.keys(REPORT_REASON_LABELS) as ReportReason[];
 
 /** Who acted, for the log (#60). */
-export function moderatorLabel(moderator: string | undefined): string {
-  if (!moderator) return "（较早的记录，未记审核员）";
-  return moderator === DELETED_ACCOUNT ? "已删除的审核员" : moderator;
+export function moderatorLabel(moderator: string | undefined, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(adminMessages, lang).log;
+  if (!moderator) return t.oldEntry;
+  return moderator === DELETED_ACCOUNT ? t.deletedModerator : moderator;
 }
 
-export function describeAction(entry: ModerationLogEntry): string {
-  const job = `「${entry.jobTitle}」（${entry.employerName}）`;
+export function describeAction(entry: ModerationLogEntry, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(adminMessages, lang).log;
+  const employer = entry.employerName ?? "";
+  const job = t.job(entry.jobTitle ?? "", employer);
   const why = entry.reasons?.length
-    ? ` · 举报：${REASON_ORDER.filter((r) => entry.reasons!.includes(r))
-        .map((r) => REPORT_REASON_LABELS[r].zh)
-        .join("、")}`
+    ? t.reasons(REASON_ORDER.filter((r) => entry.reasons!.includes(r)).map((r) => REPORT_REASON_LABELS[r][lang]))
     : entry.rules?.length
-      ? ` · 标记：${unique(entry.rules)
-          .map((r) => RULE_LABELS[r as RuleId] ?? r)
-          .join("、")}`
+      ? t.rules(unique(entry.rules).map((r) => ruleLabel(r, lang)))
       : "";
+  // A note is the moderator's own words (or what was stored with the decision): kept as written.
+  const note = entry.note ? t.note(entry.note) : "";
+  const takenDown = entry.takenDown ?? 0;
   switch (entry.action) {
     case "approve":
-      return `审核通过${job}${why}`;
+      return t.approve(job, why);
     case "take_down":
-      return `下架${job}${why}`;
+      return t.takeDown(job, why);
     case "dismiss":
-      return `驳回对${job}的举报${why}`;
+      return t.dismiss(job, why);
     case "ban":
-      return `封禁雇主「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位`;
+      return t.ban(employer, takenDown);
     case "verify_approve":
-      return `通过企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.verifyApprove(employer, note);
     case "verify_reject":
-      return `驳回企业验证「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.verifyReject(employer, note);
     case "external_approve":
-      return `通过外部职位${job}`;
+      return t.externalApprove(job);
     case "external_hide":
-      return `不显示外部职位${job}${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.externalHide(job, note);
     case "external_stop":
-      return `停用外部公司「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.externalStop(employer, takenDown, note);
     case "external_resume":
-      return `恢复导入外部公司「${entry.employerName}」${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.externalResume(employer, note);
     case "external_takedown":
-      return `公司要求删除「${entry.employerName}」，下架 ${entry.takenDown ?? 0} 个职位${entry.note ? ` · ${entry.note}` : ""}`;
+      return t.externalTakedown(employer, takenDown, note);
   }
 }
