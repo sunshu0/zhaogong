@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { ChevronRight } from "lucide-react";
 import { useFreshAlertNotifications, useNotifications } from "@/components/seeker/hub-client";
 import { notificationHref, type Notification } from "@/components/seeker/hub-state";
@@ -17,6 +18,8 @@ export function NotificationWorkspace() {
   useFreshAlertNotifications();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
+  // #202: 全部标为已读 goes away once nothing is unread; the focus moves to the list's heading instead of the page top.
+  const listHeading = useRef<HTMLHeadingElement>(null);
 
   return (
     <div className="space-y-4">
@@ -30,6 +33,7 @@ export function NotificationWorkspace() {
             type="button"
             onClick={() => {
               markRead();
+              listHeading.current?.focus();
               toast("已全部标为已读");
             }}
             className="pressable -mr-2 inline-flex min-h-11 shrink-0 items-center rounded-control px-2 text-body font-medium text-brand hover:bg-brand-soft"
@@ -40,7 +44,9 @@ export function NotificationWorkspace() {
       </header>
       <section className="overflow-hidden rounded-card bg-surface shadow-card" aria-label="通知列表">
         <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:px-5">
-          <h2 className="text-subtitle font-semibold">全部通知</h2>
+          <h2 ref={listHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
+            全部通知
+          </h2>
           <span className="text-meta text-muted">{unread ? `${unread} 条未读` : "已全部读完"}</span>
         </div>
         {items.length === 0 && <p className="px-4 py-10 text-center text-body text-muted">还没有通知。</p>}

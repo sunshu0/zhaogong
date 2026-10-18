@@ -23,6 +23,7 @@ import { emailTypoFix } from "@/components/seeker/email-typos";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { cardClass } from "@/components/ui/Card";
 import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
@@ -42,10 +43,10 @@ export interface DemoBusiness {
 const CARD = cardClass();
 const labelClass = "mb-1.5 block text-body font-medium";
 const linkButtonClass =
-  "pressable min-h-11 w-full rounded-control text-body text-muted underline underline-offset-2 hover:text-foreground disabled:opacity-50";
+  "pressable min-h-11 w-full rounded-control text-body text-muted underline underline-offset-2 hover:text-foreground disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 /** The address a mistyped domain should have been (#185): a link-like button inside a sentence. */
 const fixButtonClass =
-  "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50";
+  "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50 aria-disabled:opacity-50";
 
 const ROLE_OPTIONS: { role: ActiveRole; title: string; text: string }[] = [
   { role: "seeker", title: "我要找工作", text: "浏览职位，和雇主在线沟通、交换联系方式" },
@@ -91,6 +92,10 @@ export function LoginForm({
   const sentTypoFix = emailTypoFix(email); // the code went to a mistyped address
   // #189: signed in on the code step and the business step comes next: its heading takes the focus that 登录 had.
   const [fromCodeStep, setFromCodeStep] = useState(false);
+  // #202: buttons that go away when pressed hand the focus on — 改用 … to the code field, 换个邮箱 to the email
+  // field — instead of dropping it to the top of the page.
+  const codeInput = useRef<HTMLInputElement>(null);
+  const backToEmail = useRef(false);
   const next = safeNext(nextParam, role === "employer" ? "/employer/post" : "/jobs");
 
   // Next keeps visited pages alive (hidden) for back navigation. A sign-in should start fresh on every visit,
@@ -110,6 +115,12 @@ export function LoginForm({
       setFromCodeStep(false);
     };
   }, []);
+
+  useEffect(() => {
+    if (step !== "email" || !backToEmail.current) return;
+    backToEmail.current = false;
+    emailInput.current?.focus();
+  }, [step]);
 
   useEffect(() => {
     if (!counting) return;
@@ -180,7 +191,7 @@ export function LoginForm({
     setResendAt(at + seconds * 1000);
   }
 
-  function sendCode(address: string) {
+  function sendCode(address: string, sent?: () => void) {
     setError(null);
     startTransition(async () => {
       const result = await requestSignInCode(address).catch(() => null);
@@ -194,6 +205,7 @@ export function LoginForm({
       setEmail(address);
       setDevCode(result.devCode ?? null);
       setStep("code");
+      sent?.();
     });
   }
 
@@ -305,7 +317,12 @@ export function LoginForm({
       {sentTypoFix && (
         <p className="text-body">
           地址是不是拼错了？{" "}
-          <button type="button" disabled={pending} onClick={() => sendCode(sentTypoFix)} className={fixButtonClass}>
+          <button
+            type="button"
+            onClick={() => sendCode(sentTypoFix, () => codeInput.current?.focus())}
+            className={fixButtonClass}
+            {...busyProps(pending)}
+          >
             改用 {sentTypoFix}
           </button>
         </p>
@@ -323,6 +340,7 @@ export function LoginForm({
       <label className="block">
         <span className={labelClass}>验证码</span>
         <input
+          ref={codeInput}
           name="code"
           inputMode="numeric"
           autoComplete="one-time-code"
@@ -341,15 +359,20 @@ export function LoginForm({
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          disabled={pending || counting}
-          onClick={() => sendCode(email)}
+          // Counting down it cannot be pressed yet, but stays focusable (the focus was on it when it was pressed).
+          aria-disabled={counting || undefined}
+          onClick={() => {
+            if (!counting) sendCode(email);
+          }}
           className={linkButtonClass}
+          {...busyProps(pending)}
         >
           {resendLabel(resendLeft)}
         </button>
         <button
           type="button"
           onClick={() => {
+            backToEmail.current = true;
             setStep("email");
             setDevCode(null);
             setError(null);

@@ -38,6 +38,8 @@ test("a new code only once a minute, counted down on the button; in development 
   await page.getByRole("button", { name: "重新获取验证码" }).click();
   await expect(page.getByRole("main").getByRole("alert")).toHaveText(/^验证码刚发过，请 \d+ 秒后再获取$/);
   await expect(waiting).toBeDisabled();
+  // #202: it waits with aria-disabled, not disabled, so the focus stays on the button instead of the top of the page.
+  await expect(waiting).toBeFocused();
 });
 
 test("a mistyped mail domain gets its right spelling offered on both steps; sending is never stopped (#185)", async ({

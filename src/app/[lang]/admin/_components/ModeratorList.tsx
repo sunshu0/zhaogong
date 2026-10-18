@@ -34,8 +34,12 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
   const answer = useAdminLoad<{ me: string; moderators: Moderator[] } | Refused>(getModerators, version);
   // #183: where an action got no answer — the list (a removal) or the form (an addition, the email stays).
   const [failed, setFailed] = useState<"list" | "add">();
+  // #202: which button is on its way — "add", or the email of the row being removed. That one shows it is busy and
+  // keeps the focus (Button loading); the others are disabled meanwhile.
+  const [pressed, setPressed] = useState<string>();
 
-  const run = (where: "list" | "add", action: () => Promise<AdminResult>, after?: () => void) => {
+  const run = (where: "list" | "add", action: () => Promise<AdminResult>, after?: () => void, key: string = where) => {
+    setPressed(key);
     setFailed(undefined);
     startTransition(async () => {
       const result = await settle(action);
@@ -84,9 +88,10 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
               </div>
               <Button
                 variant="danger-secondary"
-                disabled={pending || only}
+                disabled={only || (pending && pressed !== m.email)}
+                loading={pending && pressed === m.email}
                 title={only ? "至少要留一位审核员" : undefined}
-                onClick={() => run("list", () => removeModerator(m.email))}
+                onClick={() => run("list", () => removeModerator(m.email), undefined, m.email)}
                 className="shrink-0"
                 aria-label={`移除审核员 ${m.email}`}
               >
@@ -116,7 +121,11 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
               placeholder="对方登录用的邮箱"
               className={`${inputClass()} min-w-0 flex-1`}
             />
-            <Button type="submit" disabled={!email.trim()} loading={pending}>
+            <Button
+              type="submit"
+              disabled={!email.trim() || (pending && pressed !== "add")}
+              loading={pending && pressed === "add"}
+            >
               添加
             </Button>
           </div>

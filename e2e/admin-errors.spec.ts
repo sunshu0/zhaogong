@@ -64,6 +64,8 @@ test("a rejection that gets no answer says 没成功，请重试 in its card and
   await expect(card.getByLabel("说明")).toHaveValue("公开的公司电话说没有这个人");
   await expect(card.getByRole("checkbox", { name: "企业登记" })).toBeChecked();
   await expect(confirm).toBeEnabled();
+  // #202: busy, the button kept the focus (Button loading is aria-disabled, not disabled); it still has it now.
+  await expect(confirm).toBeFocused();
   await expectNoViolations(admin);
 
   cut.on = false;

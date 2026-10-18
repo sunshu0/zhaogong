@@ -234,6 +234,9 @@ function QueueCard({
     });
   };
   const busy = (key: string) => pending && pressed === key;
+  // #202: the pressed button only shows it is busy (Button loading keeps it focusable); the others in the card are
+  // disabled meanwhile — they do not have the focus, so it is not lost.
+  const another = (key: string) => pending && pressed !== key;
   // 确定封禁 takes focus itself (autoFocus); 取消 brings it back to 封禁雇主 (#189).
   const { opener: banOpenerRef } = useSwapFocus<HTMLSpanElement>(confirmBan);
 
@@ -295,20 +298,24 @@ function QueueCard({
         {reports ? (
           <Button
             variant="secondary"
-            disabled={pending}
+            disabled={another("dismiss")}
             loading={busy("dismiss")}
             onClick={() => run("dismiss", () => dismissReports(job.id))}
           >
             驳回举报
           </Button>
         ) : (
-          <Button disabled={pending} loading={busy("approve")} onClick={() => run("approve", () => approveJob(job.id))}>
+          <Button
+            disabled={another("approve")}
+            loading={busy("approve")}
+            onClick={() => run("approve", () => approveJob(job.id))}
+          >
             没问题，通过
           </Button>
         )}
         <Button
           variant="danger-secondary"
-          disabled={pending || job.status === "removed"}
+          disabled={another("takedown") || job.status === "removed"}
           loading={busy("takedown")}
           onClick={() => run("takedown", () => takeDownJob(job.id))}
         >
@@ -322,7 +329,7 @@ function QueueCard({
               <>
                 <Button
                   variant="danger"
-                  disabled={pending}
+                  disabled={another("ban")}
                   loading={busy("ban")}
                   onClick={() => run("ban", () => banJobEmployer(job.id))}
                   autoFocus
