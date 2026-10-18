@@ -132,7 +132,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
             {t.applicant.contactWithRole(request.contactName, request.contactRole)}
           </dd>
           <dt className="text-muted">{t.applicant.phone}</dt>
-          <dd>{request.companyPhone}</dd>
+          <dd lang={contentLang(request.companyPhone)}>{request.companyPhone}</dd>
           <dt className="text-muted">{t.applicant.website}</dt>
           <dd className="break-all">
             {request.website ? (

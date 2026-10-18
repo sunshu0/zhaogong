@@ -265,7 +265,7 @@ function QueueCard({
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <StatusTag status={job.status} />
           <p className="leading-none">
-            <Pay pay={job.pay} country={job.country} />
+            <Pay pay={job.pay} country={job.country} lang={lang} />
           </p>
         </div>
       </div>

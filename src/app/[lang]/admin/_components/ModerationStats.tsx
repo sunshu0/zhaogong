@@ -82,7 +82,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
   const most = Math.max(1, ...stats.weeks.map((w) => w.reported));
   return (
     <Section look="app" title={t.title(WEEKS)} description={t.description}>
-      <div className="overflow-x-auto">
+      <div role="region" aria-label={t.title(WEEKS)} tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-body">
           <caption className="sr-only">{t.caption(WEEKS)}</caption>
           <thead>
@@ -150,7 +150,7 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
       {stats.byModerator.length === 0 ? (
         <p className="py-group text-body text-muted">{t.none(WEEKS)}</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div role="region" aria-label={t.title} tabIndex={0} className="overflow-x-auto">
           <table className="w-full text-body">
             <caption className="sr-only">{t.caption(WEEKS)}</caption>
             <thead>
@@ -201,7 +201,7 @@ export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
   ];
   return (
     <Section look="app" title={t.title} description={t.description(AI_DAYS)}>
-      <div className="overflow-x-auto">
+      <div role="region" aria-label={t.title} tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-body">
           <caption className="sr-only">{t.caption(AI_DAYS)}</caption>
           <thead>
