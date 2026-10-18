@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { reportJob } from "@/app/[lang]/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { rememberReport, useSentReports } from "@/components/seeker/activity-client";
@@ -38,6 +38,11 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   const [state, setState] = useState<"closed" | "open" | "sent">("closed");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const thanks = useRef<HTMLElement>(null);
+  // The form and its buttons go away: the focus goes to the thanks (#202).
+  useEffect(() => {
+    if (state === "sent") thanks.current?.focus();
+  }, [state]);
   const reportedBefore = useSentReports().some((r) => r.jobId === jobId);
 
   function submit(e: FormEvent<HTMLFormElement>) {
@@ -62,7 +67,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
 
   if (state === "sent") {
     return (
-      <section role="status" className="rounded-card bg-ok-soft p-4 lg:p-5">
+      <section ref={thanks} tabIndex={-1} role="status" className="rounded-card bg-ok-soft p-4 outline-none lg:p-5">
         <h2 className="font-medium text-ok">谢谢你的举报</h2>
         <p className="mt-1 text-sm">我们会尽快核查这个职位。在此之前，如果雇主要求你付钱或交出证件，请不要照做。</p>
         <p className="mt-2 text-xs text-muted">

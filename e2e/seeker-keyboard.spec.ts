@@ -105,3 +105,40 @@ test("收藏 and 申请 on a job card work from the keyboard", async ({ page }, 
   await expect(page).toHaveURL(/\/jobs\/j\w+\?apply=1$/);
   await expect(page.getByRole("dialog", { name: "申请这个职位" })).toBeVisible();
 });
+
+test("职位提醒 from the keyboard: a working button keeps the focus, one that goes hands it on (#202)", async ({
+  page,
+}) => {
+  await signIn(page, "/jobs?industry=retail", freshEmail("keyboard.alerts"));
+  // 保存为提醒 turns into 已保存为提醒 with 管理提醒, which gets the focus.
+  await keyboardFocus(page, page.getByRole("button", { name: "保存为提醒" }));
+  await page.keyboard.press("Enter");
+  const manage = page.getByRole("status").getByRole("link", { name: "管理提醒" });
+  await expect(manage).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("/me/alerts");
+
+  // 暂停 stays where it is: the focus stays on it while the server answers, and it reads 恢复提醒 after.
+  const alert = page.getByRole("article", { name: /^提醒：/ });
+  await keyboardFocus(page, alert.getByRole("button", { name: "暂停" }));
+  await page.keyboard.press("Enter");
+  const resume = alert.getByRole("button", { name: "恢复提醒" });
+  await expect(resume).not.toHaveAttribute("aria-busy");
+  await expect(resume).toBeFocused();
+
+  // The name form closes after 保存: the focus goes back to 改名.
+  const rename = alert.getByRole("button", { name: "改名" });
+  await keyboardFocus(page, rename);
+  await page.keyboard.press("Enter");
+  await page.getByLabel("提醒名称").fill("键盘改的名字");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("article", { name: "提醒：键盘改的名字" })).toBeVisible();
+  await expect(rename).toBeFocused();
+
+  // A deleted alert takes its buttons with it: the focus goes to the line above the list.
+  await keyboardFocus(page, alert.getByRole("button", { name: "删除" }));
+  await page.keyboard.press("Enter");
+  await alert.getByRole("button", { name: "确认删除" }).press("Enter");
+  await expect(alert).toBeHidden();
+  await expect(page.getByText(/^有新职位符合条件时/)).toBeFocused();
+});

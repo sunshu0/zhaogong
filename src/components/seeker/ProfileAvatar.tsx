@@ -1,6 +1,7 @@
 "use client";
 
 import { buttonClass } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera } from "lucide-react";
@@ -76,6 +77,7 @@ export function ProfileAvatarEditor({
   onChange: (value?: string) => boolean | undefined;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadButton = useRef<HTMLButtonElement>(null);
   const request = useRef(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -120,10 +122,11 @@ export function ProfileAvatarEditor({
       <div className="space-y-1">
         <div className="flex flex-wrap gap-2">
           <button
+            ref={uploadButton}
             type="button"
-            disabled={busy}
             onClick={() => inputRef.current?.click()}
             className={buttonClass("secondary")}
+            {...busyProps(busy)}
           >
             <Camera aria-hidden="true" className="size-4" />
             {busy ? "处理中…" : "上传头像"}
@@ -131,11 +134,13 @@ export function ProfileAvatarEditor({
           {value && (
             <button
               type="button"
-              disabled={busy}
               onClick={() => {
-                setError(onChange(undefined) === true ? "" : "头像移除失败，请重试。");
+                const removed = onChange(undefined) === true;
+                setError(removed ? "" : "头像移除失败，请重试。");
+                if (removed) uploadButton.current?.focus(); // 移除头像 goes away with the photo (#202)
               }}
-              className="min-h-11 text-sm text-muted underline disabled:opacity-50"
+              className="min-h-11 text-sm text-muted underline aria-disabled:opacity-50"
+              {...busyProps(busy)}
             >
               移除头像
             </button>

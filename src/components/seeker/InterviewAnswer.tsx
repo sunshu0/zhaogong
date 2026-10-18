@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { answerMyInterview } from "@/app/[lang]/me/interview-actions";
 import { downloadInterviewIcs } from "@/components/seeker/interview-client";
 import {
@@ -35,6 +35,7 @@ export function InterviewAnswer({
   const [reply, setReply] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const status = useRef<HTMLParagraphElement>(null);
   const open = interview.status === "proposed";
 
   async function answer(response: { kind: Mode | "confirm"; slot?: string | null; reply?: string }) {
@@ -49,11 +50,14 @@ export function InterviewAnswer({
     onChange(result.interview);
     setMode("choose");
     setReply("");
+    status.current?.focus(); // the answer's buttons go away: the focus goes to what the invitation says now (#202)
   }
 
   return (
     <section aria-label="面试邀约" className="mt-3 rounded-md border border-brand/30 bg-brand-soft/40 p-3">
-      <p className="text-body font-medium">{seekerInterviewStatus(interview)}</p>
+      <p ref={status} tabIndex={-1} className="text-body font-medium outline-none">
+        {seekerInterviewStatus(interview)}
+      </p>
       <p className="text-meta text-muted">
         {[interview.mode && INTERVIEW_MODES[interview.mode], interview.place].filter(Boolean).join(" · ")}
       </p>
@@ -82,11 +86,11 @@ export function InterviewAnswer({
           )}
           <div className="flex flex-wrap gap-2">
             {interview.callFirst ? (
-              <Button onClick={() => void answer({ kind: "confirm", slot: null })} disabled={pending}>
+              <Button onClick={() => void answer({ kind: "confirm", slot: null })} loading={pending}>
                 好的，等电话约时间
               </Button>
             ) : (
-              <Button onClick={() => void answer({ kind: "confirm", slot })} disabled={pending || !slot}>
+              <Button onClick={() => void answer({ kind: "confirm", slot })} disabled={!slot} loading={pending}>
                 确认这个时间
               </Button>
             )}
@@ -120,7 +124,7 @@ export function InterviewAnswer({
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={pending || (mode === "counter" && !reply.trim())}>
+            <Button type="submit" disabled={mode === "counter" && !reply.trim()} loading={pending}>
               {mode === "counter" ? "发给雇主" : "确认婉拒"}
             </Button>
             <Button variant="link" onClick={() => setMode("choose")}>

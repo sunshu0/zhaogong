@@ -22,6 +22,7 @@ import { useProfile } from "@/components/seeker/hub-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { inputClass } from "@/components/ui/input-class";
 import { buttonClass, type ButtonSize } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { candidateFacts } from "@/lib/candidate-matching";
 
 /**
@@ -48,6 +49,7 @@ export function ApplyJob({
   const router = useRouter();
   const [mine, setMine] = useState<MyApplication | null | undefined>(undefined);
   const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
   const seeker = Boolean(session && session.activeRole === "seeker" && session.employerId !== employerId);
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export function ApplyJob({
   return (
     <>
       <button
+        ref={opener}
         type="button"
         disabled={mine === undefined}
         onClick={() => setOpen(true)}
@@ -100,7 +103,10 @@ export function ApplyJob({
             setMine(next);
             refreshApplied();
           }}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            setOpen(false);
+            opener.current?.focus(); // the dialog goes away: back to 申请 (#202)
+          }}
         />
       )}
     </>
@@ -190,7 +196,7 @@ function ApplyDialog({
               <button ref={first} type="button" onClick={onClose} className={buttonClass("primary")}>
                 好的
               </button>
-              <button type="button" disabled={busy} onClick={withdraw} className={buttonClass("link")}>
+              <button type="button" onClick={withdraw} className={buttonClass("link")} {...busyProps(busy)}>
                 撤回申请
               </button>
             </div>
@@ -252,7 +258,7 @@ function ApplyDialog({
               </p>
             )}
             <div className="flex gap-2">
-              <button type="submit" disabled={busy || !page} className={buttonClass("primary")}>
+              <button type="submit" disabled={!page} className={buttonClass("primary")} {...busyProps(busy)}>
                 {busy ? "正在提交…" : "提交申请"}
               </button>
               <button type="button" onClick={onClose} className={buttonClass("link")}>

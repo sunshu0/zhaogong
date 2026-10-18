@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   closeMyResumeShare,
   myResumeShareLink,
@@ -28,6 +28,7 @@ import {
 import { ResumePrintStyle, ResumeSheet } from "@/components/seeker/ResumeSheet";
 import { useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { Group, Section } from "@/components/ui/Section";
 import type { VisaAccepted } from "@/lib/types";
 import { inputClass } from "@/components/ui/input-class";
@@ -272,6 +273,9 @@ function ContactChoice({
   );
 }
 
+/** 生成分享链接, which gets the focus back when the link is closed (#202). */
+const MAKE = "resume-share-make";
+
 /**
  * 分享链接: off until the person opens it. The link shows a copy of the page as it was when shared, so a change
  * since then is pointed out with 更新分享内容. Closing it makes the link show nothing.
@@ -281,6 +285,21 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const [origin, setOrigin] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [acting, setActing] = useState<"share" | "close" | null>(null);
+  const link = useRef<HTMLAnchorElement>(null);
+  const focusAfter = useRef<"link" | "make" | null>(null);
+  // The buttons change with the link's state: the focus goes to the link once shared or updated, and to 生成分享链接
+  // once closed (#202).
+  useEffect(() => {
+    const target =
+      focusAfter.current === "link"
+        ? link.current
+        : focusAfter.current === "make"
+          ? document.getElementById(MAKE)
+          : null;
+    focusAfter.current = null;
+    target?.focus();
+  }, [share]);
 
   useEffect(() => {
     let live = true;
@@ -294,17 +313,25 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
     };
   }, []);
 
-  const shareNow = () =>
+  const shareNow = () => {
+    setActing("share");
     startTransition(async () => {
       const result = await shareMyResume(shareCopy(doc));
       setError(result.ok ? "" : result.error);
-      if (result.ok) setShare(result.share);
+      if (result.ok) {
+        focusAfter.current = "link";
+        setShare(result.share);
+      }
     });
-  const close = () =>
+  };
+  const close = () => {
+    setActing("close");
     startTransition(async () => {
       await closeMyResumeShare();
+      focusAfter.current = "make";
       setShare(null);
     });
+  };
 
   const url = share ? `${origin}${share.path}` : "";
   const outdated = share && JSON.stringify(share.resume) !== sharedForm(doc);
@@ -326,6 +353,7 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
             <p className="flex flex-wrap items-center gap-2 text-body">
               <span className="font-medium">已打开：</span>
               <a
+                ref={link}
                 href={share.path}
                 target="_blank"
                 rel="noreferrer"
@@ -341,16 +369,27 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
               </p>
             )}
             <div className="flex flex-wrap gap-3">
-              <Button variant="secondary" onClick={shareNow} disabled={pending || !outdated}>
+              <Button
+                variant="secondary"
+                onClick={shareNow}
+                disabled={!outdated && !pending}
+                loading={pending && acting === "share"}
+                {...busyProps(pending && acting !== "share")}
+              >
                 更新分享内容
               </Button>
-              <Button variant="link" onClick={close} disabled={pending}>
+              <Button
+                variant="link"
+                onClick={close}
+                loading={pending && acting === "close"}
+                {...busyProps(pending && acting !== "close")}
+              >
                 关闭链接
               </Button>
             </div>
           </>
         ) : (
-          <Button variant="secondary" onClick={shareNow} disabled={pending}>
+          <Button id={MAKE} variant="secondary" onClick={shareNow} loading={pending}>
             生成分享链接
           </Button>
         )}

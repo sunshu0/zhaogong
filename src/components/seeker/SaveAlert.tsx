@@ -2,13 +2,14 @@
 
 import { Bell } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { saveMyJobAlert, type SaveAlertResult } from "@/app/[lang]/me/alerts/actions";
 import { jobsHref } from "@/components/seeker/filter-query";
 import { ALERT_LIMIT, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { externalAlertHref } from "@/lib/external-jobs/alerts";
 import type { ExternalSection } from "@/lib/external-jobs/filter";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
+import { busyProps } from "@/components/ui/busy";
 
 const ACTION =
   "inline-flex min-h-11 shrink-0 items-center gap-1 text-body text-brand underline-offset-4 hover:underline";
@@ -30,6 +31,11 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const manage = useRef<HTMLAnchorElement>(null);
+  // 保存为提醒 turns into 已保存为提醒: the focus goes to its 管理提醒 (#202).
+  useEffect(() => {
+    if (said) manage.current?.focus();
+  }, [said]);
   if (!hydrated || session?.activeRole === "employer") return null;
 
   if (!session) {
@@ -48,7 +54,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
     return (
       <p role="status" className="flex min-h-11 shrink-0 items-center gap-2 text-body text-muted">
         {said}
-        <Link href={ALERTS_PATH} className="text-brand underline-offset-4 hover:underline">
+        <Link ref={manage} href={ALERTS_PATH} className="text-brand underline-offset-4 hover:underline">
           管理提醒
         </Link>
       </p>
@@ -64,8 +70,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
       )}
       <button
         type="button"
-        disabled={busy}
-        className={`${ACTION} disabled:opacity-50`}
+        className={`${ACTION} aria-disabled:opacity-50`}
         onClick={async () => {
           setBusy(true);
           setFailed(false);
@@ -78,6 +83,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
             setBusy(false);
           }
         }}
+        {...busyProps(busy)}
       >
         <Bell aria-hidden="true" className="size-4" />
         保存为提醒

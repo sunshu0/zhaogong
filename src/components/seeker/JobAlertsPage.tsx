@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { changeMyJobAlert, deleteMyJobAlert, myJobAlerts, type JobAlertView } from "@/app/[lang]/me/alerts/actions";
 import { ALERT_LIMIT, ALERT_NAME_MAX, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
@@ -10,11 +10,12 @@ import { Group, Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { cardClass } from "@/components/ui/Card";
 import { inputClass } from "@/components/ui/input-class";
+import { busyProps } from "@/components/ui/busy";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { SECTION_TITLES } from "@/lib/external-jobs/filter";
 
 const SMALL =
-  "inline-flex min-h-11 items-center px-1 text-body text-brand underline-offset-4 hover:underline disabled:opacity-50";
+  "inline-flex min-h-11 items-center px-1 text-body text-brand underline-offset-4 hover:underline disabled:opacity-50 aria-disabled:opacity-50";
 
 /**
  * 职位提醒 (#53): the account's saved searches, of the job list or of 实习 and 专业职位 (#131). Each can be opened as
@@ -28,6 +29,7 @@ export function JobAlertsPage() {
   // undefined: loading.
   const [alerts, setAlerts] = useState<JobAlertView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const top = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -40,14 +42,16 @@ export function JobAlertsPage() {
     };
   }, [signedIn]);
 
-  /** Sends a change; the server's answer is the list from then on. */
-  async function run(change: () => Promise<JobAlertView[] | null>) {
+  /** Sends a change; the server's answer is the list from then on. True when the server took it. */
+  async function run(change: () => Promise<JobAlertView[] | null>): Promise<boolean> {
     setError(null);
     try {
       const list = await change();
       if (list) setAlerts(list);
+      return Boolean(list);
     } catch {
       setError("网络有问题，没有改成，请重试。");
+      return false;
     }
   }
 
@@ -66,7 +70,7 @@ export function JobAlertsPage() {
 
   return (
     <div className="space-y-section">
-      <p className="text-body text-muted">
+      <p ref={top} tabIndex={-1} className="text-body text-muted outline-none">
         有新职位符合条件时，会在「通知」里告诉你，同一个职位只提醒一次。最多 {ALERT_LIMIT} 个提醒。
       </p>
       {error && (
@@ -80,9 +84,12 @@ export function JobAlertsPage() {
             <AlertRow
               key={alert.id}
               alert={alert}
-              onRename={(name) => run(() => changeMyJobAlert(alert.id, { name }))}
-              onPause={(paused) => run(() => changeMyJobAlert(alert.id, { paused }))}
-              onDelete={() => run(() => deleteMyJobAlert(alert.id))}
+              onRename={async (name) => void (await run(() => changeMyJobAlert(alert.id, { name })))}
+              onPause={async (paused) => void (await run(() => changeMyJobAlert(alert.id, { paused })))}
+              onDelete={async () => {
+                // The row and its buttons go away: the focus goes to the line above the list (#202).
+                if (await run(() => deleteMyJobAlert(alert.id))) top.current?.focus();
+              }}
             />
           ))}
         </Section>
@@ -117,11 +124,23 @@ function AlertRow({
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const renameButton = useRef<HTMLButtonElement>(null);
+  const backToRename = useRef(false);
   const act = (work: () => Promise<void>) => async () => {
     setBusy(true);
     await work();
     setBusy(false);
   };
+  // The name form goes away (saved or cancelled): the focus goes back to 改名 (#202).
+  const closeRename = () => {
+    backToRename.current = true;
+    setRenaming(false);
+  };
+  useEffect(() => {
+    if (renaming || !backToRename.current) return;
+    backToRename.current = false;
+    renameButton.current?.focus();
+  }, [renaming]);
 
   return (
     <Group>
@@ -133,7 +152,7 @@ function AlertRow({
               event.preventDefault();
               const name = String(new FormData(event.currentTarget).get("name") ?? "");
               await act(() => onRename(name))();
-              setRenaming(false);
+              closeRename();
             }}
           >
             <label className="sr-only" htmlFor={`alert-name-${alert.id}`}>
@@ -148,10 +167,10 @@ function AlertRow({
               autoFocus
               className={`${inputClass()} min-w-0 flex-1`}
             />
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" loading={busy}>
               保存
             </Button>
-            <Button variant="link" onClick={() => setRenaming(false)}>
+            <Button variant="link" onClick={closeRename}>
               取消
             </Button>
           </form>
@@ -172,17 +191,23 @@ function AlertRow({
             看职位
           </Link>
           {!renaming && (
-            <button type="button" className={SMALL} disabled={busy} onClick={() => setRenaming(true)}>
+            <button
+              ref={renameButton}
+              type="button"
+              className={SMALL}
+              onClick={() => setRenaming(true)}
+              {...busyProps(busy)}
+            >
               改名
             </button>
           )}
-          <button type="button" className={SMALL} disabled={busy} onClick={act(() => onPause(!alert.paused))}>
+          <button type="button" className={SMALL} onClick={act(() => onPause(!alert.paused))} {...busyProps(busy)}>
             {alert.paused ? "恢复提醒" : "暂停"}
           </button>
           {confirming ? (
             <span className="flex items-center gap-2 text-body">
               删除后不再提醒
-              <button type="button" className={`${SMALL} text-danger`} disabled={busy} onClick={act(onDelete)}>
+              <button type="button" className={`${SMALL} text-danger`} onClick={act(onDelete)} {...busyProps(busy)}>
                 确认删除
               </button>
               <button type="button" className={SMALL} onClick={() => setConfirming(false)}>
