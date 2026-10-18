@@ -8,6 +8,7 @@ import { Camera } from "lucide-react";
 import { useCandidateDirectory, usePublicEmployerProfile } from "@/components/seeker/hub-client";
 import type { Conversation } from "@/components/seeker/chat-client";
 import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 
 export function AvatarImage({
@@ -33,6 +34,7 @@ export function AvatarImage({
   ) : (
     <span
       aria-hidden={alt ? undefined : "true"}
+      lang={contentLang(fallback)}
       className={`flex shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand ${large ? "size-16 text-2xl" : "size-10 text-base"}`}
     >
       {fallback.slice(0, 1)}
