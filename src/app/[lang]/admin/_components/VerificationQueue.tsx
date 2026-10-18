@@ -17,6 +17,7 @@ import { useSwapFocus } from "@/app/[lang]/admin/_components/use-swap-focus";
 import { missingChecks, type Checklist, type RejectReason } from "@/components/employer/verification";
 import { badgeName, rejectReasonsIn } from "@/app/[lang]/admin/verification-words";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
 import { adminVerificationMessages } from "@/i18n/messages/admin-verification";
 import { Button } from "@/components/ui/Button";
@@ -90,7 +91,9 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   return (
     <article aria-label={t.cardLabel(request.tradingName)} className={`space-y-4 ${cardClass()}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-subtitle font-semibold">{request.tradingName}</h2>
+        <h2 lang={contentLang(request.tradingName)} className="text-subtitle font-semibold">
+          {request.tradingName}
+        </h2>
         <Tag kind="neutral">{t.applyingFor(badgeName(request.kind, lang))}</Tag>
         {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
         {employer?.bannedAt && <Tag kind="urgent">{t.banned}</Tag>}
@@ -109,7 +112,9 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
             {register ? (register.status === "registered" ? t.register.registered : t.register.removed) : "—"}
           </dd>
           <dt className="text-muted">{t.register.tradingNames}</dt>
-          <dd>{register ? t.register.list(register.tradingNames) : "—"}</dd>
+          <dd lang={contentLang(register?.tradingNames.join(" "))}>
+            {register ? t.register.list(register.tradingNames) : "—"}
+          </dd>
         </dl>
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-control bg-background p-3 text-body">
           <dt className="col-span-2 text-meta font-medium text-muted">{t.applicant.heading}</dt>
@@ -118,7 +123,9 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
             {request.legalName}
           </dd>
           <dt className="text-muted">{t.applicant.contact}</dt>
-          <dd>{t.applicant.contactWithRole(request.contactName, request.contactRole)}</dd>
+          <dd lang={contentLang(request.contactName + request.contactRole)}>
+            {t.applicant.contactWithRole(request.contactName, request.contactRole)}
+          </dd>
           <dt className="text-muted">{t.applicant.phone}</dt>
           <dd>{request.companyPhone}</dd>
           <dt className="text-muted">{t.applicant.website}</dt>

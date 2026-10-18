@@ -15,6 +15,7 @@ import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 import { LangSwitch } from "@/components/ui/LangSwitch";
 import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { accountMessages } from "@/i18n/messages/account";
 
 /**
@@ -61,7 +62,9 @@ export function AccountHome() {
         <div className="flex items-center gap-3 py-group">
           <AvatarImage avatar={profile.avatar} fallback={name} large />
           <div className="min-w-0">
-            <p className="truncate text-title font-semibold">{name}</p>
+            <p lang={contentLang(name)} className="truncate text-title font-semibold">
+              {name}
+            </p>
             <p className="truncate text-meta text-muted">{session.email}</p>
           </div>
         </div>

@@ -11,6 +11,7 @@ import {
 } from "@/app/[lang]/login/actions";
 import { COUNTRIES } from "@/config/countries";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import { loginMessages } from "@/i18n/messages/login";
 import type { EmployerVerification } from "@/lib/types";
@@ -500,7 +501,9 @@ function ChoiceCard({ children }: { children: ReactNode }) {
 function ChoiceText({ title, text }: { title: string; text: string }) {
   return (
     <span className="block py-2.5">
-      <span className="block font-medium">{title}</span>
+      <span lang={contentLang(title)} className="block font-medium">
+        {title}
+      </span>
       <span className="block text-meta text-muted">{text}</span>
     </span>
   );

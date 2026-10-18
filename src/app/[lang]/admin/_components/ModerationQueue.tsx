@@ -2,6 +2,7 @@
 import { useCallback, useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { adminMessages } from "@/i18n/messages/admin";
@@ -250,7 +251,9 @@ function QueueCard({
     <article className={cardClass()}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="break-words text-subtitle font-semibold">{job.titleZh}</h2>
+          <h2 lang={contentLang(job.titleZh)} className="break-words text-subtitle font-semibold">
+            {job.titleZh}
+          </h2>
           <p className="truncate text-meta text-muted">
             <span lang="en" className="font-latin">
               {job.titleEn}
@@ -270,12 +273,14 @@ function QueueCard({
         </div>
       </div>
       <p className="mt-2 flex flex-wrap items-center gap-2 text-body">
-        <span>{employer?.name ?? job.employerId}</span>
+        <span lang={contentLang(employer?.name)}>{employer?.name ?? job.employerId}</span>
         {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
         {employer?.bannedAt && <Tag kind="urgent">{t.queue.banned}</Tag>}
         <span className="text-meta text-muted">{t.queue.posted(formatDate(job.postedAt, lang, TIME))}</span>
       </p>
-      <p className="mt-2 line-clamp-3 text-body whitespace-pre-line text-muted">{job.descriptionZh}</p>
+      <p lang={contentLang(job.descriptionZh)} className="mt-2 line-clamp-3 text-body whitespace-pre-line text-muted">
+        {job.descriptionZh}
+      </p>
 
       {reports && (
         <div className="mt-3 space-y-1.5">
@@ -287,7 +292,7 @@ function QueueCard({
                 {r.note && (
                   <span>
                     {lang === "en" ? ": " : "："}
-                    {r.note}
+                    <span lang={contentLang(r.note)}>{r.note}</span>
                   </span>
                 )}
                 <span className="ml-1 text-meta">{formatDate(r.createdAt, lang, TIME)}</span>
