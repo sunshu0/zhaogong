@@ -4,6 +4,9 @@
 import { parseProfilePatch, type Profile } from "@/components/seeker/hub-state";
 import type { EmployerPublicProfile } from "@/lib/employer-public-profile";
 import { teamCan, type TeamRole } from "@/components/employer/team";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerPageMessages } from "@/i18n/messages/employer-page";
 
 /** The fields everyone sees on the business's page, and the only ones the server keeps. */
 export const EMPLOYER_PAGE_FIELDS = [
@@ -76,7 +79,6 @@ export function canEditPage(role: TeamRole | undefined): boolean {
 }
 
 /** Why a member sees the page read-only, naming who can change it. */
-export function readOnlyNote(admins: readonly string[]): string {
-  const who = admins.length ? `（${admins.join("、")}）` : "";
-  return `企业主页只有管理员${who}能改。这里显示的是求职者现在看到的样子；你的私密交换资料还是自己填。`;
+export function readOnlyNote(admins: readonly string[], lang: Lang = DEFAULT_LANG): string {
+  return pick(employerPageMessages, lang).employerPage.readOnlyNote(admins);
 }

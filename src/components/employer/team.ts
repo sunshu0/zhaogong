@@ -1,5 +1,11 @@
 // 雇主多人管理 (#87, PRD R-38, ADR 0012): who in a business's team may do what, and which team changes are allowed.
-// Pure; the server checks every change with these before writing it.
+// Pure; the server checks every change with these before writing it. The wording comes from the 团队 dictionary
+// (Round 20, ADR 0023): every function that builds text takes the reader's language, Chinese when not told.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerTeamMessages } from "@/i18n/messages/employer-team";
+
+const words = (lang: Lang) => pick(employerTeamMessages, lang).team;
 
 /** An admin runs the team, the business profile and 企业验证; a member posts and handles jobs, applicants and chats. */
 export type TeamRole = "admin" | "member";
@@ -16,7 +22,13 @@ export function teamCan(role: TeamRole | undefined, permission: TeamPermission):
   return role === "admin" || !ADMIN_ONLY.includes(permission);
 }
 
-export const TEAM_ROLE_LABEL: Record<TeamRole, string> = { admin: "管理员", member: "成员" };
+/** 管理员 / 成员 in the reader's language. */
+export function teamRoleLabel(lang: Lang = DEFAULT_LANG): Record<TeamRole, string> {
+  return words(lang).roleLabel;
+}
+
+/** The Chinese labels, for callers that have no language to hand. */
+export const TEAM_ROLE_LABEL: Record<TeamRole, string> = teamRoleLabel();
 
 /** People in one business, the admins included. */
 export const TEAM_MAX = 10;
@@ -40,17 +52,24 @@ export function inviteExpired(createdAt: string, now: number): boolean {
 /** The name a teammate goes by in the business's chats, e.g. 王经理. */
 export const TEAM_NAME_MAX = 12;
 
-export function checkTeamName(raw: string): { ok: true; name: string } | { ok: false; error: string } {
+export function checkTeamName(
+  raw: string,
+  lang: Lang = DEFAULT_LANG,
+): { ok: true; name: string } | { ok: false; error: string } {
+  const t = words(lang);
   const name = raw.trim().replace(/\s+/g, " ");
-  if (!name) return { ok: false, error: "请填写称呼，例如「王经理」。" };
-  if ([...name].length > TEAM_NAME_MAX) return { ok: false, error: `称呼最多 ${TEAM_NAME_MAX} 个字。` };
-  if (/[@＠]|\d{5,}/.test(name)) return { ok: false, error: "称呼里不要写邮箱或电话。" };
+  if (!name) return { ok: false, error: t.nameRequired };
+  if ([...name].length > TEAM_NAME_MAX) return { ok: false, error: t.nameTooLong(TEAM_NAME_MAX) };
+  if (/[@＠]|\d{5,}/.test(name)) return { ok: false, error: t.nameNoContact };
   return { ok: true, name };
 }
 
-/** How the business side signs in a chat: the shop, and who replied when the team has given a name. */
+/**
+ * How the business side signs in a chat: the shop, and who replied when the team has given a name. Both names are
+ * the business's own words, so the line reads the same in either language and takes no `lang`.
+ */
 export function teamSignature(employerName: string, teamName: string | null | undefined): string {
-  return teamName ? `${employerName} · ${teamName}` : employerName;
+  return teamName ? words(DEFAULT_LANG).signature(employerName, teamName) : employerName;
 }
 
 export interface TeamMember {
@@ -80,12 +99,13 @@ export function checkTeamChange(members: TeamMember[], actor: string, change: Te
   return undefined;
 }
 
-export const TEAM_REFUSAL_TEXT: Record<TeamRefusal, string> = {
-  not_member: "你已经不在这家企业的团队里了。",
-  not_admin: "只有管理员能管理团队。",
-  no_such_member: "这个人已经不在团队里了。",
-  last_admin: "团队里至少要有一位管理员：先把另一位成员设为管理员。",
-};
+/** Why a team change was refused, in the reader's language. */
+export function teamRefusalText(lang: Lang = DEFAULT_LANG): Record<TeamRefusal, string> {
+  return words(lang).refusal;
+}
+
+/** The Chinese texts, for callers that have no language to hand. */
+export const TEAM_REFUSAL_TEXT: Record<TeamRefusal, string> = teamRefusalText();
 
 /** Admins first, then by when they joined (the founder's join time is when the business was opened). */
 export function sortTeam(members: TeamMember[]): TeamMember[] {

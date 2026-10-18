@@ -104,7 +104,7 @@ describe("a turn with the model", () => {
       answering({ reply: "好的。", quickReplies: [PREVIEW], draft: { payMin: 18 } }),
     );
     const last = s.messages.at(-1)!;
-    expect(last.text).toContain("低于新西兰最低工资");
+    expect(last.text).toContain("低于新西兰成人最低工资");
     expect(last.quickReplies?.map((q) => q.label) ?? []).not.toContain(PREVIEW);
   });
 

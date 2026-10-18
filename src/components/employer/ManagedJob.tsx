@@ -28,6 +28,12 @@ import { applicantsLabelZh, cardNumbers } from "@/components/employer/job-card";
 import { Figures, PhaseTag } from "@/components/employer/StatusTag";
 import { staleContactNote, type JobPoster } from "@/components/employer/job-poster";
 import { Pay } from "@/components/ui/Pay";
+import { useLang, useMessages } from "@/i18n/client";
+import { contentLang, type Lang } from "@/i18n/lang";
+import { pick, type Messages } from "@/i18n/messages";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
+
+type Words = Messages<typeof employerJobsMessages.zh>;
 
 /** Tells the list what happened, with the text to show when it worked. */
 export type JobChangeDone = (result: ChangeResult, okText: string) => void;
@@ -62,12 +68,14 @@ export function ManagedJob({
   now: number;
   onDone: JobChangeDone;
 }) {
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages);
   const [pending, startTransition] = useTransition();
   const [asking, setAsking] = useState<Asking>();
   const [sharing, setSharing] = useState(false);
   const status = effectiveStatus(job, now);
   const phase = jobPhase(job, now);
-  const staleContact = staleContactNote(contactFrom, phase);
+  const staleContact = staleContactNote(contactFrom, phase, lang);
 
   const run: Run = (action, okText) =>
     startTransition(async () => {
@@ -91,7 +99,7 @@ export function ManagedJob({
         <p className="mt-2 text-body text-warn">
           {staleContact}
           <Link href={`/employer/jobs/${job.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
-            编辑联系方式
+            {t.job.editContact}
           </Link>
         </p>
       )}
@@ -122,7 +130,7 @@ export function ManagedJob({
           now={now}
           submitClassName={`${ACTION_BUTTON} border-brand text-brand`}
           pending={pending}
-          onSubmit={(days) => run(() => renewMyJob(job.id, days), renewDoneText(job, now, days))}
+          onSubmit={(days) => run(() => renewMyJob(job.id, days), renewDoneText(job, now, days, lang))}
           onCancel={() => setAsking(undefined)}
         />
       )}
@@ -155,12 +163,16 @@ function JobSummary({
   poster?: string | null;
   now: number;
 }) {
-  const hires = hiresLabelZh(job);
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages);
+  const hires = hiresLabelZh(job, lang);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="break-words text-subtitle font-semibold">{job.titleZh}</h2>
+          <h2 lang={contentLang(job.titleZh)} className="break-words text-subtitle font-semibold">
+            {job.titleZh}
+          </h2>
           <p className="truncate text-meta text-muted">
             <span lang="en" className="font-latin">
               {job.titleEn}
@@ -178,23 +190,23 @@ function JobSummary({
       </div>
       <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-body text-muted">
         <span>
-          <Figures>{expiryLabelZh(job, now)}</Figures>
+          <Figures>{expiryLabelZh(job, now, lang)}</Figures>
         </span>
-        {cardNumbers(job, numbers).map((n) => (
+        {cardNumbers(job, numbers, lang).map((n) => (
           <span key={n}>
             <Figures>{n}</Figures>
           </span>
         ))}
         <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
-          近 14 天
+          {t.job.last14Days}
         </Link>
         {/* #84: who applied; the list marks them seen. */}
         <Link href={`/employer/jobs/${job.id}/applicants`} className="text-brand underline-offset-4 hover:underline">
-          <Figures>{applicantsLabelZh(applications)}</Figures>
+          <Figures>{applicantsLabelZh(applications, lang)}</Figures>
         </Link>
         {renewals && (
           <span>
-            <Figures>{`已续期 ${renewals.count} 次`}</Figures>
+            <Figures>{t.job.renewedTimes(renewals.count)}</Figures>
           </span>
         )}
         {hires && <span className="font-medium text-ok">{hires}</span>}
@@ -202,9 +214,9 @@ function JobSummary({
       {/* #96: a job from before 岗位类别 whose title named none is 待选 until the employer picks. */}
       {phase !== "removed" && jobRoles(job).length === 0 && (
         <p className="mt-2 text-body text-warn">
-          岗位类别待选，推荐人才时这一项不算分。
+          {t.job.rolesTodo}
           <Link href={`/employer/jobs/${job.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
-            去选
+            {t.job.rolesPick}
           </Link>
         </p>
       )}
@@ -217,20 +229,19 @@ function JobSummary({
  * (#69), with the button right there.
  */
 function StatusNote({ job, phase, now, onRenew }: { job: Job; phase: Phase; now: number; onRenew?: () => void }) {
-  if (phase === "removed")
-    return <p className="mt-2 text-body text-danger">这个职位已被后台下架。如有疑问请联系我们。</p>;
-  if (phase === "pending_review") return <p className="mt-2 text-body text-warn">审核通过后才会公开。</p>;
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages).job;
+  if (phase === "removed") return <p className="mt-2 text-body text-danger">{t.takenDown}</p>;
+  if (phase === "pending_review") return <p className="mt-2 text-body text-warn">{t.pendingReview}</p>;
   if (phase === "ending" || (phase === "timed_out" && renewDaysLeft(job, now) > 0)) {
-    const text =
-      phase === "ending"
-        ? `${closeDateZh(job.expiresAt)}截止。还要招人就续期，在列表里的位置不变。`
-        : `${closeDateZh(job.expiresAt)}已截止，求职者看不到了。${renewDaysLeft(job, now)} 天内还可以续期。`;
+    const closeDate = closeDateZh(job.expiresAt, lang);
+    const text = phase === "ending" ? t.endingNote(closeDate) : t.timedOutNote(closeDate, renewDaysLeft(job, now));
     return (
       <p className="mt-2 text-body text-warn">
         {text}
         {onRenew && (
           <button type="button" onClick={onRenew} className="ml-1 font-medium text-brand underline underline-offset-4">
-            续期
+            {t.renew}
           </button>
         )}
       </p>
@@ -239,11 +250,11 @@ function StatusNote({ job, phase, now, onRenew }: { job: Job; phase: Phase; now:
   if (canRepublish(job, now))
     return (
       <p className="mt-2 text-body text-muted">
-        截止超过 14 天，不能再续期。还要招人的话，用原内容
+        {t.republishNoteStart}
         <Link href={`/employer/jobs/${job.id}/republish`} className="mx-1 text-brand underline underline-offset-4">
-          重新发布
+          {t.republishNoteLink}
         </Link>
-        一条新职位，会按现在的规则重新检查。
+        {t.republishNoteEnd}
       </p>
     );
   return null;
@@ -253,13 +264,15 @@ type QuestionProps = { job: Job; pending: boolean; run: Run; onCancel: () => voi
 
 /** Ending a job: the optional 招到人了吗？ question, then 确定结束招聘. */
 function CloseQuestion({ job, pending, run, onCancel }: QuestionProps) {
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages);
   return (
     <HiresQuestion
       optional
-      submitLabel="确定结束招聘"
+      submitLabel={t.job.closeSubmit}
       submitClassName={`${ACTION_BUTTON} border-danger text-danger`}
       pending={pending}
-      onSubmit={(answer) => run(() => closeMyJob(job.id, answer), closeDoneText(answer))}
+      onSubmit={(answer) => run(() => closeMyJob(job.id, answer), closeDoneText(answer, t, lang))}
       onCancel={onCancel}
     />
   );
@@ -267,26 +280,32 @@ function CloseQuestion({ job, pending, run, onCancel }: QuestionProps) {
 
 /** Recording or correcting how many an ended job hired. */
 function HiresCorrection({ job, pending, run, onCancel }: QuestionProps) {
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages);
   return (
     <HiresQuestion
       initial={job.hiresConfirmed}
       optional={false}
-      submitLabel="保存"
+      submitLabel={t.job.hiresSubmit}
       submitClassName={`${ACTION_BUTTON} border-brand text-brand`}
       pending={pending}
-      onSubmit={(answer) => answer && run(() => confirmHires(job.id, answer), `已记录，${answerText(answer)}`)}
+      onSubmit={(answer) =>
+        answer && run(() => confirmHires(job.id, answer), t.job.hiresDone(answerText(answer, lang)))
+      }
       onCancel={onCancel}
     />
   );
 }
 
 /** Says the new date, since a renewed job may leave the tab it was under (将截止 → 招聘中). */
-function renewDoneText(job: Job, now: number, days: number): string {
-  return `已续期 ${days} 天，${closeDateZh(renewedExpiry(job, now, days))}截止`;
+function renewDoneText(job: Job, now: number, days: number, lang: Lang): string {
+  const t = pick(employerJobsMessages, lang).job;
+  return t.renewDone(days, closeDateZh(renewedExpiry(job, now, days), lang));
 }
 
-function closeDoneText(answer: HiresAnswer | undefined): string {
-  return answer ? `已结束招聘，${answerText(answer)}` : "已结束招聘";
+function closeDoneText(answer: HiresAnswer | undefined, t: Words, lang: Lang): string {
+  return answer ? t.job.closeDoneWithHires(answerText(answer, lang)) : t.job.closeDone;
 }
 
-const answerText = (answer: HiresAnswer) => hiresLabelZh({ hiresConfirmed: answer.hired ? answer.count : 0 })!;
+const answerText = (answer: HiresAnswer, lang: Lang) =>
+  hiresLabelZh({ hiresConfirmed: answer.hired ? answer.count : 0 }, lang)!;

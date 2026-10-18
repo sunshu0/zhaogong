@@ -3,7 +3,9 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
-import { TEAM_NAME_MAX, TEAM_ROLE_LABEL } from "@/components/employer/team";
+import { TEAM_NAME_MAX } from "@/components/employer/team";
+import { useMessages } from "@/i18n/client";
+import { employerTeamMessages } from "@/i18n/messages/employer-team";
 import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/[lang]/employer/team-actions";
 import { setIdentity } from "@/components/seeker/session-client";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
@@ -16,6 +18,7 @@ const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3"
  * employer identity for that business and goes to its 团队 page. Nothing shows without invitations.
  */
 export function TeamInvites({ email }: { email: string }) {
+  const t = useMessages(employerTeamMessages).teamInvites;
   const [invites, setInvites] = useState<{ email: string; list: MyTeamInvite[] }>();
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string>();
@@ -41,7 +44,7 @@ export function TeamInvites({ email }: { email: string }) {
   const answer = (invite: MyTeamInvite, accept: boolean, name = "") =>
     startTransition(async () => {
       const result = await answerTeamInvite(invite.id, accept ? { accept, name } : { accept }).catch(() => null);
-      if (!result) return setError("网络有问题，请稍后再试。");
+      if (!result) return setError(t.networkError);
       if (!result.ok) {
         setError(result.error_zh);
         return setVersion((v) => v + 1);
@@ -61,7 +64,7 @@ export function TeamInvites({ email }: { email: string }) {
       <Section>
         <div className="space-y-3 py-group">
           <h2 id="team-invites-title" className="font-semibold">
-            团队邀请
+            {t.heading}
           </h2>
           {error && (
             <p role="alert" className="text-body text-danger">
@@ -70,7 +73,7 @@ export function TeamInvites({ email }: { email: string }) {
           )}
           {declined && (
             <p ref={declinedRef} tabIndex={-1} role="status" className="text-body text-muted outline-none">
-              已婉拒「{declined}」的邀请。
+              {t.declined(declined)}
             </p>
           )}
           {list.map((invite) => (
@@ -99,6 +102,8 @@ function InviteCard({
   onAccept: (name: string) => void;
   onDecline: () => void;
 }) {
+  const words = useMessages(employerTeamMessages);
+  const t = words.teamInvites;
   const [name, setName] = useState("");
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -107,15 +112,13 @@ function InviteCard({
   return (
     <form
       onSubmit={submit}
-      aria-label={`${invite.employerName} 的邀请`}
+      aria-label={t.cardLabel(invite.employerName)}
       className="space-y-2 rounded-card bg-surface p-4 shadow-card"
     >
-      <p className="text-body">
-        <span className="font-medium">{invite.employerName}</span> 邀请你加入团队，做{TEAM_ROLE_LABEL[invite.role]}
-        。加入后可以切换到雇主身份，为这家店发职位、处理申请和回复聊天。
-      </p>
+      {/* One sentence from the dictionary (ADR 0023): the business's name leads it in either language. */}
+      <p className="text-body">{t.invitedBy(invite.employerName, words.team.roleLabel[invite.role])}</p>
       <label className="block space-y-1 text-body">
-        <span>你在团队里的称呼（例如「王经理」，最多 {TEAM_NAME_MAX} 个字）</span>
+        <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
         <input
           className={INPUT}
           value={name}
@@ -126,10 +129,10 @@ function InviteCard({
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={!name.trim()} {...busyProps(disabled)}>
-          接受并加入
+          {t.accept}
         </Button>
         <Button variant="link" onClick={onDecline} {...busyProps(disabled)}>
-          婉拒
+          {t.decline}
         </Button>
       </div>
     </form>

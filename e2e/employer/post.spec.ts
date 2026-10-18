@@ -23,7 +23,7 @@ test("paste → findings hold publishing → fix → publish → the job is on t
   // The parser filled the form; the checks hold the preview.
   await expect(page.getByLabel("职位名称（中文）")).toHaveValue("店员");
   const panel = findingsPanel(page);
-  await expect(panel).toContainText("时薪 $20 低于新西兰最低工资 $23.95");
+  await expect(panel).toContainText("时薪 $20 低于新西兰成人最低工资 $23.95");
   await expect(panel).toContainText("含有「押金」");
   await expect(panel).toContainText("请改写：含有「限华人」");
   await expect(page.getByText("3 个问题要处理").filter({ visible: true })).toBeVisible();

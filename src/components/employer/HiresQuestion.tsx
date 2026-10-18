@@ -6,8 +6,10 @@ import { CHOICE_DOT, CHOICE_PILL } from "@/components/employer/app-style";
 import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Button";
 import { busyProps } from "@/components/ui/busy";
+import { useMessages } from "@/i18n/client";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
-const COUNTS = Array.from({ length: MAX_HIRES }, (_, i) => ({ value: String(i + 1), label: `${i + 1} 人` }));
+const COUNTS = Array.from({ length: MAX_HIRES }, (_, i) => i + 1);
 
 /**
  * 通过找工招到人了吗？ — 招到了 + how many, or 没有 / 不确定. When closing a job it is optional
@@ -31,6 +33,7 @@ export function HiresQuestion({
   onSubmit: (answer: HiresAnswer | undefined) => void;
   onCancel: () => void;
 }) {
+  const t = useMessages(employerJobsMessages).hires;
   const [choice, setChoice] = useState<"hired" | "none" | undefined>(
     initial == null ? undefined : initial > 0 ? "hired" : "none",
   );
@@ -42,7 +45,8 @@ export function HiresQuestion({
   return (
     <fieldset className="mt-3 w-full space-y-3 rounded-card bg-background p-4">
       <legend className="float-left mb-3 w-full text-body font-medium">
-        通过{PRODUCT_NAME}招到人了吗？{optional && <span className="font-normal text-muted">（可不填）</span>}
+        {t.question(PRODUCT_NAME)}
+        {optional && <span className="font-normal text-muted">{t.optional}</span>}
       </legend>
       <div className="flex flex-wrap items-center gap-2">
         <label className={CHOICE_PILL}>
@@ -54,7 +58,7 @@ export function HiresQuestion({
             autoFocus
             className={CHOICE_DOT}
           />
-          招到了
+          {t.hired}
         </label>
         <label className={CHOICE_PILL}>
           <input
@@ -64,7 +68,7 @@ export function HiresQuestion({
             onChange={() => setChoice("none")}
             className={CHOICE_DOT}
           />
-          没有 / 不确定
+          {t.none}
         </label>
       </div>
       {/* Round 19: how many shows once 招到了 is chosen, in the shared Select (a bottom sheet on phones). */}
@@ -72,15 +76,15 @@ export function HiresQuestion({
         <div className="max-w-48">
           <Select
             name="hires-count"
-            label="招到的人数"
+            label={t.countLabel}
             required
-            options={COUNTS}
+            options={COUNTS.map((n) => ({ value: String(n), label: t.countOption(n) }))}
             defaultValue={String(count)}
             onChange={(value) => setCount(Number(value))}
           />
         </div>
       )}
-      <p className="text-meta text-muted">只用来统计{PRODUCT_NAME}一共帮多少人找到了工作。</p>
+      <p className="text-meta text-muted">{t.why(PRODUCT_NAME)}</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -93,7 +97,7 @@ export function HiresQuestion({
           {submitLabel}
         </button>
         <button type="button" onClick={onCancel} className="pressable min-h-11 px-3 text-body text-muted underline">
-          取消
+          {t.cancel}
         </button>
       </div>
     </fieldset>

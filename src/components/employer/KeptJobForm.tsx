@@ -11,6 +11,8 @@ import { useDraftForm, type DraftFormState } from "@/components/employer/use-dra
 import { clearJobForm, loadJobForm, saveJobForm, type JobDraftKind } from "@/components/employer/job-draft-store";
 import { noticeClass } from "@/components/employer/app-style";
 import { RetryBoundary } from "@/components/seeker/RetryBoundary";
+import { useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { crashForTests } from "@/lib/test-crash";
 
 /**
@@ -62,11 +64,12 @@ export function useKeptJobForm(
 
 /** The line that says the form picked up kept changes, with 放弃改动. */
 export function KeptChangesNote({ onStartOver }: { onStartOver: () => void }) {
+  const t = useMessages(employerPostMessages).keptForm;
   return (
     <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
-      接着上次没保存的改动继续（只存在这个标签页里）。
+      {t.restored}
       <button type="button" onClick={onStartOver} className="pressable min-h-11 underline">
-        放弃改动
+        {t.discard}
       </button>
     </p>
   );
@@ -74,8 +77,9 @@ export function KeptChangesNote({ onStartOver }: { onStartOver: () => void }) {
 
 /** The form in its own error boundary: if it fails, only it shows 重试, and the changes are kept. */
 export function JobFormPart({ state, country }: { state: DraftFormState; country: CountryCode }) {
+  const t = useMessages(employerPostMessages).keptForm;
   return (
-    <RetryBoundary title="表单没显示出来" note="你改的内容还在，点重试接着改。">
+    <RetryBoundary title={t.failedTitle} note={t.failedNote}>
       <JobForm state={state} country={country} />
     </RetryBoundary>
   );

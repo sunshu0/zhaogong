@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Contact, FileText, Plus } from "lucide-react";
 import { useChat } from "@/components/seeker/chat-client";
-import { EXCHANGE_LABELS, visibleExchange, type Exchange } from "@/lib/chat-consent";
+import { useMessages } from "@/i18n/client";
+import { chatMessages } from "@/i18n/messages/chat";
+import { visibleExchange, type Exchange, type ExchangeKind } from "@/lib/chat-consent";
 import { CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
 import { ExchangeAction } from "@/components/seeker/ExchangeAction";
 import { PayloadView } from "@/components/seeker/ExchangePayload";
 
-const TOOLS = [
-  { kind: "resume" as const, label: "交换资料", icon: FileText },
-  { kind: "contact" as const, label: "交换联系方式", icon: Contact },
+const TOOLS: { kind: ExchangeKind; icon: typeof FileText }[] = [
+  { kind: "resume", icon: FileText },
+  { kind: "contact", icon: Contact },
 ];
 
 /**
@@ -18,6 +20,7 @@ const TOOLS = [
  * dialog lives inside it); a tap outside or Escape closes it otherwise.
  */
 export function ChatExchangeMenu({ conversationId }: { conversationId: string }) {
+  const t = useMessages(chatMessages).exchangeMenu;
   const { exchanges } = useChat();
   const items = exchanges[conversationId] ?? [];
   const [open, setOpen] = useState(false);
@@ -49,10 +52,10 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
       <button
         ref={button}
         type="button"
-        aria-label="交换资料或联系方式"
+        aria-label={t.buttonLabel}
         aria-expanded={open}
         aria-controls={`exchange-tools-${conversationId}`}
-        title="交换资料或联系方式"
+        title={t.buttonLabel}
         onClick={() => setOpen((value) => !value)}
         className="pressable flex size-11 items-center justify-center rounded-full bg-background hover:text-brand aria-expanded:bg-brand-soft aria-expanded:text-brand"
       >
@@ -62,7 +65,7 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
         id={`exchange-tools-${conversationId}`}
         hidden={!open}
         role="group"
-        aria-label="沟通工具"
+        aria-label={t.groupLabel}
         className="absolute bottom-full left-0 z-10 mb-2 w-max animate-pop-in space-y-1 rounded-control bg-surface p-2 shadow-pop"
       >
         {TOOLS.map((tool) => {
@@ -81,16 +84,18 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
 
 function ExchangeTool({
   conversationId,
-  tool: { kind, label, icon: Icon },
+  tool: { kind, icon: Icon },
   current,
 }: {
   conversationId: string;
   tool: (typeof TOOLS)[number];
   current?: Exchange;
 }) {
+  const t = useMessages(chatMessages).exchangeMenu;
+  const label = t[kind];
   const unavailable = current && (current.status === "accepted" || current.from === "me");
   if (unavailable) {
-    const statusLabel = current.status === "accepted" ? "已交换" : "待同意";
+    const statusLabel = current.status === "accepted" ? t.done : t.waiting;
     return (
       <button type="button" disabled className={CHAT_COMMAND_CLASS}>
         <Icon aria-hidden="true" className="size-4" />
@@ -108,6 +113,9 @@ function ExchangeTool({
 }
 
 export function ChatExchangeList({ conversationId }: { conversationId: string }) {
+  const words = useMessages(chatMessages);
+  const t = words.exchange;
+  const kinds = words.exchangeKinds;
   const { exchanges, respondInfo } = useChat();
   const items = exchanges[conversationId] ?? [];
   return (
@@ -117,21 +125,19 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
         return (
           <section
             key={item.id}
-            aria-label={`${EXCHANGE_LABELS[item.kind]}交换请求`}
+            aria-label={t.label(kinds[item.kind])}
             className="mx-auto max-w-2xl space-y-3 rounded-card bg-surface p-4 text-body shadow-card"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">
-                {item.from === "me" ? "你申请" : "对方申请"}交换{EXCHANGE_LABELS[item.kind]}
+                {item.from === "me" ? t.titleMine(kinds[item.kind]) : t.titleTheirs(kinds[item.kind])}
               </h3>
-              {item.demo && <span className="text-xs text-muted">演示请求</span>}
+              {item.demo && <span className="text-xs text-muted">{t.demo}</span>}
             </div>
             {item.status === "pending" && (
               <>
                 <p className="text-xs leading-relaxed text-muted">
-                  {item.from === "me"
-                    ? "你已提供自己的资料，对方现在能看到。等待对方同意后，你会看到对方的资料。"
-                    : "对方已先提供自己的资料。你同意后，对方才会看到你的资料；也可以拒绝。"}
+                  {item.from === "me" ? t.pendingMine : t.pendingTheirs}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <PendingExchangeActions
@@ -143,27 +149,23 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
               </>
             )}
             {item.status === "rejected" && (
-              <p className="text-muted">
-                {item.from === "me" ? "对方已拒绝，没有给出资料。" : "你已拒绝，你的资料没有给对方。"}
-              </p>
+              <p className="text-muted">{item.from === "me" ? t.rejectedMine : t.rejectedTheirs}</p>
             )}
             {item.status === "cancelled" && (
-              <p className="text-muted">
-                请求已撤回，{item.from === "me" ? "对方不再看到你的资料" : "对方的资料已收回"}。
-              </p>
+              <p className="text-muted">{item.from === "me" ? t.cancelledMine : t.cancelledTheirs}</p>
             )}
-            {item.status === "accepted" && <p className="text-ok">双方已同意，资料已交换。</p>}
+            {item.status === "accepted" && <p className="text-ok">{t.accepted}</p>}
             {visible && (
               <div className="grid gap-4 border-t border-border pt-3 sm:grid-cols-2">
                 {visible.them && (
                   <div className="space-y-2">
-                    <h4 className="font-medium">对方的资料</h4>
+                    <h4 className="font-medium">{t.theirPayload}</h4>
                     <PayloadView payload={visible.them} />
                   </div>
                 )}
                 {visible.me && (
                   <div className="space-y-2">
-                    <h4 className="font-medium">{item.status === "pending" ? "我提供的资料" : "我的资料"}</h4>
+                    <h4 className="font-medium">{item.status === "pending" ? t.myPayloadPending : t.myPayload}</h4>
                     <PayloadView payload={visible.me} />
                   </div>
                 )}
@@ -185,20 +187,21 @@ function PendingExchangeActions({
   item: Exchange;
   onRespond: (status: "cancelled" | "rejected") => void;
 }) {
+  const t = useMessages(chatMessages).exchange;
   if (item.from === "me") {
     return (
       <button type="button" className={CHAT_COMMAND_CLASS} onClick={() => onRespond("cancelled")}>
-        撤回请求
+        {t.withdraw}
       </button>
     );
   }
   return (
     <>
       <ExchangeAction conversationId={conversationId} kind={item.kind} incoming={item}>
-        查看并同意
+        {t.viewAndAgree}
       </ExchangeAction>
       <button type="button" className={CHAT_COMMAND_CLASS} onClick={() => onRespond("rejected")}>
-        拒绝交换
+        {t.refuse}
       </button>
     </>
   );

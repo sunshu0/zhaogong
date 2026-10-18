@@ -7,6 +7,9 @@ import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
+import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 /**
  * Posting by conversation: the assistant asks one thing at a time, quick replies are buttons, and
@@ -27,6 +30,7 @@ export function ChatPost({
   onPreview: (s: ChatState) => void;
   onUseForm: () => void;
 }) {
+  const t = useMessages(employerPostMessages).chat;
   const [text, setText] = useState("");
   const [sending, setSending] = useState<string>();
   const [error, setError] = useState<string>();
@@ -61,7 +65,7 @@ export function ChatPost({
         if (next.ready) onPreview(next);
       } catch {
         setText(m);
-        setError("没发出去，请再试一次。");
+        setError(t.sendFailed);
       } finally {
         setSending(undefined);
         input.current?.focus();
@@ -87,12 +91,12 @@ export function ChatPost({
       <div className="gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-labelledby="chat-heading" className="flex flex-col">
           <h1 id="chat-heading" ref={headingRef} tabIndex={-1} className="mb-3 text-title font-semibold outline-none">
-            和发帖助手一起写招聘
+            {t.heading}
           </h1>
-          {kind === "script" && <p className="-mt-2 mb-3 text-meta text-muted">开发环境：脚本助手，不是 AI。</p>}
+          {kind === "script" && <p className="-mt-2 mb-3 text-meta text-muted">{t.scriptAssistant}</p>}
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
           {/* As tall as the conversation: no empty block before the first answers. */}
-          <div role="log" aria-live="polite" aria-label="和发帖助手的对话">
+          <div role="log" aria-live="polite" aria-label={t.logLabel}>
             <ol className="space-y-3">
               {chat.messages.map((m, i) => (
                 <li
@@ -107,16 +111,17 @@ export function ChatPost({
                         : "rounded-tr-sm bg-brand text-white"
                     }`}
                   >
-                    <span className="sr-only">{m.from === "assistant" ? "助手：" : "你："}</span>
-                    {m.text}
+                    <span className="sr-only">{m.from === "assistant" ? t.fromAssistant : t.fromYou}</span>
+                    {/* What the employer typed is theirs; the assistant's own words are the product speaking. */}
+                    {m.from === "assistant" ? m.text : <span lang={contentLang(m.text)}>{m.text}</span>}
                   </p>
                 </li>
               ))}
               {sending && (
                 <li ref={lastMessage} className="ml-8 flex justify-end">
                   <p className="rounded-card rounded-tr-sm bg-brand/80 px-3.5 py-2.5 text-body whitespace-pre-line text-white">
-                    <span className="sr-only">你：</span>
-                    {sending}
+                    <span className="sr-only">{t.fromYou}</span>
+                    <span lang={contentLang(sending)}>{sending}</span>
                   </p>
                 </li>
               )}
@@ -124,13 +129,13 @@ export function ChatPost({
           </div>
           {pending && (
             <p aria-hidden="true" className="mt-2 text-meta text-muted">
-              助手正在整理…
+              {t.thinking}
             </p>
           )}
 
           <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 bg-background/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:mx-0 lg:px-0">
             {replies.length > 0 && !pending && (
-              <div role="group" aria-label="快捷回复" className="flex flex-wrap gap-2">
+              <div role="group" aria-label={t.quickRepliesLabel} className="flex flex-wrap gap-2">
                 {replies.map((q) => (
                   <button
                     key={q.label}
@@ -145,13 +150,13 @@ export function ChatPost({
             )}
             {unavailable && !pending && (
               <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-                AI 发帖助手暂时不可用。
+                {t.unavailable}
                 <button
                   type="button"
                   onClick={onUseForm}
                   className="ml-1 font-medium text-brand underline underline-offset-4"
                 >
-                  改用直接填表
+                  {t.useFormInstead}
                 </button>
               </p>
             )}
@@ -162,7 +167,7 @@ export function ChatPost({
             )}
             <form onSubmit={onSubmit} className="flex items-end gap-2">
               <label htmlFor="chat-input" className="sr-only">
-                回复助手
+                {t.inputLabel}
               </label>
               <textarea
                 id="chat-input"
@@ -171,15 +176,15 @@ export function ChatPost({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="输入回复，回车发送（Shift + 回车换行）"
+                placeholder={t.inputPlaceholder}
                 className="min-h-11 flex-1 resize-y rounded-control border border-border bg-surface px-3 py-2 text-base"
               />
               <Button type="submit" loading={pending} disabled={!text.trim()}>
-                发送
+                {t.send}
               </Button>
             </form>
             <button type="button" onClick={onUseForm} className="pressable min-h-11 text-meta text-muted underline">
-              在表单里改
+              {t.editInForm}
             </button>
           </div>
         </section>

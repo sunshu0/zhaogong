@@ -4,6 +4,9 @@ import type { RefObject } from "react";
 import type { Employer, Job } from "@/lib/types";
 import { ShareTexts } from "@/components/employer/ShareTexts";
 import { buttonClass } from "@/components/ui/Button";
+import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 /** After 发布: live now (with the texts to share), or waiting for review. */
 export function Published({
@@ -17,6 +20,7 @@ export function Published({
   headingRef: RefObject<HTMLHeadingElement | null>;
   onAgain: () => void;
 }) {
+  const t = useMessages(employerPostMessages).published;
   const live = job.status === "active";
   return (
     <section className="space-y-4">
@@ -26,33 +30,27 @@ export function Published({
           tabIndex={-1}
           className={`text-title font-semibold outline-none ${live ? "text-ok" : "text-warn"}`}
         >
-          {live ? "已发布" : "已提交审核"}
+          {live ? t.live : t.pendingReview}
         </h1>
         <p className="mt-1 text-body">
-          {job.titleZh} · {live ? "求职者现在就能看到。" : "审核通过后公开，可以在「职位管理」里看到进度。"}
+          <span lang={contentLang(job.titleZh)}>{job.titleZh}</span> · {live ? t.liveNote : t.pendingNote}
         </p>
         {live && (
           <Link
             href={`/jobs/${job.id}`}
             className="pressable mt-2 inline-flex min-h-11 items-center text-body text-brand underline"
           >
-            看看职位页面 →
+            {t.seeJobPage} →
           </Link>
         )}
       </div>
-      {live ? (
-        <ShareTexts job={job} employer={employer} />
-      ) : (
-        <p className="text-body text-muted">
-          审核通过后，可以在「职位管理」里复制发到微信群、小红书和 Skykiwi 的文案。
-        </p>
-      )}
+      {live ? <ShareTexts job={job} employer={employer} /> : <p className="text-body text-muted">{t.pendingShare}</p>}
       <div className="flex gap-3">
         <button type="button" onClick={onAgain} className={`${buttonClass("secondary", { size: "lg" })} flex-1`}>
-          再发一条
+          {t.postAnother}
         </button>
         <Link href="/employer/jobs" className={`${buttonClass("primary", { size: "lg" })} flex-1`}>
-          职位管理
+          {t.myJobs}
         </Link>
       </div>
     </section>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getMyLiveJobsTitled, type JobTwin } from "@/app/[lang]/employer/actions";
 import { closeDateZh } from "@/components/employer/job-status";
+import { useLang, useMessages } from "@/i18n/client";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 /** Asks the server once the title has stopped changing for a moment. */
 function useLiveTwins(titleZh: string): JobTwin[] {
@@ -29,17 +31,18 @@ function useLiveTwins(titleZh: string): JobTwin[] {
 }
 
 export function DuplicateJobNote({ titleZh }: { titleZh: string }) {
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages).duplicate;
   const twins = useLiveTwins(titleZh);
   const first = twins[0];
   if (!first) return null;
-  const more = twins.length > 1 ? `等 ${twins.length} 条` : "";
-  const when = first.status === "pending_review" ? "（审核中）" : `（${closeDateZh(first.expiresAt)}截止）`;
+  const more = twins.length > 1 ? t.andMore(twins.length) : "";
+  const when = first.status === "pending_review" ? t.pendingReview : t.closesOn(closeDateZh(first.expiresAt, lang));
   return (
     <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-      你已经有一条在招的「{first.titleZh}」{when}
-      {more}。要多招几个人，续期或编辑那条就行；确实是另一份工（比如另一家门店、另一个班次），照常发布。
+      {t.note(first.titleZh, when, more)}
       <Link href={`/employer/jobs/${first.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
-        去看看那条
+        {t.link}
       </Link>
     </p>
   );

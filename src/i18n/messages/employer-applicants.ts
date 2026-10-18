@@ -17,7 +17,8 @@ const employerApplicantsZh = {
     backToJobs: "回到职位管理",
     back: "← 职位管理",
     title: "申请人",
-    jobSummary: (jobTitle: string, n: number) => `${jobTitle} · ${n} 个申请`,
+    /** After the job's title, which is marked as the employer's own words. */
+    jobSummaryCount: (n: number) => ` · ${n} 个申请`,
     privacyNote:
       "申请里没有对方的联系方式。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。",
     saveFailed: "没有保存，请再试一次。",
@@ -29,7 +30,8 @@ const employerApplicantsZh = {
     cardLabel: (name: string) => `申请人 ${name}`,
     isNew: "新",
     appliedAt: (when: string) => `${when} 申请`,
-    note: (text: string) => `附言：${text}`,
+    /** Before the applicant's own note, which is marked as theirs. */
+    noteLabel: "附言：",
     startChat: "发起聊天",
     markGroupLabel: (name: string) => `标记 ${name}`,
   },
@@ -77,6 +79,15 @@ const employerApplicantsZh = {
   interviewActions: {
     signInAsEmployer: "请用店铺身份登录后再约面试",
     applicationGone: "找不到这个申请，可能对方已经撤回",
+  },
+
+  /** src/app/[lang]/employer/application-notifications.ts: a new application, in 通知 */
+  notifications: {
+    type: "申请",
+    applied: (name: string, title: string) => `${name}申请了${title}`,
+    yourJob: "你的职位",
+    note: (note: string) => `附言：${note}`,
+    noNote: "点开看对方的资料",
   },
 
   /** src/app/[lang]/employer/candidates/page.tsx, src/app/[lang]/employer/candidates/loading.tsx */
@@ -157,7 +168,7 @@ export const employerApplicantsMessages: Dictionary<typeof employerApplicantsZh>
       backToJobs: "Back to my jobs",
       back: "← My jobs",
       title: "Applicants",
-      jobSummary: (jobTitle, n) => `${jobTitle} · ${n === 1 ? "1 application" : `${n} applications`}`,
+      jobSummaryCount: (n) => ` · ${n === 1 ? "1 application" : `${n} applications`}`,
       privacyNote:
         "An application has no contact details. If you mark someone “Not a fit”, all they see is “Seen by the employer”. If you mark someone “Hired”, they are told. When the job ends, everyone you did not hire sees “This job has ended”.",
       saveFailed: "That didn't save. Try again.",
@@ -169,7 +180,7 @@ export const employerApplicantsMessages: Dictionary<typeof employerApplicantsZh>
       cardLabel: (name) => `Applicant ${name}`,
       isNew: "New",
       appliedAt: (when) => `Applied ${when}`,
-      note: (text) => `Message to the employer: ${text}`,
+      noteLabel: "Message to the employer: ",
       startChat: "Start a chat",
       markGroupLabel: (name) => `Mark ${name}`,
     },
@@ -214,6 +225,14 @@ export const employerApplicantsMessages: Dictionary<typeof employerApplicantsZh>
     interviewActions: {
       signInAsEmployer: "Sign in as the business before you invite someone to an interview",
       applicationGone: "We can't find this application. The person may have withdrawn it",
+    },
+
+    notifications: {
+      type: "Application",
+      applied: (name, title) => `${name} applied for ${title}`,
+      yourJob: "your job",
+      note: (note) => `Message: ${note}`,
+      noNote: "Open it to see their profile",
     },
 
     candidatesPage: {

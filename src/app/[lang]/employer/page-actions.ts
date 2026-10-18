@@ -11,6 +11,7 @@ import { canEditPage, parseEmployerPage, publicPage, type EmployerPage } from "@
 import { checkEmployerPage, type PageFinding } from "@/components/employer/employer-page-check";
 import type { EmployerPublicProfile } from "@/lib/employer-public-profile";
 import { scopeOf } from "@/lib/chat-server/identity";
+import { requestLang } from "@/i18n/server";
 
 /**
  * The business's page as the server has it, for someone in its team: `page` is null while nobody saved one.
@@ -62,7 +63,7 @@ export async function saveMyEmployerPage(page: unknown): Promise<EmployerPageSna
   if (!mine) return null;
   const parsed = parseEmployerPage(page);
   if (!parsed) return null;
-  const findings = checkEmployerPage(parsed);
+  const findings = checkEmployerPage(parsed, "NZ", await requestLang());
   if (findings.length) return { ...(await snapshot(mine)), refused: findings };
   const saved = await saveEmployerPage(mine.session.email, parsed);
   if (saved === "no_business") return null;

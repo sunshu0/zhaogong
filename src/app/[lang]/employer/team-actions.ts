@@ -18,14 +18,24 @@ import {
 } from "@/db/team";
 import {
   INVITES_PER_DAY,
-  TEAM_REFUSAL_TEXT,
+  TEAM_MAX,
   checkTeamName,
+  teamRefusalText,
   type TeamChange,
   type TeamMember,
   type TeamRefusal,
   type TeamRole,
 } from "@/components/employer/team";
 import { isValidEmail, normalizeEmail } from "@/components/seeker/session";
+import { pick } from "@/i18n/messages";
+import { employerTeamMessages } from "@/i18n/messages/employer-team";
+import { requestLang } from "@/i18n/server";
+
+/** What this request's answers say, in the visitor's language (Round 20, ADR 0023). */
+async function words() {
+  const lang = await requestLang();
+  return { lang, t: pick(employerTeamMessages, lang).teamActions };
+}
 
 export type MyTeam = {
   employer: { id: string; name: string };
@@ -44,7 +54,9 @@ async function myBusiness() {
   return employer ? { email: session.email, employer } : null;
 }
 
-const NO_TEAM: Failure = { ok: false, error_zh: "需要先开通雇主身份。" };
+async function noTeam(): Promise<Failure> {
+  return { ok: false, error_zh: (await words()).t.noEmployerRole };
+}
 
 /** The signed-in account's team, or null without an employer identity. */
 export async function getMyTeam(): Promise<MyTeam | null> {
@@ -71,34 +83,39 @@ export async function getMyTeam(): Promise<MyTeam | null> {
   };
 }
 
-const INVITE_ERRORS: Record<Exclude<InviteResult["status"], "invited">, string> = {
-  no_account: "这个邮箱还没有注册找工。请对方先用这个邮箱登录一次，再来邀请。",
-  member: "这个人已经在团队里了。",
-  has_business: "这个账号已经属于另一家企业，不能再加入。",
-  pending: "已经邀请过这个人，等对方回复。",
-  full: "团队最多 10 人（包括还没回复的邀请）。",
-  too_many: `这家企业 24 小时内已经发了 ${INVITES_PER_DAY} 条邀请，明天再邀请。`,
-  ...TEAM_REFUSAL_TEXT,
-};
+async function inviteErrors(): Promise<Record<Exclude<InviteResult["status"], "invited">, string>> {
+  const { lang, t } = await words();
+  return {
+    no_account: t.invite.no_account,
+    member: t.invite.member,
+    has_business: t.invite.has_business,
+    pending: t.invite.pending,
+    full: t.invite.full(TEAM_MAX),
+    too_many: t.invite.too_many(INVITES_PER_DAY),
+    ...teamRefusalText(lang),
+  };
+}
 
 export async function inviteTeammate(email: unknown, role: unknown): Promise<{ ok: true } | Failure> {
   const mine = await myBusiness();
-  if (!mine) return NO_TEAM;
+  if (!mine) return noTeam();
+  const { t } = await words();
   const address = normalizeEmail(String(email ?? ""));
-  if (!isValidEmail(address)) return { ok: false, error_zh: "请填写对方注册找工用的邮箱。" };
+  if (!isValidEmail(address)) return { ok: false, error_zh: t.badEmail };
   const wanted: TeamRole = role === "admin" ? "admin" : "member";
   const result = await inviteToTeam(mine.employer.id, mine.email, address, wanted);
-  return result.status === "invited" ? { ok: true } : { ok: false, error_zh: INVITE_ERRORS[result.status] };
+  return result.status === "invited" ? { ok: true } : { ok: false, error_zh: (await inviteErrors())[result.status] };
 }
 
 export async function cancelTeamInvite(inviteId: unknown): Promise<{ ok: true } | Failure> {
   const mine = await myBusiness();
-  if (!mine) return NO_TEAM;
+  if (!mine) return noTeam();
   const result = await cancelInvite(mine.employer.id, mine.email, String(inviteId ?? ""));
   if (result.status === "cancelled") return { ok: true };
+  const { lang, t } = await words();
   return {
     ok: false,
-    error_zh: result.status === "gone" ? "这条邀请已经回复或撤回了。" : TEAM_REFUSAL_TEXT[result.status],
+    error_zh: result.status === "gone" ? t.inviteGone : teamRefusalText(lang)[result.status],
   };
 }
 
@@ -118,19 +135,20 @@ function parseChange(input: unknown): TeamChange | undefined {
  */
 export async function changeMyTeam(input: unknown): Promise<{ ok: true } | Failure> {
   const mine = await myBusiness();
-  if (!mine) return NO_TEAM;
+  if (!mine) return noTeam();
+  const { lang, t } = await words();
   const change = parseChange(input);
-  if (!change) return { ok: false, error_zh: "看不懂这个操作。" };
+  if (!change) return { ok: false, error_zh: t.unknownChange };
   const result = await changeTeam(mine.employer.id, mine.email, change);
-  if (result.status !== "done") return { ok: false, error_zh: TEAM_REFUSAL_TEXT[result.status as TeamRefusal] };
+  if (result.status !== "done") return { ok: false, error_zh: teamRefusalText(lang)[result.status as TeamRefusal] };
   if (change.type === "leave") await switchRole("seeker");
   return { ok: true };
 }
 
 export async function setMyTeamName(name: unknown): Promise<{ ok: true; name: string } | Failure> {
   const mine = await myBusiness();
-  if (!mine) return NO_TEAM;
-  const checked = checkTeamName(String(name ?? ""));
+  if (!mine) return noTeam();
+  const checked = checkTeamName(String(name ?? ""), (await words()).lang);
   if (!checked.ok) return { ok: false, error_zh: checked.error };
   await setTeamName(mine.email, checked.name);
   return { ok: true, name: checked.name };
@@ -161,23 +179,24 @@ export async function answerTeamInvite(
   inviteId: unknown,
   answer: unknown,
 ): Promise<{ ok: true; employer?: { id: string; name: string } } | Failure> {
+  const { lang, t } = await words();
   const session = await getCurrentSession();
-  if (!session) return { ok: false, error_zh: "请先登录。" };
+  if (!session) return { ok: false, error_zh: t.signIn };
   const { accept, name } = (answer && typeof answer === "object" ? answer : {}) as Record<string, unknown>;
   const id = String(inviteId ?? "");
   if (accept !== true) {
     const declined = await answerInvite(session.email, id, { accept: false });
-    return declined.status === "declined" ? { ok: true } : { ok: false, error_zh: "这条邀请已经回复或撤回了。" };
+    return declined.status === "declined" ? { ok: true } : { ok: false, error_zh: t.inviteGone };
   }
-  const checked = checkTeamName(String(name ?? ""));
+  const checked = checkTeamName(String(name ?? ""), lang);
   if (!checked.ok) return { ok: false, error_zh: checked.error };
   const result = await answerInvite(session.email, id, { accept: true, name: checked.name });
   if (result.status !== "accepted") {
     const error_zh = {
-      gone: "这条邀请已经撤回或回复过了。",
-      has_business: "你的账号已经属于一家企业，不能再加入别的企业。",
-      full: "这个团队已经满 10 人了。",
-      declined: "",
+      gone: t.answer.gone,
+      has_business: t.answer.has_business,
+      full: t.answer.full(TEAM_MAX),
+      declined: t.answer.declined,
     }[result.status];
     return { ok: false, error_zh };
   }

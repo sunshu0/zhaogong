@@ -1,9 +1,18 @@
-import { COUNTRIES, regionById } from "@/config/countries";
+import { COUNTRIES, regionById, type Region } from "@/config/countries";
 import { JOB_ROLE_IDS, JOB_ROLES, type JobRoleId } from "@/config/job-roles";
-import { jobRoles, parseJobRoles, roleFitsIndustry, roleNames } from "@/lib/job-roles";
+import { jobRoles, parseJobRoles, roleFitsIndustry } from "@/lib/job-roles";
 import { EMPLOYMENT_TYPE_LABELS, INDUSTRY_LABELS, LANGUAGE_LABELS } from "@/i18n/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import type { EmploymentType, Job } from "@/lib/types";
+
+/** The wording of the factors and the facts, in the interface language (Round 20, ADR 0023). */
+const words = (lang: Lang) => pick(candidateMatchingMessages, lang);
+/** An area's name in the interface language; the id when the area is unknown, as before. */
+const regionName = (region: Region | undefined, fallback: string, lang: Lang) =>
+  region ? (lang === "en" ? region.nameEn : region.nameZh) : fallback;
 
 export type Resume = {
   candidateId?: string;
@@ -61,7 +70,10 @@ export function parseResume(value: unknown): Resume {
   };
 }
 
-const SKILLS: [string, RegExp][] = [
+/** The skills the patterns below find; the dictionary gives each one its name in the interface language. */
+type SkillName = keyof (typeof candidateMatchingMessages)["zh"]["skills"];
+
+const SKILLS: [SkillName, RegExp][] = [
   ["前厅服务", /前厅|楼面|服务员|waitstaff|front.of.house|floor staff/i],
   ["点餐", /点餐|点单|taking orders/i],
   ["上菜", /上菜|serving/i],
@@ -149,11 +161,12 @@ export type MatchFactor = {
 export type CandidateMatch = { candidate: Candidate; score: number | null; coverage: number; factors: MatchFactor[] };
 
 /** Deterministic resume evidence, not a hiring probability or an AI assessment. */
-export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
+export function matchCandidate(candidate: Candidate, job: Job, lang: Lang = DEFAULT_LANG): CandidateMatch {
+  const t = words(lang);
+  const roleNames = (ids: readonly JobRoleId[]) => ids.map((id) => JOB_ROLES[id][lang]).join(t.listJoiner);
   const factors: MatchFactor[] = [];
   function add(
     key: MatchFactor["key"],
-    label: string,
     weight: number,
     ratio: number | null | undefined,
     requirement: string,
@@ -161,7 +174,7 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
   ) {
     factors.push({
       key,
-      label,
+      label: t.factors[key],
       weight,
       earned: ratio == null ? 0 : weight * ratio,
       status:
@@ -189,26 +202,24 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
   const knownSkills = skillsIn(`${candidate.headline} ${candidate.bio} ${resume.skills}`);
   const matchedSkills = requiredSkills.filter((skill) => knownSkills.includes(skill));
   const otherSkills = matchedSkills.filter((skill) => !roles.some((id) => JOB_ROLES[id].zh === skill));
-  const skillNote = otherSkills.length ? `；技能：${otherSkills.join("、")}` : "";
+  const skillNote = otherSkills.length ? t.role.skillNote(otherSkills.map((s) => t.skills[s]).join(t.listJoiner)) : "";
   add(
     "skills",
-    "岗位",
     30,
     !roles.length ? undefined : !wanted.roles.length ? null : sameRole.length ? 1 : sameIndustry.length ? 0.5 : 0,
-    roles.length ? roleNames(roles) : "职位未选岗位类别",
+    roles.length ? roleNames(roles) : t.role.jobHasNoRoles,
     !wanted.roles.length
-      ? "想做的岗位待补充"
+      ? t.role.wantedMissing
       : sameRole.length
-        ? `${wanted.ticked ? "都选了" : "资料提到"}${roleNames(sameRole)}${skillNote}`
+        ? (wanted.ticked ? t.role.ticked : t.role.mentioned)(roleNames(sameRole), skillNote)
         : sameIndustry.length
-          ? `想做${roleNames(sameIndustry)}，同属${INDUSTRY_LABELS[job.industry].zh}${skillNote}`
-          : `想做${roleNames(wanted.roles)}${skillNote}`,
+          ? t.role.sameIndustry(roleNames(sameIndustry), INDUSTRY_LABELS[job.industry][lang], skillNote)
+          : t.role.wants(roleNames(wanted.roles), skillNote),
   );
   const years = requiredYears(job.descriptionZh);
   const relevantExperience = sameRole.length > 0;
   add(
     "experience",
-    "相关经验",
     15,
     years == null
       ? undefined
@@ -217,38 +228,35 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
         : resume.experienceYears >= years
           ? 1
           : 0,
-    years == null ? "未要求最低经验年数" : `至少 ${years} 年相关经验`,
+    years == null ? t.experience.notRequired : t.experience.required(years),
     resume.experienceYears == null
-      ? "经验年数待补充"
+      ? t.experience.missing
       : relevantExperience
-        ? `简历填写 ${resume.experienceYears} 年相关经验`
-        : "相关岗位经验需进一步确认",
+        ? t.experience.onResume(resume.experienceYears)
+        : t.experience.unclear,
   );
   const spoken = job.languages.filter((language) => positive(candidate.languages, LANGUAGE_WORDS[language]));
   add(
     "languages",
-    "沟通语言",
     15,
     !job.languages.length ? undefined : !candidate.languages.trim() ? null : spoken.length / job.languages.length,
-    job.languages.map((item) => LANGUAGE_LABELS[item].zh).join("、") || "未限制语言",
-    candidate.languages || "语言资料待补充",
+    job.languages.map((item) => LANGUAGE_LABELS[item][lang]).join(t.listJoiner) || t.languages.notLimited,
+    candidate.languages || t.languages.missing,
   );
   const accepted = job.employmentType;
   add(
     "type",
-    "用工形式",
     15,
     !resume.employmentTypes.length ? null : resume.employmentTypes.some((type) => accepted.includes(type)) ? 1 : 0,
-    formatEmploymentTypes(job.employmentType),
-    formatEmploymentTypes(resume.employmentTypes) || "求职意向待补充",
+    formatEmploymentTypes(job.employmentType, lang),
+    formatEmploymentTypes(resume.employmentTypes, lang) || t.type.missing,
   );
   add(
     "region",
-    "工作地区",
     10,
     !resume.regionIds.length ? null : resume.regionIds.includes(job.regionId) ? 1 : 0,
-    regionById(job.country, job.regionId)?.nameZh ?? job.regionId,
-    resume.regionIds.map((id) => regionById("NZ", id)?.nameZh ?? id).join("、") || "可工作地区待补充",
+    regionName(regionById(job.country, job.regionId), job.regionId, lang),
+    resume.regionIds.map((id) => regionName(regionById("NZ", id), id, lang)).join(t.listJoiner) || t.region.missing,
   );
   const hours = job.hoursPerWeek;
   const available = resume.hoursPerWeek;
@@ -256,21 +264,19 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
   const overlap = hours && available && available.min <= (hours.max ?? hours.min) && available.max >= hours.min;
   add(
     "hours",
-    "每周工时",
     10,
     !hours ? undefined : !available ? null : fullHours ? 1 : overlap ? 0.5 : 0,
-    hours ? `每周 ${hours.min}${hours.max && hours.max !== hours.min ? `–${hours.max}` : ""} 小时` : "工时未固定",
+    hours ? t.hours.job(hours.min, hours.max || hours.min) : t.hours.notFixed,
     available
-      ? `可工作 ${available.min}–${available.max} 小时 / 周；${candidate.availability || "具体班次待确认"}`
-      : "可工作工时待补充",
+      ? t.hours.available(available.min, available.max, candidate.availability || t.hours.shiftsUnknown)
+      : t.hours.missing,
   );
   add(
     "pay",
-    "期望时薪",
     5,
     resume.expectedMinPay == null ? null : resume.expectedMinPay <= (job.pay.max ?? job.pay.min) ? 1 : 0,
-    `$${job.pay.min}${job.pay.max ? `–${job.pay.max}` : ""} / 小时`,
-    resume.expectedMinPay == null ? "期望时薪待补充" : `期望最低 $${resume.expectedMinPay} / 小时`,
+    t.pay.job(job.pay.min, job.pay.max ?? null),
+    resume.expectedMinPay == null ? t.pay.missing : t.pay.expected(resume.expectedMinPay),
   );
   const applicable = factors.filter((item) => item.status !== "not_required");
   const totalWeight = applicable.reduce((sum, item) => sum + item.weight, 0);
@@ -287,10 +293,10 @@ export function matchCandidate(candidate: Candidate, job: Job): CandidateMatch {
   };
 }
 
-export function rankCandidates(candidates: Candidate[], job: Job): CandidateMatch[] {
+export function rankCandidates(candidates: Candidate[], job: Job, lang: Lang = DEFAULT_LANG): CandidateMatch[] {
   return candidates
     .filter((candidate) => candidate.resume.discoverable)
-    .map((candidate) => matchCandidate(candidate, job))
+    .map((candidate) => matchCandidate(candidate, job, lang))
     .sort(
       (a, b) =>
         (b.score ?? -1) - (a.score ?? -1) || b.coverage - a.coverage || a.candidate.id.localeCompare(b.candidate.id),
@@ -299,23 +305,28 @@ export function rankCandidates(candidates: Candidate[], job: Job): CandidateMatc
 
 // ---- the recommendation card (B28); /candidates/[id] (C6) shows the same five facts ----
 
+/** The five facts in their fixed order, in Chinese; the interface language's come from the dictionary. */
 export const CANDIDATE_FACT_LABELS = ["可上班时间", "地区", "期望时薪", "语言", "经验"] as const;
 
 /** What an employer checks first, in a fixed order, with 待补充 where the profile says nothing. */
-export function candidateFacts(
-  candidate: Candidate,
-): { label: (typeof CANDIDATE_FACT_LABELS)[number]; value: string }[] {
+export function candidateFacts(candidate: Candidate, lang: Lang = DEFAULT_LANG): { label: string; value: string }[] {
+  const t = words(lang).facts;
   const { resume } = candidate;
-  const hours = resume.hoursPerWeek && `每周 ${resume.hoursPerWeek.min}–${resume.hoursPerWeek.max} 小时`;
-  const regions = resume.regionIds.map((id) => regionById("NZ", id)?.nameZh ?? id).join("、");
+  const hours = resume.hoursPerWeek && t.hours(resume.hoursPerWeek.min, resume.hoursPerWeek.max);
+  const regions = resume.regionIds.map((id) => regionName(regionById("NZ", id), id, lang)).join(words(lang).listJoiner);
+  const labels = [t.labels.availability, t.labels.region, t.labels.pay, t.labels.languages, t.labels.experience];
   const values = [
-    [candidate.availability.trim(), hours].filter(Boolean).join(" · "),
+    [candidate.availability.trim(), hours].filter(Boolean).join(t.joiner),
     regions || candidate.location.trim(),
-    resume.expectedMinPay != null ? `$${resume.expectedMinPay} 起` : "",
+    resume.expectedMinPay != null ? t.payFrom(resume.expectedMinPay) : "",
     candidate.languages.trim(),
-    resume.experienceYears == null ? "" : resume.experienceYears === 0 ? "无经验" : `${resume.experienceYears} 年`,
+    resume.experienceYears == null
+      ? ""
+      : resume.experienceYears === 0
+        ? t.noExperience
+        : t.years(resume.experienceYears),
   ];
-  return CANDIDATE_FACT_LABELS.map((label, i) => ({ label, value: values[i] || "待补充" }));
+  return labels.map((label, i) => ({ label, value: values[i] || t.missing }));
 }
 
 const CONCERN_ORDER: Partial<Record<MatchFactor["status"], number>> = { mismatch: 0, partial: 1, unknown: 2 };

@@ -1,5 +1,8 @@
 // A demo stand-in for the NZ Companies Office / NZBN lookup. The register is the register details
 // of the demo employers plus a few extra companies, so every verification outcome can be shown.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 import type { Employer } from "@/lib/types";
 
 export interface RegisterEntry {
@@ -74,18 +77,20 @@ const MAX_RESULTS = 5;
 export function searchRegister(
   register: RegisterEntry[],
   query: string,
+  lang: Lang = DEFAULT_LANG,
 ): { results: RegisterEntry[]; error_zh?: string } {
+  const t = pick(employerVerifyMessages, lang).register;
   const q = query.trim();
   const digits = normalizeNzbn(q);
   if (/^\d+$/.test(digits)) {
-    if (digits.length !== 13) return { results: [], error_zh: "NZBN 是 13 位数字，请检查一下。" };
+    if (digits.length !== 13) return { results: [], error_zh: t.nzbnLength };
     const found = findInRegister(register, digits);
-    return found ? { results: [found] } : { results: [], error_zh: "企业登记里没有这个 NZBN。" };
+    return found ? { results: [found] } : { results: [], error_zh: t.nzbnNotFound };
   }
-  if ([...q].length < 2) return { results: [], error_zh: "请至少输入两个字。" };
+  if ([...q].length < 2) return { results: [], error_zh: t.queryTooShort };
   const needle = q.toLowerCase();
   const results = register
     .filter((e) => [e.legalName, ...e.tradingNames].some((n) => n.toLowerCase().includes(needle)))
     .slice(0, MAX_RESULTS);
-  return results.length ? { results } : { results: [], error_zh: "企业登记里没有找到，请换个名称或直接输入 NZBN。" };
+  return results.length ? { results } : { results: [], error_zh: t.nameNotFound };
 }

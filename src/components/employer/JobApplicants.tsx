@@ -24,21 +24,33 @@ import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 import {
-  APPLICANT_FILTERS,
   applicantFilterCounts,
+  applicantFilters,
   filterApplicants,
   type ApplicantFilter,
 } from "@/components/employer/applicant-filter";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { pick } from "@/i18n/messages";
+import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
+import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
+import { contentLang, type Lang } from "@/i18n/lang";
 
 const FILTER_ID_BASE = "applicant-filter";
 
-const appliedAt = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Pacific/Auckland",
+const APPLIED_AT: Intl.DateTimeFormatOptions = {
   month: "numeric",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
-});
+};
+
+/**
+ * Whether a fact is the 「待补充」 of candidateFacts(): the facts come from the server (applicant-actions.ts), which
+ * still builds them in Chinese, so both languages' wording counts.
+ */
+const isMissingFact = (value: string, lang: Lang) =>
+  value === candidateMatchingMessages.zh.facts.missing || value === pick(candidateMatchingMessages, lang).facts.missing;
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
@@ -52,6 +64,7 @@ export function JobApplicants({ jobId }: { jobId: string }) {
 }
 
 function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
+  const t = useMessages(employerApplicantsMessages).jobApplicants;
   const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; applicants: Applicant[] } | null }>();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ApplicantFilter>("all");
@@ -73,9 +86,9 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   if (!loaded.data) {
     return (
       <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
-        找不到这个职位，或者它不属于你登录的店铺。
+        {t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
-          回到职位管理
+          {t.backToJobs}
         </Link>
       </div>
     );
@@ -100,8 +113,8 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   async function decide(id: string, decision: ApplicationDecision | null) {
     setError("");
     const ok = await decideMyApplicant(id, decision).catch(() => false);
-    if (!ok) return setError("没有保存，请再试一次。");
-    toast(decision ? `已标记「${DECISION_LABELS[decision]}」` : "已取消标记");
+    if (!ok) return setError(t.saveFailed);
+    toast(decision ? t.marked(DECISION_LABELS[decision]) : t.markCleared);
     setLoaded((current) =>
       current?.data
         ? {
@@ -119,15 +132,14 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     <div className="space-y-section">
       <div>
         <Link href="/employer/jobs" className={BACK_LINK}>
-          ← 职位管理
+          {t.back}
         </Link>
-        <h1 className="mt-1 text-title font-semibold">申请人</h1>
+        <h1 className="mt-1 text-title font-semibold">{t.title}</h1>
         <p className="text-body text-muted">
-          {job.titleZh} · {applicants.length} 个申请
+          <span lang={contentLang(job.titleZh)}>{job.titleZh}</span>
+          {t.jobSummaryCount(applicants.length)}
         </p>
-        <p className="mt-1 text-meta text-muted">
-          申请里没有对方的联系方式。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。
-        </p>
+        <p className="mt-1 text-meta text-muted">{t.privacyNote}</p>
       </div>
 
       {error && (
@@ -138,7 +150,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
 
       {applicants.length === 0 ? (
         <Section look="app">
-          <p className="py-group text-center text-body text-muted">还没有人申请这个职位。</p>
+          <p className="py-group text-center text-body text-muted">{t.empty}</p>
         </Section>
       ) : (
         <div className="space-y-3">
@@ -146,10 +158,10 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           <TabPanel idBase={FILTER_ID_BASE} value={filter}>
             {filterApplicants(applicants, filter).length === 0 ? (
               <Section look="app">
-                <p className="py-group text-center text-body text-muted">这一类还没有人。</p>
+                <p className="py-group text-center text-body text-muted">{t.emptyInFilter}</p>
               </Section>
             ) : (
-              <ul aria-label="申请人列表" className="space-y-3">
+              <ul aria-label={t.listLabel} className="space-y-3">
                 {filterApplicants(applicants, filter).map((a) => (
                   <li key={a.id}>
                     <ApplicantCard
@@ -179,12 +191,14 @@ function ApplicantFilterTabs({
   value: ApplicantFilter;
   onChange: (filter: ApplicantFilter) => void;
 }) {
+  const t = useMessages(employerApplicantsMessages).applicantFilter;
+  const lang = useLang();
   const counts = applicantFilterCounts(applicants);
   return (
     <TabList
-      label="按处理状态"
+      label={t.tabsLabel}
       idBase={FILTER_ID_BASE}
-      tabs={APPLICANT_FILTERS.map((f) => ({ key: f.key, label: `${f.label} ${counts[f.key]}` }))}
+      tabs={applicantFilters(lang).map((f) => ({ key: f.key, label: t.tab(f.label, counts[f.key]) }))}
       value={value}
       onChange={onChange}
       className={PILL_TABS}
@@ -204,32 +218,45 @@ function ApplicantCard({
   onDecide: (decision: ApplicationDecision | null) => void;
   onInterview: (interview: InterviewView) => void;
 }) {
+  const t = useMessages(employerApplicantsMessages).jobApplicants;
+  const lang = useLang();
   const router = useRouter();
   const { openApplicantChat } = useChat();
   const [opening, setOpening] = useState(false);
   return (
-    <article aria-label={`申请人 ${a.profile.name}`} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
+    <article aria-label={t.cardLabel(a.profile.name)} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
-            {a.profile.name}
-            {a.isNew && <Tag kind="urgent">新</Tag>}
+            <span lang={contentLang(a.profile.name)}>{a.profile.name}</span>
+            {a.isNew && <Tag kind="urgent">{t.isNew}</Tag>}
             {a.decision && <Tag kind={a.decision === "unfit" ? "neutral" : "perk"}>{DECISION_LABELS[a.decision]}</Tag>}
           </h2>
-          {a.profile.headline && <p className="text-body text-muted">{a.profile.headline}</p>}
+          {a.profile.headline && (
+            <p lang={contentLang(a.profile.headline)} className="text-body text-muted">
+              {a.profile.headline}
+            </p>
+          )}
         </div>
-        <p className="text-meta text-muted">{appliedAt.format(new Date(a.appliedAt))} 申请</p>
+        <p className="text-meta text-muted">{t.appliedAt(formatDate(a.appliedAt, lang, APPLIED_AT))}</p>
       </div>
 
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-body">
         {a.facts.map((f) => (
           <div key={f.label} className="contents">
             <dt className="text-muted">{f.label}</dt>
-            <dd className={f.value === "待补充" ? "text-muted" : ""}>{f.value}</dd>
+            <dd lang={contentLang(f.value)} className={isMissingFact(f.value, lang) ? "text-muted" : ""}>
+              {f.value}
+            </dd>
           </div>
         ))}
       </dl>
-      {a.note && <p className="mt-3 rounded-control bg-background px-3 py-2 text-body">附言：{a.note}</p>}
+      {a.note && (
+        <p className="mt-3 rounded-control bg-background px-3 py-2 text-body">
+          {t.noteLabel}
+          <span lang={contentLang(a.note)}>{a.note}</span>
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
@@ -244,9 +271,9 @@ function ApplicantCard({
             else setOpening(false);
           }}
         >
-          发起聊天
+          {t.startChat}
         </button>
-        <div role="group" aria-label={`标记 ${a.profile.name}`} className="flex gap-2">
+        <div role="group" aria-label={t.markGroupLabel(a.profile.name)} className="flex gap-2">
           {(["fit", "unfit", "hired"] as const).map((d) => (
             <button
               key={d}

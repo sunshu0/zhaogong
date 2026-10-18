@@ -9,40 +9,32 @@ import { DraftEditor } from "@/components/employer/DraftEditor";
 import { CLEAR_OF_STICKY_BARS, keepFocusClear } from "@/components/employer/use-draft-form";
 import type { Mode, Step } from "@/components/employer/post-flow-state";
 import { JobDetail } from "@/components/seeker/JobDetail";
-import { contactKinds } from "@/components/seeker/job-facts";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
 import { pillTab } from "@/components/employer/Tabs";
+import { useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 type HeadingRef = RefObject<HTMLHeadingElement | null>;
 
-const STEPS: Record<Mode, { key: Exclude<Step, "done">; label: string }[]> = {
-  chat: [
-    { key: "chat", label: "和助手对话" },
-    { key: "preview", label: "预览发布" },
-  ],
-  form: [
-    { key: "paste", label: "粘贴" },
-    { key: "form", label: "核对" },
-    { key: "preview", label: "预览发布" },
-  ],
+const STEPS: Record<Mode, Exclude<Step, "done">[]> = {
+  chat: ["chat", "preview"],
+  form: ["paste", "form", "preview"],
 };
 
-const MODES = [
-  ["chat", "对话发布"],
-  ["form", "直接填表"],
-] as const;
+const MODES = ["chat", "form"] as const;
 
 export function StepList({ mode, step }: { mode: Mode; step: Step }) {
+  const t = useMessages(employerPostMessages).steps;
   return (
-    <ol aria-label="发布步骤" className="flex gap-4 border-b border-border text-meta">
-      {STEPS[mode].map((s, i) => (
+    <ol aria-label={t.listLabel} className="flex gap-4 border-b border-border text-meta">
+      {STEPS[mode].map((key, i) => (
         <li
-          key={s.key}
-          aria-current={s.key === step ? "step" : undefined}
-          className={`-mb-px flex-1 border-b-2 pb-1.5 text-center ${s.key === step ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`}
+          key={key}
+          aria-current={key === step ? "step" : undefined}
+          className={`-mb-px flex-1 border-b-2 pb-1.5 text-center ${key === step ? "border-brand font-semibold text-brand" : "border-transparent text-muted"}`}
         >
-          {i + 1} {s.label}
+          {i + 1} {t[key]}
         </li>
       ))}
     </ol>
@@ -50,9 +42,11 @@ export function StepList({ mode, step }: { mode: Mode; step: Step }) {
 }
 
 export function ModeSwitch({ mode, onSwitch }: { mode: Mode; onSwitch: (mode: Mode) => void }) {
+  const t = useMessages(employerPostMessages).steps;
+  const labels = { chat: t.modeChat, form: t.modeForm };
   return (
-    <div role="group" aria-label="发布方式" className="flex gap-2">
-      {MODES.map(([key, label]) => (
+    <div role="group" aria-label={t.modeLabel} className="flex gap-2">
+      {MODES.map((key) => (
         <button
           key={key}
           type="button"
@@ -60,7 +54,7 @@ export function ModeSwitch({ mode, onSwitch }: { mode: Mode; onSwitch: (mode: Mo
           onClick={() => onSwitch(key)}
           className={pillTab(mode === key)}
         >
-          {label}
+          {labels[key]}
         </button>
       ))}
     </div>
@@ -82,13 +76,14 @@ export function PasteStep({
   onParse: () => void;
   onEmptyForm: () => void;
 }) {
+  const t = useMessages(employerPostMessages).steps;
   return (
     <section onFocus={keepFocusClear} className={`space-y-3 ${CLEAR_OF_STICKY_BARS}`}>
       <h1 ref={headingRef} tabIndex={-1} className="text-title font-semibold outline-none">
-        一分钟发布招聘
+        {t.pasteHeading}
       </h1>
       <label htmlFor="post-text" className="block text-body text-muted">
-        把微信群里的招聘消息粘贴进来，或者直接写：招什么人、在哪个区、时薪多少。
+        {t.pasteLabel}
       </label>
       <textarea
         id="post-text"
@@ -100,18 +95,18 @@ export function PasteStep({
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button size="lg" loading={pending} disabled={!text.trim()} onClick={onParse} className="flex-1">
-          {pending ? "整理中…" : "整理成职位"}
+          {pending ? t.parsing : t.parse}
         </Button>
         <button
           type="button"
           onClick={() => setText(SAMPLE_POST)}
           className="pressable min-h-11 text-body text-brand underline"
         >
-          用示例试试
+          {t.tryExample}
         </button>
       </div>
       <button type="button" onClick={onEmptyForm} className="pressable min-h-11 text-body text-muted underline">
-        不用粘贴，直接填表
+        {t.emptyForm}
       </button>
     </section>
   );
@@ -128,10 +123,11 @@ export function FormStep({
   country: CountryCode;
   notes: string[];
 }) {
+  const t = useMessages(employerPostMessages).steps;
   return (
     <>
       <h1 ref={headingRef} tabIndex={-1} className="text-title font-semibold outline-none">
-        核对职位信息
+        {t.formHeading}
       </h1>
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <DraftEditor state={form} country={country} notes={notes} />
@@ -158,6 +154,16 @@ export function PreviewStep({
   /** 岗位类别 to confirm, for a job that came from the chat. */
   roles?: ReactNode;
 }) {
+  const m = useMessages(employerPostMessages);
+  const t = m.steps;
+  // The kinds the job makes public, in the page's language (as contactKinds does in Chinese).
+  const kinds = [
+    preview.contact.phone && m.checklist.contactPhone,
+    preview.contact.wechat && m.checklist.contactWechat,
+    preview.contact.email && m.checklist.contactEmail,
+  ]
+    .filter(Boolean)
+    .join(m.checklist.separator);
   return (
     <section onFocus={keepFocusClear} className={`space-y-4 ${CLEAR_OF_STICKY_BARS}`}>
       <h1
@@ -165,30 +171,22 @@ export function PreviewStep({
         tabIndex={-1}
         className="rounded-control bg-brand-soft px-3 py-2 text-body font-normal text-brand outline-none"
       >
-        预览：这是求职者看到的样子。确认无误就可以发布了。
+        {t.previewHeading}
       </h1>
       {needsReview && (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-          这个职位会先经过人工审核，通过后才公开。
-        </p>
+        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.previewNeedsReview}</p>
       )}
       <DuplicateJobNote titleZh={preview.titleZh} />
       {roles && <div className="rounded-card bg-surface p-4 shadow-card">{roles}</div>}
       <JobDetail job={preview} employer={employer} now={previewAt}>
         <section className="rounded-card bg-surface p-4 shadow-card">
-          <h2 className="text-subtitle font-semibold">联系方式</h2>
+          <h2 className="text-subtitle font-semibold">{t.previewContactTitle}</h2>
           <p className="mt-1 text-body text-muted">
-            {preview.contactPublic
-              ? `登录后可以查看雇主的${contactKinds(preview).join("、")}。`
-              : "雇主没有公开联系方式。求职者可以在聊天中申请交换，双方同意后才交换。"}
+            {preview.contactPublic ? t.previewContactPublic(kinds) : t.previewContactPrivate}
           </p>
         </section>
       </JobDetail>
-      {banned && (
-        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
-          这个雇主账号已被停用，职位已全部下架，不能再发布。
-        </p>
-      )}
+      {banned && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{t.previewBanned}</p>}
     </section>
   );
 }

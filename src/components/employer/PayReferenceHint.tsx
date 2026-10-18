@@ -5,6 +5,8 @@ import { payReferenceFor, type PayReferenceAnswer } from "@/app/[lang]/jobs/pay-
 import { jobRate } from "@/lib/pay-reference";
 import type { CountryCode, Industry } from "@/lib/types";
 import { PayReferenceBox } from "@/components/ui/PayReferenceBox";
+import { useLang, useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 /**
  * 时薪参考 beside the pay an employer is filling in (#85): asked from the server once the industry is known, and again
@@ -25,6 +27,8 @@ export function PayReferenceHint({
   /** A job being edited or republished, left out of its own reference. */
   exclude?: string;
 }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).payReference;
   const [loaded, setLoaded] = useState<{ key: string; answer: PayReferenceAnswer | null }>();
   const key = `${industry ?? ""}|${regionId ?? ""}|${exclude ?? ""}`;
 
@@ -39,11 +43,18 @@ export function PayReferenceHint({
     };
   }, [industry, regionId, exclude, key]);
 
-  if (!industry) return <p className="text-meta text-muted">选好行业后，这里显示同类职位的时薪。</p>;
+  if (!industry) return <p className="text-meta text-muted">{t.chooseIndustry}</p>;
   const answer = loaded?.key === key ? loaded.answer : undefined;
   if (!answer) return null;
   const rate = pay?.min != null ? jobRate({ min: pay.min, max: pay.max }) : undefined;
   return (
-    <PayReferenceBox reference={answer.reference} at={answer.at} country={country} industry={industry} rate={rate} />
+    <PayReferenceBox
+      reference={answer.reference}
+      at={answer.at}
+      country={country}
+      industry={industry}
+      rate={rate}
+      lang={lang}
+    />
   );
 }

@@ -1,6 +1,11 @@
 // 职位记下是谁发的 (#182): what 职位管理 says about who posted each job, and (#186) when its contact details belong to
 // someone who left the team. Pure; the server decides who is who.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 import type { Phase } from "@/components/employer/job-status";
+
+const words = (lang: Lang) => pick(employerJobsMessages, lang).poster;
 
 /** Who posted a job, as the person looking at 职位管理 should hear it. */
 export type JobPoster =
@@ -13,17 +18,18 @@ export type JobPoster =
  * The line on a job's card, or null when there is nothing worth saying: a job from before #182, or your own job in a
  * business that is only you.
  */
-export function posterLabel(poster: JobPoster | undefined, teamSize: number): string | null {
+export function posterLabel(poster: JobPoster | undefined, teamSize: number, lang: Lang = DEFAULT_LANG): string | null {
+  const t = words(lang);
   if (!poster) return null;
   switch (poster.kind) {
     case "you":
-      return teamSize > 1 ? "你发布的" : null;
+      return teamSize > 1 ? t.you : null;
     case "teammate":
-      return `${poster.name}发布`;
+      return t.teammate(poster.name);
     case "left":
-      return `${poster.email}发布（已离开团队）`;
+      return t.left(poster.email);
     case "deleted":
-      return "已删除的账号发布";
+      return t.deleted;
   }
 }
 
@@ -45,8 +51,10 @@ export function sameContact(a: ContactSide, b: ContactSide): boolean {
 export function staleContactNote(
   from: Extract<JobPoster, { kind: "left" | "deleted" }> | undefined,
   phase: Phase,
+  lang: Lang = DEFAULT_LANG,
 ): string | null {
+  const t = words(lang);
   if (!from || phase === "removed" || phase === "closed") return null;
-  const who = from.kind === "left" ? `已离开团队的 ${from.email}` : "一个已删除的账号";
-  return `联系方式是${who}填的，求职者可能联系不到人。请改成现在负责招聘的人。`;
+  const who = from.kind === "left" ? t.staleFromLeft(from.email) : t.staleFromDeleted;
+  return t.staleContact(who);
 }

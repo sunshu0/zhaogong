@@ -1,14 +1,8 @@
 import type { Message } from "@/components/seeker/chat-client";
+import { chatMessages } from "@/i18n/messages/chat";
 
-export const CHAT_REPORT_REASONS = {
-  harassment: "骚扰、辱骂或威胁",
-  fraud: "诈骗或虚假信息",
-  fees: "收取押金、介绍费或其他费用",
-  privacy: "泄露隐私或冒用身份",
-  discrimination: "歧视或不当招聘要求",
-  illegal: "其他违法或违规行为",
-  other: "其他问题",
-};
+/** Why someone reports a chat, in Chinese; a reader's own language comes from the chat dictionary. */
+export const CHAT_REPORT_REASONS = chatMessages.zh.reportReasons;
 export type ChatReportReason = keyof typeof CHAT_REPORT_REASONS;
 export type ChatReport = {
   id: string;

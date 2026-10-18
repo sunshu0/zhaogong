@@ -4,9 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { jobSummary, type JobSummary } from "@/app/[lang]/jobs/[id]/actions";
+import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { chatMessages } from "@/i18n/messages/chat";
 
 /** The job a conversation is about, fixed above the messages so both sides know which job they are discussing. */
 export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallbackTitle: string }) {
+  const t = useMessages(chatMessages).conversationJob;
   const [loaded, setLoaded] = useState<{ jobId: string; job: JobSummary | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -25,13 +29,15 @@ export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallb
   return (
     <Link
       href={`/jobs/${jobId}`}
-      aria-label={`聊的职位：${job?.title ?? fallbackTitle}${job ? `，${job.pay}` : ""}，查看职位详情`}
+      aria-label={job ? t.linkWithPay(job.title, job.pay) : t.link(fallbackTitle)}
       className="pressable-row flex min-h-11 shrink-0 items-center gap-2 border-b border-border px-4 py-2 text-body hover:bg-background lg:px-6"
     >
-      <span className="shrink-0 text-meta text-muted">职位</span>
-      <span className="min-w-0 truncate font-medium">{job?.title ?? fallbackTitle}</span>
+      <span className="shrink-0 text-meta text-muted">{t.label}</span>
+      <span lang={contentLang(job?.title ?? fallbackTitle)} className="min-w-0 truncate font-medium">
+        {job?.title ?? fallbackTitle}
+      </span>
       {job && <PayText pay={job.pay} />}
-      {job && !job.open && <span className="shrink-0 text-meta text-muted">已停止招聘</span>}
+      {job && !job.open && <span className="shrink-0 text-meta text-muted">{t.closed}</span>}
       <ChevronRight aria-hidden="true" className="ml-auto size-4 shrink-0 text-muted" />
     </Link>
   );

@@ -175,6 +175,8 @@ const employerPostZh = {
 
     paySection: "工资和福利",
     pay: "时薪",
+    /** The unit beside the pay boxes; `symbol` is the country's currency symbol. */
+    payUnit: (symbol: string) => `${symbol}/小时`,
     /** `country` is the country's name, `amount` the hourly minimum with its symbol, `from` the date it starts. */
     payHint: (country: string, amount: string, from: string) =>
       `${country}最低工资 ${amount}/小时（${from} 起）。只有一个数就只填左边。`,
@@ -476,6 +478,7 @@ export const employerPostMessages: Dictionary<typeof employerPostZh> = {
 
       paySection: "Pay and extras",
       pay: "Pay per hour",
+      payUnit: (symbol) => `${symbol} an hour`,
       payHint: (country, amount, from) =>
         `Adult minimum wage in ${country}: ${amount} an hour (from ${from}). If there is only one figure, fill in the left box only.`,
       meals: "Meals provided",

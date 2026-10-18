@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
 import { publishJob } from "@/app/[lang]/employer/actions";
-import { canCopy, canRepublish, closeDateZh } from "@/components/employer/job-status";
-import { PUBLISH_ERRORS } from "@/components/employer/post-flow-state";
+import { canCopy, canRepublish } from "@/components/employer/job-status";
+import { publishError } from "@/components/employer/post-flow-state";
 import { Published } from "@/components/employer/Published";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear } from "@/components/employer/use-draft-form";
@@ -18,6 +18,9 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 const BOX = "rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted";
 
@@ -56,6 +59,7 @@ function Load({
   country: CountryCode;
   mode: CopyMode;
 }) {
+  const t = useMessages(employerPostMessages).republish;
   const job = useMyJob(jobId, me.email);
   // The time the page opened decides whether the job may be published again; it stays fixed while the form is open.
   const [openedAt] = useState(() => Date.now());
@@ -65,13 +69,9 @@ function Load({
   if (!job || !allowed) {
     return (
       <div className={BOX}>
-        {!job
-          ? "找不到这个职位，或者它不属于你登录的店铺。"
-          : mode === "copy"
-            ? "下架的职位和还在审核的职位不能复制。"
-            : "只有截止超过 14 天的职位才需要重新发布。这个职位可以在职位管理里续期。"}
+        {!job ? t.notFound : mode === "copy" ? t.cannotCopy : t.cannotRepublish}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
-          回到职位管理
+          {t.backToJobs}
         </Link>
       </div>
     );
@@ -90,6 +90,8 @@ function RepublishForm({
   country: CountryCode;
   mode: CopyMode;
 }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).republish;
   const router = useRouter();
   const { profile } = useEmployerProfile(email);
   const { state, restored, startOver, finish } = useKeptJobForm(mode, job, email, country, profile);
@@ -105,7 +107,7 @@ function RepublishForm({
       if (result.ok) {
         finish();
         setPublished(result.job);
-      } else setError(PUBLISH_ERRORS[result.reason]);
+      } else setError(publishError(result.reason, lang));
       window.scrollTo({ top: 0 });
     });
   }
@@ -124,18 +126,12 @@ function RepublishForm({
   return (
     <div className="space-y-4 pb-24">
       <div>
-        <h1 className="text-title font-semibold">{mode === "copy" ? "复制为新职位" : "重新发布"}</h1>
-        {mode === "copy" ? (
-          <p className="mt-1 text-body text-muted">
-            用「{job.titleZh}
-            」的内容新建一条职位，改好后发布。新职位从零开始：没有原职位的申请人、续期和浏览数据；发布前照常检查。原来的职位不变。
-          </p>
-        ) : (
-          <p className="mt-1 text-body text-muted">
-            用「{job.titleZh}」（{closeDateZh(job.expiresAt)}
-            截止）的内容新建一条职位。发布前按现在的规则重新检查，例如最低工资；原来的职位保持已截止。
-          </p>
-        )}
+        <h1 className="text-title font-semibold">{mode === "copy" ? t.copyHeading : t.republishHeading}</h1>
+        <p className="mt-1 text-body text-muted">
+          {mode === "copy"
+            ? t.copyNote(job.titleZh)
+            : t.republishNote(job.titleZh, formatDate(job.expiresAt, lang, { month: "long", day: "numeric" }))}
+        </p>
       </div>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       {restored && <KeptChangesNote onStartOver={startOver} />}
@@ -146,17 +142,17 @@ function RepublishForm({
       <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">
           <Link href="/employer/jobs" className={BAR_TEXT_ACTION}>
-            取消
+            {t.cancel}
           </Link>
           <p className="flex-1 text-meta text-muted">
             {state.ready
               ? state.decision.status === "pending_review"
-                ? "发布后需要审核"
-                : "可以发布"
-              : holdReason(state.findings.length, state.missing.length)}
+                ? t.readyNeedsReview
+                : t.ready
+              : holdReason(state.findings.length, state.missing.length, lang)}
           </p>
           <Button size="lg" loading={pending} disabled={!state.ready} onClick={publish} className="px-6">
-            {pending ? "发布中…" : "发布"}
+            {pending ? t.publishing : t.publish}
           </Button>
         </div>
       </div>

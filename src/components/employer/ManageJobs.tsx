@@ -18,18 +18,22 @@ import { SkeletonList } from "@/components/ui/Skeleton";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { inputClass } from "@/components/ui/input-class";
 import { SEARCH_FROM, searchJobs } from "@/components/employer/job-search";
+import { useLang, useMessages } from "@/i18n/client";
+import { contentLang, type Lang } from "@/i18n/lang";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 type TabKey = "all" | Phase;
+type TabWord = keyof (typeof employerJobsMessages.zh)["manage"]["tabs"];
 
 /** One tab per phase (#69): each job is under exactly one, so the counts add up to 全部. */
-const TABS: { key: TabKey; label: string }[] = [
-  { key: "all", label: "全部" },
-  { key: "active", label: "招聘中" },
-  { key: "ending", label: "将截止" },
-  { key: "pending_review", label: "审核中" },
-  { key: "timed_out", label: "已截止" },
-  { key: "closed", label: "已结束" },
-  { key: "removed", label: "已下架" },
+const TABS: { key: TabKey; word: TabWord }[] = [
+  { key: "all", word: "all" },
+  { key: "active", word: "active" },
+  { key: "ending", word: "ending" },
+  { key: "pending_review", word: "pendingReview" },
+  { key: "timed_out", word: "timedOut" },
+  { key: "closed", word: "closed" },
+  { key: "removed", word: "removed" },
 ];
 
 /** The tab named in the address (`?tab=ending` from a closing reminder), else 全部. */
@@ -47,6 +51,8 @@ export function ManageJobs() {
 }
 
 function Manage({ me }: { me: EmployerIdentity }) {
+  const t = useMessages(employerJobsMessages);
+  const lang = useLang();
   const asked = useSearchParams().get("tab");
   const { ready, reload } = useMyJobs(me.email, { withPosters: true });
   const { profile } = useEmployerProfile(me.email);
@@ -60,18 +66,18 @@ function Manage({ me }: { me: EmployerIdentity }) {
   const searched = ready && searchable ? { ...ready, jobs: searchJobs(ready.jobs, query) } : ready;
 
   const done: JobChangeDone = (result, okText) => {
-    setNotice(noticeFor(result, okText));
+    setNotice(noticeFor(result, okText, t.manage.notice));
     reload();
   };
 
   return (
     <div className="space-y-4">
-      <ManageHeader name={employer?.name ?? me.employerName} employer={employer} />
+      <ManageHeader name={employer?.name ?? me.employerName} employer={employer} lang={lang} />
       {searchable && (
         <input
           type="search"
-          aria-label="搜索职位名称"
-          placeholder="搜索职位名称"
+          aria-label={t.manage.searchLabel}
+          placeholder={t.manage.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className={`${inputClass()} w-full sm:max-w-sm`}
@@ -79,42 +85,52 @@ function Manage({ me }: { me: EmployerIdentity }) {
       )}
       <StatusTabs ready={searched} value={tab} onChange={setTab} />
       {employer?.bannedAt && (
-        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
-          这个雇主账号已被停用，职位已全部下架，不能再发布。
-        </p>
+        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{t.manage.banned}</p>
       )}
       {notice && <NoticeLine notice={notice} noticeRef={noticeRef} />}
       <TabPanel idBase={TAB_ID_BASE} value={tab}>
-        <JobsInTab ready={searched} tab={tab} query={searchable ? query : ""} employer={employer} onDone={done} />
+        <JobsInTab
+          ready={searched}
+          tab={tab}
+          query={searchable ? query : ""}
+          employer={employer}
+          lang={lang}
+          onDone={done}
+        />
       </TabPanel>
     </div>
   );
 }
 
-function noticeFor(result: ChangeResult, okText: string): Notice {
-  return result.ok ? { ok: true, text: `${result.job.titleZh}：${okText}` } : { ok: false, text: result.error_zh };
+function noticeFor(result: ChangeResult, okText: string, notice: (title: string, text: string) => string): Notice {
+  // An error comes from the Server Function already worded (actions.ts): it is shown as it is.
+  return result.ok ? { ok: true, text: notice(result.job.titleZh, okText) } : { ok: false, text: result.error_zh };
 }
 
-function ManageHeader({ name, employer }: { name: string; employer?: Employer }) {
+function ManageHeader({ name, employer, lang }: { name: string; employer?: Employer; lang: Lang }) {
+  const t = useMessages(employerJobsMessages).manage;
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-      <h1 className="text-title font-semibold">职位管理</h1>
-      <span className="text-body">{name}</span>
-      {employer && <VerificationBadge verification={employer.verification} />}
+      <h1 className="text-title font-semibold">{t.heading}</h1>
+      <span lang={contentLang(name)} className="text-body">
+        {name}
+      </span>
+      {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
       <ButtonLink href="/employer/post" className="ml-auto">
-        发布新职位
+        {t.postNew}
       </ButtonLink>
     </div>
   );
 }
 
 function StatusTabs({ ready, value, onChange }: { ready?: Loaded; value: TabKey; onChange: (tab: TabKey) => void }) {
+  const words = useMessages(employerJobsMessages).manage;
   const counts = countByStatus(ready);
   return (
     <TabList
-      label="按状态"
+      label={words.tabsLabel}
       idBase={TAB_ID_BASE}
-      tabs={TABS.map((t) => ({ key: t.key, label: `${t.label} ${tabCount(t.key, ready, counts)}` }))}
+      tabs={TABS.map((t) => ({ key: t.key, label: `${words.tabs[t.word]} ${tabCount(t.key, ready, counts)}` }))}
       value={value}
       onChange={onChange}
       className={PILL_TABS}
@@ -152,6 +168,7 @@ function JobsInTab({
   tab,
   query,
   employer,
+  lang,
   onDone,
 }: {
   ready?: Loaded;
@@ -159,19 +176,23 @@ function JobsInTab({
   /** The search the jobs were narrowed by (#198), "" without one. */
   query: string;
   employer?: Employer;
+  lang: Lang;
   onDone: JobChangeDone;
 }) {
-  if (!ready) return <SkeletonList count={3} label="正在加载职位" />;
+  const t = useMessages(employerJobsMessages).manage;
+  if (!ready) return <SkeletonList count={3} label={t.loading} />;
 
   const shown = ready.jobs.filter((job: Job) => tab === "all" || jobPhase(job, ready.now) === tab);
   if (shown.length === 0) {
     return (
       <p className={`${APP_CARD} py-10 text-center text-body text-muted`}>
         {query.trim()
-          ? `${ready.jobs.length === 0 ? "" : "这个状态下"}没有名称里有「${query.trim()}」的职位。`
+          ? ready.jobs.length === 0
+            ? t.noMatch(query.trim())
+            : t.noMatchInTab(query.trim())
           : ready.jobs.length === 0
-            ? "还没有发布过职位。"
-            : "这个状态下没有职位。"}
+            ? t.noneYet
+            : t.noneInTab}
       </p>
     );
   }
@@ -187,7 +208,7 @@ function JobsInTab({
             numbers={ready.numbers[job.id] ?? NO_NUMBERS}
             renewals={ready.renewals[job.id]}
             applications={ready.applications[job.id]}
-            poster={posterLabel(ready.posters.posters[job.id], ready.posters.teamSize)}
+            poster={posterLabel(ready.posters.posters[job.id], ready.posters.teamSize, lang)}
             contactFrom={ready.posters.contactsFrom[job.id]}
             now={ready.now}
             onDone={onDone}

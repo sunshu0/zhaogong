@@ -3,17 +3,27 @@
 // that read the email from the session calls it (messages/server-notifications.ts). Server only.
 import { getAccount } from "@/lib/data";
 import { invitesFor } from "@/db/team";
-import { TEAM_ROLE_LABEL } from "@/components/employer/team";
+import { teamRoleLabel } from "@/components/employer/team";
 import { postedAgoZh } from "@/components/seeker/format";
 import type { Notification } from "@/components/seeker/hub-state";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerTeamMessages } from "@/i18n/messages/employer-team";
 
-export async function myTeamInviteNotifications(email: string, now: number): Promise<Notification[]> {
+export async function myTeamInviteNotifications(
+  email: string,
+  now: number,
+  lang: Lang = DEFAULT_LANG,
+): Promise<Notification[]> {
   if ((await getAccount(email))?.employerId) return [];
+  // Built when the hub is read, not when the invitation is written, so it is in the reader's language (ADR 0023).
+  const t = pick(employerTeamMessages, lang).teamNotifications;
+  const roles = teamRoleLabel(lang);
   return (await invitesFor(email)).reverse().map((invite) => ({
     id: `team-invite:${invite.id}`,
-    type: "团队",
-    title: `${invite.employerName} 邀请你加入团队`,
-    detail: `加入后做${TEAM_ROLE_LABEL[invite.role]}，用雇主身份为这家店发职位、回复聊天。在「我的」里接受或婉拒。`,
+    type: t.type,
+    title: t.title(invite.employerName),
+    detail: t.detail(roles[invite.role]),
     time: postedAgoZh(invite.createdAt, now),
     unread: true,
     target: { type: "team_invite" },

@@ -26,7 +26,7 @@ test("screen readers get the whole conversation, with the three problems and the
   await expect(transcript(page).first()).toContainText("助手：你好！");
   await expect(transcript(page).nth(1)).toContainText("雇主：奶茶店招兼职店员");
   const all = (await transcript(page).allTextContents()).join("\n");
-  for (const text of ["低于新西兰最低工资", "押金", "限华人", "雇主：24", "都齐了"]) expect(all).toContain(text);
+  for (const text of ["低于新西兰成人最低工资", "押金", "限华人", "雇主：24", "都齐了"]) expect(all).toContain(text);
   await expect(features(page).locator("[data-replay-log]")).toHaveAttribute("aria-hidden", "true");
 });
 

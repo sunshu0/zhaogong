@@ -19,6 +19,8 @@ import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { toast } from "@/components/ui/Toast";
 import { busyProps } from "@/components/ui/busy";
+import { useMessages } from "@/i18n/client";
+import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
 
 const inputClass = "w-full rounded-control border border-border bg-background px-3 text-body focus:border-brand";
 
@@ -37,6 +39,7 @@ export function InterviewInvite({
   interview: InterviewView | null;
   onChange: (interview: InterviewView) => void;
 }) {
+  const t = useMessages(employerApplicantsMessages).interviewInvite;
   // The earliest a time may be, worked out when the form opens (Auckland wall clock, for datetime-local).
   const [openAt, setOpenAt] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -58,7 +61,7 @@ export function InterviewInvite({
     setError("");
     const next = await cancelMyApplicantInterview(applicationId).catch(() => null);
     setPending(false);
-    if (!next) return setError("没有取消成功，请再试一次。");
+    if (!next) return setError(t.cancelFailed);
     onChange(next);
     refocus.current = true;
   }
@@ -66,10 +69,10 @@ export function InterviewInvite({
   return (
     <div className="mt-3 border-t border-border pt-3">
       {interview && (
-        <div role="status" aria-label={`和${name}的面试`} className="mb-2 text-body">
+        <div role="status" aria-label={t.statusLabel(name)} className="mb-2 text-body">
           <p className="font-medium">{employerInterviewStatus(interview)}</p>
           {live && interview.status !== "confirmed" && (
-            <p className="text-meta text-muted">给的时间：{whenText(interview)}</p>
+            <p className="text-meta text-muted">{t.timesGiven(whenText(interview))}</p>
           )}
         </div>
       )}
@@ -88,14 +91,14 @@ export function InterviewInvite({
             setError("");
             const result = await inviteMyApplicant(applicationId, invite).catch(() => ({
               ok: false as const,
-              error: "网络有问题，没有发出去，请再试一次。",
+              error: t.sendFailed,
             }));
             setPending(false);
             if (!result.ok) return setError(result.error);
             onChange(result.interview);
             setOpenAt(null);
             refocus.current = true;
-            toast("邀约已发出");
+            toast(t.sent);
           }}
         />
       ) : (
@@ -105,11 +108,11 @@ export function InterviewInvite({
             variant="secondary"
             onClick={() => setOpenAt(instantToAuckland(new Date().toISOString()))}
           >
-            {live ? "改时间" : "约面试"}
+            {live ? t.changeTimes : t.invite}
           </Button>
           {live && (
             <Button variant="link" onClick={() => void cancel()} {...busyProps(pending)}>
-              取消面试
+              {t.cancelInterview}
             </Button>
           )}
         </div>
@@ -144,6 +147,7 @@ function InviteForm({
     note: string;
   }) => void;
 }) {
+  const t = useMessages(employerApplicantsMessages).interviewInvite;
   const [callFirst, setCallFirst] = useState(initial?.callFirst ?? false);
   const [times, setTimes] = useState<string[]>(initial?.slots.length ? initial.slots.map(instantToAuckland) : [""]);
   const [mode, setMode] = useState<InterviewMode | "">(initial?.mode ?? "");
@@ -154,14 +158,14 @@ function InviteForm({
   function send() {
     const filled = callFirst ? [] : times.filter(Boolean);
     const slots = filled.map(aucklandToInstant);
-    if (slots.some((slot) => !slot)) return setProblem("有一个时间不完整，请把日期和时刻都选上");
+    if (slots.some((slot) => !slot)) return setProblem(t.incompleteTime);
     setProblem("");
     onSend({ slots: slots as string[], callFirst, mode: mode || null, place, note });
   }
 
   return (
     <form
-      aria-label={`约${name}面试`}
+      aria-label={t.formLabel(name)}
       className="space-y-3 rounded-card bg-background p-4"
       onSubmit={(event) => {
         event.preventDefault();
@@ -169,24 +173,22 @@ function InviteForm({
       }}
     >
       <fieldset>
-        <legend className="mb-1 text-body font-medium">面试时间</legend>
+        <legend className="mb-1 text-body font-medium">{t.timeLegend}</legend>
         <div className="flex flex-wrap gap-x-5 px-2">
           <Radio checked={!callFirst} onChange={() => setCallFirst(false)}>
-            给具体时间
+            {t.giveTimes}
           </Radio>
           <Radio checked={callFirst} onChange={() => setCallFirst(true)}>
-            电话联系后再定
+            {t.callFirst}
           </Radio>
         </div>
         {!callFirst && (
           <div className="mt-1 space-y-2">
-            <p className="text-meta text-muted">
-              奥克兰时间。想给几个就给几个，对方从里面选一个，或回一句自己方便的时间。
-            </p>
+            <p className="text-meta text-muted">{t.timesHint}</p>
             {times.map((time, i) => (
               <div key={i} className="flex items-center gap-2">
                 <label className="min-w-0 flex-1 text-body">
-                  <span className="sr-only">时间 {i + 1}</span>
+                  <span className="sr-only">{t.timeLabel(i + 1)}</span>
                   <input
                     type="datetime-local"
                     min={min}
@@ -198,18 +200,18 @@ function InviteForm({
                 {times.length > 1 && (
                   <button
                     type="button"
-                    aria-label={`删除时间 ${i + 1}`}
+                    aria-label={t.removeTimeLabel(i + 1)}
                     onClick={() => setTimes(times.filter((_, j) => j !== i))}
                     className="pressable min-h-11 px-2 text-meta text-muted hover:text-danger"
                   >
-                    删除
+                    {t.removeTime}
                   </button>
                 )}
               </div>
             ))}
             {times.length < SLOT_MAX && (
               <Button variant="link" onClick={() => setTimes([...times, ""])}>
-                再加一个时间
+                {t.addTime}
               </Button>
             )}
           </div>
@@ -218,8 +220,8 @@ function InviteForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <Select
           name="interview-mode"
-          label="面试方式（选填）"
-          placeholder="不填"
+          label={t.modeLabel}
+          placeholder={t.modePlaceholder}
           options={(Object.entries(INTERVIEW_MODES) as [InterviewMode, string][]).map(([value, label]) => ({
             value,
             label,
@@ -228,18 +230,18 @@ function InviteForm({
           onChange={(value) => setMode(value as InterviewMode | "")}
         />
         <label className="block text-body">
-          <span className="mb-1 block text-meta text-muted">地点或说明（选填）</span>
+          <span className="mb-1 block text-meta text-muted">{t.placeLabel}</span>
           <input
             value={place}
             maxLength={PLACE_MAX}
             onChange={(event) => setPlace(event.target.value)}
-            placeholder="例如：到店找经理"
+            placeholder={t.placePlaceholder}
             className={`${inputClass} h-11`}
           />
         </label>
       </div>
       <label className="block text-body">
-        <span className="mb-1 block text-meta text-muted">附言（选填）</span>
+        <span className="mb-1 block text-meta text-muted">{t.noteLabel}</span>
         <textarea
           rows={2}
           value={note}
@@ -248,7 +250,7 @@ function InviteForm({
           className={`${inputClass} py-2`}
         />
       </label>
-      <p className="text-meta text-muted">邀约里不带你的联系方式；要交换，在聊天里发起。</p>
+      <p className="text-meta text-muted">{t.noContactNote}</p>
       {problem && (
         <p role="alert" className="text-meta text-danger">
           {problem}
@@ -256,10 +258,10 @@ function InviteForm({
       )}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" loading={pending}>
-          {initial ? "发出新的邀约" : "发出邀约"}
+          {initial ? t.sendAgain : t.send}
         </Button>
         <Button variant="link" onClick={onCancel}>
-          收起
+          {t.collapse}
         </Button>
       </div>
     </form>

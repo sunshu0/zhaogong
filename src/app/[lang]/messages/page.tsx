@@ -2,13 +2,19 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { MessagesPage, WorkHubFrame } from "@/components/seeker/WorkHub";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { messages } from "@/i18n/server";
+import { chatMessages } from "@/i18n/messages/chat";
 
-export const metadata: Metadata = { title: "聊天", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await messages(chatMessages);
+  return { title: t.page.title, robots: { index: false } };
+}
 
-export default function Messages() {
+export default async function Messages() {
+  const t = await messages(chatMessages);
   return (
     <WorkHubFrame look="app">
-      <Suspense fallback={<SkeletonList count={3} label="加载聊天…" />}>
+      <Suspense fallback={<SkeletonList count={3} label={t.page.suspense} />}>
         <MessagesPage />
       </Suspense>
     </WorkHubFrame>

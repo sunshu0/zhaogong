@@ -7,14 +7,10 @@ import { noticeClass } from "@/components/employer/app-style";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useMyTeam } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
-import {
-  INVITE_DAYS,
-  TEAM_MAX,
-  TEAM_NAME_MAX,
-  TEAM_ROLE_LABEL,
-  teamSignature,
-  type TeamMember,
-} from "@/components/employer/team";
+import { INVITE_DAYS, TEAM_MAX, TEAM_NAME_MAX, teamSignature, type TeamMember } from "@/components/employer/team";
+import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { employerTeamMessages } from "@/i18n/messages/employer-team";
 import {
   cancelTeamInvite,
   changeMyTeam,
@@ -38,6 +34,9 @@ export function TeamPage() {
 }
 
 function Team({ me }: { me: EmployerIdentity }) {
+  const words = useMessages(employerTeamMessages);
+  const t = words.teamPage;
+  const roles = words.team.roleLabel;
   const { team, reload } = useMyTeam(me.email);
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
@@ -46,13 +45,13 @@ function Team({ me }: { me: EmployerIdentity }) {
   /** Runs one change on the server, says how it went, and reloads the team. */
   const run = (action: () => Promise<Done>, okText: string, after?: () => void) =>
     startTransition(async () => {
-      const result = await action().catch(() => ({ ok: false as const, error_zh: "网络有问题，请稍后再试。" }));
+      const result = await action().catch(() => ({ ok: false as const, error_zh: t.networkError }));
       setMessage(result.ok ? { ok: true, text: okText } : { ok: false, text: result.error_zh });
       if (result.ok) (after ?? reload)();
     });
 
-  if (team === undefined) return <SkeletonList count={2} label="正在读取团队" />;
-  if (team === null) return <p className="text-body">需要先开通雇主身份。</p>;
+  if (team === undefined) return <SkeletonList count={2} label={t.loading} />;
+  if (team === null) return <p className="text-body">{t.noEmployerRole}</p>;
   const isAdmin = team.me.role === "admin";
 
   // The server has closed the employer identity. A full load of 我的 reads the session afresh (syncWithServer runs
@@ -60,18 +59,15 @@ function Team({ me }: { me: EmployerIdentity }) {
   const leave = () =>
     run(
       () => changeMyTeam({ type: "leave" }),
-      "你已退出团队。",
+      t.left,
       () => window.location.assign(new URL("/account", window.location.origin)),
     );
 
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-title font-semibold">团队</h1>
-        <p className="text-body text-muted">
-          {team.employer.name} 的团队，最多 {TEAM_MAX}{" "}
-          人。成员可以发职位、管理职位、处理申请和回复聊天；管理员还能管理团队和申请企业验证。
-        </p>
+        <h1 className="text-title font-semibold">{t.title}</h1>
+        <p className="text-body text-muted">{t.intro(team.employer.name, TEAM_MAX)}</p>
       </header>
 
       {message && (
@@ -84,12 +80,12 @@ function Team({ me }: { me: EmployerIdentity }) {
         key={team.me.name ?? ""}
         team={team}
         disabled={pending}
-        onSave={(name) => run(() => setMyTeamName(name), "称呼已保存。")}
+        onSave={(name) => run(() => setMyTeamName(name), t.nameSaved)}
       />
 
       <section aria-labelledby="team-members" className="space-y-2">
         <h2 id="team-members" className="font-semibold">
-          成员（{team.members.length}）
+          {t.membersHeading(team.members.length)}
         </h2>
         <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
           {team.members.map((member) => (
@@ -102,14 +98,11 @@ function Team({ me }: { me: EmployerIdentity }) {
               onRole={(role) =>
                 run(
                   () => changeMyTeam({ type: "role", email: member.email, role }),
-                  `已把 ${member.name ?? member.email} 设为${TEAM_ROLE_LABEL[role]}。`,
+                  t.roleChanged(member.name ?? member.email, roles[role]),
                 )
               }
               onRemove={() =>
-                run(
-                  () => changeMyTeam({ type: "remove", email: member.email }),
-                  `已把 ${member.name ?? member.email} 移出团队。`,
-                )
+                run(() => changeMyTeam({ type: "remove", email: member.email }), t.removed(member.name ?? member.email))
               }
               onLeave={leave}
             />
@@ -121,10 +114,8 @@ function Team({ me }: { me: EmployerIdentity }) {
         <Invite
           team={team}
           disabled={pending}
-          onInvite={(email, role) =>
-            run(() => inviteTeammate(email, role), `已邀请 ${email}，对方在「我的」里接受后加入。`)
-          }
-          onCancel={(id) => run(() => cancelTeamInvite(id), "邀请已撤回。")}
+          onInvite={(email, role) => run(() => inviteTeammate(email, role), t.invited(email))}
+          onCancel={(id) => run(() => cancelTeamInvite(id), t.inviteCancelled)}
         />
       )}
     </div>
@@ -132,6 +123,7 @@ function Team({ me }: { me: EmployerIdentity }) {
 }
 
 function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; onSave: (name: string) => void }) {
+  const t = useMessages(employerTeamMessages).teamPage.myName;
   const [name, setName] = useState(team.me.name ?? "");
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -144,17 +136,15 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
       className="space-y-2 rounded-card bg-surface p-4 shadow-card"
     >
       <h2 id="team-my-name" className="font-semibold">
-        我的称呼
+        {t.heading}
       </h2>
-      <p className="text-meta text-muted">
-        团队里的人在聊天里能看到每条回复是谁发的，例如「{teamSignature(team.employer.name, name.trim() || "王经理")}」。
-      </p>
+      <p className="text-meta text-muted">{t.hint(teamSignature(team.employer.name, name.trim() || t.exampleName))}</p>
       <label className="block space-y-1 text-body">
-        <span>称呼（最多 {TEAM_NAME_MAX} 个字）</span>
+        <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
         <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} maxLength={TEAM_NAME_MAX} />
       </label>
       <Button type="submit" variant="secondary" {...busyProps(disabled)}>
-        保存称呼
+        {t.save}
       </Button>
     </form>
   );
@@ -177,16 +167,19 @@ function MemberRow({
   onRemove: () => void;
   onLeave: () => void;
 }) {
+  const words = useMessages(employerTeamMessages);
+  const t = words.teamPage.member;
+  const role = words.team.roleLabel[member.role];
   const [confirming, setConfirming] = useState(false);
-  const label = member.name ?? "（还没有称呼）";
+  const label = member.name ?? t.noName;
   return (
-    <li aria-label={`${label}，${TEAM_ROLE_LABEL[member.role]}`} className="space-y-2 px-4 py-3">
+    <li aria-label={t.rowLabel(label, role)} className="space-y-2 px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-medium">
-          {label}
-          {mine && <span className="text-muted">（你）</span>}
+          <span lang={contentLang(member.name)}>{label}</span>
+          {mine && <span className="text-muted">{t.you}</span>}
         </p>
-        <span className="text-meta text-muted">{TEAM_ROLE_LABEL[member.role]}</span>
+        <span className="text-meta text-muted">{role}</span>
       </div>
       <p className="text-meta break-all text-muted">{member.email}</p>
       {confirming ? (
@@ -200,10 +193,10 @@ function MemberRow({
               else onRemove();
             }}
           >
-            {mine ? "确认退出" : "确认移除"}
+            {mine ? t.confirmLeave : t.confirmRemove}
           </Button>
           <Button variant="link" onClick={() => setConfirming(false)}>
-            取消
+            {t.cancel}
           </Button>
         </div>
       ) : (
@@ -214,17 +207,17 @@ function MemberRow({
               disabled={disabled}
               onClick={() => onRole(member.role === "admin" ? "member" : "admin")}
             >
-              {member.role === "admin" ? "改为成员" : "设为管理员"}
+              {member.role === "admin" ? t.makeMember : t.makeAdmin}
             </Button>
           )}
           {isAdmin && mine && member.role === "admin" && (
             <Button variant="link" onClick={() => onRole("member")} {...busyProps(disabled)}>
-              改为成员
+              {t.makeMember}
             </Button>
           )}
           {(mine || isAdmin) && (
             <Button variant="link" onClick={() => setConfirming(true)} {...busyProps(disabled)}>
-              {mine ? "退出团队" : "移出团队"}
+              {mine ? t.leave : t.remove}
             </Button>
           )}
         </div>
@@ -244,6 +237,9 @@ function Invite({
   onInvite: (email: string, role: TeamMember["role"]) => void;
   onCancel: (id: string) => void;
 }) {
+  const words = useMessages(employerTeamMessages);
+  const t = words.teamPage.invite;
+  const roles = words.team.roleLabel;
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamMember["role"]>("member");
   const submit = (event: FormEvent) => {
@@ -254,14 +250,12 @@ function Invite({
   return (
     <section aria-labelledby="team-invite" className="space-y-3">
       <h2 id="team-invite" className="font-semibold">
-        邀请成员
+        {t.heading}
       </h2>
       <form onSubmit={submit} className="space-y-2 rounded-card bg-surface p-4 shadow-card">
-        <p className="text-meta text-muted">
-          对方要先用这个邮箱登录过找工，并且还没有自己的企业。对方在「我的」里接受后加入。
-        </p>
+        <p className="text-meta text-muted">{t.hint}</p>
         <label className="block space-y-1 text-body">
-          <span>对方的邮箱</span>
+          <span>{t.emailLabel}</span>
           <input
             className={INPUT}
             type="email"
@@ -272,34 +266,32 @@ function Invite({
           />
         </label>
         <fieldset className="flex flex-wrap gap-x-5 px-2 text-body">
-          <legend className="-ml-2 mb-1">身份</legend>
+          <legend className="-ml-2 mb-1">{t.roleLegend}</legend>
           {(["member", "admin"] as const).map((r) => (
             <Radio key={r} name="team-role" checked={role === r} onChange={() => setRole(r)}>
-              {TEAM_ROLE_LABEL[r]}
+              {roles[r]}
             </Radio>
           ))}
         </fieldset>
         <Button type="submit" disabled={!email.trim()} {...busyProps(disabled)}>
-          发送邀请
+          {t.send}
         </Button>
       </form>
       {team.invites.length > 0 && (
         <section aria-labelledby="team-pending" className="space-y-2">
           <h3 id="team-pending" className="text-body font-medium">
-            等对方回复
+            {t.pendingHeading}
           </h3>
           <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
             {team.invites.map((invite) => (
               <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span className="text-body break-all">
-                  {invite.email} · {TEAM_ROLE_LABEL[invite.role]}
+                  {t.pendingRow(invite.email, roles[invite.role])}
                   {/* #194: 14 days without an answer; it holds no place and cannot be accepted. */}
-                  {invite.expired && (
-                    <span className="ml-2 text-meta text-muted">已过期（{INVITE_DAYS} 天没回复，可以再邀请）</span>
-                  )}
+                  {invite.expired && <span className="ml-2 text-meta text-muted">{t.expired(INVITE_DAYS)}</span>}
                 </span>
                 <Button variant="link" onClick={() => onCancel(invite.id)} {...busyProps(disabled)}>
-                  撤回邀请
+                  {t.cancel}
                 </Button>
               </li>
             ))}

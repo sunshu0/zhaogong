@@ -4,7 +4,11 @@ import { useState, type FormEvent } from "react";
 import { Flag } from "lucide-react";
 import { useChat, type Conversation } from "@/components/seeker/chat-client";
 import { useSession } from "@/components/seeker/session-client";
-import { CHAT_REPORT_REASONS, type ChatReportReason } from "@/lib/chat-report";
+import type { ChatReportReason } from "@/lib/chat-report";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { contentLang } from "@/i18n/lang";
+import { chatMessages } from "@/i18n/messages/chat";
 import { ChatDialog, CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -25,13 +29,14 @@ export function ChatReportButton({
   reason?: ChatReportReason;
   label?: string;
 }) {
+  const t = useMessages(chatMessages).report;
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type="button"
-        aria-label={label ? undefined : "举报聊天"}
-        title={label ? undefined : "举报聊天对方"}
+        aria-label={label ? undefined : t.buttonLabel}
+        title={label ? undefined : t.buttonTitle}
         onClick={() => setOpen(true)}
         className={
           label
@@ -65,6 +70,9 @@ export function ChatReportDialog({
   reason?: ChatReportReason;
   onClose: () => void;
 }) {
+  const words = useMessages(chatMessages);
+  const t = words.report;
+  const lang = useLang();
   const { messages, reports, reportConversation } = useChat();
   const isEmployer = useSession()?.activeRole === "employer";
   const [sent, setSent] = useState(false);
@@ -76,35 +84,33 @@ export function ChatReportDialog({
   const thread = messages[conversation.id] ?? [];
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!reason) return setError("请选择举报原因");
-    if (reason === "other" && !note.trim()) return setError("请补充说明具体问题");
+    if (!reason) return setError(t.noReason);
+    if (reason === "other" && !note.trim()) return setError(t.noNote);
     const ok = reportConversation(conversation.id, reason, note, range === "" ? undefined : Number(range));
-    if (!ok) return setError("举报未保存，请重试");
+    if (!ok) return setError(t.notSaved);
     setSent(true);
-    toast("举报已记录");
+    toast(t.toast);
   }
   return (
-    <ChatDialog title="举报聊天对方" onClose={onClose}>
+    <ChatDialog title={t.dialogTitle} onClose={onClose}>
       {sent ? (
         <div className="space-y-3">
           <p role="status" className="font-medium text-ok">
-            举报已记录
+            {t.sentTitle}
           </p>
-          <p className="text-body text-muted">前端演示：举报及聊天证据已保存到本机，尚未送交平台处理；不会通知对方。</p>
+          <p className="text-body text-muted">{t.sentNote}</p>
           <button type="button" className={CHAT_COMMAND_CLASS} onClick={onClose}>
-            关闭
+            {t.close}
           </button>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4" noValidate>
-          <p className="text-body">
-            举报对象：{conversation.person} · {isEmployer ? "求职者" : "雇主"}
-          </p>
+          <p className="text-body">{t.target(conversation.person, isEmployer ? t.roleSeeker : t.roleEmployer)}</p>
           <Select
             name="report-reason"
-            label="举报原因"
-            placeholder="请选择"
-            options={Object.entries(CHAT_REPORT_REASONS).map(([value, label]) => ({ value, label }))}
+            label={t.reasonLabel}
+            placeholder={t.reasonPlaceholder}
+            options={Object.entries(words.reportReasons).map(([value, label]) => ({ value, label }))}
             defaultValue={reason}
             onChange={(value) => {
               setReason(value as ChatReportReason | "");
@@ -113,23 +119,26 @@ export function ChatReportDialog({
           />
           <Select
             name="report-range"
-            label="举报范围"
-            placeholder="整段聊天（最近 100 条）"
+            label={t.rangeLabel}
+            placeholder={t.rangePlaceholder}
             options={thread.flatMap((message, index) =>
               message.from === "them"
-                ? [{ value: String(index), label: `${index + 1}. ${message.text.slice(0, 60)}` }]
+                ? [{ value: String(index), label: t.messageOption(index + 1, message.text.slice(0, 60)) }]
                 : [],
             )}
             defaultValue={range}
             onChange={setRange}
           />
           {range !== "" && (
-            <p className="rounded-control bg-background px-3 py-2 text-body break-words whitespace-pre-line text-muted">
+            <p
+              lang={contentLang(thread[Number(range)]?.text)}
+              className="rounded-control bg-background px-3 py-2 text-body break-words whitespace-pre-line text-muted"
+            >
               {thread[Number(range)]?.text}
             </p>
           )}
           <label className="block space-y-1 text-body">
-            <span className="block text-meta text-muted">补充说明{reason === "other" ? "（必填）" : "（选填）"}</span>
+            <span className="block text-meta text-muted">{reason === "other" ? t.noteRequired : t.noteOptional}</span>
             <textarea
               rows={3}
               maxLength={1000}
@@ -138,7 +147,7 @@ export function ChatReportDialog({
               className="w-full resize-y rounded-control border border-border bg-surface px-3 py-2 text-base focus:border-brand"
             />
           </label>
-          <p className="text-meta text-muted">举报会附带所选聊天内容，仅用于处理举报。前端演示记录保存在本机。</p>
+          <p className="text-meta text-muted">{t.evidenceNote}</p>
           {error && (
             <p role="alert" className="text-body text-danger">
               {error}
@@ -146,21 +155,22 @@ export function ChatReportDialog({
           )}
           <div className="flex justify-end gap-2">
             <button type="button" className={CHAT_COMMAND_CLASS} onClick={onClose}>
-              取消
+              {t.cancel}
             </button>
             <Button type="submit" variant="danger">
-              提交举报
+              {t.submit}
             </Button>
           </div>
           {history.length > 0 && (
             <details className="border-t border-border pt-3">
-              <summary className="cursor-pointer text-sm text-muted">本机举报记录（{history.length}）</summary>
+              <summary className="cursor-pointer text-sm text-muted">{t.history(history.length)}</summary>
               <ul className="mt-3 space-y-3">
                 {history.map((report) => (
                   <li key={report.id} className="text-sm">
-                    <p>{CHAT_REPORT_REASONS[report.reason]}</p>
+                    <p>{words.reportReasons[report.reason]}</p>
                     <p className="mt-1 break-words text-xs text-muted">
-                      {report.note || "未补充说明"} · {new Date(report.createdAt).toLocaleDateString("zh-CN")}
+                      <span lang={contentLang(report.note)}>{report.note || t.noExtraNote}</span> ·{" "}
+                      {formatDate(report.createdAt, lang, { year: "numeric", month: "numeric", day: "numeric" })}
                     </p>
                   </li>
                 ))}

@@ -1,17 +1,29 @@
 // Status and expiry of an employer's own jobs. Jobs run 30 days from posting or the last refresh, longer once renewed.
+// Round 20 (ADR 0023): the wording comes from the employer-jobs dictionary. Every function that builds text takes a
+// trailing `lang`, Chinese by default, so callers that have no language yet keep the text they had.
+import { formatDate } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 import type { Job } from "@/lib/types";
 
 const DAY_MS = 86_400_000;
+
+const words = (lang: Lang) => pick(employerJobsMessages, lang).status;
 
 export const JOB_LIFETIME_DAYS = 30;
 
 export type ShownStatus = Job["status"];
 
-export const STATUS_LABELS: Record<ShownStatus, { zh: string; className: string }> = {
-  active: { zh: "招聘中", className: "border-ok/40 text-ok" },
-  pending_review: { zh: "审核中", className: "border-warn/40 text-warn" },
-  expired: { zh: "已结束", className: "border-muted/40 text-muted" },
-  removed: { zh: "已下架", className: "border-danger text-danger" },
+/** Which word of `status.tag` a tag shows. */
+export type StatusTagKey = "active" | "pendingReview" | "expired" | "removed" | "ending" | "timedOut";
+
+/** A status as a tag: the dictionary key for its word, and the colour that says the status. */
+export const STATUS_LABELS: Record<ShownStatus, { key: StatusTagKey; className: string }> = {
+  active: { key: "active", className: "border-ok/40 text-ok" },
+  pending_review: { key: "pendingReview", className: "border-warn/40 text-warn" },
+  expired: { key: "expired", className: "border-muted/40 text-muted" },
+  removed: { key: "removed", className: "border-danger text-danger" },
 };
 
 /** An active job whose 30 days are up shows as expired, whatever is stored. */
@@ -24,18 +36,20 @@ export function daysLeft(job: Pick<Job, "expiresAt">, now: number): number {
 }
 
 /** 「N 天后截止」for a live job; for an ended one, how long it may still be renewed (#69). */
-export function expiryLabelZh(job: Pick<Job, "status" | "expiresAt">, now: number): string {
+export function expiryLabelZh(job: Pick<Job, "status" | "expiresAt">, now: number, lang: Lang = DEFAULT_LANG): string {
+  const t = words(lang);
   const status = effectiveStatus(job, now);
-  if (status === "pending_review") return `审核通过后开始计算 ${JOB_LIFETIME_DAYS} 天`;
-  if (status === "active") return untilCloseZh(job, now);
-  if (status === "removed") return STATUS_LABELS.removed.zh;
+  if (status === "pending_review") return t.expiry.pendingReview(JOB_LIFETIME_DAYS);
+  if (status === "active") return untilCloseZh(job, now, lang);
+  if (status === "removed") return t.tag.removed;
   const left = renewDaysLeft(job, now);
-  return left > 0 ? `还可以续期 ${left} 天` : "已不能续期";
+  return left > 0 ? t.expiry.renewableFor(left) : t.expiry.noLongerRenewable;
 }
 
 /** 「今天截止」or 「N 天后截止」. */
-export function untilCloseZh(job: Pick<Job, "expiresAt">, now: number): string {
-  return Date.parse(job.expiresAt) - now < DAY_MS ? "今天截止" : `${daysLeft(job, now)} 天后截止`;
+export function untilCloseZh(job: Pick<Job, "expiresAt">, now: number, lang: Lang = DEFAULT_LANG): string {
+  const t = words(lang).expiry;
+  return Date.parse(job.expiresAt) - now < DAY_MS ? t.closesToday : t.closesInDays(daysLeft(job, now));
 }
 
 type Dated = Pick<Job, "status" | "postedAt" | "expiresAt">;
@@ -57,12 +71,17 @@ export const REFRESH_EVERY_MS = DAY_MS;
  * Refresh puts a live job back on top, at most once a day, with at least 30 days to run. An ended job is renewed
  * or published again instead (#69), so refresh no longer reopens one.
  */
-export function refreshState(job: Dated, now: number): { allowed: boolean; reason_zh?: string } {
+export function refreshState(
+  job: Dated,
+  now: number,
+  lang: Lang = DEFAULT_LANG,
+): { allowed: boolean; reason_zh?: string } {
+  const t = words(lang).refresh;
   const status = effectiveStatus(job, now);
-  if (status === "removed") return { allowed: false, reason_zh: "已被下架" };
-  if (status === "pending_review") return { allowed: false, reason_zh: "审核通过后才能刷新" };
-  if (status === "expired") return { allowed: false, reason_zh: "已截止，不能刷新" };
-  if (now - Date.parse(job.postedAt) < REFRESH_EVERY_MS) return { allowed: false, reason_zh: "今天已刷新过" };
+  if (status === "removed") return { allowed: false, reason_zh: t.removed };
+  if (status === "pending_review") return { allowed: false, reason_zh: t.pendingReview };
+  if (status === "expired") return { allowed: false, reason_zh: t.expired };
+  if (now - Date.parse(job.postedAt) < REFRESH_EVERY_MS) return { allowed: false, reason_zh: t.today };
   return { allowed: true };
 }
 
@@ -93,11 +112,11 @@ export const LATEST_CLOSE_DAYS = 90;
  */
 export type Phase = "active" | "ending" | "pending_review" | "timed_out" | "closed" | "removed";
 
-export const PHASE_LABELS: Record<Phase, { zh: string; className: string }> = {
+export const PHASE_LABELS: Record<Phase, { key: StatusTagKey; className: string }> = {
   active: STATUS_LABELS.active,
-  ending: { zh: "将截止", className: "border-warn/40 text-warn" },
+  ending: { key: "ending", className: "border-warn/40 text-warn" },
   pending_review: STATUS_LABELS.pending_review,
-  timed_out: { zh: "已截止", className: "border-muted/40 text-muted" },
+  timed_out: { key: "timedOut", className: "border-muted/40 text-muted" },
   closed: STATUS_LABELS.expired,
   removed: STATUS_LABELS.removed,
 };
@@ -132,19 +151,19 @@ export type RenewState =
  * or up to 14 days after (also after the employer ended it). A choice that would close it more than 90 days from
  * now is not offered.
  */
-export function renewState(job: Pick<Job, "status" | "expiresAt">, now: number): RenewState {
+export function renewState(job: Pick<Job, "status" | "expiresAt">, now: number, lang: Lang = DEFAULT_LANG): RenewState {
+  const t = words(lang).renew;
   const status = effectiveStatus(job, now);
-  if (status === "removed") return { allowed: false, reason_zh: "已被下架" };
-  if (status === "pending_review") return { allowed: false, reason_zh: "审核通过后才能续期" };
+  if (status === "removed") return { allowed: false, reason_zh: t.removed };
+  if (status === "pending_review") return { allowed: false, reason_zh: t.pendingReview };
   if (status === "expired" && renewDaysLeft(job, now) === 0)
-    return { allowed: false, reason_zh: `截止超过 ${RENEW_WITHIN_DAYS} 天，不能续期`, republish: true };
+    return { allowed: false, reason_zh: t.tooLate(RENEW_WITHIN_DAYS), republish: true };
   const latest = now + LATEST_CLOSE_DAYS * DAY_MS;
   const choices = RENEW_CHOICES.map((days) => {
     const expiresAt = renewedExpiry(job, now, days);
     return { days, expiresAt, allowed: Date.parse(expiresAt) <= latest };
   });
-  if (!choices.some((c) => c.allowed))
-    return { allowed: false, reason_zh: `截止日最远到 ${LATEST_CLOSE_DAYS} 天后，现在不用续期` };
+  if (!choices.some((c) => c.allowed)) return { allowed: false, reason_zh: t.farEnough(LATEST_CLOSE_DAYS) };
   return { allowed: true, choices };
 }
 
@@ -162,9 +181,7 @@ export function canRepublish(job: Pick<Job, "status" | "expiresAt">, now: number
   return !state.allowed && state.republish === true;
 }
 
-const nzMonthDay = new Intl.DateTimeFormat("zh-CN", { timeZone: "Pacific/Auckland", month: "long", day: "numeric" });
-
-/** 「11月17日」: a closing date as the day it is in New Zealand. */
-export function closeDateZh(iso: string): string {
-  return nzMonthDay.format(new Date(iso));
+/** 「11月17日」/「17 Nov」: a closing date as the day it is in New Zealand. */
+export function closeDateZh(iso: string, lang: Lang = DEFAULT_LANG): string {
+  return formatDate(iso, lang, { month: "short", day: "numeric" });
 }

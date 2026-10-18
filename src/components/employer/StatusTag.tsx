@@ -1,4 +1,13 @@
-import { PHASE_LABELS, STATUS_LABELS, type Phase, type ShownStatus } from "@/components/employer/job-status";
+"use client";
+import {
+  PHASE_LABELS,
+  STATUS_LABELS,
+  type Phase,
+  type ShownStatus,
+  type StatusTagKey,
+} from "@/components/employer/job-status";
+import { useMessages } from "@/i18n/client";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 /** A job's status as a thin-bordered tag, shaped like the ui Tag (Round 13); the colour says the status. */
 export function StatusTag({ status }: { status: ShownStatus }) {
@@ -10,12 +19,13 @@ export function PhaseTag({ phase }: { phase: Phase }) {
   return <LabelTag label={PHASE_LABELS[phase]} />;
 }
 
-function LabelTag({ label }: { label: { zh: string; className: string } }) {
+function LabelTag({ label }: { label: { key: StatusTagKey; className: string } }) {
+  const tag = useMessages(employerJobsMessages).status.tag;
   return (
     <span
       className={`inline-flex w-fit shrink-0 items-center rounded-sm border bg-surface px-1.5 py-[3px] text-meta leading-none ${label.className}`}
     >
-      {label.zh}
+      {tag[label.key]}
     </span>
   );
 }

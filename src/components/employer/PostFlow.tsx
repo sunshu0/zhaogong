@@ -13,6 +13,8 @@ import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { noticeClass } from "@/components/employer/app-style";
 import { RetryBoundary } from "@/components/seeker/RetryBoundary";
+import { useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { crashForTests } from "@/lib/test-crash";
 
 /** /employer/post: the employer identity first, then the chat or the form. */
@@ -21,6 +23,7 @@ export function PostFlow({ country }: { country: CountryCode }) {
 }
 
 function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }) {
+  const t = useMessages(employerPostMessages).postFlow;
   const posting = usePosting(me.email, country);
   const heading = useFocusOnChange<HTMLHeadingElement>(posting.step);
 
@@ -54,14 +57,14 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
       )}
       {posting.restored && (
         <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
-          接着上次没写完的继续（草稿只存在这个标签页里）。
+          {t.restored}
           <button type="button" onClick={posting.startOver} className="pressable min-h-11 underline">
-            清空重来
+            {t.startOver}
           </button>
         </p>
       )}
       {/* #178: a step that fails shows 重试 in its place; the posting state is up here, so nothing typed is lost. */}
-      <RetryBoundary title="这一步没显示出来" note="你填的内容还在，点重试接着填。">
+      <RetryBoundary title={t.stepFailedTitle} note={t.stepFailedNote}>
         <CurrentStep view={view} />
         <StepBar view={view} />
       </RetryBoundary>

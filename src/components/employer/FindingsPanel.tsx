@@ -1,34 +1,38 @@
+"use client";
+import { useLang, useMessages } from "@/i18n/client";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 import type { RequiredField } from "@/lib/ai-post";
 import type { Finding, FindingLevel, JobDraft } from "@/lib/compliance";
 
-export const FIELD_LABELS: Partial<Record<keyof JobDraft, string>> = {
-  titleZh: "中文职位名称",
-  titleEn: "英文职位名称",
-  industry: "行业",
-  employmentType: "工作类型",
-  regionId: "地区",
-  address: "地址",
-  pay: "时薪",
-  hoursPerWeek: "每周工时",
-  shiftsZh: "班次",
-  visaAccepted: "可接受的签证",
-  languages: "语言要求",
-  descriptionZh: "中文描述",
-  descriptionEn: "英文描述",
-  contact: "联系方式",
+/** The fields a finding can point at, in Chinese (the moderation queue's language). */
+export const FIELD_LABELS: Partial<Record<keyof JobDraft, string>> = employerPostMessages.zh.findings.fields;
+
+export const LEVEL_STYLES: Record<FindingLevel, { className: string }> = {
+  block: { className: "bg-danger-soft text-danger" },
+  rewrite: { className: "bg-warn-soft text-warn" },
+  review: { className: "bg-brand-soft text-brand" },
 };
 
-export const LEVEL_STYLES: Record<FindingLevel, { label: string; className: string }> = {
-  block: { label: "不能发布", className: "bg-danger-soft text-danger" },
-  rewrite: { label: "请改写", className: "bg-warn-soft text-warn" },
-  review: { label: "需审核", className: "bg-brand-soft text-brand" },
+const levelLabel = (level: FindingLevel, lang: Lang): string => {
+  const t = pick(employerPostMessages, lang).findings;
+  return level === "block" ? t.levelBlock : level === "rewrite" ? t.levelRewrite : t.levelReview;
 };
 
-export function FindingItem({ finding }: { finding: Finding }) {
+/**
+ * One finding: how serious it is, then what the checks said. The message itself comes from the rules
+ * (lib/compliance) and is Chinese; the moderation queue renders this without a language and keeps Chinese.
+ */
+export function FindingItem({ finding, lang = DEFAULT_LANG }: { finding: Finding; lang?: Lang }) {
   const style = LEVEL_STYLES[finding.level];
+  const suffix = pick(employerPostMessages, lang).findings.levelSuffix;
   return (
     <p className={`rounded-control px-3 py-2 text-body leading-relaxed ${style.className}`}>
-      <span className="font-medium">{style.label}：</span>
+      <span className="font-medium">
+        {levelLabel(finding.level, lang)}
+        {suffix}
+      </span>
       {finding.message_zh}
     </p>
   );
@@ -36,35 +40,42 @@ export function FindingItem({ finding }: { finding: Finding }) {
 
 /** Everything that holds the draft, with links to the fields. */
 export function FindingsPanel({ findings, missing }: { findings: Finding[]; missing: RequiredField[] }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).findings;
+  const labels = t.fields as Partial<Record<keyof JobDraft, string>>;
   const clean = findings.length === 0 && missing.length === 0;
   return (
     <section className="rounded-card bg-surface p-4 shadow-card">
-      <h2 className="font-medium">发布前检查</h2>
+      <h2 className="font-medium">{t.title}</h2>
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {clean
-          ? "发布前检查：没有发现问题"
-          : `发布前检查：${[findings.length && `${findings.length} 个问题`, missing.length && `${missing.length} 项没填`].filter(Boolean).join("，")}`}
+          ? t.clean
+          : t.summary(
+              [findings.length && t.problemCount(findings.length), missing.length && t.missingCount(missing.length)]
+                .filter(Boolean)
+                .join(t.summaryJoin),
+            )}
       </p>
       {clean ? (
-        <p className="mt-2 rounded-control bg-ok-soft px-3 py-2 text-body text-ok">没有发现问题，可以预览发布。</p>
+        <p className="mt-2 rounded-control bg-ok-soft px-3 py-2 text-body text-ok">{t.cleanNote}</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {findings.map((f, i) => (
             <li key={`${f.rule}-${f.field}-${i}`}>
               <a href={`#field-${f.field}`} className="pressable block">
-                <span className="mb-1 block text-meta text-muted">{FIELD_LABELS[f.field] ?? f.field}</span>
-                <FindingItem finding={f} />
+                <span className="mb-1 block text-meta text-muted">{labels[f.field] ?? f.field}</span>
+                <FindingItem finding={f} lang={lang} />
               </a>
             </li>
           ))}
           {missing.length > 0 && (
             <li className="rounded-control bg-warn-soft/60 px-3 py-2 text-body">
-              <span className="font-medium text-warn">还没填：</span>
+              <span className="font-medium text-warn">{t.missingLead}</span>
               {missing.map((field, i) => (
                 <span key={field}>
-                  {i > 0 && "、"}
+                  {i > 0 && t.missingJoin}
                   <a href={`#field-${field}`} className="underline">
-                    {FIELD_LABELS[field]}
+                    {labels[field]}
                   </a>
                 </span>
               ))}
@@ -72,9 +83,7 @@ export function FindingsPanel({ findings, missing }: { findings: Finding[]; miss
           )}
         </ul>
       )}
-      <p className="mt-3 text-meta text-muted">
-        检查最低工资和违规用词：收费、卖签证、按种族或国籍招人不能发布；部分行业要人工审核。
-      </p>
+      <p className="mt-3 text-meta text-muted">{t.footer}</p>
     </section>
   );
 }

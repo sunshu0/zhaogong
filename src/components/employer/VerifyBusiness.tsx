@@ -8,20 +8,19 @@ import type { RegisterEntry } from "@/components/employer/business-register";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useEmployerProfile, useMyTeam, useMyVerification } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
-import { canApplyFor, KIND_LABELS, REJECT_REASONS, type VerifyKind } from "@/components/employer/verification";
+import { canApplyFor, kindLabels, rejectReasons, type VerifyKind } from "@/components/employer/verification";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { BACK_LINK, noticeClass } from "@/components/employer/app-style";
+import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { formatDate } from "@/i18n/format";
+import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 
-const when = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Pacific/Auckland",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+/** When an application was sent: 10月18日 15:05 / 18 Oct, 3:05 pm, always New Zealand time. */
+const WHEN: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
 
 const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
 
@@ -34,6 +33,10 @@ export function VerifyBusiness() {
 }
 
 function Verify({ me }: { me: EmployerIdentity }) {
+  const lang = useLang();
+  const words = useMessages(employerVerifyMessages);
+  const t = words.verify;
+  const kindLabel = kindLabels(lang);
   const { profile, reload: reloadProfile } = useEmployerProfile(me.email);
   const { request, reload } = useMyVerification(me.email);
   const { team } = useMyTeam(me.email);
@@ -45,15 +48,11 @@ function Verify({ me }: { me: EmployerIdentity }) {
   };
   const [message, setMessage] = useState<{ ok: boolean; text: string }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
-  const kinds = (Object.keys(KIND_LABELS) as VerifyKind[]).filter((kind) => canApplyFor(employer.verification, kind));
+  const kinds = (Object.keys(kindLabel) as VerifyKind[]).filter((kind) => canApplyFor(employer.verification, kind));
   const canApply = request !== undefined && request?.status !== "pending" && kinds.length > 0 && !employer.bannedAt;
 
   const submitted = (result: { ok: true; request: MyVerification } | { ok: false; error_zh: string }) => {
-    setMessage(
-      result.ok
-        ? { ok: true, text: "已提交，审核员核对后会在通知里告诉你结果。" }
-        : { ok: false, text: result.error_zh },
-    );
+    setMessage(result.ok ? { ok: true, text: t.submitted } : { ok: false, text: result.error_zh });
     if (result.ok) {
       reload();
       reloadProfile();
@@ -63,10 +62,10 @@ function Verify({ me }: { me: EmployerIdentity }) {
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-title font-semibold">企业验证</h1>
+        <h1 className="text-title font-semibold">{t.heading}</h1>
         <p className="flex flex-wrap items-center gap-2 text-body">
-          {employer.name} 现在是 <VerificationBadge verification={employer.verification} />
-          {employer.businessNumber && <span className="text-muted">NZBN {employer.businessNumber}</span>}
+          {t.nowIs(employer.name)} <VerificationBadge verification={employer.verification} lang={lang} />
+          {employer.businessNumber && <span className="text-muted">{t.nzbn(employer.businessNumber)}</span>}
         </p>
       </header>
 
@@ -78,17 +77,15 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
       {request === undefined ? <SkeletonCard /> : request && <LatestRequest request={request} />}
 
-      {employer.bannedAt && <p className="text-body text-danger">账号已被停用，不能申请验证。</p>}
+      {employer.bannedAt && <p className="text-body text-danger">{t.banned}</p>}
       {request !== undefined && kinds.length === 0 && (
-        <p className="text-body text-muted">你的店铺已经是「{KIND_LABELS.accredited_employer}」，不需要再申请。</p>
+        <p className="text-body text-muted">{t.nothingLeft(kindLabel.accredited_employer)}</p>
       )}
 
       <BadgeMeaning />
 
       {canApply && isMember && (
-        <p className="rounded-card bg-surface p-4 text-body shadow-card">
-          只有团队管理员能申请企业验证。请找你们店的管理员（{adminNames(team)}）。
-        </p>
+        <p className="rounded-card bg-surface p-4 text-body shadow-card">{t.adminOnly(adminNames(team))}</p>
       )}
 
       {canApply && team && !isMember && (
@@ -102,7 +99,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
       <p className="text-meta text-muted">
         <Link href="/employer/jobs" className={BACK_LINK}>
-          回到职位管理
+          {t.backToJobs}
         </Link>
       </p>
     </div>
@@ -111,42 +108,39 @@ function Verify({ me }: { me: EmployerIdentity }) {
 
 /** Where the latest application stands: waiting, approved, or rejected with the moderator's reason. */
 function LatestRequest({ request }: { request: MyVerification }) {
+  const lang = useLang();
+  const words = useMessages(employerVerifyMessages);
+  const t = words.request;
   if (request.status === "withdrawn") return null;
   const tone =
     request.status === "pending" ? "bg-warn-soft" : request.status === "approved" ? "bg-ok-soft" : "bg-danger-soft";
   return (
-    <section aria-label="验证申请" className={`space-y-2 rounded-card p-4 text-body ${tone}`}>
+    <section aria-label={t.sectionLabel} className={`space-y-2 rounded-card p-4 text-body ${tone}`}>
       <h2 className="font-semibold">
         {request.status === "pending"
-          ? "验证审核中"
+          ? t.pendingTitle
           : request.status === "approved"
-            ? `已通过：${KIND_LABELS[request.kind]}`
-            : "上次申请没有通过"}
+            ? t.approvedTitle(kindLabels(lang)[request.kind])
+            : t.rejectedTitle}
       </h2>
-      {request.status === "pending" && (
-        <p>
-          审核员会核对企业登记，并打公开渠道查到的公司电话确认你在这家公司。审核期间照样可以发职位，标识显示「未验证」。结果会在通知里告诉你。
-        </p>
-      )}
+      {request.status === "pending" && <p>{t.pendingNote}</p>}
       {request.status === "rejected" && request.rejectReason && (
         <p className="text-danger">
-          {REJECT_REASONS[request.rejectReason]}：{request.rejectNote}
+          {t.rejection(rejectReasons(lang)[request.rejectReason], request.rejectNote ?? "")}
         </p>
       )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-meta">
-        <dt className="text-muted">申请</dt>
-        <dd>{KIND_LABELS[request.kind]}</dd>
-        <dt className="text-muted">公司</dt>
+        <dt className="text-muted">{t.appliedFor}</dt>
+        <dd>{kindLabels(lang)[request.kind]}</dd>
+        <dt className="text-muted">{t.business}</dt>
         <dd>
-          <span lang="en">{request.legalName}</span> · NZBN {request.nzbn}
+          <span lang="en">{request.legalName}</span> · {words.verify.nzbn(request.nzbn)}
         </dd>
-        <dt className="text-muted">联系人</dt>
+        <dt className="text-muted">{t.contact}</dt>
+        <dd>{t.contactLine(request.contactName, request.contactRole, request.companyPhone)}</dd>
+        <dt className="text-muted">{t.sentAt}</dt>
         <dd>
-          {request.contactName}（{request.contactRole}）· {request.companyPhone}
-        </dd>
-        <dt className="text-muted">提交</dt>
-        <dd>
-          <time dateTime={request.submittedAt}>{when.format(new Date(request.submittedAt))}</time>
+          <time dateTime={request.submittedAt}>{formatDate(request.submittedAt, lang, WHEN)}</time>
         </dd>
       </dl>
     </section>
@@ -163,6 +157,8 @@ function ApplyForm({
   again?: MyVerification;
   onDone: (result: Awaited<ReturnType<typeof requestVerification>>) => void;
 }) {
+  const words = useMessages(employerVerifyMessages);
+  const t = words.form;
   const [query, setQuery] = useState(again?.nzbn ?? "");
   const [found, setFound] = useState<{ results: RegisterEntry[]; error_zh?: string }>();
   const [chosen, setChosen] = useState<RegisterEntry>();
@@ -191,23 +187,23 @@ function ApplyForm({
   return (
     <div className="space-y-4">
       <form onSubmit={search} className="space-y-2">
-        <h2 className="text-subtitle font-semibold">{again ? "改好资料，重新提交" : "1. 在企业登记里找到你的公司"}</h2>
+        <h2 className="text-subtitle font-semibold">{again ? t.againTitle : t.findTitle}</h2>
         <label htmlFor="verify-query" className="block text-body font-medium">
-          公司名称或 NZBN
+          {t.queryLabel}
         </label>
         <div className="flex gap-2">
           <input
             id="verify-query"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="例如：Demo Yuemei 或 9429000000004"
+            placeholder={t.queryPlaceholder}
             className="h-11 min-w-0 flex-1 rounded-control border border-border bg-surface px-3"
           />
           <Button type="submit" loading={pending && !chosen} disabled={!query.trim() || (pending && !!chosen)}>
-            查询
+            {t.search}
           </Button>
         </div>
-        <p className="text-meta text-muted">演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。</p>
+        <p className="text-meta text-muted">{t.demoRegisterNote}</p>
       </form>
 
       {found?.error_zh && <p className="text-body text-warn">{found.error_zh}</p>}
@@ -219,10 +215,13 @@ function ApplyForm({
                 {entry.legalName}
               </p>
               <p className="text-body text-muted">
-                NZBN {entry.nzbn} · 商号：{entry.tradingNames.join("、")}
+                {t.resultLine(entry.nzbn)}
+                <span lang={contentLang(entry.tradingNames.join(t.namesJoiner))}>
+                  {entry.tradingNames.join(t.namesJoiner)}
+                </span>
               </p>
               <p className={`mt-1 text-body ${entry.status === "registered" ? "text-ok" : "text-danger"}`}>
-                {entry.status === "registered" ? "登记状态：正常" : "登记状态：已注销"}
+                {entry.status === "registered" ? t.statusRegistered : t.statusRemoved}
               </p>
               <button
                 type="button"
@@ -230,7 +229,7 @@ function ApplyForm({
                 onClick={() => setChosen(entry)}
                 className={`${buttonClass("secondary", { block: true })} mt-3`}
               >
-                这是我的公司
+                {t.choose}
               </button>
             </li>
           ))}
@@ -240,57 +239,55 @@ function ApplyForm({
       {chosen && (
         <form onSubmit={submit} className="space-y-3 rounded-card bg-surface p-4 shadow-card">
           <h2 ref={detailsHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
-            2. 谁在申请
+            {t.whoTitle}
           </h2>
           <p className="text-body">
-            <span lang="en">{chosen.legalName}</span> · NZBN {chosen.nzbn}
+            <span lang="en">{chosen.legalName}</span> · {words.verify.nzbn(chosen.nzbn)}
             <button
               type="button"
               onClick={() => setChosen(undefined)}
               className="pressable ml-2 min-h-11 text-meta text-brand underline"
             >
-              换一家
+              {t.changeBusiness}
             </button>
           </p>
           {kinds.length > 1 && (
             <fieldset className="space-y-1 px-2">
-              <legend className="-ml-2 text-body font-medium">申请哪个标识</legend>
+              <legend className="-ml-2 text-body font-medium">{t.kindLegend}</legend>
               {kinds.map((k) => (
                 <Radio key={k} name="verify-kind" checked={kind === k} onChange={() => setKind(k)}>
-                  {k === "business_verified"
-                    ? "已验证企业：公司在企业登记里真实存在"
-                    : "认证雇主：公司在移民局公开的认证雇主名单（Accredited Employer）上"}
+                  {k === "business_verified" ? t.kindBusinessVerified : t.kindAccredited}
                 </Radio>
               ))}
             </fieldset>
           )}
-          <Field id="verify-name" label="联系人姓名" value={contactName} onChange={setContactName} />
+          <Field id="verify-name" label={t.contactNameLabel} value={contactName} onChange={setContactName} />
           <Field
             id="verify-role"
-            label="你在公司的职务"
+            label={t.contactRoleLabel}
             value={contactRole}
             onChange={setContactRole}
-            placeholder="例如：董事、店主、经理"
+            placeholder={t.contactRolePlaceholder}
           />
           <Field
             id="verify-phone"
-            label="公司电话"
+            label={t.companyPhoneLabel}
             value={companyPhone}
             onChange={setCompanyPhone}
             type="tel"
-            hint="填公司对外公开的电话。审核员会打公开渠道查到的公司电话核实，不只打这个号码。"
+            hint={t.companyPhoneHint}
           />
           <Field
             id="verify-website"
-            label="网站或 Facebook 页面（选填）"
+            label={t.websiteLabel}
             value={website}
             onChange={setWebsite}
             type="url"
             required={false}
-            placeholder="https://"
+            placeholder={t.websitePlaceholder}
           />
           <Button type="submit" size="lg" block loading={pending}>
-            {pending ? "提交中…" : "提交审核"}
+            {pending ? t.submitting : t.submit}
           </Button>
         </form>
       )}
@@ -343,30 +340,25 @@ function Field({
 }
 
 function BadgeMeaning() {
+  const t = useMessages(employerVerifyMessages).meaning;
   return (
     <section className="space-y-3 rounded-card bg-surface p-4 shadow-card text-body leading-relaxed">
       <div>
-        <h2 className="font-medium text-ok">「已验证企业」是什么</h2>
-        <p className="mt-1">
-          审核员核对了新西兰企业登记：这家公司真实存在、登记状态正常，并打公开渠道查到的公司电话，确认申请人在这家公司。职位上会显示登记的公司名称和
-          NZBN。求职者更愿意联系有标识的雇主。
-        </p>
+        <h2 className="font-medium text-ok">{t.isTitle}</h2>
+        <p className="mt-1">{t.isBody}</p>
       </div>
       <div>
-        <h2 className="font-medium text-warn">它不代表什么</h2>
+        <h2 className="font-medium text-warn">{t.isNotTitle}</h2>
         <ul className="mt-1 list-disc space-y-1 pl-5">
-          <li>不代表我们担保工资、工时或工作条件。</li>
-          <li>「认证雇主」只说明这家公司在移民局公开的认证雇主名单上。两种标识都不代表能办理任何签证。</li>
-          <li>不是对职位内容的背书。求职者遇到收费、低于最低工资等情况，仍然可以举报。</li>
+          {t.isNotPoints.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
         </ul>
       </div>
     </section>
   );
 }
 
-function adminNames(team: MyTeam | null | undefined): string {
-  return (team?.members ?? [])
-    .filter((m) => m.role === "admin")
-    .map((m) => m.name ?? m.email)
-    .join("、");
+function adminNames(team: MyTeam | null | undefined): string[] {
+  return (team?.members ?? []).filter((m) => m.role === "admin").map((m) => m.name ?? m.email);
 }

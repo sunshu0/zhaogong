@@ -4,6 +4,8 @@ import { refreshMyJob, type ChangeResult } from "@/app/[lang]/employer/actions";
 import { cardActions, type Asking, type CardActionKey } from "@/components/employer/job-card";
 import { ButtonLink } from "@/components/ui/Button";
 import { MoreMenu } from "@/components/ui/MoreMenu";
+import { useLang, useMessages } from "@/i18n/client";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 export { ACTION_BUTTON } from "@/components/employer/app-style";
 
@@ -35,12 +37,14 @@ export function JobActions({
   onAsk: (asking: Asking) => void;
   onToggleShare: () => void;
 }) {
-  const { main, more } = cardActions(job, now, { asking, sharing });
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages).actions;
+  const { main, more } = cardActions(job, now, { asking, sharing }, lang);
   const handlers: Record<CardActionKey, (() => void) | string> = {
     edit: `/employer/jobs/${job.id}`,
     renew: () => onAsk("renew"),
     republish: `/employer/jobs/${job.id}/republish`,
-    refresh: () => run(() => refreshMyJob(job.id), "已刷新，排到前面"),
+    refresh: () => run(() => refreshMyJob(job.id), t.refreshDone),
     share: onToggleShare,
     copy: `/employer/jobs/${job.id}/copy`,
     close: () => onAsk("close"),
@@ -53,7 +57,7 @@ export function JobActions({
         {main.label}
       </ButtonLink>
       <MoreMenu
-        label={`更多操作：${job.titleZh}`}
+        label={t.moreMenuLabel(job.titleZh)}
         items={more.map(({ key, label, disabled, danger }) => {
           const action = handlers[key];
           const common = { label, danger, disabled: disabled || (key === "refresh" && pending) };

@@ -30,7 +30,7 @@ test("the model fills the job from the conversation, the rules still check it, a
   const card = page.getByRole("region", { name: /职位卡/ });
   await sayInChat(page, `Mt Eden 川菜馆招${title}，时薪 18，兼职，学签可做，需会普通话`);
   // The model wrote the pay; the minimum-wage rule speaks in the same answer.
-  await expect(lastAssistant(page)).toContainText("低于新西兰最低工资");
+  await expect(lastAssistant(page)).toContainText("低于新西兰成人最低工资");
   await expect(card).toContainText(title);
   await sayInChat(page, "时薪 26");
   await expect(lastAssistant(page)).toContainText("英文怎么说");

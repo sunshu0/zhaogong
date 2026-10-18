@@ -4,12 +4,15 @@ import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { StatusCard } from "@/components/seeker/StatusCard";
+import { useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 /**
  * The posting page failed as a whole (#178). Unlike the site's error page (#161) it says that the draft is kept in
  * this tab (post-draft-store), so 重试 or coming back later picks up where the employer was.
  */
 export default function PostError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  const t = useMessages(employerPostMessages).postError;
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -17,17 +20,17 @@ export default function PostError({ error, retry }: { error: Error & { digest?: 
   return (
     <StatusCard
       icon={TriangleAlert}
-      title="发布页面出了点问题"
+      title={t.title}
       actions={
         <>
-          <Button onClick={() => retry()}>重试</Button>
+          <Button onClick={() => retry()}>{t.retry}</Button>
           <ButtonLink href="/employer/jobs" variant="secondary">
-            回到职位管理
+            {t.backToJobs}
           </ButtonLink>
         </>
       }
     >
-      你写的招聘还存在这个标签页里，点重试或者稍后回来都能接着写。
+      {t.body}
     </StatusCard>
   );
 }

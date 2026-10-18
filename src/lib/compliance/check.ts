@@ -1,5 +1,9 @@
 // Compliance check run on every draft before it can be published. Pure functions, no I/O.
 import { COUNTRIES } from "@/config/countries";
+import { formatMoney } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { complianceMessages } from "@/i18n/messages/compliance";
 import type { CountryCode } from "@/lib/types";
 import { WORD_RULES, type WordRule } from "./rules";
 import type { ChatFinding, Finding, FindingLevel, JobDraft, PostingEmployer } from "./types";
@@ -24,7 +28,6 @@ const NEGATED_AFTER_EN = /^\s+((is|are)\s+)?(not\s+(required|needed|charged)|wai
 
 const isLatin = (word: string) => /^[\x20-\x7e]+$/.test(word);
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const money = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 
 /** Text with filler removed, plus the positions where filler was (a space ends a phrase too). */
 function compactText(text: string): { compact: string; gaps: Set<number> } {
@@ -103,19 +106,30 @@ function findWords(text: string, rule: WordRule): string[] {
 /**
  * Everything that stops or holds this draft, most serious first. An empty list means it can go live.
  * With the employer, it also checks what only some employers may offer (AEWV holders).
+ * The messages are written in `lang` (Round 20); `message_zh` keeps its name across the codebase.
  */
-export function checkJob(draft: JobDraft, country: CountryCode, employer?: PostingEmployer): Finding[] {
+export function checkJob(
+  draft: JobDraft,
+  country: CountryCode,
+  employer?: PostingEmployer,
+  lang: Lang = DEFAULT_LANG,
+): Finding[] {
   const config = COUNTRIES[country];
+  const t = pick(complianceMessages, lang);
   const findings: Finding[] = [];
 
   const wage = config.minimumWage;
   if (draft.pay && wage.hourly > 0 && draft.pay.min < wage.hourly) {
-    const sym = config.currencySymbol;
     findings.push({
       level: "block",
       field: "pay",
       rule: "min_wage",
-      message_zh: `时薪 ${sym}${money(draft.pay.min)} 低于${config.nameZh}最低工资 ${sym}${money(wage.hourly)}（${wage.effectiveFrom} 起），请调高后再发布。`,
+      message_zh: t.minWage.message(
+        formatMoney(draft.pay.min, lang, config.currency),
+        lang === "en" ? config.nameEn : config.nameZh,
+        formatMoney(wage.hourly, lang, config.currency),
+        wage.effectiveFrom,
+      ),
     });
   }
 
@@ -124,7 +138,7 @@ export function checkJob(draft: JobDraft, country: CountryCode, employer?: Posti
       level: "block",
       field: "visaAccepted",
       rule: "aewv_unaccredited",
-      message_zh: "只有认证雇主（Accredited Employer）才能招「持 AEWV 工签者」。请在签证里去掉这一项。",
+      message_zh: t.aewvUnaccredited.message,
     });
   }
 
@@ -139,7 +153,7 @@ export function checkJob(draft: JobDraft, country: CountryCode, employer?: Posti
         field,
         rule: rule.rule,
         matches,
-        message_zh: rule.message_zh.replace("{words}", matches.map((w) => `「${w}」`).join("")),
+        message_zh: t.rules[rule.rule](matches.map((w) => t.words.quote(w)).join(t.words.joiner)),
       });
     }
   }

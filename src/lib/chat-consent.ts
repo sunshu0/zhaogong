@@ -1,4 +1,7 @@
 import type { Profile } from "@/components/seeker/hub-state";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 
 export type ExchangeKind = "contact" | "resume";
@@ -14,10 +17,8 @@ export type Exchange = {
   respondedAt?: string;
   demo?: boolean;
 };
-export const EXCHANGE_LABELS: Record<ExchangeKind, string> = {
-  contact: "联系方式",
-  resume: "简历与企业资料",
-};
+/** What the two sides may swap, in Chinese; a reader's own language comes from the chat dictionary. */
+export const EXCHANGE_LABELS: Record<ExchangeKind, string> = chatMessages.zh.exchangeKinds;
 
 export function parsePayload(value: unknown): ExchangePayload | undefined {
   if (!value || typeof value !== "object") return undefined;
@@ -117,25 +118,33 @@ export function visibleExchange(item: Exchange): { me?: ExchangePayload; them?: 
   return undefined;
 }
 
-export function profilePayload(profile: Profile, kind: ExchangeKind, isEmployer: boolean): ExchangePayload | undefined {
+export function profilePayload(
+  profile: Profile,
+  kind: ExchangeKind,
+  isEmployer: boolean,
+  lang: Lang = DEFAULT_LANG,
+): ExchangePayload | undefined {
+  const t = pick(chatMessages, lang);
+  const names = t.payloadFields;
   const fields: ExchangePayload["fields"] = [];
   const add = (label: string, value: string | undefined) => {
     if (value?.trim()) fields.push({ label, value: value.trim().slice(0, 4000) });
   };
   if (kind === "contact") {
-    add("电话", profile.privateDetails?.phone);
-    add("微信", profile.privateDetails?.wechat);
-    add("邮箱", profile.privateDetails?.email);
+    add(names.phone, profile.privateDetails?.phone);
+    add(names.wechat, profile.privateDetails?.wechat);
+    add(names.email, profile.privateDetails?.email);
   } else {
     if (!(profile.bio.trim() || profile.resume?.skills.trim())) return undefined;
-    add(isEmployer ? "企业" : "称呼", profile.name);
-    add("简介", profile.headline);
-    add(isEmployer ? "企业介绍" : "个人介绍", profile.bio);
-    add("语言", profile.languages);
-    add("时间安排", profile.availability);
-    add("技能", profile.resume?.skills);
-    if (profile.resume?.experienceYears != null) add("岗位经验", `${profile.resume.experienceYears} 年`);
-    add("求职意向", profile.resume ? formatEmploymentTypes(profile.resume.employmentTypes) : undefined);
+    add(isEmployer ? names.businessName : names.personName, profile.name);
+    add(names.headline, profile.headline);
+    add(isEmployer ? names.businessBio : names.personBio, profile.bio);
+    add(names.languages, profile.languages);
+    add(names.availability, profile.availability);
+    add(names.skills, profile.resume?.skills);
+    if (profile.resume?.experienceYears != null)
+      add(names.experience, names.experienceYears(profile.resume.experienceYears));
+    add(names.wanted, profile.resume ? formatEmploymentTypes(profile.resume.employmentTypes) : undefined);
   }
-  return fields.length ? { title: EXCHANGE_LABELS[kind], fields } : undefined;
+  return fields.length ? { title: t.exchangeKinds[kind], fields } : undefined;
 }

@@ -10,17 +10,21 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { Section } from "@/components/ui/Section";
 import { BACK_LINK } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
+import { contentLang, type Lang } from "@/i18n/lang";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
-const shortDay = new Intl.DateTimeFormat("zh-CN", {
+const SHORT_DAY: Intl.DateTimeFormatOptions = {
   timeZone: "UTC",
   month: "numeric",
   day: "numeric",
   weekday: "short",
-});
+};
 
-/** 「10月16日周五」 for a YYYY-MM-DD day (already a New Zealand day, so read it as UTC to keep it as is). */
-function dayLabel(day: string): string {
-  return shortDay.format(new Date(`${day}T00:00:00Z`));
+/** 「10/16周五」 for a YYYY-MM-DD day (already a New Zealand day, so read it as UTC to keep it as is). */
+function dayLabel(day: string, lang: Lang): string {
+  return formatDate(`${day}T00:00:00Z`, lang, SHORT_DAY);
 }
 
 /** 职位数据 (#55, R-31): one of the business's jobs, day by day for the last 14 days. */
@@ -29,6 +33,8 @@ export function JobStats({ jobId }: { jobId: string }) {
 }
 
 function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
+  const lang = useLang();
+  const t = useMessages(employerJobsMessages).stats;
   const [loaded, setLoaded] = useState<{
     email: string;
     data: { job: Job; days: JobDay[]; funnel: ApplicationFunnel } | null;
@@ -48,9 +54,9 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   if (!loaded.data) {
     return (
       <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
-        找不到这个职位，或者它不属于你登录的店铺。
+        {t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
-          回到职位管理
+          {t.backToManage}
         </Link>
       </div>
     );
@@ -64,19 +70,22 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     <div className="space-y-section">
       <div>
         <Link href="/employer/jobs" className={BACK_LINK}>
-          ← 职位管理
+          {t.back}
         </Link>
-        <h1 className="mt-1 text-title font-semibold">职位数据</h1>
-        <p className="text-body text-muted">{job.titleZh} · 最近 14 天</p>
+        <h1 className="mt-1 text-title font-semibold">{t.heading}</h1>
+        <p className="text-body text-muted">
+          <span lang={contentLang(job.titleZh)}>{job.titleZh}</span>
+          {t.subtitleRest}
+        </p>
       </div>
 
       <Section look="app">
         <dl className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
-              ["浏览", total("views")],
-              ["发起聊天", total("chats")],
-              ["查看联系方式", job.contactPublic ? total("contactViews") : null],
+              [t.totals.views, total("views")],
+              [t.totals.chats, total("chats")],
+              [t.totals.contactViews, job.contactPublic ? total("contactViews") : null],
             ] as const
           ).map(([label, n]) => (
             <div key={label}>
@@ -87,17 +96,13 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section
-        look="app"
-        title="申请到录用"
-        description="从发布到现在。约面试不算已取消的；录用是在申请人里标了「已录用」的人。"
-      >
-        <dl aria-label="申请到录用" className="grid grid-cols-3 gap-3 py-group text-center">
+      <Section look="app" title={t.funnelTitle} description={t.funnelDescription}>
+        <dl aria-label={t.funnelTitle} className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
-              ["申请", funnel.applied],
-              ["约面试", funnel.interviewed],
-              ["录用", funnel.hired],
+              [t.funnel.applied, funnel.applied],
+              [t.funnel.interviewed, funnel.interviewed],
+              [t.funnel.hired, funnel.hired],
             ] as const
           ).map(([label, n]) => (
             <div key={label}>
@@ -108,26 +113,22 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section
-        look="app"
-        title="按天"
-        description="浏览：同一个浏览器一天只算一次。发起聊天：求职者第一次就这个职位发消息。"
-      >
+      <Section look="app" title={t.byDayTitle} description={t.byDayDescription}>
         <table className="w-full text-body">
-          <caption className="sr-only">最近 14 天每天的浏览、发起聊天和查看联系方式次数</caption>
+          <caption className="sr-only">{t.tableCaption}</caption>
           <thead>
             <tr className="border-b border-border text-left text-meta text-muted">
               <th scope="col" className="py-2 font-normal">
-                日期
+                {t.columns.day}
               </th>
               <th scope="col" className="py-2 font-normal">
-                浏览
+                {t.columns.views}
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                聊天
+                {t.columns.chats}
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                联系方式
+                {t.columns.contact}
               </th>
             </tr>
           </thead>
@@ -135,7 +136,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
             {[...days].reverse().map((d) => (
               <tr key={d.day}>
                 <th scope="row" className="py-2 text-left font-normal whitespace-nowrap">
-                  {dayLabel(d.day)}
+                  {dayLabel(d.day, lang)}
                 </th>
                 <td className="py-2">
                   <div className="flex items-center gap-2">
@@ -153,7 +154,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
             ))}
           </tbody>
         </table>
-        {!job.contactPublic && <p className="pb-group text-meta text-muted">这个职位不公开联系方式，在聊天里交换。</p>}
+        {!job.contactPublic && <p className="pb-group text-meta text-muted">{t.contactPrivateNote}</p>}
       </Section>
     </div>
   );

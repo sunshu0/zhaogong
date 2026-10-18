@@ -15,7 +15,7 @@ const complianceZh = {
   minWage: {
     /** The pay and the wage come formatted with their symbol (i18n/format.ts), the date as the config writes it. */
     message: (pay: string, country: string, wage: string, from: string) =>
-      `时薪 ${pay} 低于${country}最低工资 ${wage}（${from} 起），请调高后再发布。`,
+      `时薪 ${pay} 低于${country}成人最低工资 ${wage}（${from} 起），请调高后再发布。`,
   },
   aewvUnaccredited: {
     message: "只有认证雇主（Accredited Employer）才能招「持 AEWV 工签者」。请在签证里去掉这一项。",

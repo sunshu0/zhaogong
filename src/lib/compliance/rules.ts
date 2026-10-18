@@ -1,6 +1,7 @@
 // Word lists for the compliance check, one list per country so a market can add or relax words
 // without touching the engine. Chinese words match with spaces and filler symbols removed;
-// English words match whole words, case-insensitive.
+// English words match whole words, case-insensitive. The message each rule shows lives in the compliance
+// dictionary (src/i18n/messages/compliance.ts, `rules.<rule>`), one per language; check.ts puts the two together.
 import type { CountryCode } from "@/lib/types";
 import type { FindingLevel, RuleId } from "./types";
 
@@ -8,8 +9,6 @@ export interface WordRule {
   rule: Exclude<RuleId, "min_wage" | "aewv_unaccredited">;
   level: FindingLevel;
   words: string[];
-  /** `{words}` becomes the matched words, each in 「」. */
-  message_zh: string;
   /**
    * Whether a negation written right after the word clears it (押金：无, 押金全免). Only fees: 包签无忧
    * and 只招华人 无经验可 must never read as negated.
@@ -41,7 +40,6 @@ const BASE_WORD_RULES: WordRule[] = [
       "pay for the job",
       "buy the job",
     ],
-    message_zh: "含有{words}：招聘不能向求职者收取押金、介绍费或任何费用，请删除。",
     negatableAfter: true,
   },
   {
@@ -69,7 +67,6 @@ const BASE_WORD_RULES: WordRule[] = [
       "selling visa",
       "visa for sale",
     ],
-    message_zh: "含有{words}：不能出售或承诺办理签证。签证一栏只写接受哪些签证。",
   },
   {
     rule: "ethnic_preference",
@@ -98,13 +95,11 @@ const BASE_WORD_RULES: WordRule[] = [
       "chinese preferred",
       "asian preferred",
     ],
-    message_zh: "含有{words}：不能按种族或国籍招人。如果需要中文能力，请改写为「需会普通话」或「需会粤语」。",
   },
   {
     rule: "high_risk",
     level: "review",
     words: ["按摩", "陪酒", "陪聊", "夜场", "夜总会", "KTV", "massage", "karaoke", "hostess", "escort", "nightclub"],
-    message_zh: "含有{words}：这类职位需要人工审核，审核通过后才会公开。",
   },
 ];
 

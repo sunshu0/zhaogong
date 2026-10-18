@@ -1,22 +1,27 @@
 import type { Conversation, Message } from "@/components/seeker/chat-client";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 
 export function validTimestamp(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value));
 }
 
-export function messageReadLabel(message: Message): string {
-  if (message.readAt) return message.from === "me" ? "已读" : "我已读";
-  return message.from === "me" ? (message.sentAt ? "未读" : "阅读状态未知") : "我未读";
+export function messageReadLabel(message: Message, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(chatMessages, lang).activity;
+  if (message.readAt) return message.from === "me" ? t.read : t.readByMe;
+  return message.from === "me" ? (message.sentAt ? t.unread : t.readUnknown) : t.unreadByMe;
 }
 
-export function lastActiveLabel(lastActiveAt: string | undefined, now: number): string {
-  if (!validTimestamp(lastActiveAt)) return "最近上线时间未知";
+export function lastActiveLabel(lastActiveAt: string | undefined, now: number, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(chatMessages, lang).activity;
+  if (!validTimestamp(lastActiveAt)) return t.lastActiveUnknown;
   const minutes = Math.max(0, Math.floor((now - Date.parse(lastActiveAt)) / 60_000));
-  if (minutes < 1) return "刚刚在线";
-  if (minutes < 60) return `约 ${minutes} 分钟前在线`;
-  if (minutes < 1440) return `约 ${Math.floor(minutes / 60)} 小时前在线`;
-  if (minutes < 10080) return `约 ${Math.floor(minutes / 1440)} 天前在线`;
-  return "一周前在线";
+  if (minutes < 1) return t.onlineJustNow;
+  if (minutes < 60) return t.onlineMinutes(minutes);
+  if (minutes < 1440) return t.onlineHours(Math.floor(minutes / 60));
+  if (minutes < 10080) return t.onlineDays(Math.floor(minutes / 1440));
+  return t.onlineOverAWeek;
 }
 
 export function aucklandDay(timestamp: number): string {

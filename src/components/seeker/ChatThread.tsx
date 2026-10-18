@@ -13,6 +13,9 @@ import { MoreMenu, type MoreMenuItem } from "@/components/ui/MoreMenu";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { outgoingWarning } from "@/components/seeker/chat-warnings";
+import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { chatMessages } from "@/i18n/messages/chat";
 
 export function ChatThread({
   conversation,
@@ -28,6 +31,7 @@ export function ChatThread({
   onBack: () => void;
 }) {
   crashForTests("chat");
+  const t = useMessages(chatMessages).thread;
   const { messages, conversations, send } = useChat();
 
   function submit(event: FormEvent) {
@@ -39,7 +43,7 @@ export function ChatThread({
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-col" aria-label={`与${conversation.person}的聊天`}>
+    <section className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
       {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
 
@@ -73,27 +77,28 @@ function ThreadHeader({
   isEmployer: boolean;
   onBack: () => void;
 }) {
+  const t = useMessages(chatMessages).thread;
   const [reporting, setReporting] = useState(false);
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // 更多: their page, the job, 举报 — so the header keeps only back, who, and this one button.
   const more: MoreMenuItem[] = [
-    ...(profileHref ? [{ label: isEmployer ? "求职者主页" : "企业主页", href: profileHref }] : []),
-    ...(conversation.job ? [{ label: "查看职位", href: `/jobs/${conversation.job}` }] : []),
-    { label: "举报", danger: true, onSelect: () => setReporting(true) },
+    ...(profileHref ? [{ label: isEmployer ? t.seekerProfile : t.employerProfile, href: profileHref }] : []),
+    ...(conversation.job ? [{ label: t.viewJob, href: `/jobs/${conversation.job}` }] : []),
+    { label: t.report, danger: true, onSelect: () => setReporting(true) },
   ];
   return (
     <div className="flex items-center gap-3 border-b border-border px-4 py-3">
       <button
         type="button"
         onClick={onBack}
-        aria-label="返回会话列表"
-        title="返回会话列表"
+        aria-label={t.back}
+        title={t.back}
         className="pressable -ml-2 flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-background lg:hidden"
       >
         <ArrowLeft aria-hidden="true" className="size-5" />
       </button>
       <Counterpart conversation={conversation} isEmployer={isEmployer} />
-      <MoreMenu items={more} label={`更多：${conversation.person}`} />
+      <MoreMenu items={more} label={t.more(conversation.person)} />
       {reporting && (
         <ChatReportDialog key={conversation.id} conversation={conversation} onClose={() => setReporting(false)} />
       )}
@@ -103,11 +108,12 @@ function ThreadHeader({
 
 /** Avatar, name and job of the other person; a link to their public page when they have one. */
 function Counterpart({ conversation, isEmployer }: { conversation: Conversation; isEmployer: boolean }) {
+  const t = useMessages(chatMessages).thread;
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // Only when there is no job strip under the header (it names the job already).
   const job = conversation.job ? null : (
     <p className="truncate text-meta text-muted">
-      {isEmployer ? "应聘" : "招聘"}：{conversation.title}
+      {isEmployer ? t.appliedFor(conversation.title) : t.hiringFor(conversation.title)}
     </p>
   );
   if (!profileHref) {
@@ -115,7 +121,9 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
         <div className="min-w-0">
-          <h2 className="truncate text-subtitle font-semibold">{conversation.person}</h2>
+          <h2 lang={contentLang(conversation.person)} className="truncate text-subtitle font-semibold">
+            {conversation.person}
+          </h2>
           {job}
         </div>
       </div>
@@ -124,13 +132,16 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
   return (
     <Link
       href={profileHref}
-      aria-label={`查看${conversation.person}的主页`}
-      title={`查看${conversation.person}的主页`}
+      aria-label={t.viewProfile(conversation.person)}
+      title={t.viewProfile(conversation.person)}
       className="group pressable flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-control focus-visible:outline-2 focus-visible:outline-brand"
     >
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
       <div className="min-w-0">
-        <h2 className="text-subtitle leading-snug font-semibold break-words group-hover:text-brand group-hover:underline sm:truncate">
+        <h2
+          lang={contentLang(conversation.person)}
+          className="text-subtitle leading-snug font-semibold break-words group-hover:text-brand group-hover:underline sm:truncate"
+        >
           {conversation.person}
         </h2>
         {job}
@@ -151,8 +162,10 @@ function MessageComposer({
   /** The ＋ menu (exchanges) beside the input. */
   tools?: ReactNode;
 }) {
+  const t = useMessages(chatMessages).thread;
+  const lang = useLang();
   // A reminder while writing; the message can still be sent.
-  const warning = outgoingWarning(draft);
+  const warning = outgoingWarning(draft, lang);
   const box = useRef<HTMLTextAreaElement>(null);
   const send = useRef<HTMLButtonElement>(null);
   // #202: the draft empties and 发送 turns disabled; after a press on it the focus goes back to the box.
@@ -165,14 +178,14 @@ function MessageComposer({
     <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
       {tools}
       <label className="sr-only" htmlFor="message-draft">
-        输入消息
+        {t.composerLabel}
       </label>
       <textarea
         ref={box}
         id="message-draft"
         value={draft}
         onChange={(event) => onDraftChange(event.target.value)}
-        placeholder="输入消息…"
+        placeholder={t.composerPlaceholder}
         rows={3}
         aria-describedby={warning ? "message-draft-warning" : undefined}
         className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
@@ -184,7 +197,7 @@ function MessageComposer({
         className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-brand px-5 py-2 text-body font-medium text-white hover:opacity-90 disabled:opacity-50"
       >
         <Send aria-hidden="true" className="size-4" />
-        发送
+        {t.send}
       </button>
       {warning && (
         <p id="message-draft-warning" role="status" className="basis-full text-meta leading-relaxed text-warn">

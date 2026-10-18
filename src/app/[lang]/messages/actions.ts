@@ -26,6 +26,7 @@ import {
 } from "@/db/conversations";
 import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/[lang]/messages/server-notifications";
+import { requestLang } from "@/i18n/server";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import {
   parsePayload,
@@ -400,7 +401,11 @@ export async function markMyNotificationsRead(ids: string[] | "all"): Promise<Re
     employerName: me.session.employer?.name,
   }).map((n) => n.id);
   // The same list the notifications page shows (#94), so every kind it shows can be marked read.
-  const fromServer = await serverNotifications({ email: me.session.email, isEmployer: me.isEmployer }, Date.now());
+  const fromServer = await serverNotifications(
+    { email: me.session.email, isEmployer: me.isEmployer },
+    Date.now(),
+    await requestLang(),
+  );
   mine.push(...fromServer.map((n) => n.id));
   const asked = ids === "all" ? mine : Array.isArray(ids) ? ids.filter((id) => mine.includes(id)) : [];
   const read = [...new Set([...((await store.getNotificationReads(me.scope)) ?? []), ...asked])];

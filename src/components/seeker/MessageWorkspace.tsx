@@ -8,9 +8,13 @@ import { ChatThread } from "@/components/seeker/ChatThread";
 import { RetryBoundary } from "@/components/seeker/RetryBoundary";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { useSession } from "@/components/seeker/session-client";
+import { useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { chatMessages } from "@/i18n/messages/chat";
 import { isDemoAccount } from "@/lib/demo-accounts";
 
 export function MessageWorkspace({ initialId }: { initialId: string | null }) {
+  const t = useMessages(chatMessages).workspace;
   const [selectedId, setSelectedId] = useState<string | null>(initialId);
   const { messages, unread, totalUnread, conversations, markRead } = useChat();
   const session = useSession();
@@ -30,10 +34,10 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   return (
     <div className="space-y-4">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-title font-semibold">{isEmployer ? "招聘聊天" : "求职聊天"}</h1>
+        <h1 className="text-title font-semibold">{isEmployer ? t.headingEmployer : t.headingSeeker}</h1>
         <p role="status" className="text-meta text-muted">
-          {totalUnread ? `${totalUnread} 条未读消息` : "消息已全部读完"}
-          {demoAccount && <span className="ml-2">演示数据</span>}
+          {totalUnread ? t.unreadCount(totalUnread) : t.allRead}
+          {demoAccount && <span className="ml-2">{t.demoData}</span>}
         </p>
       </header>
 
@@ -51,7 +55,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
         />
         {selected ? (
           // #178: if the open chat fails, the list and the unsent draft (state up here) stay; 重试 redraws the chat.
-          <RetryBoundary key={selected.id} title="这段聊天没显示出来" note="没发出去的话还在输入框里，点重试再打开。">
+          <RetryBoundary key={selected.id} title={t.threadFailedTitle} note={t.threadFailedNote}>
             <ChatThread
               conversation={selected}
               isEmployer={isEmployer}
@@ -64,11 +68,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
           <NoConversationSelected totalUnread={totalUnread} />
         )}
       </div>
-      <p className="text-meta text-muted">
-        {demoAccount
-          ? "演示账号：这里的联系人和他们的回复都是演示内容。"
-          : "消息保存在服务器上，双方都能看到；对方的新消息在这个页面上 10 秒内出现。"}
-      </p>
+      <p className="text-meta text-muted">{demoAccount ? t.demoFooter : t.footer}</p>
     </div>
   );
 }
@@ -101,21 +101,20 @@ function ConversationList({
   isEmployer: boolean;
   onSelect: (id: string) => void;
 }) {
+  const t = useMessages(chatMessages).workspace;
   return (
     <aside
       className={`${selectedId ? "hidden lg:block" : ""} min-h-0 overflow-y-auto lg:border-r lg:border-border`}
-      aria-label="聊天列表"
+      aria-label={t.listLabel}
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-subtitle font-semibold">最近联系</h2>
-        <span className="text-meta text-muted">{conversations.length} 个会话</span>
+        <h2 className="text-subtitle font-semibold">{t.recent}</h2>
+        <span className="text-meta text-muted">{t.conversationCount(conversations.length)}</span>
       </div>
       {conversations.length === 0 && (
         <p className="px-4 py-6 text-body text-muted">
-          还没有聊天。
-          {isEmployer
-            ? "在申请人列表或推荐人才里点「发起聊天」，就会出现在这里。"
-            : "在职位详情里点「立即沟通」，就会出现在这里。"}
+          {t.empty}
+          {isEmployer ? t.emptyEmployer : t.emptySeeker}
         </p>
       )}
       <ul className="space-y-0.5 p-1.5">
@@ -125,7 +124,7 @@ function ConversationList({
               conversation={conversation}
               isEmployer={isEmployer}
               selected={selectedId === conversation.id}
-              preview={messages[conversation.id].at(-1)?.text ?? "尚未发送消息"}
+              preview={messages[conversation.id].at(-1)?.text ?? t.previewEmpty}
               unreadCount={unread[conversation.id]}
               onSelect={() => onSelect(conversation.id)}
             />
@@ -161,12 +160,18 @@ function ConversationRow({
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className={`truncate text-body ${unreadCount ? "font-semibold" : "font-medium"}`}>
+          <span
+            lang={contentLang(conversation.person)}
+            className={`truncate text-body ${unreadCount ? "font-semibold" : "font-medium"}`}
+          >
             {conversation.person}
           </span>
           <span className="shrink-0 text-meta text-muted">{conversation.time}</span>
         </span>
-        <span className={`mt-0.5 block truncate text-meta ${unreadCount ? "text-foreground" : "text-muted"}`}>
+        <span
+          lang={contentLang(preview)}
+          className={`mt-0.5 block truncate text-meta ${unreadCount ? "text-foreground" : "text-muted"}`}
+        >
           {preview}
         </span>
       </span>
@@ -176,14 +181,15 @@ function ConversationRow({
 }
 
 function NoConversationSelected({ totalUnread }: { totalUnread: number }) {
+  const t = useMessages(chatMessages).workspace;
   return (
     <section
       className="hidden min-h-64 flex-col items-center justify-center gap-3 bg-background/50 px-4 text-center lg:flex"
-      aria-label="选择会话"
+      aria-label={t.pickerLabel}
     >
       <MessageSquare aria-hidden="true" className="size-12 text-brand" />
-      <h2 className="text-subtitle font-semibold">选择一位联系人</h2>
-      <p className="text-body text-muted">{totalUnread ? `你有 ${totalUnread} 条未读消息` : "暂无未读消息"}</p>
+      <h2 className="text-subtitle font-semibold">{t.pickerTitle}</h2>
+      <p className="text-body text-muted">{totalUnread ? t.pickerUnread(totalUnread) : t.pickerNoUnread}</p>
     </section>
   );
 }

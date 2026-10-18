@@ -7,6 +7,7 @@ import { getCurrentSession } from "@/lib/auth";
 import { getAccountEmployer, getJob } from "@/lib/data";
 import type { Employer, Job } from "@/lib/types";
 import { candidateFacts } from "@/lib/candidate-matching";
+import { requestLang } from "@/i18n/server";
 import {
   applicationCounts,
   decideApplication,
@@ -59,6 +60,7 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
   if (!job || job.employerId !== employer.id) return null;
   const rows = await jobApplicationsFor(employer.id, job.id);
   const interviews = await interviewsFor(rows.map((row) => row.id));
+  const lang = await requestLang();
   return {
     job,
     applicants: rows.map((row) => ({
@@ -66,7 +68,7 @@ export async function getMyJobApplicants(jobId: string): Promise<{ job: Job; app
       appliedAt: row.appliedAt,
       note: row.note,
       profile: row.profile,
-      facts: candidateFacts(applicantCandidate(row.id, row.profile)),
+      facts: candidateFacts(applicantCandidate(row.id, row.profile), lang),
       isNew: !row.seenAt,
       decision: row.decision,
       interview: interviews.has(row.id) ? interviewView(interviews.get(row.id)!) : null,

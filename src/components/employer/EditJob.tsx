@@ -14,6 +14,9 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 /**
  * Loads one of the signed-in employer's jobs and edits it with the same form and checks as posting. Unsaved changes
@@ -28,6 +31,7 @@ export function EditJob({ jobId, country }: { jobId: string; country: CountryCod
 }
 
 function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
+  const t = useMessages(employerPostMessages).edit;
   const email = me.email;
   const job = useMyJob(jobId, email);
 
@@ -35,9 +39,9 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
   if (!job || !canEdit(job)) {
     return (
       <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
-        {job ? "这个职位已被后台下架，不能修改。" : "找不到这个职位，或者它不属于你登录的店铺。"}
+        {job ? t.takenDown : t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
-          回到职位管理
+          {t.backToJobs}
         </Link>
       </div>
     );
@@ -46,6 +50,8 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
 }
 
 function EditForm({ job, email, country }: { job: Job; email: string; country: CountryCode }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).edit;
   const { profile } = useEmployerProfile(email);
   const { state, restored, startOver, finish } = useKeptJobForm("edit", job, email, country, profile);
   const [pending, startTransition] = useTransition();
@@ -78,20 +84,20 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
             tabIndex={-1}
             className={`text-title font-semibold outline-none ${saved.status === "pending_review" ? "text-warn" : "text-ok"}`}
           >
-            已保存
+            {t.saved}
           </h1>
           <p className="mt-1 text-body">
-            {saved.titleZh} ·{" "}
-            {saved.status === "pending_review" ? "修改的内容需要重新审核，通过后公开。" : "修改已生效。"}
+            <span lang={contentLang(saved.titleZh)}>{saved.titleZh}</span> ·{" "}
+            {saved.status === "pending_review" ? t.savedNeedsReview : t.savedLive}
           </p>
         </div>
         <div className="flex gap-3">
           <ButtonLink href="/employer/jobs" size="lg" className="flex-1">
-            回到职位管理
+            {t.backToJobs}
           </ButtonLink>
           {saved.status === "active" && (
             <ButtonLink href={`/jobs/${saved.id}`} variant="secondary" size="lg" className="flex-1">
-              查看职位
+              {t.seeJob}
             </ButtonLink>
           )}
         </div>
@@ -101,7 +107,7 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
 
   return (
     <div className="space-y-4 pb-24">
-      <h1 className="text-title font-semibold">编辑职位</h1>
+      <h1 className="text-title font-semibold">{t.heading}</h1>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       {restored && <KeptChangesNote onStartOver={startOver} />}
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
@@ -110,17 +116,17 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
       <div className={`${STICKY_BAR} ${WIDE_ON_DESKTOP}`}>
         <div className="flex items-center gap-3">
           <Link href="/employer/jobs" className={BAR_TEXT_ACTION}>
-            取消
+            {t.cancel}
           </Link>
           <p className="flex-1 text-meta text-muted">
             {state.ready
               ? willReview
-                ? "保存后需要重新审核"
-                : "可以保存"
-              : holdReason(state.findings.length, state.missing.length)}
+                ? t.readyNeedsReview
+                : t.ready
+              : holdReason(state.findings.length, state.missing.length, lang)}
           </p>
           <Button size="lg" loading={pending} disabled={!state.ready} onClick={save} className="px-6">
-            {pending ? "保存中…" : "保存"}
+            {pending ? t.saving : t.save}
           </Button>
         </div>
       </div>

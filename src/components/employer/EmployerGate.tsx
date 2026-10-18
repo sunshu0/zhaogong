@@ -7,6 +7,8 @@ import { setIdentity, useHydrated, useSession } from "@/components/seeker/sessio
 import { Button } from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { APP_CARD } from "@/components/employer/app-style";
+import { useMessages } from "@/i18n/client";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 
 /** Who the employer pages act for. From the session, so for display and for telling the server who asks; the server decides. */
 export interface EmployerIdentity {
@@ -24,6 +26,7 @@ const skeleton = <SkeletonList count={2} />;
  * Every Server Function behind these pages checks the account again.
  */
 export function EmployerGate({ next, children }: { next: string; children: (me: EmployerIdentity) => ReactNode }) {
+  const t = useMessages(employerCommonMessages).gate;
   const hydrated = useHydrated();
   const session = useSession();
   const router = useRouter();
@@ -44,9 +47,9 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   if (!me) {
     return (
       <p role="status" className={`${APP_CARD} py-6 text-center text-body text-muted`}>
-        发布和管理招聘需要雇主身份，正在带你去开通……
+        {t.needsEmployer}
         <Link href={signUp} className="ml-1 text-brand underline">
-          没有跳转？点这里
+          {t.noRedirect}
         </Link>
       </p>
     );
@@ -54,7 +57,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   if (seekerNow) {
     return (
       <div className={`${APP_CARD} py-6 text-center text-body`}>
-        <p>你现在用的是求职者身份。发布和管理招聘要用雇主身份。</p>
+        <p>{t.seekerNow}</p>
         <Button
           loading={switching}
           onClick={() => {
@@ -63,7 +66,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
           }}
           className="mt-3"
         >
-          切换为雇主（{me.employerName}）
+          {t.switchToEmployer(me.employerName)}
         </Button>
       </div>
     );

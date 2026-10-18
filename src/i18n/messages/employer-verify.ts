@@ -19,7 +19,8 @@ const employerVerifyZh = {
     submitted: "已提交，审核员核对后会在通知里告诉你结果。",
     banned: "账号已被停用，不能申请验证。",
     nothingLeft: (badge: string) => `你的店铺已经是「${badge}」，不需要再申请。`,
-    adminOnly: (admins: string) => `只有团队管理员能申请企业验证。请找你们店的管理员（${admins}）。`,
+    adminOnly: (admins: readonly string[]) =>
+      `只有团队管理员能申请企业验证。请找你们店的管理员（${admins.join("、")}）。`,
     backToJobs: "回到职位管理",
   },
 
@@ -47,7 +48,9 @@ const employerVerifyZh = {
     queryPlaceholder: "例如：Demo Yuemei 或 9429000000004",
     search: "查询",
     demoRegisterNote: "演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。",
-    resultLine: (nzbn: string, tradingNames: string) => `NZBN ${nzbn} · 商号：${tradingNames}`,
+    /** Before the register's trading names, which are marked as the business's own words. */
+    resultLine: (nzbn: string) => `NZBN ${nzbn} · 商号：`,
+    namesJoiner: "、",
     statusRegistered: "登记状态：正常",
     statusRemoved: "登记状态：已注销",
     choose: "这是我的公司",
@@ -163,7 +166,8 @@ export const employerVerifyMessages: Dictionary<typeof employerVerifyZh> = {
       submitted: "Sent. A moderator will check it and tell you the result in your notifications.",
       banned: "This account is suspended, so it cannot apply for verification.",
       nothingLeft: (badge) => `Your business is already "${badge}", so there is nothing to apply for.`,
-      adminOnly: (admins) => `Only a team admin can apply for business verification. Ask an admin (${admins}).`,
+      adminOnly: (admins) =>
+        `Only a team admin can apply for business verification. Ask an admin (${admins.join(", ")}).`,
       backToJobs: "Back to my jobs",
     },
 
@@ -190,7 +194,8 @@ export const employerVerifyMessages: Dictionary<typeof employerVerifyZh> = {
       search: "Search",
       demoRegisterNote:
         "The demo searches a sample register. The real site connects to the New Zealand Business Number (NZBN) register.",
-      resultLine: (nzbn, tradingNames) => `NZBN ${nzbn} · Trading names: ${tradingNames}`,
+      resultLine: (nzbn) => `NZBN ${nzbn} · Trading names: `,
+      namesJoiner: ", ",
       statusRegistered: "Register status: registered",
       statusRemoved: "Register status: removed",
       choose: "This is my business",

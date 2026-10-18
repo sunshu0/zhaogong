@@ -86,7 +86,7 @@ test("compliance questions arrive in the chat and the employer's fixes reach the
     `奶茶店招兼职${title}，市中心 Queen St，时薪 18，入职交押金200，限华人。学签OK。微信 cbdtea_demo`,
   );
 
-  await expect(lastAssistant(page)).toContainText("时薪 $18 低于新西兰最低工资 $23.95");
+  await expect(lastAssistant(page)).toContainText("时薪 $18 低于新西兰成人最低工资 $23.95");
   await expect(lastAssistant(page)).toContainText("时薪改成多少");
   await expect(page.getByRole("region", { name: /职位卡/ })).toContainText("3 个问题要处理");
   await sayInChat(page, "24");

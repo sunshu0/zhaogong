@@ -5,6 +5,12 @@ import { holdReason, type DraftFormState } from "@/components/employer/use-draft
 import { Button } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
+import { useLang, useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
+import type { Lang } from "@/i18n/lang";
+import type { Messages } from "@/i18n/messages";
+
+type Bars = Messages<(typeof employerPostMessages)["zh"]["bars"]>;
 
 /** The sticky bar at the bottom of the form and preview steps; full width of the form on desktop. */
 export function BottomBar({ wide, children }: { wide: boolean; children: ReactNode }) {
@@ -20,23 +26,25 @@ export function FormBar({
   onBack: () => void;
   onPreview: () => void;
 }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).bars;
   return (
     <div className="flex items-center gap-3">
       <button type="button" onClick={onBack} className={BAR_TEXT_ACTION}>
-        上一步
+        {t.back}
       </button>
-      <p className="flex-1 text-meta text-muted">{formStatusText(form)}</p>
+      <p className="flex-1 text-meta text-muted">{formStatusText(form, t, lang)}</p>
       <Button size="lg" disabled={!form.ready} onClick={onPreview} className="px-6">
-        预览
+        {t.preview}
       </Button>
     </div>
   );
 }
 
 /** Below the form: whether it can be published, and if not, what is still open. */
-function formStatusText({ ready, decision, findings, missing }: DraftFormState): string {
-  if (!ready) return holdReason(findings.length, missing.length);
-  return decision.status === "pending_review" ? "可以发布，需人工审核" : "可以发布";
+function formStatusText({ ready, decision, findings, missing }: DraftFormState, t: Bars, lang: Lang): string {
+  if (!ready) return holdReason(findings.length, missing.length, lang);
+  return decision.status === "pending_review" ? t.readyNeedsReview : t.ready;
 }
 
 export function PreviewBar({
@@ -54,20 +62,21 @@ export function PreviewBar({
   onBack: () => void;
   onPublish: () => void;
 }) {
+  const t = useMessages(employerPostMessages).bars;
   return (
     <div className="flex items-center gap-3">
       <button type="button" onClick={onBack} className={BAR_TEXT_ACTION}>
-        返回修改
+        {t.backToEdit}
       </button>
-      <p className="flex-1 text-meta text-muted">{`以「${shopName}」发布`}</p>
+      <p className="flex-1 text-meta text-muted">{t.postingAs(shopName)}</p>
       <Button size="lg" loading={pending} disabled={disabled} onClick={onPublish} className="px-6">
-        {publishLabel(pending, needsReview)}
+        {publishLabel(pending, needsReview, t)}
       </Button>
     </div>
   );
 }
 
-function publishLabel(pending: boolean, needsReview: boolean): string {
-  if (pending) return "发布中…";
-  return needsReview ? "提交审核" : "发布";
+function publishLabel(pending: boolean, needsReview: boolean, t: Bars): string {
+  if (pending) return t.publishing;
+  return needsReview ? t.submitForReview : t.publish;
 }

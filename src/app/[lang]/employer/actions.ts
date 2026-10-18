@@ -45,7 +45,7 @@ import {
   type RegisterEntry,
 } from "@/components/employer/business-register";
 import { hiresFromAnswer, type HiresAnswer } from "@/components/employer/hires";
-import { canApplyFor, KIND_LABELS, parseApplication, type VerifyKind } from "@/components/employer/verification";
+import { canApplyFor, kindLabels, parseApplication, type VerifyKind } from "@/components/employer/verification";
 import { latestVerification, submitVerification, type VerificationRequest } from "@/db/verification-requests";
 import {
   canClose,
@@ -60,6 +60,17 @@ import { listJobPosters, recordContactBy, type JobPosters } from "@/db/job-poste
 import { sameContact } from "@/components/employer/job-poster";
 import { liveTwins } from "@/components/employer/job-twins";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
+import { pick } from "@/i18n/messages";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
+import { requestLang } from "@/i18n/server";
+
+/**
+ * What a Server Function here says when it refuses, in the visitor's language (Round 20, ADR 0023). The field stays
+ * `error_zh`, the name every caller knows it by.
+ */
+async function errors() {
+  return pick(employerCommonMessages, await requestLang()).errors;
+}
 
 /**
  * The signed-in account's business, or why it cannot act as one. Like requireEmployer() from
@@ -75,11 +86,10 @@ async function postingEmployer(): Promise<Employer | "signed_out" | "no_identity
   return linked && (await getEmployer(linked))?.bannedAt ? "banned" : "no_identity";
 }
 
-const IDENTITY_ERRORS = {
-  signed_out: "请先登录。",
-  no_identity: "需要先开通雇主身份。",
-  banned: "账号已被停用，不能再修改职位。",
-};
+async function identityError(reason: "signed_out" | "no_identity" | "banned"): Promise<string> {
+  const t = await errors();
+  return { signed_out: t.signedOut, no_identity: t.noIdentity, banned: t.banned }[reason];
+}
 
 /** The account's jobs, newest first, whatever their status. None without an employer identity. */
 export async function getMyJobs(): Promise<Job[]> {
@@ -241,7 +251,12 @@ export type PublishResult =
 export async function publishJob(input: unknown): Promise<PublishResult> {
   const draft = sanitizeDraft(input, DEFAULT_COUNTRY);
   const employer = await postingEmployer();
-  const findings = checkJob(draft, DEFAULT_COUNTRY, typeof employer === "string" ? undefined : employer);
+  const findings = checkJob(
+    draft,
+    DEFAULT_COUNTRY,
+    typeof employer === "string" ? undefined : employer,
+    await requestLang(),
+  );
   const missing = missingFields(draft);
   if (typeof employer === "string") return { ok: false, reason: employer, findings, missing };
 
@@ -261,9 +276,9 @@ export type ChangeResult = { ok: true; job: Job } | { ok: false; error_zh: strin
 /** The job, if it belongs to the account's business and that business may still post. */
 async function ownJob(jobId: unknown): Promise<Job | string> {
   const employer = await postingEmployer();
-  if (typeof employer === "string") return IDENTITY_ERRORS[employer];
+  if (typeof employer === "string") return await identityError(employer);
   const job = await getJob(String(jobId));
-  if (!job || job.employerId !== employer.id) return "找不到这个职位。";
+  if (!job || job.employerId !== employer.id) return (await errors()).jobNotFound;
   return job;
 }
 
@@ -277,8 +292,8 @@ export async function closeMyJob(jobId: string, hires?: HiresAnswer | null): Pro
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
-  if (!canClose(job, now)) return { ok: false, error_zh: "这个职位已经结束或已被下架。" };
-  const answer = hiresFromAnswer(hires, now);
+  if (!canClose(job, now)) return { ok: false, error_zh: (await errors()).alreadyEnded };
+  const answer = hiresFromAnswer(hires, now, await requestLang());
   if (!answer.ok) return answer;
   return {
     ok: true,
@@ -290,17 +305,17 @@ export async function closeMyJob(jobId: string, hires?: HiresAnswer | null): Pro
 export async function confirmHires(jobId: string, hires: HiresAnswer): Promise<ChangeResult> {
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
-  if (effectiveStatus(job, Date.now()) !== "expired") return { ok: false, error_zh: "职位结束后才能记录招到几人。" };
-  const answer = hiresFromAnswer(hires ?? {}, Date.now());
+  if (effectiveStatus(job, Date.now()) !== "expired") return { ok: false, error_zh: (await errors()).hiresAfterEnd };
+  const answer = hiresFromAnswer(hires ?? {}, Date.now(), await requestLang());
   if (!answer.ok) return answer;
   return { ok: true, job: (await updateJob(job.id, answer.fields))! };
 }
 
 /** Checks a job against today's rules (the minimum wage may have gone up since it was posted). */
 async function recheck(job: Job): Promise<{ ok: true; status: Job["status"] } | ChangeResult> {
-  const findings = checkJob(job, job.country, await getEmployer(job.employerId));
+  const findings = checkJob(job, job.country, await getEmployer(job.employerId), await requestLang());
   const decision = publishDecision(findings);
-  if (!decision.canPublish) return { ok: false, error_zh: "这个职位不符合现在的发布规则，请先编辑。", findings };
+  if (!decision.canPublish) return { ok: false, error_zh: (await errors()).failsRulesNow, findings };
   return { ok: true, status: decision.status };
 }
 
@@ -309,8 +324,8 @@ export async function refreshMyJob(jobId: string): Promise<ChangeResult> {
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
-  const state = refreshState(job, now);
-  if (!state.allowed) return { ok: false, error_zh: `不能刷新：${state.reason_zh}` };
+  const state = refreshState(job, now, await requestLang());
+  if (!state.allowed) return { ok: false, error_zh: (await errors()).cannotRefresh(state.reason_zh ?? "") };
 
   const checked = await recheck(job);
   if (!("status" in checked)) return checked;
@@ -326,17 +341,18 @@ export async function renewMyJob(jobId: string, days: number): Promise<ChangeRes
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
   const now = Date.now();
-  const state = renewState(job, now);
-  if (!state.allowed) return { ok: false, error_zh: `不能续期：${state.reason_zh}` };
+  const state = renewState(job, now, await requestLang());
+  const t = await errors();
+  if (!state.allowed) return { ok: false, error_zh: t.cannotRenew(state.reason_zh) };
   const choice = state.choices.find((c) => c.days === days);
-  if (!choice) return { ok: false, error_zh: "请选择续期 14、30 或 60 天。" };
-  if (!choice.allowed) return { ok: false, error_zh: `续期 ${days} 天会超过最远的截止日，请选短一些的。` };
+  if (!choice) return { ok: false, error_zh: t.chooseRenewDays };
+  if (!choice.allowed) return { ok: false, error_zh: t.renewTooLong(days) };
 
   const checked = await recheck(job);
   if (!("status" in checked)) return checked;
   const status = effectiveStatus(job, now) === "active" ? "active" : checked.status;
   const renewed = await renewJob(job.id, { expiresAt: choice.expiresAt, status, days }, new Date(now));
-  return renewed ? { ok: true, job: renewed } : { ok: false, error_zh: "找不到这个职位。" };
+  return renewed ? { ok: true, job: renewed } : { ok: false, error_zh: t.jobNotFound };
 }
 
 /**
@@ -346,15 +362,15 @@ export async function renewMyJob(jobId: string, days: number): Promise<ChangeRes
 export async function editMyJob(jobId: string, input: unknown): Promise<ChangeResult> {
   const job = await ownJob(jobId);
   if (typeof job === "string") return { ok: false, error_zh: job };
-  if (!canEdit(job)) return { ok: false, error_zh: "这个职位已被下架，不能修改。" };
+  if (!canEdit(job)) return { ok: false, error_zh: (await errors()).takenDown };
 
   const draft = sanitizeDraft(input, job.country);
-  const findings = checkJob(draft, job.country, await getEmployer(job.employerId));
+  const findings = checkJob(draft, job.country, await getEmployer(job.employerId), await requestLang());
   const decision = publishDecision(findings);
   const edited = decision.canPublish
     ? completeJob(draft, job.employerId, Date.parse(job.postedAt), job.status)
     : undefined;
-  if (!edited) return { ok: false, error_zh: "还有问题没处理或必填项没填。", findings };
+  if (!edited) return { ok: false, error_zh: (await errors()).notReady, findings };
 
   const live = job.status === "active" || job.status === "pending_review";
   const status = live ? decision.status : job.status;
@@ -376,7 +392,7 @@ export async function getMyEmployer(): Promise<Employer | null> {
 }
 
 export async function lookupBusiness(query: string): Promise<{ results: RegisterEntry[]; error_zh?: string }> {
-  return searchRegister(buildRegister(await listEmployers()), String(query).slice(0, 100));
+  return searchRegister(buildRegister(await listEmployers()), String(query).slice(0, 100), await requestLang());
 }
 
 // ---- 企业验证 by a person (#78, ADR 0011) ----
@@ -402,36 +418,36 @@ export async function getMyVerification(): Promise<MyVerification | null> {
 
 export type VerifyResult = { ok: true; request: MyVerification } | { ok: false; error_zh: string };
 
-const SUBMIT_ERRORS = {
-  pending: "你已经有一份验证申请在审核中，审核员核对后会通知你。",
-  nzbn_pending: "这个 NZBN 已经有一份验证申请在审核中。如果是你的公司，请联系我们。",
-  nzbn_taken: "这个 NZBN 已经被其他店铺验证。如果是你的公司，请联系我们。",
-};
-
 /**
  * Applies for 已验证企业 or 认证雇主 with a register entry and the applicant's details. It waits for a moderator
  * (#78): nothing changes on the business until they approve. A banned business cannot apply.
  */
 export async function requestVerification(input: unknown): Promise<VerifyResult> {
+  const lang = await requestLang();
+  const t = await errors();
   const employer = await postingEmployer();
-  if (employer === "banned") return { ok: false, error_zh: "账号已被停用，不能申请验证。" };
-  if (typeof employer === "string") return { ok: false, error_zh: IDENTITY_ERRORS[employer] };
+  if (employer === "banned") return { ok: false, error_zh: t.verifyBanned };
+  if (typeof employer === "string") return { ok: false, error_zh: await identityError(employer) };
   const session = (await getCurrentSession())!;
   // Only an admin of the business's team applies (#87).
   if (!teamCan((await getAccount(session.email))?.teamRole, "verify"))
-    return { ok: false, error_zh: "只有团队管理员能申请企业验证，请找你们店的管理员。" };
+    return { ok: false, error_zh: t.verifyAdminOnly };
 
-  const parsed = parseApplication(input);
+  const parsed = parseApplication(input, lang);
   if (!parsed.ok) return parsed;
   const application = parsed.value;
   if (!canApplyFor(employer.verification, application.kind))
-    return { ok: false, error_zh: `你的店铺已经是「${KIND_LABELS[employer.verification as VerifyKind]}」。` };
+    return { ok: false, error_zh: t.verifyAlready(kindLabels(lang)[employer.verification as VerifyKind]) };
   const entry = findInRegister(buildRegister(await listEmployers()), application.nzbn);
-  if (!entry) return { ok: false, error_zh: "企业登记里没有这个 NZBN。" };
-  if (entry.status !== "registered") return { ok: false, error_zh: "这家公司在企业登记里已注销，不能用来验证。" };
+  if (!entry) return { ok: false, error_zh: t.verifyNzbnNotFound };
+  if (entry.status !== "registered") return { ok: false, error_zh: t.verifyNzbnRemoved };
 
   const result = await submitVerification(employer, session.email, { ...application, legalName: entry.legalName });
-  return result.status === "submitted"
-    ? { ok: true, request: mine(result.request) }
-    : { ok: false, error_zh: SUBMIT_ERRORS[result.status] };
+  if (result.status === "submitted") return { ok: true, request: mine(result.request) };
+  const submitErrors = {
+    pending: t.verifyPending,
+    nzbn_pending: t.verifyNzbnPending,
+    nzbn_taken: t.verifyNzbnTaken,
+  };
+  return { ok: false, error_zh: submitErrors[result.status] };
 }

@@ -213,7 +213,7 @@ describe("compliance in the conversation", () => {
       "奶茶店招兼职店员，市中心，时薪 18，入职交押金200，限华人。学签OK。微信 cbdtea_demo",
     );
     expect(s.asking).toBe("fix");
-    expect(last(s).text).toContain("时薪 $18 低于新西兰最低工资 $23.95");
+    expect(last(s).text).toContain("时薪 $18 低于新西兰成人最低工资 $23.95");
     expect(last(s).text).toContain("改成多少");
 
     s = await say(s, "24");

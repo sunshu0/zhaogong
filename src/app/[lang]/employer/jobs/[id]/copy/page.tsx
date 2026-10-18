@@ -3,8 +3,13 @@ import { Suspense } from "react";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { RepublishJob } from "@/components/employer/RepublishJob";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
+import { messages } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "复制为新职位", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const { pages } = await messages(employerPostMessages);
+  return { title: pages.copyTitle, robots: { index: false } };
+}
 
 /** 复制为新职位 (#190): the 重新发布 form, for a job that is live or ended. */
 export default function CopyJobPage({ params }: PageProps<"/[lang]/employer/jobs/[id]/copy">) {

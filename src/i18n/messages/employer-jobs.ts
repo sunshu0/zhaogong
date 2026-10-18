@@ -166,7 +166,8 @@ const employerJobsZh = {
   stats: {
     back: "← 职位管理",
     heading: "职位数据",
-    subtitle: (title: string) => `${title} · 最近 14 天`,
+    /** After the job's title, which is marked as the employer's own words. */
+    subtitleRest: " · 最近 14 天",
     notFound: "找不到这个职位，或者它不属于你登录的店铺。",
     backToManage: "回到职位管理",
     totals: { views: "浏览", chats: "发起聊天", contactViews: "查看联系方式" },
@@ -192,6 +193,8 @@ const employerJobsZh = {
 
   /** job-reminders.ts — 将截止 reminders (#69) in the workspace and in 通知. */
   reminders: {
+    /** The notification type (closing-notifications.ts). */
+    type: "招聘",
     endingTitle: (title: string, untilClose: string) => `「${title}」${untilClose}`,
     endingDetail: "还要招人就续期，招到了就结束招聘",
     timedOutTitle: (title: string) => `「${title}」已截止`,
@@ -370,7 +373,7 @@ export const employerJobsMessages: Dictionary<typeof employerJobsZh> = {
     stats: {
       back: "← My jobs",
       heading: "Job stats",
-      subtitle: (title) => `${title} · last 14 days`,
+      subtitleRest: " · last 14 days",
       notFound: "This job doesn't exist, or it doesn't belong to the business you're signed in as.",
       backToManage: "Back to my jobs",
       totals: { views: "Views", chats: "Chats started", contactViews: "Contact details shown" },
@@ -396,6 +399,7 @@ export const employerJobsMessages: Dictionary<typeof employerJobsZh> = {
     },
 
     reminders: {
+      type: "Hiring",
       endingTitle: (title, untilClose) => `“${title}” — ${untilClose}`,
       endingDetail: "Renew it if you're still hiring, or end hiring if you've found someone",
       timedOutTitle: (title) => `“${title}” has closed`,

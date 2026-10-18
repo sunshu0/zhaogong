@@ -1,6 +1,12 @@
 // 企业验证 by a person (#78, PRD R-16): the employer applies with a register entry and its own details; a moderator
 // works through a checklist and approves or rejects with a reason. Pure: the employer page, /admin and the Server
 // Functions share these rules and words. ADR 0011.
+// The wording comes from the 企业验证 dictionary (Round 20, ADR 0023); the badge names from i18n/labels.ts. Every
+// function that builds text takes the reader's language and falls back to Chinese, so /admin keeps working unchanged.
+import { VERIFICATION_LABELS } from "@/i18n/labels";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 import type { EmployerVerification } from "@/lib/types";
 
 /** The badge applied for: 已验证企业, or 认证雇主 (checked against Immigration New Zealand's public list). */
@@ -8,17 +14,26 @@ export type VerifyKind = Exclude<EmployerVerification, "unverified">;
 export type RequestStatus = "pending" | "approved" | "rejected" | "withdrawn";
 export type RejectReason = "register_mismatch" | "phone_unreachable" | "impersonation" | "other";
 
-export const REJECT_REASONS: Record<RejectReason, string> = {
-  register_mismatch: "登记信息对不上",
-  phone_unreachable: "电话核实不到人",
-  impersonation: "冒用他人公司",
-  other: "其他",
-};
+const words = (lang: Lang) => pick(employerVerifyMessages, lang);
 
-export const KIND_LABELS: Record<VerifyKind, string> = {
-  business_verified: "已验证企业",
-  accredited_employer: "认证雇主",
-};
+/** Why a moderator turned an application down, in the reader's language. */
+export function rejectReasons(lang: Lang = DEFAULT_LANG): Record<RejectReason, string> {
+  return words(lang).rejectReasons;
+}
+
+/** The Chinese reasons, for callers that have no language to hand. */
+export const REJECT_REASONS: Record<RejectReason, string> = rejectReasons();
+
+/** The badges one can apply for, named as the badge itself is (i18n/labels.ts). */
+export function kindLabels(lang: Lang = DEFAULT_LANG): Record<VerifyKind, string> {
+  return {
+    business_verified: VERIFICATION_LABELS.business_verified[lang],
+    accredited_employer: VERIFICATION_LABELS.accredited_employer[lang],
+  };
+}
+
+/** The Chinese badge names, for callers that have no language to hand. */
+export const KIND_LABELS: Record<VerifyKind, string> = kindLabels();
 
 export type CheckId = "register" | "applicant" | "phone" | "website" | "accredited";
 
@@ -43,35 +58,38 @@ const ACCREDITED_LIST =
   "https://immigration.govt.nz/work/requirements-for-work-visas/approved-employers/accredited-employer-list";
 
 /** What a moderator checks for one application, in order; the last only when 认证雇主 is applied for. */
-export function checklistFor(request: { kind: VerifyKind; legalName: string; tradingName: string }): CheckItem[] {
+export function checklistFor(
+  request: { kind: VerifyKind; legalName: string; tradingName: string },
+  lang: Lang = DEFAULT_LANG,
+): CheckItem[] {
+  const t = words(lang).checklist;
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(request.tradingName)}`;
   const items: CheckItem[] = [
     {
       id: "register",
-      label: "企业登记",
-      detail: "这个 NZBN 在企业登记里是「已登记」，登记名和雇主填的公司名一致。",
+      label: t.register.label,
+      detail: t.register.detail,
       links: [
-        { label: "去查 NZBN 登记", href: NZBN_REGISTER },
-        { label: "去查 Companies Office", href: COMPANIES_OFFICE },
+        { label: t.register.nzbnLink, href: NZBN_REGISTER },
+        { label: t.register.companiesOfficeLink, href: COMPANIES_OFFICE },
       ],
     },
     {
       id: "applicant",
-      label: "申请人身份",
-      detail: "申请人姓名在登记的董事或股东名单上；不在的，在下一步电话里确认他在公司的职务。",
-      links: [{ label: "去查董事和股东", href: COMPANIES_OFFICE }],
+      label: t.applicant.label,
+      detail: t.applicant.detail,
+      links: [{ label: t.applicant.directorsLink, href: COMPANIES_OFFICE }],
     },
     {
       id: "phone",
-      label: "电话核实",
-      detail:
-        "打公开渠道查到的公司电话（官网、Google 地图、登记信息），不打申请人填的号码，问一句「贵公司是否有这个人在找工发招聘」。",
-      links: [{ label: "去 Google 地图查电话", href: maps }],
+      label: t.phone.label,
+      detail: t.phone.detail,
+      links: [{ label: t.phone.mapsLink, href: maps }],
     },
     {
       id: "website",
-      label: "网站或 Facebook",
-      detail: "存在且是同一家店（地址、店名对得上）。没有就跳过。",
+      label: t.website.label,
+      detail: t.website.detail,
       optional: true,
       links: [],
     },
@@ -79,9 +97,9 @@ export function checklistFor(request: { kind: VerifyKind; legalName: string; tra
   if (request.kind === "accredited_employer")
     items.push({
       id: "accredited",
-      label: "认证雇主名单",
-      detail: "在移民局公开的认证雇主名单里，用 NZBN 或公司名查到这家公司，状态是有效。",
-      links: [{ label: "去查认证雇主名单", href: ACCREDITED_LIST }],
+      label: t.accredited.label,
+      detail: t.accredited.detail,
+      links: [{ label: t.accredited.listLink, href: ACCREDITED_LIST }],
     });
   return items;
 }
@@ -113,10 +131,12 @@ export type Rejection = { reason: RejectReason; note: string };
 export function parseRejection(
   reason: unknown,
   note: unknown,
+  lang: Lang = DEFAULT_LANG,
 ): { ok: true; value: Rejection } | { ok: false; error_zh: string } {
-  if (typeof reason !== "string" || !(reason in REJECT_REASONS)) return { ok: false, error_zh: "请选择驳回理由。" };
+  const t = words(lang).errors;
+  if (typeof reason !== "string" || !(reason in REJECT_REASONS)) return { ok: false, error_zh: t.noRejectReason };
   const text = clean(note, NOTE_MAX);
-  if (!text) return { ok: false, error_zh: "请写明驳回的说明，雇主会看到。" };
+  if (!text) return { ok: false, error_zh: t.noRejectNote };
   return { ok: true, value: { reason: reason as RejectReason, note: text } };
 }
 
@@ -135,7 +155,9 @@ const PHONE = /^\+?[\d\s()-]{6,20}$/;
 /** The employer's form, checked on the server; the NZBN is normalised but looked up by the caller. */
 export function parseApplication(
   input: unknown,
+  lang: Lang = DEFAULT_LANG,
 ): { ok: true; value: VerifyApplication } | { ok: false; error_zh: string } {
+  const t = words(lang).errors;
   const raw = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   const nzbn = clean(raw.nzbn, 30).replace(/[\s-]/g, "");
   const kind: VerifyKind = raw.kind === "accredited_employer" ? "accredited_employer" : "business_verified";
@@ -143,12 +165,11 @@ export function parseApplication(
   const contactRole = clean(raw.contactRole, 40);
   const companyPhone = clean(raw.companyPhone, 20);
   const website = clean(raw.website, 200);
-  if (!/^\d{13}$/.test(nzbn)) return { ok: false, error_zh: "请先在企业登记里选好你的公司。" };
-  if (!contactName) return { ok: false, error_zh: "请填写联系人姓名。" };
-  if (!contactRole) return { ok: false, error_zh: "请填写你在公司的职务。" };
-  if (!PHONE.test(companyPhone)) return { ok: false, error_zh: "请填写公司电话（数字，可带 + 和空格）。" };
-  if (website && !/^https?:\/\/\S+\.\S+/.test(website))
-    return { ok: false, error_zh: "网站或 Facebook 请填完整的网址，以 http:// 或 https:// 开头。" };
+  if (!/^\d{13}$/.test(nzbn)) return { ok: false, error_zh: t.noBusinessChosen };
+  if (!contactName) return { ok: false, error_zh: t.noContactName };
+  if (!contactRole) return { ok: false, error_zh: t.noContactRole };
+  if (!PHONE.test(companyPhone)) return { ok: false, error_zh: t.badPhone };
+  if (website && !/^https?:\/\/\S+\.\S+/.test(website)) return { ok: false, error_zh: t.badWebsite };
   return { ok: true, value: { nzbn, kind, contactName, contactRole, companyPhone, ...(website && { website }) } };
 }
 

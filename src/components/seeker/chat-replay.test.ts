@@ -15,7 +15,7 @@ describe("buildReplay", () => {
 
   it("points out the three problems in the post and ends with everything filled in", async () => {
     const assistant = (await buildReplay()).filter((m) => m.from === "assistant").map((m) => m.text);
-    expect(assistant.some((t) => t.includes("低于新西兰最低工资"))).toBe(true);
+    expect(assistant.some((t) => t.includes("低于新西兰成人最低工资"))).toBe(true);
     expect(assistant.some((t) => t.includes("押金"))).toBe(true);
     expect(assistant.some((t) => t.includes("限华人"))).toBe(true);
     expect(assistant.at(-1)).toContain("都齐了");

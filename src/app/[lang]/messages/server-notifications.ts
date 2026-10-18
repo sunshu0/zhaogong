@@ -15,33 +15,38 @@ import { externalAlertNotifications } from "@/app/[lang]/me/external-alert-notif
 import { myVerificationNotifications } from "@/app/[lang]/employer/verification-notifications";
 import { myTeamInviteNotifications } from "@/app/[lang]/employer/team-notifications";
 import { postedAgoZh } from "@/components/seeker/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 import { alertNotificationId } from "@/components/seeker/job-alerts";
 import type { Notification } from "@/components/seeker/hub-state";
 
 export async function serverNotifications(
   identity: { email: string; isEmployer: boolean },
   now: number,
+  lang: Lang = DEFAULT_LANG,
 ): Promise<Notification[]> {
   const interviews = await interviewNotifications(identity, now);
   if (identity.isEmployer)
     return [
       ...interviews,
-      ...(await myApplicationNotifications(identity.email, now)),
-      ...(await myClosingNotifications(identity.email, now)),
-      ...(await myVerificationNotifications(identity.email, now)),
+      ...(await myApplicationNotifications(identity.email, now, lang)),
+      ...(await myClosingNotifications(identity.email, now, lang)),
+      ...(await myVerificationNotifications(identity.email, now, lang)),
     ];
+  const t = pick(chatMessages, lang).notifications;
   const alerts = await Promise.all(
     (await listJobAlertHits(identity.email)).map(async (hit): Promise<Notification> => {
       const job = await getJob(hit.jobId);
       const employer = job && (await getEmployer(job.employerId));
       return {
         id: alertNotificationId(hit.jobId),
-        type: "提醒",
-        title: `有新职位符合提醒「${hit.alertName}」`,
+        type: t.type,
+        title: t.alertTitle(hit.alertName),
         detail:
           job && isOpenJob(job, now)
-            ? `${employer?.name ?? ""}正在招聘${job.titleZh}`
-            : `${job?.titleZh ?? "这个职位"}已经停止招聘`,
+            ? t.hiring(employer?.name ?? "", job.titleZh)
+            : t.noLongerHiring(job?.titleZh ?? t.thisJob),
         time: postedAgoZh(hit.createdAt, now),
         unread: true,
         target: { type: "job", id: hit.jobId },
@@ -51,7 +56,7 @@ export async function serverNotifications(
   return [
     ...interviews,
     ...(await applicationOutcomeNotifications(identity.email, now)),
-    ...(await myTeamInviteNotifications(identity.email, now)),
+    ...(await myTeamInviteNotifications(identity.email, now, lang)),
     ...alerts,
     ...(await externalAlertNotifications(identity.email, now)),
   ];

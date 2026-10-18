@@ -1,6 +1,9 @@
 // 将截止 reminders (#69, PRD R-33). From 3 days before a live job's closing date, and after it ran out for as long
 // as it can still be renewed, the employer's workspace lists the job and 通知 has one notification about it. Worked
 // out when read, like the closing itself (ADR 0008): nothing runs on a timer.
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 import type { Job } from "@/lib/types";
 import { ENDING_DAYS, jobPhase, renewDaysLeft, untilCloseZh } from "@/components/employer/job-status";
 
@@ -22,7 +25,12 @@ export type ClosingReminder = {
 type ReminderJob = Pick<Job, "id" | "titleZh" | "status" | "expiresAt">;
 
 /** The employer's jobs that close soon or ran out and can still be renewed, soonest closing first. */
-export function closingReminders(jobs: readonly ReminderJob[], now: number): ClosingReminder[] {
+export function closingReminders(
+  jobs: readonly ReminderJob[],
+  now: number,
+  lang: Lang = DEFAULT_LANG,
+): ClosingReminder[] {
+  const t = pick(employerJobsMessages, lang).reminders;
   const reminders: ClosingReminder[] = [];
   for (const job of [...jobs].sort((a, b) => Date.parse(a.expiresAt) - Date.parse(b.expiresAt))) {
     const phase = jobPhase(job, now);
@@ -32,8 +40,8 @@ export function closingReminders(jobs: readonly ReminderJob[], now: number): Clo
       reminders.push({
         id,
         jobId: job.id,
-        title: `「${job.titleZh}」${untilCloseZh(job, now)}`,
-        detail: "还要招人就续期，招到了就结束招聘",
+        title: t.endingTitle(job.titleZh, untilCloseZh(job, now, lang)),
+        detail: t.endingDetail,
         since: new Date(closes - ENDING_DAYS * DAY_MS).toISOString(),
       });
     } else if (phase === "timed_out" && renewDaysLeft(job, now) > 0) {
@@ -41,8 +49,8 @@ export function closingReminders(jobs: readonly ReminderJob[], now: number): Clo
       reminders.push({
         id,
         jobId: job.id,
-        title: `「${job.titleZh}」已截止`,
-        detail: `还可以续期 ${renewDaysLeft(job, now)} 天，之后只能重新发布`,
+        title: t.timedOutTitle(job.titleZh),
+        detail: t.timedOutDetail(renewDaysLeft(job, now)),
         since: job.expiresAt,
       });
     }

@@ -1,23 +1,35 @@
 "use client";
-import { JOB_ROLE_IDS, JOB_ROLES, MAX_JOB_ROLES } from "@/config/job-roles";
-import { roleFitsIndustry, roleNames, suggestJobRoles } from "@/lib/job-roles";
+import { JOB_ROLE_IDS, JOB_ROLES, MAX_JOB_ROLES, type JobRoleId } from "@/config/job-roles";
+import { roleFitsIndustry, suggestJobRoles } from "@/lib/job-roles";
 import { formRoles, type PostForm } from "@/components/employer/post-form";
 import { ChoicePill } from "@/components/employer/ChoicePill";
+import { useLang, useMessages } from "@/i18n/client";
+import type { Lang } from "@/i18n/lang";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
+
+/** The categories as one line in the page's language (lib/job-roles' roleNames is Chinese only). */
+export function roleNamesIn(ids: readonly JobRoleId[], lang: Lang, separator: string): string {
+  return ids.map((id) => JOB_ROLES[id][lang]).join(separator);
+}
 
 /**
  * 岗位类别 (#96, ADR 0013): at most two. Until the employer picks, the categories the title names are ticked; the
  * job's industry decides which categories are offered, and a category already ticked stays in the list.
  */
 export function JobRolesField({ form, set }: { form: PostForm; set: (patch: Partial<PostForm>) => void }) {
+  const lang = useLang();
+  const m = useMessages(employerPostMessages);
+  const t = m.roles;
   const chosen = formRoles(form);
   const suggested = suggestJobRoles(form);
   const offered = JOB_ROLE_IDS.filter((id) => chosen.includes(id) || roleFitsIndustry(id, form.industry));
   const full = chosen.length >= MAX_JOB_ROLES;
-  const toggle = (id: (typeof JOB_ROLE_IDS)[number]) =>
+  const names = (ids: readonly JobRoleId[]) => roleNamesIn(ids, lang, m.checklist.separator);
+  const toggle = (id: JobRoleId) =>
     set({ roles: chosen.includes(id) ? chosen.filter((r) => r !== id) : [...chosen, id] });
   return (
     <fieldset id="field-roles" className="scroll-mt-20 space-y-1.5">
-      <legend className="mb-1.5 text-body font-medium">岗位类别</legend>
+      <legend className="mb-1.5 text-body font-medium">{t.legend}</legend>
       <div className="flex flex-wrap gap-2">
         {offered.map((id) => (
           <ChoicePill
@@ -28,18 +40,18 @@ export function JobRolesField({ form, set }: { form: PostForm; set: (patch: Part
             disabled={full && !chosen.includes(id)}
             onChange={() => toggle(id)}
           >
-            {JOB_ROLES[id].zh}
+            {JOB_ROLES[id][lang]}
           </ChoicePill>
         ))}
       </div>
       <p className="text-meta text-muted">
         {form.roles == null && suggested.length
-          ? `按职位名预选了${roleNames(suggested)}，可以改。`
+          ? t.preselected(names(suggested))
           : chosen.length
-            ? `最多选 ${MAX_JOB_ROLES} 个。推荐人才按岗位类别找人。`
+            ? t.max(MAX_JOB_ROLES)
             : suggested.length
-              ? `不选的话按职位名归到${roleNames(suggested)}。`
-              : "还没选。不选的话职位显示「岗位类别待选」，推荐人才时这一项不算分。"}
+              ? t.fallback(names(suggested))
+              : t.none}
       </p>
     </fieldset>
   );

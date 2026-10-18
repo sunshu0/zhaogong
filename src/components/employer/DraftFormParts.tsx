@@ -10,6 +10,8 @@ import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
 import { ChoicePill } from "@/components/employer/ChoicePill";
 import { fieldTone, type FieldState } from "@/components/employer/field-tone";
+import { useLang, useMessages } from "@/i18n/client";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 export type { FieldState };
 
@@ -61,11 +63,13 @@ export function Section({ title, children }: { title: string; children: ReactNod
 }
 
 function Notes({ missing, findings, hint }: FieldState & { hint?: string }) {
+  const lang = useLang();
+  const t = useMessages(employerPostMessages).form;
   return (
     <>
-      {missing && <p className="text-meta text-warn">没有识别到，请填写</p>}
+      {missing && <p className="text-meta text-warn">{t.notRecognised}</p>}
       {findings.map((f, i) => (
-        <FindingItem key={i} finding={f} />
+        <FindingItem key={i} finding={f} lang={lang} />
       ))}
       {hint && <p className="text-meta text-muted">{hint}</p>}
     </>
@@ -122,6 +126,7 @@ export function RangeInputs({
   step: string;
   className: string;
 }) {
+  const t = useMessages(employerPostMessages).form;
   return (
     <div className="flex items-center gap-2">
       <input
@@ -129,7 +134,7 @@ export function RangeInputs({
         inputMode="decimal"
         min="0"
         step={step}
-        aria-label="最低"
+        aria-label={t.rangeMin}
         value={min ?? ""}
         onChange={(e) => onMin(numberOrUndefined(e.target.value))}
         className={`h-11 ${className}`}
@@ -140,10 +145,10 @@ export function RangeInputs({
         inputMode="decimal"
         min="0"
         step={step}
-        aria-label="最高（可不填）"
+        aria-label={t.rangeMax}
         value={max ?? ""}
         onChange={(e) => onMax(numberOrUndefined(e.target.value))}
-        placeholder="可不填"
+        placeholder={t.rangeMaxPlaceholder}
         className={`h-11 ${className}`}
       />
       <span className="shrink-0 text-body text-muted">{unit}</span>

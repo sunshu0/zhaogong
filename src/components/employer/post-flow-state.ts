@@ -16,21 +16,27 @@ import { emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useDraftForm, type DraftFormState } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { clearPost, loadPost, savePost, type SavedPost } from "@/components/employer/post-draft-store";
+import { useLang } from "@/i18n/client";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 export type Step = "chat" | "paste" | "form" | "preview" | "done";
 export type Mode = "chat" | "form";
 
-export const PUBLISH_ERRORS = {
-  signed_out: "登录已失效，请重新登录后再发布。",
-  no_identity: "需要先开通雇主身份，请从页头的「发布招聘」重新进入。",
-  banned: "这个雇主账号已被停用，不能发布职位。",
-  not_ready: "服务器检查没有通过，请回到上一步修改。",
-};
+/** Why the server would not publish. */
+export type PublishErrorReason = keyof (typeof employerPostMessages)["zh"]["publishErrors"];
+
+export function publishError(reason: PublishErrorReason, lang: Lang = DEFAULT_LANG): string {
+  return pick(employerPostMessages, lang).publishErrors[reason];
+}
 
 type Setter<T> = Dispatch<SetStateAction<T>>;
 
 export interface PostingState {
   country: CountryCode;
+  /** The language the page renders in, for the messages the handlers below put in `error`. */
+  lang: Lang;
   mode: Mode;
   setMode: Setter<Mode>;
   step: Step;
@@ -62,6 +68,7 @@ function resumeFrom(saved: SavedPost): { step: Step; chat: ChatState } {
 }
 
 function usePostingState(country: CountryCode, email: string): PostingState {
+  const lang = useLang();
   // The page renders in the browser only (EmployerGate waits for the session), so this tab's storage is there.
   const [saved] = useState(() => loadPost(sessionStorage, email));
   const [resumed] = useState(() => (saved ? resumeFrom(saved) : undefined));
@@ -96,6 +103,7 @@ function usePostingState(country: CountryCode, email: string): PostingState {
 
   return {
     country,
+    lang,
     mode,
     setMode,
     step,
@@ -194,7 +202,7 @@ function publish(state: PostingState) {
       state.setPublished(result.job);
       state.setStep("done");
     } else {
-      state.setError(PUBLISH_ERRORS[result.reason]);
+      state.setError(publishError(result.reason, state.lang));
     }
     window.scrollTo({ top: 0 });
   });

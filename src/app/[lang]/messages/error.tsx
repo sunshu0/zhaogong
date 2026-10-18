@@ -4,12 +4,15 @@ import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { StatusCard } from "@/components/seeker/StatusCard";
+import { useMessages } from "@/i18n/client";
+import { chatMessages } from "@/i18n/messages/chat";
 
 /**
  * The chat page failed as a whole (#178). Messages that were sent but not yet confirmed wait in this browser's
  * outbox (#10) and go out on the next load, so the card says so instead of the site's general error (#161).
  */
 export default function MessagesError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  const t = useMessages(chatMessages).errorPage;
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -17,17 +20,17 @@ export default function MessagesError({ error, retry }: { error: Error & { diges
   return (
     <StatusCard
       icon={TriangleAlert}
-      title="聊天页面出了点问题"
+      title={t.title}
       actions={
         <>
-          <Button onClick={() => retry()}>重试</Button>
+          <Button onClick={() => retry()}>{t.retry}</Button>
           <ButtonLink href="/workspace" variant="secondary">
-            回工作台
+            {t.backToWorkspace}
           </ButtonLink>
         </>
       }
     >
-      已经点了发送、还没送到的消息留在这台设备上，聊天页面下次打开时会自动发出。
+      {t.body}
     </StatusCard>
   );
 }

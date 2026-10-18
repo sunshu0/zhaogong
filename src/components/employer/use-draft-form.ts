@@ -5,6 +5,10 @@ import { checkJob, publishDecision } from "@/lib/compliance";
 import { COUNTRIES } from "@/config/countries";
 import type { CountryCode, Employer } from "@/lib/types";
 import { draftFromForm, emptyForm, type PostForm } from "@/components/employer/post-form";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { employerPostMessages } from "@/i18n/messages/employer-post";
+import { useLang } from "@/i18n/client";
 
 /**
  * Form state for posting and editing, with the live checks. The English description follows the
@@ -19,7 +23,8 @@ export function useDraftForm(
   const [englishByHand, setEnglishByHand] = useState(initial.englishByHand ?? false);
 
   const draft = useMemo(() => draftFromForm(form, country), [form, country]);
-  const findings = useMemo(() => checkJob(draft, country, employer), [draft, country, employer]);
+  const lang = useLang();
+  const findings = useMemo(() => checkJob(draft, country, employer, lang), [draft, country, employer, lang]);
   // AEWV holders only for accredited employers; a job that already lists it keeps the chip so it can be taken off.
   const visaChoices = COUNTRIES[country].visaTypes.filter(
     (v) => v !== "aewv" || employer?.verification === "accredited_employer" || form.visaAccepted.includes(v),
@@ -82,7 +87,7 @@ export function keepFocusClear(e: FocusEvent<HTMLElement>) {
   if (el.matches(":focus-visible")) el.scrollIntoView({ block: "nearest" });
 }
 
-export function holdReason(problems: number, missing: number): string {
-  const parts = [problems && `${problems} 个问题要处理`, missing && `${missing} 项没填`].filter(Boolean);
-  return parts.join("，");
+/** Why the bar holds: the problems and the fields still open, in the page's language (PostFlowBars, EditJob…). */
+export function holdReason(problems: number, missing: number, lang: Lang = DEFAULT_LANG): string {
+  return pick(employerPostMessages, lang).bars.holdReason(problems, missing);
 }
