@@ -90,7 +90,7 @@ test("moderation in English: every tab", async ({ browser, baseURL }, testInfo) 
   await useEnglish(admin, baseURL);
   await admin.goto("/admin");
   await expect(admin.getByRole("heading", { level: 1, name: "Moderation" })).toBeVisible();
-  await expect(admin.getByText("Jobs waiting for review")).toBeVisible();
+  await expect(admin.getByText("Jobs waiting for review", { exact: true })).toBeVisible();
 
   // Job titles, descriptions, business names and report notes are what people wrote (marked lang="zh-CN"). The log's
   // sentences quote them inside “…”, (…) and after " · ", in English sentences: those parts are allowed there.
