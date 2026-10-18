@@ -42,6 +42,7 @@ const {
   getMyJobPosters,
   getMyJobRenewals,
   getMyJobsOverview,
+  getMyLiveJobsTitled,
   getMyEmployer,
   getMyJob,
   getMyJobs,
@@ -589,6 +590,22 @@ describe("refused without the right session (#19)", () => {
     }
     expect(r.jobs.every((j) => j.employerId === "e1")).toBe(true);
     await untouched();
+  });
+});
+
+describe("getMyLiveJobsTitled (#196)", () => {
+  it("finds the business's own live jobs with a title that reads the same, and nothing for anyone else", async () => {
+    const published = await as(E.e7, async () => publishJob((await parseDraft(MESSAGE)).draft));
+    if (!published.ok) throw new Error(published.reason);
+    const twins = await as(E.e7, () => getMyLiveJobsTitled(` ${published.job.titleZh.split("").join(" ")} `));
+    expect(twins.map((t) => t.id)).toContain(published.job.id);
+    expect(twins.every((t) => Object.keys(t).sort().join() === "expiresAt,id,status,titleZh")).toBe(true);
+    expect((await as(E.e8, () => getMyLiveJobsTitled(published.job.titleZh))).map((t) => t.id)).not.toContain(
+      published.job.id,
+    );
+    expect(await as(E.e7, () => getMyLiveJobsTitled(42))).toEqual([]);
+    cookies.clear();
+    expect(await getMyLiveJobsTitled(published.job.titleZh)).toEqual([]);
   });
 });
 

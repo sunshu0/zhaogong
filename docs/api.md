@@ -55,6 +55,7 @@
 | `getMyJobs()` | | 本企业所有职位，按发布时间从新到旧，任何状态 | `[]` |
 | `getMyJob(jobId)` | | 本企业的这个职位 | `null` |
 | `getMyJobNumbers()` | | `{ [jobId]: { views, chats, contactViews } }`（#55）：浏览次数（同一浏览器同一天只算一次）、发起聊天的求职者人数（每人每职位一次）、查看联系方式次数。只有数字，不给是谁 | `{}` |
+| `getMyLiveJobsTitled(titleZh)` | 正在写的职位名称 | 本企业招聘中或审核中、还没截止、名称读起来一样（去掉空格、全角半角、大小写）的职位 `{ id, titleZh, status, expiresAt }[]`（#196），发布页预览和复制、重新发布的表单拿来提示 | 没登录、没企业、被停用或名称不是字符串时 `[]` |
 | `getMyJobsOverview(options?)` | `{ withPosters: true }` 时带上发布人 | `{ jobs, numbers, renewals, applications, posters }`（#188）：上面 `getMyJobs`、`getMyJobNumbers`、`getMyJobRenewals`、`getMyApplicationCounts`、`getMyJobPosters` 的结果一次给，职位管理、工作台、推荐人才都用它（浏览器里的 Server Function 一个接一个跑，分开取要 4–5 次往返）。检查和它们一样：要登录，企业从账号查，被停用的企业或已经离开团队的人什么都拿不到 | 全是空的（`jobs: []`，`posters` 是 `{ teamSize: 0, posters: {}, contactsFrom: {} }`） |
 | `getMyJobPosters()` | | `{ teamSize, posters: { [jobId]: poster } }`（#182）：企业每个职位是谁发的，按看的人说：`{ kind: "you" }`、`{ kind: "teammate", name }`（团队里的称呼，没设就是邮箱）、`{ kind: "left", email }`（已离开团队）、`{ kind: "deleted" }`（已删号）；#182 之前的职位不在里面。`teamSize` 是团队现在的人数。`contactsFrom`（#186）：公开联系方式、而且联系方式是已离开团队的人（`left`）或已删号的账号（`deleted`）填的职位 | 没有企业时 `{ teamSize: 0, posters: {}, contactsFrom: {} }` |
 | `getMyJobRenewals()` | | `{ [jobId]: { count, lastAt } }`（#69）：每个职位续期过几次、最近一次的时间；没续期过的职位不在里面 | `{}` |

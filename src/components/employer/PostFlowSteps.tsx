@@ -1,5 +1,6 @@
 "use client";
 // The pieces of /employer/post, one per step, plus the step list and the mode switch (bars: PostFlowBars.tsx).
+import { DuplicateJobNote } from "@/components/employer/DuplicateJobNote";
 import type { ReactNode, RefObject } from "react";
 import { SAMPLE_POST } from "@/lib/ai-post";
 import type { CountryCode, Employer, Job } from "@/lib/types";
@@ -171,6 +172,7 @@ export function PreviewStep({
           这个职位会先经过人工审核，通过后才公开。
         </p>
       )}
+      <DuplicateJobNote titleZh={preview.titleZh} />
       {roles && <div className="rounded-card bg-surface p-4 shadow-card">{roles}</div>}
       <JobDetail job={preview} employer={employer} now={previewAt}>
         <section className="rounded-card bg-surface p-4 shadow-card">

@@ -76,7 +76,11 @@ test("复制为新职位 starts a new job from a live one; both are listed (#190
   const copyTitle = uniqueTitle("收银员", testInfo);
   const name = page.getByLabel("职位名称（中文）");
   await expect(name).toHaveValue(title);
+  // The same title as a live job of the shop: a hint to renew or edit that one instead (#196).
+  const twin = page.getByText(`你已经有一条在招的「${title}」`);
+  await expect(twin).toBeVisible();
   await name.fill(copyTitle);
+  await expect(twin).toHaveCount(0);
   await page.getByRole("button", { name: "发布", exact: true }).click();
   await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
 

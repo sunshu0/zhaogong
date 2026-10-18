@@ -10,6 +10,7 @@ import { Published } from "@/components/employer/Published";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear } from "@/components/employer/use-draft-form";
 import { JobFormPart, KeptChangesNote, useKeptJobForm } from "@/components/employer/KeptJobForm";
+import { DuplicateJobNote } from "@/components/employer/DuplicateJobNote";
 import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJob } from "@/components/employer/use-my-jobs";
@@ -138,6 +139,7 @@ function RepublishForm({
       </div>
       {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
       {restored && <KeptChangesNote onStartOver={startOver} />}
+      <DuplicateJobNote titleZh={state.form.titleZh} />
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>
         <JobFormPart state={state} country={country} />
       </div>

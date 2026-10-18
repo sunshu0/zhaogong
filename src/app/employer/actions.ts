@@ -58,6 +58,7 @@ import {
 import { teamCan } from "@/components/employer/team";
 import { listJobPosters, recordContactBy, type JobPosters } from "@/db/job-posters";
 import { sameContact } from "@/components/employer/job-poster";
+import { liveTwins } from "@/components/employer/job-twins";
 import { completeJob, editPatch, sanitizeDraft } from "@/components/employer/post-form";
 
 /**
@@ -144,6 +145,22 @@ export async function getMyJobsOverview(options?: unknown): Promise<JobsOverview
     withPosters ? listJobPosters(employer.id, session.email) : NO_POSTERS,
   ]);
   return { jobs, numbers, renewals, applications, posters };
+}
+
+/** One of the business's live jobs with the title being written (#196). */
+export type JobTwin = Pick<Job, "id" | "titleZh" | "status" | "expiresAt">;
+
+/**
+ * The business's jobs, live or waiting for review, whose title reads the same as `titleZh` (#196): the posting and
+ * copy pages say so before publishing. Empty when signed out, without a business, or banned.
+ */
+export async function getMyLiveJobsTitled(titleZh: unknown): Promise<JobTwin[]> {
+  if (typeof titleZh !== "string" || titleZh.length > 200) return [];
+  const employer = await postingEmployer();
+  if (typeof employer === "string") return [];
+  return liveTwins(await listJobsByEmployer(employer.id), titleZh, Date.now()).map(
+    ({ id, titleZh, status, expiresAt }) => ({ id, titleZh, status, expiresAt }),
+  );
 }
 
 /** How often each of the account's jobs was renewed, and when last (#69). */
