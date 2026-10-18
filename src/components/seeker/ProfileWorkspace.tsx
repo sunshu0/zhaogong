@@ -32,6 +32,7 @@ import type { EmployerVerification } from "@/lib/types";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 import { contentLang } from "@/i18n/lang";
+import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
 
 /**
  * /profile (我的主页 / 企业主页): what the other side sees at the top, how complete it is, then the required
@@ -66,7 +67,9 @@ export function ProfileWorkspace() {
       <header>
         <h1 className="text-title font-semibold">{isEmployer ? w.employerTitle : w.seekerTitle}</h1>
         <p className="mt-0.5 text-meta text-muted">{isEmployer ? w.employerSaves : w.seekerSaves}</p>
-        {readOnly && <p className="mt-3 rounded-control bg-brand-soft px-3 py-2 text-body">{readOnlyNote(admins)}</p>}
+        {readOnly && (
+          <p className="mt-3 rounded-control bg-brand-soft px-3 py-2 text-body">{readOnlyNote(admins, lang)}</p>
+        )}
         {/* #195: the page is public, signed out too; the server refused what cannot be shown. */}
         {isEmployer && refused && refused.length > 0 && (
           <div role="alert" className="mt-3 space-y-1 rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
@@ -252,6 +255,7 @@ function asCandidate(profile: Profile): Candidate {
 }
 
 function SeekerPreview({ profile }: { profile: Profile }) {
+  const missing = useMessages(candidateMatchingMessages).facts.missing;
   const w = useMessages(seekerProfileMessages).workspace;
   const lang = useLang();
   return (
@@ -271,7 +275,7 @@ function SeekerPreview({ profile }: { profile: Profile }) {
         {candidateFacts(asCandidate(profile), lang).map((fact) => (
           <div key={fact.label} className="min-w-0">
             <dt className="text-meta text-muted">{fact.label}</dt>
-            <dd lang={contentLang(fact.value)} className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>
+            <dd lang={contentLang(fact.value)} className={`break-words ${fact.value === missing ? "text-muted" : ""}`}>
               {fact.value}
             </dd>
           </div>

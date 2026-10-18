@@ -22,6 +22,7 @@ import { useLang, useMessages } from "@/i18n/client";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
 import { contentLang } from "@/i18n/lang";
 import { placeName } from "@/components/seeker/format";
+import { candidateMatchingMessages } from "@/i18n/messages/candidate-matching";
 
 /**
  * /candidates/[id]: a job seeker's page as an employer sees it. Coming from a chat or 推荐人才, the top says which
@@ -31,6 +32,8 @@ export function CandidatePublicPage() {
   const lang = useLang();
   const t = useMessages(seekerProfileMessages);
   const c = t.candidate;
+  // candidateFacts()'s word for a fact nobody filled in, in this language (line B's dictionary).
+  const missing = useMessages(candidateMatchingMessages).facts.missing;
   const { id } = useParams<{ id: string }>();
   const jobParam = useSearchParams().get("job");
   const hydrated = useHydrated();
@@ -90,7 +93,7 @@ export function CandidatePublicPage() {
               <Fact
                 key={fact.label}
                 term={fact.label}
-                value={fact.value === "待补充" ? undefined : fact.value}
+                value={fact.value === missing ? undefined : fact.value}
                 empty={c.toFill}
               />
             ))}
