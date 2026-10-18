@@ -39,41 +39,4 @@ const employerZh = {
   },
 };
 
-export const seekerEmployerMessages: Dictionary<typeof employerZh> = {
-  zh: employerZh,
-  en: {
-    title: (name) => `${name} · Business page`,
-    missing: "Employer not found",
-    loading: "Loading the business page…",
-    back: "← Find jobs",
-    eyebrow: (id) => `Business page · Demo business · ID: ${id}`,
-    noRegion: "No area yet",
-    chooseJob: "Choose a job and chat",
-    noOpenJobs: "No open jobs right now",
-    seeVerification: "See business verification",
-    edit: "Edit the business page",
-    about: "About the business",
-    noAbout: "The employer hasn't written about the business yet.",
-    address: "Workplace address",
-    contactName: "Hiring contact",
-    languages: "Languages spoken",
-    contactHours: "When to contact",
-    verification: "Business verification",
-    legalName: "Legal name",
-    accredited: "Accredited employer",
-    accreditedYes: "Accredited (demo)",
-    accreditedNone: "No accreditation details given",
-    demoNote:
-      "Demo registration and verification details. Business verification doesn't guarantee the working conditions.",
-    manageVerification: "Manage business verification",
-    openJobs: "Open jobs",
-    openJobsCount: (n) => String(n),
-    noJobs: "This employer has no open jobs right now.",
-    notFilled: "Not filled in",
-    notFound: {
-      title: "This employer doesn't exist or is no longer active",
-      others: "See other jobs",
-      body: "The link may be wrong, or this employer no longer hires on 找工.",
-    },
-  },
-};
+export const seekerEmployerMessages: Dictionary<typeof employerZh> = { key: "seekerEmployer", zh: employerZh };

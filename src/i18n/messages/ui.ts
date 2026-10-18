@@ -6,8 +6,6 @@
 
 import type { Dictionary } from "@/i18n/messages";
 
-const jobsIn = (n: number, industry: string) => `${n} open ${industry} ${n === 1 ? "job" : "jobs"} on 找工`;
-
 const uiZh = {
   // nav.ts, HeaderNav.tsx, BottomNav.tsx, MoreMenu.tsx
   nav: {
@@ -86,80 +84,4 @@ const uiZh = {
   },
 };
 
-export const uiMessages: Dictionary<typeof uiZh> = {
-  zh: uiZh,
-  en: {
-    nav: {
-      jobs: "Jobs",
-      findJobs: "Find jobs",
-      chat: "Chat",
-      chatUnread: (n) => `Chat, ${n} unread ${n === 1 ? "message" : "messages"}`,
-      mine: "Me",
-      manage: "My jobs",
-      post: "Post",
-      candidates: "Suggested candidates",
-      workspace: "Workspace",
-      main: "Main navigation",
-      bottom: "Bottom bar",
-      more: "More",
-    },
-    close: "Close",
-    closeDialog: "Close the dialog",
-    any: "Any",
-    copy: "Copy",
-    copied: "Copied",
-    copyFailed: "Couldn't copy",
-    print: "Print / save as PDF",
-    signIn: "Sign in or sign up",
-    langSwitch: {
-      other: "中文",
-      otherTag: "zh-CN",
-      title: "Switch to Chinese",
-      row: "Language: English",
-    },
-    loading: "Loading",
-    loadingJobs: "Loading jobs",
-    verification: {
-      accredited_employer:
-        "New Zealand business registration checked, and an Immigration NZ accredited employer (Accredited Employer).",
-      business_verified: "New Zealand business registration (NZBN) checked; not an Immigration NZ accredited employer.",
-      unverified:
-        "Business registration not checked yet. Check the employer's details yourself before you contact them.",
-    },
-    payReference: {
-      title: "Pay for similar jobs",
-      tooFew: (industry, count, min) =>
-        `Pay for similar jobs: too few to show (only ${jobsIn(count, industry)}, fewer than ${min}).`,
-      lowest: "Lowest",
-      median: "Median",
-      highest: "Highest",
-      basis: (count, industry, updated) =>
-        `Based on ${jobsIn(count, industry)} (each job counts the middle of its pay range), no outside data. Updated ${updated}.`,
-      belowMedian: "Below the median for similar jobs, so it may be harder to find someone.",
-      wholeCity: (area) => `All of ${area}`,
-      wholeAuckland: "All of Auckland",
-    },
-    site: {
-      title: "Chinese-speaking jobs in Auckland",
-      description:
-        "Jobs in Auckland for Chinese speakers: pay per hour, area and visas accepted at a glance, with verified employers.",
-      city: "Auckland",
-      lawNote:
-        "Every job must follow New Zealand law: at least the minimum wage, no fees of any kind, and no hiring by race or nationality.",
-    },
-    error: {
-      title: "Something went wrong on this page",
-      body: "The network may be unsteady, or something went wrong on our side. Try again in a moment; if it keeps happening, tell us.",
-      retry: "Try again",
-      home: "Home",
-      appTitle: "找工 can't open right now",
-      appBody: "The network may be unsteady, or something went wrong on our side. Try again in a moment.",
-    },
-    notFound: {
-      title: "This page doesn't exist",
-      body: "The link may be wrong, or the content has been taken down.",
-      findJobs: "Find jobs",
-      home: "Home",
-    },
-  },
-};
+export const uiMessages: Dictionary<typeof uiZh> = { key: "ui", zh: uiZh };
