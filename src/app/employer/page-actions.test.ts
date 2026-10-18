@@ -77,6 +77,18 @@ describe("the business's 企业主页 on the server (ADR 0022)", () => {
     expect((await getEmployerPage(employer.id))?.page).toEqual({ bio: "管理员写的" });
   });
 
+  it("refuses a page with something that cannot be public, and keeps the saved one (#195)", async () => {
+    const { boss, employer } = await team();
+    await as(boss, "employer", () => saveMyEmployerPage({ bio: "家常菜" }));
+    const refused = await as(boss, "employer", () => saveMyEmployerPage({ bio: "加微信 shop_wx_2026，入职交押金" }));
+    expect(refused?.refused?.map((f) => f.field)).toEqual(["bio", "bio"]);
+    expect(refused?.page).toEqual({ bio: "家常菜" });
+    expect((await getEmployerPage(employer.id))?.page).toEqual({ bio: "家常菜" });
+    expect(
+      (await as(boss, "employer", () => saveMyEmployerPage({ bio: "家常菜，欢迎加入" })))?.refused,
+    ).toBeUndefined();
+  });
+
   it("has nothing for a job seeker identity, someone signed out, or something that is not a page", async () => {
     const { boss } = await team();
     expect(await as(boss, "seeker", myEmployerPage)).toBeNull();

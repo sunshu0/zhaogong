@@ -8,6 +8,7 @@ import { getAccountEmployer } from "@/lib/data";
 import { getTeam } from "@/db/team";
 import { getEmployerPage, listPublicEmployerPages, saveEmployerPage } from "@/db/employer-profiles";
 import { canEditPage, parseEmployerPage, publicPage, type EmployerPage } from "@/components/employer/employer-page";
+import { checkEmployerPage, type PageFinding } from "@/components/employer/employer-page-check";
 import type { EmployerPublicProfile } from "@/lib/employer-public-profile";
 import { scopeOf } from "@/lib/chat-server/identity";
 
@@ -22,6 +23,8 @@ export type EmployerPageSnapshot = {
   updatedAt: string | null;
   canEdit: boolean;
   admins: string[];
+  /** Set when a save was refused because something cannot be public (#195): nothing was saved. */
+  refused?: PageFinding[];
 };
 
 async function myBusiness() {
@@ -51,13 +54,16 @@ export async function myEmployerPage(): Promise<EmployerPageSnapshot | null> {
 
 /**
  * Saves the whole page the browser has. A member gets the page as it is, with `canEdit` false, and nothing changes;
- * null when there is no business signed in or what came is not a page.
+ * so does a page with something that cannot be public, with `refused` saying what (#195). Null when there is no
+ * business signed in or what came is not a page.
  */
 export async function saveMyEmployerPage(page: unknown): Promise<EmployerPageSnapshot | null> {
   const mine = await myBusiness();
   if (!mine) return null;
   const parsed = parseEmployerPage(page);
   if (!parsed) return null;
+  const findings = checkEmployerPage(parsed);
+  if (findings.length) return { ...(await snapshot(mine)), refused: findings };
   const saved = await saveEmployerPage(mine.session.email, parsed);
   if (saved === "no_business") return null;
   return snapshot(mine);

@@ -15,6 +15,7 @@ import { initialProfile, parseStoredProfiles, type Profile } from "@/components/
 import { parseSyncMarks, samePage, syncStep, type SyncMark } from "@/components/seeker/profile-sync";
 import { pagePart, personalPart, touchesPage } from "@/components/employer/employer-page";
 import { forgetPublicPage } from "@/components/employer/public-pages-client";
+import type { PageFinding } from "@/components/employer/employer-page-check";
 
 const PROFILE_KEY = "zhaogong:profiles-by-identity";
 const SYNC_KEY = "zhaogong:profile-sync";
@@ -25,7 +26,7 @@ const syncMarks = createLocalStore(SYNC_KEY, parseSyncMarks);
  * The server's page for one identity: `canEdit` is false for a member of a business (ADR 0022), `admins` then
  * names who can change it.
  */
-export type AccountPage = ProfileSnapshot & { canEdit: boolean; admins: string[] };
+export type AccountPage = ProfileSnapshot & { canEdit: boolean; admins: string[]; refused?: PageFinding[] };
 
 /** How one identity's page reaches the server: a job seeker's whole page, or the business's part of it. */
 type Remote = {
@@ -41,7 +42,14 @@ type Remote = {
 
 const seekerPage = (s: ProfileSnapshot | null): AccountPage | null => s && { ...s, canEdit: true, admins: [] };
 const businessPage = (s: EmployerPageSnapshot | null): AccountPage | null =>
-  s && { scope: s.scope, profile: s.page, updatedAt: s.updatedAt, canEdit: s.canEdit, admins: s.admins };
+  s && {
+    scope: s.scope,
+    profile: s.page,
+    updatedAt: s.updatedAt,
+    canEdit: s.canEdit,
+    admins: s.admins,
+    ...(s.refused ? { refused: s.refused } : {}),
+  };
 
 const SEEKER: Remote = {
   load: async () => seekerPage(await myProfile()),
@@ -68,9 +76,10 @@ function remoteOf(scope: string): Remote | undefined {
 /**
  * How the page stands with the server: `idle` before anything happened this visit, `ask` while both have a
  * different page and the person has not picked one (nothing is sent until then), `readonly` for a member of a
- * business, who sees the business's page as the server has it.
+ * business, who sees the business's page as the server has it; `refused` while a business's page has something that
+ * cannot be public (#195): nothing was saved, and the next change is sent again.
  */
-export type SaveState = "idle" | "saving" | "saved" | "offline" | "ask" | "readonly";
+export type SaveState = "idle" | "saving" | "saved" | "offline" | "ask" | "readonly" | "refused";
 type Status = { state: SaveState; account?: AccountPage };
 
 const IDLE: Status = { state: "idle" };
@@ -166,6 +175,9 @@ async function send(scope: string) {
       compared.delete(scope);
       return setStatus(scope, { state: "readonly", account: answer });
     }
+    // Something on the page cannot be public (#195): nothing was saved; the change stays marked for the next send.
+    if (answer && answer.scope === scope && answer.refused)
+      return setStatus(scope, { state: "refused", account: answer });
     if (!answer?.updatedAt || answer.scope !== scope) throw new Error("not saved");
     const changedMeanwhile = sendAgain.has(scope) || !samePage(remote.part(readPage(scope)), remote.part(page));
     writeMark(scope, { at: answer.updatedAt, ...(changedMeanwhile ? { dirty: true } : {}) });
@@ -229,6 +241,8 @@ export function useProfileSave() {
     account: status.state === "ask" ? status.account : undefined,
     /** Who can change the business's page, when this person cannot (ADR 0022). */
     admins: status.state === "readonly" ? (status.account?.admins ?? []) : undefined,
+    /** What on the business's page cannot be public, when the last save was refused (#195). */
+    refused: status.state === "refused" ? (status.account?.refused ?? []) : undefined,
     keepAccount() {
       const account = status.account;
       if (!remote || status.state !== "ask" || !account?.profile || !account.updatedAt) return;

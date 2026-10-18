@@ -180,7 +180,7 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `myEmployerPage()` | | 企业主页的 `EmployerPageSnapshot` | 未登录、求职者身份或没有企业时 `null` |
-| `saveMyEmployerPage(page)` | 浏览器里的整份主页（只留企业的那几项） | 存下后的 `EmployerPageSnapshot`；成员存时什么都不改，回答里 `canEdit` 是 `false` | 未登录、求职者身份、没有企业、不是主页或超过 250 kB 时 `null` |
+| `saveMyEmployerPage(page)` | 浏览器里的整份主页（只留企业的那几项） | 存下后的 `EmployerPageSnapshot`；成员存时什么都不改，回答里 `canEdit` 是 `false`；有不能公开的内容（收费、卖签证、种族偏好、电话、微信、邮箱）时也不存，回答里 `refused: [{ field, message_zh }]`（#195） | 未登录、求职者身份、没有企业、不是主页或超过 250 kB 时 `null` |
 | `employerPublicPages(employerIds)` | 企业编号的数组，一次最多 50 个；不用登录 | `{ [employerId]: { name, headline, location, languages, availability, bio, contactName, avatar? } }`：`name` 没填时是企业名称 | 还没有主页、被封禁或编号不对的企业不在回答里；参数不是数组时 `{}` |
 
 ## 我的主页 — `src/app/profile/actions.ts`

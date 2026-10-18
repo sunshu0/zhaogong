@@ -178,3 +178,18 @@ test("a job showing the contact details of someone who left asks the team to cha
   await expect(card).toBeVisible();
   await expect(card).not.toContainText("联系方式是已离开团队的");
 });
+
+test("the 企业主页 refuses what cannot be public, such as a WeChat ID, and saves once it is gone (#195)", async ({
+  page,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  await page.goto("/profile");
+  const bio = page.getByLabel("企业介绍", { exact: true });
+  await bio.fill("欢迎加入，加微信 shop_wx_2026 了解详情");
+  const refused = page.getByRole("main").getByRole("alert").filter({ hasText: "企业主页没保存" });
+  await expect(refused).toContainText("企业介绍写了联系方式");
+  await expect(page.getByText(/^没保存：企业主页里有不能公开的内容/)).toBeVisible();
+  await bio.fill("欢迎加入，想了解职位请在职位页上联系我们。");
+  await expect(page.getByText(/^已保存到企业主页/)).toBeVisible();
+  await expect(refused).toHaveCount(0);
+});

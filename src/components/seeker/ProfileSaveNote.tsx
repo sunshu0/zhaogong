@@ -20,6 +20,8 @@ export function saveNote(state: SaveState, onAccount: boolean, localSave: boolea
       return "正在保存…";
     case "saved":
       return business ? "已保存到企业主页，团队里的人和求职者都能看到。" : "已保存到你的账号，换一台设备登录也能看到。";
+    case "refused":
+      return "没保存：企业主页里有不能公开的内容，按上面的提示改好后会自动保存。";
     case "readonly":
       return localSave ? "已自动保存到本机" : "企业主页由管理员修改；你的私密交换资料会自动保存在这台设备上。";
     case "offline":
@@ -34,7 +36,7 @@ export function saveNote(state: SaveState, onAccount: boolean, localSave: boolea
 export function ProfileSaveNote({ localSave, className = "" }: { localSave: boolean | null; className?: string }) {
   const session = useSession();
   const { state, onAccount } = useProfileSave();
-  const failed = localSave === false || (onAccount && state === "offline");
+  const failed = localSave === false || (onAccount && (state === "offline" || state === "refused"));
   return (
     <p role="status" className={`${className} text-meta ${failed ? "text-danger" : "text-muted"}`.trim()}>
       {saveNote(state, onAccount, localSave, session?.activeRole === "employer")}

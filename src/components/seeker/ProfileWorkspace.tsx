@@ -41,7 +41,7 @@ export function ProfileWorkspace() {
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const verification = useEmployerProfile(isEmployer ? session.email : undefined).profile?.verification;
-  const admins = useProfileSave().admins;
+  const { admins, refused } = useProfileSave();
   const readOnly = isEmployer && admins !== undefined;
   const [localSave, setLocalSave] = useState<boolean | null>(null);
 
@@ -65,6 +65,17 @@ export function ProfileWorkspace() {
             : "改动会自动保存到你的账号，换一台设备登录也能看到。"}
         </p>
         {readOnly && <p className="mt-3 rounded-control bg-brand-soft px-3 py-2 text-body">{readOnlyNote(admins)}</p>}
+        {/* #195: the page is public, signed out too; the server refused what cannot be shown. */}
+        {isEmployer && refused && refused.length > 0 && (
+          <div role="alert" className="mt-3 space-y-1 rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
+            <p className="font-medium">企业主页没保存：</p>
+            <ul className="list-disc space-y-1 pl-5">
+              {refused.map((finding) => (
+                <li key={finding.message_zh}>{finding.message_zh}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </header>
 
       <ProfileChoice />
