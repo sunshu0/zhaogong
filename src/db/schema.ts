@@ -2,6 +2,7 @@
 // The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
 // sign-in and sessions come with A12-1, chats and exchanges with A12-2.
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { Lang } from "@/i18n/lang";
 import type { JobRoleId } from "@/config/job-roles";
 import type {
   AccountRole,
@@ -154,6 +155,11 @@ export const accounts = sqliteTable(
     /** What the team calls this person in the business's chats, e.g. 王经理 (#87). */
     teamName: text("team_name"),
     teamJoinedAt: text("team_joined_at"),
+    /**
+     * The interface language the person chose (Round 20, ADR 0023 §5): zh or en, null until they first switch or
+     * sign in. Signing in on another device brings it back as the zg_lang cookie.
+     */
+    lang: text("lang").$type<Lang>(),
   },
   (table) => [index("accounts_employer_idx").on(table.employerId)],
 );

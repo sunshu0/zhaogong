@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { myApplicationViews, withdrawMyApplication, type MyApplicationView } from "@/app/jobs/[id]/apply-actions";
+import {
+  myApplicationViews,
+  withdrawMyApplication,
+  type MyApplicationView,
+} from "@/app/[lang]/jobs/[id]/apply-actions";
 import { refreshApplied } from "@/components/seeker/applied-client";
 import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import type { InterviewView } from "@/components/seeker/interviews";

@@ -1,15 +1,13 @@
 import { COUNTRIES } from "@/config/countries";
 import { INDUSTRY_LABELS } from "@/i18n/labels";
+import { dateFormat, formatAmount } from "@/i18n/format";
+import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { uiMessages } from "@/i18n/messages/ui";
 import { belowMedianHint, MIN_SAMPLE, type PayReference } from "@/lib/pay-reference";
 import type { CountryCode, Industry } from "@/lib/types";
 
-const updated = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: "Pacific/Auckland",
-  month: "numeric",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+const UPDATED: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
 
 /**
  * 时薪参考 (#85, R-36): lowest, median and highest pay of open jobs in the same industry, with the sample size, where
@@ -24,6 +22,7 @@ export function PayReferenceBox({
   industry,
   rate,
   look = "box",
+  lang = DEFAULT_LANG,
 }: {
   reference: PayReference;
   /** When the reference was worked out (ISO). */
@@ -32,15 +31,18 @@ export function PayReferenceBox({
   industry: Industry;
   rate?: number;
   look?: "box" | "card";
+  /** The page's language (Round 20): it renders on the server and in the browser, so it is told rather than asking. */
+  lang?: Lang;
 }) {
+  const t = pick(uiMessages, lang).payReference;
   const symbol = COUNTRIES[country].currencySymbol;
-  const money = (n: number) => `${symbol}${Number.isInteger(n) ? n : n.toFixed(2)}`;
-  const label = INDUSTRY_LABELS[industry].zh;
-  const hint = belowMedianHint(rate, reference);
+  const money = (n: number) => `${symbol}${formatAmount(n, lang)}`;
+  const label = INDUSTRY_LABELS[industry][lang];
+  const hint = belowMedianHint(rate, reference) && t.belowMedian;
   const card = look === "card";
   return (
     <section
-      aria-label="同类职位时薪"
+      aria-label={t.title}
       className={
         card
           ? "rounded-card bg-surface p-4 text-body shadow-card lg:p-6"
@@ -48,13 +50,11 @@ export function PayReferenceBox({
       }
     >
       {reference.scope === "none" ? (
-        <p className="text-muted">
-          同类职位时薪：样本太少（平台上{label}在招职位只有 {reference.count} 个，少于 {MIN_SAMPLE} 个），暂不显示。
-        </p>
+        <p className="text-muted">{t.tooFew(label, reference.count, MIN_SAMPLE)}</p>
       ) : (
         <>
           <p className={card ? "font-semibold" : "font-medium"}>
-            同类职位时薪{" "}
+            {t.title}{" "}
             <span className="font-normal text-muted">
               · {reference.place} · {label}
             </span>
@@ -62,9 +62,9 @@ export function PayReferenceBox({
           <dl className={card ? "mt-3 grid grid-cols-3 gap-x-4" : "mt-1 flex flex-wrap gap-x-4 gap-y-0.5"}>
             {(
               [
-                ["最低", reference.min],
-                ["中位数", reference.median],
-                ["最高", reference.max],
+                [t.lowest, reference.min],
+                [t.median, reference.median],
+                [t.highest, reference.max],
               ] as const
             ).map(([term, n]) => (
               <div key={term} className={card ? "min-w-0" : "flex gap-1.5"}>
@@ -81,8 +81,7 @@ export function PayReferenceBox({
         </>
       )}
       <p className={card ? "mt-3 text-meta text-muted" : "mt-1 text-meta text-muted"}>
-        根据平台上 {reference.count} 个在招的{label}职位计算（职位时薪取范围中间值），不含外部数据，
-        {updated.format(new Date(at))}更新。
+        {t.basis(reference.count, label, dateFormat(lang, UPDATED).format(new Date(at)))}
       </p>
     </section>
   );

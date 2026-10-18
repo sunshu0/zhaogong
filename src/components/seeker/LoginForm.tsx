@@ -8,7 +8,7 @@ import {
   requestSignInCode,
   signInAccount,
   type AccountStatus,
-} from "@/app/login/actions";
+} from "@/app/[lang]/login/actions";
 import { COUNTRIES } from "@/config/countries";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import type { EmployerVerification } from "@/lib/types";
@@ -213,11 +213,12 @@ export function LoginForm({
       const result = await signInAccount(email, code, role).catch(() => null);
       if (!result) return setError("网络有问题，请稍后再试");
       if (!result.ok) return setError(result.error);
-      finishSignIn(result.account);
+      finishSignIn(result.account, result.reload);
     });
   }
 
-  function finishSignIn(account: AccountStatus) {
+  /** `reload`: the account's language differs from the page's, so the next page loads whole, in it (Round 20). */
+  function finishSignIn(account: AccountStatus, reload?: boolean) {
     if (role === "employer" && !account.employer) {
       // Signed in; the business step comes next.
       startSession(account.email, { activeRole: "seeker" });
@@ -226,7 +227,8 @@ export function LoginForm({
       return;
     }
     startSession(account.email, reconcileIdentity(role, account));
-    router.replace(next);
+    if (reload) location.assign(next);
+    else router.replace(next);
   }
 
   return step === "email" ? (

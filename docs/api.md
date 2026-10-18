@@ -14,7 +14,7 @@
 - **输入：** 所有参数都在服务器上重新校验（类型、长度、枚举值），浏览器的校验只是提示。
 - **国家：** 目前固定新西兰（`DEFAULT_COUNTRY = "NZ"`）。
 
-## 登录与身份 — `src/app/login/actions.ts`
+## 登录与身份 — `src/app/[lang]/login/actions.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -29,7 +29,7 @@
 | `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
 | `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
 
-## 数据与账号 — `src/app/account/actions.ts`
+## 数据与账号 — `src/app/[lang]/account/actions.ts`
 
 账号一律取自会话（#54，ADR 0009）。
 
@@ -38,7 +38,7 @@
 | `myServerData()` | | `{ ok: true, data: ServerAccountData }`：账号、审核员身份、企业和它的全部职位、各身份的聊天记录和已读通知、收藏的职位和求职进度、职位提醒和提醒过的职位、提交过的企业验证申请（#78，不含审核员的邮箱）、看过联系方式的职位、登录会话（只有身份和时间）。浏览器再加上本机的资料、举报和浏览记录，下载成 `zhaogong-my-data-日期.json` | `{ ok: false, error }`：「请先登录」「找不到这个账号」 |
 | `deleteMyAccount(email)` | 再输入一次登录邮箱（不分大小写、首尾空格） | `{ ok: true }`：删除账号、所有会话、验证码、聊天记录、收藏、职位提醒和审核员身份；企业的职位下架并清空联系方式；查看记录和「由谁添加」改成 `deleted-account`；企业验证申请保留，提交人邮箱改成 `deleted-account`、联系人姓名清掉，还在等的改为撤回（#78）；删除这次的 cookie | `{ ok: false, error }`：「请先登录」「输入的邮箱和当前登录的邮箱不一致」「你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。」 |
 
-## 职位（求职者）— `src/app/jobs/[id]/actions.ts`
+## 职位（求职者）— `src/app/[lang]/jobs/[id]/actions.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -46,7 +46,7 @@
 | `reportJob(jobId, reason, note?)` | `reason`：`fake_job`、`charges_fee`、`below_min_wage`、`discriminatory`、`visa_selling`、`inappropriate`、`other`；`note` 最多 500 字，选 `other` 时必填。不需要登录 | `{ ok: true, reportId }` | `{ ok: false, error }`：「请选择举报原因」「补充说明最多 500 字」「选择“其他”时，请简单写一下原因」「找不到这个职位，可能已经下架」 |
 | `jobSummary(jobId)` | 职位编号 | `{ id, title, pay, open }`，聊天顶部的职位条用；`open` 表示还在招 | `null` |
 
-## 雇主 — `src/app/employer/actions.ts`
+## 雇主 — `src/app/[lang]/employer/actions.ts`
 
 账号从会话 cookie 读取（#19），函数不收邮箱参数。除 `parseDraft`、`lookupBusiness` 外都需要雇主身份：已登录，且账号绑定了一家没被停用的企业。没有时读操作返回空结果；写操作返回「请先登录。」（`publishJob` 是 `reason: "signed_out"`）、「需要先开通雇主身份。」或「账号已被停用，不能再修改职位。」。只能操作自己企业的职位，别人的职位一律当作「找不到这个职位。」。
 
@@ -78,7 +78,7 @@
 
 `requestVerification` 只有团队管理员能调用（#87），成员调用时返回「只有团队管理员能申请企业验证，请找你们店的管理员。」。
 
-## 团队 — `src/app/employer/team-actions.ts`
+## 团队 — `src/app/[lang]/employer/team-actions.ts`
 
 雇主多人管理（#87，ADR 0012）。人和企业都从会话读。没有雇主身份时读操作返回 `null` / `[]`，写操作返回「需要先开通雇主身份。」。只有管理员能邀请、撤回、改身份和移出；拒绝时的文字：「只有管理员能管理团队。」「团队里至少要有一位管理员：先把另一位成员设为管理员。」「这个人已经不在团队里了。」「你已经不在这家企业的团队里了。」。
 
@@ -92,13 +92,13 @@
 | `getMyTeamInvites()` | | 发给自己、没回复的邀请 `{ id, employerName, role, createdAt }`，旧的在前；已经有企业时是 `[]`；被封禁的企业和过期（14 天没回复，#194）的邀请不列 | `[]` |
 | `answerTeamInvite(inviteId, answer)` | `{ accept: true, name }` 或 `{ accept: false }` | `{ ok: true, employer? }`：接受时带上企业，会话已切到雇主身份 | 称呼的错误同上；「这条邀请已经撤回或回复过了。」「你的账号已经属于一家企业，不能再加入别的企业。」「这个团队已经满 10 人了。」 |
 
-## 职位浏览计数 — `src/app/employer/count-view.ts`
+## 职位浏览计数 — `src/app/[lang]/employer/count-view.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `countJobView(jobId)` | 职位编号；职位页每次加载调用一次 | 用浏览器的随机编号（httpOnly cookie `zg_visitor`，一年；职位页的响应由 `src/proxy.ts` 先发给没有编号的浏览器，#79；这里从不设 cookie，缺失时用一次性的编号计数，#90），存它的 SHA-256；同一浏览器同一职位同一新西兰日只记一次。不存 IP，不关联账号。企业看自己的职位不算 | 职位不存在、待审核或已下架时什么都不做 |
 
-## 聊天、交换和通知 — `src/app/messages/actions.ts`
+## 聊天、交换和通知 — `src/app/[lang]/messages/actions.ts`
 
 每个身份（邮箱 + 身份 + 企业，`identityScope`）有自己的一份聊天记录：会话里的消息、已读、交换请求和回应、聊天举报（`ChatRecord`，`src/components/seeker/chat-store.ts`），存在数据库的 `chat_records` 表（#42）。服务器上的这一份是准的；浏览器 `localStorage` 里的是缓存，跟着服务器的回答更新。每次回答都带 `scope`，浏览器只在对应的身份下采用。
 
@@ -123,7 +123,7 @@
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
 | `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条 |
 
-## 收藏和进度 — `src/app/me/saved/actions.ts`
+## 收藏和进度 — `src/app/[lang]/me/saved/actions.ts`
 
 #52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。「实习」「专业职位」的外部职位（#131，ADR 0020）存在 `saved_external_jobs`（迁移 0021），在这些函数里的编号写成 `external:<外部职位编号>`（`externalSaveKey`）；只有分区里正在显示的外部职位能收藏。
 
@@ -139,7 +139,7 @@
 
 未登录点「收藏」会去 `/login?next=<原页面>?save=<职位编号>`，登录后回到原页面，由页面完成收藏并去掉 `save` 参数。
 
-## 申请职位 — `src/app/jobs/[id]/apply-actions.ts`、`src/app/employer/applicant-actions.ts`
+## 申请职位 — `src/app/[lang]/jobs/[id]/apply-actions.ts`、`src/app/[lang]/employer/applicant-actions.ts`
 
 #84（PRD R-35）。存在 `job_applications`（迁移 0010）：账号 + 职位唯一，附言最多 200 字，`profile` 是申请时求职者主页的一份（`ApplicationProfile`：名字、一句话介绍、所在地、语言、可上班时间、介绍和简历要点，不含头像和联系方式；服务器用 `parseApplicationProfile` 重新检查）。账号取自会话；雇主只通过申请的随机编号操作，看不到求职者的邮箱。撤回就是删除。
 
@@ -164,7 +164,7 @@
 
 雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后，打开和这位求职者共用的对话（#110 之前是企业自己记录里的 `apply:<申请编号>`），回答里的 `opened` 是 `chat:<对话编号>`。
 
-## 时薪参考 — `src/app/jobs/pay-reference-actions.ts`
+## 时薪参考 — `src/app/[lang]/jobs/pay-reference-actions.ts`
 
 #85（PRD R-36）。用平台上在招的职位（`listJobs`）现算，不存表；职位详情在服务器上直接算，发布表单调这个函数。计算在 `payReference()`（`src/lib/pay-reference.ts`）：同一行业，同一地区至少 5 个时用地区（`scope: "region"`），否则用同一大区（`"area"`，如「全奥克兰」），还不够时 `scope: "none"` 只给个数。`min`、`max` 是时薪范围的两端，`median` 是每个职位范围中间值的中位数。
 
@@ -172,7 +172,7 @@
 | --- | --- | --- | --- |
 | `payReferenceFor(industry, regionId, exclude?)` | 行业；地区（可不填）；不计入的职位编号（编辑中的职位） | `{ reference, at }`：`reference` 是 `{ scope, place, min, median, max, count }` 或 `{ scope: "none", count }`；`at` 是计算时间 | 行业不认识时 `null` |
 
-## 企业主页 — `src/app/employer/page-actions.ts`
+## 企业主页 — `src/app/[lang]/employer/page-actions.ts`
 
 #181，ADR 0022。企业主页存在 `employer_profiles`（迁移 0022）：企业是主键，`page` 是改过的内容，只有公开的几项（名称、招聘简介、地区、招聘联系人、沟通语言、联系时间、企业介绍、头像；`parseEmployerPage`），私密交换资料不上服务器。人和企业都从会话读；团队里每个人都能读，只有管理员能存。浏览器怎么同步见 `src/components/seeker/profile-client.ts`。
 
@@ -184,7 +184,7 @@
 | `saveMyEmployerPage(page)` | 浏览器里的整份主页（只留企业的那几项） | 存下后的 `EmployerPageSnapshot`；成员存时什么都不改，回答里 `canEdit` 是 `false`；有不能公开的内容（收费、卖签证、种族偏好、电话、微信、邮箱）时也不存，回答里 `refused: [{ field, message_zh }]`（#195） | 未登录、求职者身份、没有企业、不是主页或超过 250 kB 时 `null` |
 | `employerPublicPages(employerIds)` | 企业编号的数组，一次最多 50 个；不用登录 | `{ [employerId]: { name, headline, location, languages, availability, bio, contactName, avatar? } }`：`name` 没填时是企业名称 | 还没有主页、被封禁或编号不对的企业不在回答里；参数不是数组时 `{}` |
 
-## 我的主页 — `src/app/profile/actions.ts`
+## 我的主页 — `src/app/[lang]/profile/actions.ts`
 
 #104（PRD 第 17 轮）。求职者主页存在 `seeker_profiles`（迁移 0019）：账号是主键，`profile` 是用户改过的内容（和浏览器存的一样，`parseProfilePatch` 的形状），`updated_at` 是最后一次保存。账号取自会话，只有求职者身份能读写；企业主页见上一节。浏览器怎么和它同步见 `src/components/seeker/profile-client.ts` 和 ADR 0017。
 
@@ -193,10 +193,10 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `myProfile()` | | 账号上的主页 `ProfileSnapshot` | 未登录或雇主身份时 `null` |
-| `recommendedCandidates()`（`src/app/profile/candidate-actions.ts`） | | 雇主身份：`{ scope, candidates }`，账号上允许推荐、填了称呼的求职者主页，只有公开字段（`recommendableCandidates`），不含自己的求职主页 | 未登录或求职者身份时 `null` |
+| `recommendedCandidates()`（`src/app/[lang]/profile/candidate-actions.ts`） | | 雇主身份：`{ scope, candidates }`，账号上允许推荐、填了称呼的求职者主页，只有公开字段（`recommendableCandidates`），不含自己的求职主页 | 未登录或求职者身份时 `null` |
 | `saveMyProfile(profile)` | 浏览器里的整份主页 | 存下后的 `ProfileSnapshot`（只留服务器读得懂的字段，头像最多 180 kB） | 未登录、雇主身份、不是主页或超过 250 kB 时 `null` |
 
-## 中英文简历的分享链接 — `src/app/profile/resume/actions.ts`
+## 中英文简历的分享链接 — `src/app/[lang]/profile/resume/actions.ts`
 
 #86（PRD R-37）。简历本身在浏览器里生成（`resumeDocFrom`，`src/components/seeker/resume-doc.ts`），打印不经过服务器。分享时存在 `resume_shares`：账号是主键（每个账号最多一条），`id` 是链接里的随机编号（18 个随机字节，base64url），`resume` 是分享时的简历（`ResumeDoc`：中文和英文各一份文字、简历要点、签证、勾选的电话和微信）。服务器用 `parseResumeDoc` 重新检查和截断，丢掉邮箱。账号取自会话，只有求职者身份能分享。
 
@@ -208,7 +208,7 @@
 | `shareMyResume(resume)` | 浏览器生成的简历 | `{ ok: true, share }`；已经有链接时更新内容，链接不变 | `{ ok: false, error }`：未登录、雇主身份、没有称呼 |
 | `closeMyResumeShare()` | | `true`，链接从此打不开 | 没有链接或未登录时 `false` |
 
-## 约面试 — `src/app/employer/interview-actions.ts`、`src/app/me/interview-actions.ts`
+## 约面试 — `src/app/[lang]/employer/interview-actions.ts`、`src/app/[lang]/me/interview-actions.ts`
 
 #103。存在 `interviews`（迁移 0015）：每个申请最多一条（`application_id` 唯一）。`InterviewView`：`{ status, slots, callFirst, mode, place, note, chosenSlot, reply, invitedAt, respondedAt }`；`status` 是 `proposed`（等求职者）、`confirmed`、`counter`（求职者说这些时间不行，`reply` 是他写的方便时间）、`declined`、`cancelled`（雇主取消）。`slots` 是 UTC 时刻，页面按奥克兰时间显示（`src/components/seeker/interviews.ts`）。邀约不带联系方式。
 
@@ -230,7 +230,7 @@
 
 `myApplicationViews` 的每条多了 `interview`。求职者的申请结果通知（#105，ADR 0019，读取时生成）：被录用时 `hired:<申请编号>`「〈店名〉录用了你」；职位结束后其余申请人 `job-ended:<申请编号>`「〈职位〉已经招满 / 已结束」；都点开到 `/me/saved`。通知（`serverNotifications`）：求职者的编号是 `interview:<id>:<invitedAt>`，雇主的是 `interview-reply:<id>:<respondedAt>`，有新改动就是新编号。
 
-## 职位提醒 — `src/app/me/alerts/actions.ts`
+## 职位提醒 — `src/app/[lang]/me/alerts/actions.ts`
 
 职位提醒（#53，PRD R-29）按账号存在 `job_alerts` 表：名称、国家、筛选条件（`filterToQuery` 写出的查询串，读取时用 `parseFilter`，未知的值丢掉）、是否暂停。分区的提醒（#131，ADR 0020）`section` 是 `internship` 或 `professional`，筛选条件是分区的（`externalFilterToQuery`）；审核员通过外部职位（`approveExternalJob`）时 `matchExternalJobAlerts`（`src/db/external-job-alerts.ts`）匹配同一分区没暂停的提醒，命中写进 `external_job_alert_hits`，同样一个职位只提醒一次。两种合计每个账号最多 5 个。新职位直接发布（`publishJob`）或审核通过（`approveJob`）时，`matchJobAlerts`（`src/db/job-alerts.ts`）用职位列表同一个 `matchesFilter` 匹配所有没暂停的提醒，命中写进 `job_alert_hits`，账号 + 职位为主键，同一个职位对同一个人只提醒一次。邮件提醒等邮件服务（#16）。
 
@@ -242,7 +242,7 @@
 | `saveMyJobAlert(query, section?)` | 职位列表的查询串；带 `section`（`internship` / `professional`）时是这个分区的查询串 | `{ status: "created", alert }`；同样的条件已经存过时 `{ status: "exists", alert }`（不新建） | 未登录时 `null`；已有 5 个时 `{ status: "limit" }` |
 | `changeMyJobAlert(id, { name?, paused? })` | 名称去掉多余空白后 1–20 字（空白名称不改）；`paused` 布尔值 | 改后的全部提醒 | 未登录时 `null`；不是自己的提醒时不改，照样返回自己的列表 |
 | `deleteMyJobAlert(id)` | | 删后的全部提醒；已经提醒过的通知保留 | 同上 |
-| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`；外部职位为 `alert:external:<编号>`，点开到 `/external/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending`；以及企业验证的结果（#78）：每份通过或驳回的申请一条，`id` 为 `verification:<申请编号>:<approved|rejected>`，驳回的写明理由和说明，点开到 `/employer/verify`。所有服务器通知都由 `serverNotifications()`（`src/app/messages/server-notifications.ts`）生成，`markMyNotificationsRead` 也只接受它给出的编号（#94） | 未登录时 `null` |
+| `myAlertNotifications()` | | `{ scope, items }`：提醒找到的职位，按通知的形状（`id` 为 `alert:<职位编号>`，点开到 `/jobs/<编号>`；外部职位为 `alert:external:<编号>`，点开到 `/external/<编号>`），最新的在前，最多 50 条。雇主身份是本企业快截止的职位（#69）：截止前 3 天到截止后 14 天（还能续期时），`id` 为 `closing:<职位编号>:<截止时间>`，点开到 `/employer/jobs?tab=ending`；以及企业验证的结果（#78）：每份通过或驳回的申请一条，`id` 为 `verification:<申请编号>:<approved|rejected>`，驳回的写明理由和说明，点开到 `/employer/verify`。所有服务器通知都由 `serverNotifications()`（`src/app/[lang]/messages/server-notifications.ts`）生成，`markMyNotificationsRead` 也只接受它给出的编号（#94） | 未登录时 `null` |
 
 ## 只在开发环境存在的接口
 
@@ -266,7 +266,7 @@
 - **数据函数（`src/db/external-jobs.ts`，只在服务器上用）：** `saveCompanyFeed(company, facts, now)` 存一次导入的结果（新职位待审；已有的更新事实和取到时间；接口里没有了或过了截止日的下架；已通过的职位名、链接或标记变了回到待审），`takeDownCompany(id)`，`listExternalJobs({ shownAt?, companyId? })`（带 `shownAt` 只返回那时可以显示的），`getExternalJob(id)`，`setExternalReview(id, review)`（审核后台的入口在 #112）。
 - **能不能显示** 在读取时判断：`isShown()`（`src/lib/external-jobs/visibility.ts`）= 审核通过、没下架、2 天内刷新到过、截止日当天没过。`sectionOf(kind)`：实习和毕业生项目进「实习」，其余进「专业职位」。
 
-## 审核后台「外部职位」— `src/app/admin/external-actions.ts`
+## 审核后台「外部职位」— `src/app/[lang]/admin/external-actions.ts`
 
 #112（PRD R-39，ADR 0014）。都只给审核员（`requireModerator`），每个操作写一条审核记录，`moderator` 是操作的审核员。
 
@@ -279,13 +279,13 @@
 | `recordTakedownRequest(companyId, requester, note)` | 公司要求删除：记下谁提出（公司邮箱或部门）和内容，效果同停用。 |
 | `resumeExternalCompany(companyId, note)` | 恢复导入：删掉停用记录，这家的职位回到待审，下一次导入重新读。 |
 
-## 实习和专业职位的页面 — `src/app/internships`、`src/app/professional`、`src/app/external/[id]`
+## 实习和专业职位的页面 — `src/app/internships`、`src/app/professional`、`src/app/[lang]/external/[id]`
 
 #113（PRD R-39）。没有 Server Function：服务器组件直接读 `listExternalJobs({ shownAt })`（请求时间，`requestTime()`）和 `getExternalJob(id)`，只显示 `isShown()` 为真的职位。筛选参数（`src/lib/external-jobs/filter.ts`）：`field`（software / electrical）、`kind`（实习：internship / graduate；专业职位：full_time / part_time / contract / unstated）、`experience`（le2 / ge3 / unstated）、`visa`（sponsorship / required / unstated）、`city`、`paid=1`。职位页地址里的编号用 `encodeURIComponent`（编号含冒号）。
 
-## 审核后台 — `src/app/admin/actions.ts`
+## 审核后台 — `src/app/[lang]/admin/actions.ts`
 
-只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/admin/moderator.ts`，#50）：
+只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/[lang]/admin/moderator.ts`，#50）：
 
 - 未登录：`getModerationQueue()`、`getModerators()` 返回 `{ refused: "signed_out", error_zh: "请先登录。" }`，其他函数返回「请先登录。」。
 - 已登录但不是审核员：返回 `{ refused: "not_moderator", error_zh: "只有审核员能使用审核后台。" }`，其他函数返回「只有审核员能使用审核后台。」。
@@ -303,7 +303,7 @@
 | `addModerator(email)` | 已经登录过的账号的邮箱 | `{ ok: true, text }` | 「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个账号已经是审核员。」 |
 | `removeModerator(email)` | 审核员的邮箱 | `{ ok: true, text }` | 「至少要留一位审核员，不能移除最后一位。」「这个账号不是审核员。」 |
 
-企业验证（#78，PRD R-16，ADR 0011）在 `src/app/admin/verification-actions.ts`，同样先 `requireModerator()`：
+企业验证（#78，PRD R-16，ADR 0011）在 `src/app/[lang]/admin/verification-actions.ts`，同样先 `requireModerator()`：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -311,7 +311,7 @@
 | `approveVerification(id, checklist)` | `checklist`：`{ [项目]: { done, note? } }` | `{ ok: true, text }`：企业得到申请的标识（认证雇主保持原级别），登记名和 NZBN 写进企业资料；核对结果存进申请；记日志 `verify_approve` | 「还有核对项没打勾：…。」「这份申请已经处理过，或者不存在。」「这家店已被封禁，不能通过验证。」 |
 | `rejectVerification(id, reason, note, checklist)` | `reason`：`register_mismatch`、`phone_unreachable`、`impersonation`、`other`；`note`：说明，雇主会看到 | `{ ok: true, text }`：申请记为驳回，企业的标识不变；记日志 `verify_reject`（`note` 是理由和说明） | 「请选择驳回理由。」「请写明驳回的说明，雇主会看到。」「这份申请已经处理过，或者不存在。」 |
 
-审核数据（#70，PRD R-34，ADR 0010）在 `src/app/admin/stats-actions.ts`，同样先 `requireModerator()`：
+审核数据（#70，PRD R-34，ADR 0010）在 `src/app/[lang]/admin/stats-actions.ts`，同样先 `requireModerator()`：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
@@ -319,7 +319,7 @@
 
 举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
 
-审核后台的入口（#73）在 `src/app/admin/entry-actions.ts`：
+审核后台的入口（#73）在 `src/app/[lang]/admin/entry-actions.ts`：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |

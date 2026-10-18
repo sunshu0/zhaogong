@@ -59,7 +59,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(page.getByRole("heading", { name: "求职者工作台", level: 1 })).toBeVisible();
   await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
   await page.goto("/profile");
-  await expect(page.getByRole("heading", { name: "我的求职主页", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "我的主页", level: 1 })).toBeVisible();
   await expect(page.getByLabel("企业名称", { exact: true })).toHaveCount(0);
   await page.getByLabel("称呼", { exact: true }).fill("求职者小林");
   await openOptionalProfile(page);

@@ -38,7 +38,7 @@ export function EmployerPublicPage({ employer, jobs }: { employer: Employer; job
           <div className="flex items-start gap-4">
             <EmployerAvatar employerId={employer.id} fallback={name} large />
             <div className="min-w-0 flex-1">
-              <p className="text-meta text-muted">雇主主页 · 演示企业 · ID：{employer.id}</p>
+              <p className="text-meta text-muted">企业主页 · 演示企业 · ID：{employer.id}</p>
               <h1 className="mt-1 text-title font-semibold break-words">{name}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
                 <VerificationBadge verification={employer.verification} />

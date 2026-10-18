@@ -4,7 +4,7 @@
 // workspace.ts), the account menu (AccountMenu), the notices app/me writes (application-, interview- and
 // external-alert-notifications), and app/me, app/workspace titles and loading labels.
 // interviews.ts also words the employer's side (employerInterviewStatus, interviewTodo); it lives here with the rest.
-// hub-state.ts is demo data and is not extracted. 「企业主页」「我的主页」 as they read today (导师决定 7, step 1).
+// hub-state.ts is demo data and is not extracted. 「企业主页」 and 「我的主页」, one name each since step 1 (导师决定 7).
 // Dates and times arrive formatted (format.ts); a slot is its date and its time.
 
 import type { Dictionary } from "@/i18n/messages";

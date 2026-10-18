@@ -56,7 +56,7 @@ export async function openWorkspacePage(page: Page, label: string) {
     .click();
 }
 
-/** An item of the open chat's 更多 menu (雇主主页 / 求职者主页, 查看职位, 举报), opened the way a user would. */
+/** An item of the open chat's 更多 menu (企业主页 / 求职者主页, 查看职位, 举报), opened the way a user would. */
 export async function chatMenuItem(page: Page, name: string) {
   await page
     .getByRole("button", { name: /^更多：/ })

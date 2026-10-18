@@ -1,0 +1,88 @@
+import type { Metadata, Viewport } from "next";
+import { Archivo } from "next/font/google";
+import Link from "next/link";
+import { Suspense } from "react";
+import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
+import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
+import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
+import { StickyHeader } from "@/components/ui/StickyHeader";
+import { LangSwitch } from "@/components/ui/LangSwitch";
+import { Toaster } from "@/components/ui/Toast";
+import { LangProvider } from "@/i18n/client";
+import { PRODUCT_NAME } from "@/i18n/labels";
+import { LANGS, localeTag } from "@/i18n/lang";
+import { uiMessages } from "@/i18n/messages/ui";
+import { messages, serverLang } from "@/i18n/server";
+import "../globals.css";
+
+/** Pay figures and English text (globals.css: font-figure, font-latin). Latin only; Chinese uses the system font. */
+const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
+
+// Round 20 (ADR 0023 §2): every page is prerendered once per language; the proxy serves the copy the zg_lang cookie
+// asks for, at the same address.
+export function generateStaticParams() {
+  return LANGS.map((lang) => ({ lang }));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { site } = await messages(uiMessages);
+  return {
+    title: { default: `${PRODUCT_NAME} · ${site.title}`, template: `%s · ${PRODUCT_NAME}` },
+    description: site.description,
+  };
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0f766e",
+  // Lets the bottom bar pad itself for the iPhone home indicator (env(safe-area-inset-bottom)).
+  viewportFit: "cover",
+};
+
+export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
+  const lang = await serverLang();
+  const { site } = await messages(uiMessages);
+  return (
+    <html lang={localeTag(lang)} className={`${archivo.variable} h-full antialiased`}>
+      <head>
+        {/* Site-wide install tags must be present before dynamic job metadata streams. */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content={PRODUCT_NAME} />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <LangProvider lang={lang}>
+          <StickyHeader>
+            <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
+              <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold text-brand">
+                {PRODUCT_NAME}
+              </Link>
+              <span className="hidden text-body text-muted md:inline">{site.city}</span>
+              <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-body md:gap-4">
+                <Suspense fallback={<HeaderNavShell />}>
+                  <HeaderNav />
+                </Suspense>
+                <LangSwitch />
+                <AccountMenu />
+                <HeaderPostJob />
+              </div>
+            </div>
+          </StickyHeader>
+          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
+          <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
+            <p>{site.lawNote}</p>
+            <LangSwitch look="footer" />
+          </footer>
+          <Suspense fallback={<BottomNavShell />}>
+            <BottomNav />
+          </Suspense>
+          <Toaster />
+        </LangProvider>
+      </body>
+    </html>
+  );
+}

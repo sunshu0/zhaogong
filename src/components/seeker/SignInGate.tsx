@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { useSitePathname } from "@/i18n/client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { buttonClass } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
@@ -12,7 +12,7 @@ import { cardClass } from "@/components/ui/Card";
  * with a 48px main button (Round 19).
  */
 export function SignInGate({ message, children }: { message: string; children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = useSitePathname();
   const hydrated = useHydrated();
   const session = useSession();
   if (hydrated && session) return children;

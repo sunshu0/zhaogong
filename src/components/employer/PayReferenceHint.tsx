@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { payReferenceFor, type PayReferenceAnswer } from "@/app/jobs/pay-reference-actions";
+import { payReferenceFor, type PayReferenceAnswer } from "@/app/[lang]/jobs/pay-reference-actions";
 import { jobRate } from "@/lib/pay-reference";
 import type { CountryCode, Industry } from "@/lib/types";
 import { PayReferenceBox } from "@/components/ui/PayReferenceBox";

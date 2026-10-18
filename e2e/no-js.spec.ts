@@ -26,7 +26,7 @@ test("a job page shows the job and its facts", async ({ page }) => {
 test("an employer page shows the employer", async ({ page }) => {
   await page.goto("/employers/e1");
   await expect(page.getByRole("heading", { level: 1, name: "川味小馆" })).toBeVisible();
-  await expect(page.getByText("加载雇主主页…")).toBeHidden();
+  await expect(page.getByText("加载企业主页…")).toBeHidden();
 });
 
 test("sign-in says it needs JavaScript instead of loading forever", async ({ page }) => {

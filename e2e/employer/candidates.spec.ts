@@ -110,14 +110,14 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await openOptionalProfile(page);
   await page.getByLabel("最少小时", { exact: true }).fill("15");
   await page.getByLabel("最多小时", { exact: true }).fill("25");
-  await page.getByLabel("允许向雇主推荐我的求职主页").check();
+  await page.getByLabel("允许向雇主推荐我的主页").check();
   await page.reload();
-  await expect(page.getByLabel("允许向雇主推荐我的求职主页")).toBeChecked();
+  await expect(page.getByLabel("允许向雇主推荐我的主页")).toBeChecked();
   await openOptionalProfile(page);
   await expect(page.getByLabel("最少小时", { exact: true })).toHaveValue("15");
   await page.screenshot({ path: testInfo.outputPath("resume-editor.png"), fullPage: true });
   // The page is on the account (#104), so every other business would list it: withdraw it before going on.
-  await page.getByLabel("允许向雇主推荐我的求职主页").uncheck();
+  await page.getByLabel("允许向雇主推荐我的主页").uncheck();
   await expectProfileSaved(page);
   await page
     .getByRole("banner")
@@ -132,7 +132,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await signIn(seeker, "/profile", freshEmail("public.candidate"));
   await seeker.getByLabel("称呼", { exact: true }).fill(name);
   await openOptionalProfile(seeker);
-  const allow = seeker.getByLabel("允许向雇主推荐我的求职主页");
+  const allow = seeker.getByLabel("允许向雇主推荐我的主页");
   await allow.check();
   await expectProfileSaved(seeker);
   await page.reload();

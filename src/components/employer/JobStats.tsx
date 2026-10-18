@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMyJobDays } from "@/app/employer/actions";
+import { getMyJobDays } from "@/app/[lang]/employer/actions";
 import type { JobDay } from "@/db/job-stats";
 import type { ApplicationFunnel } from "@/db/job-applications";
 import type { Job } from "@/lib/types";

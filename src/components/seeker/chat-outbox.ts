@@ -1,7 +1,7 @@
 // Chat changes this browser has shown but the server has not confirmed yet (#10). Kept in localStorage, so a change
 // is not lost when the page is left before its request goes out: the next page load sends it again. Each carries an
 // id the server applies only once (changeMyChat's ticket), so sending it twice is safe.
-import type { ChatChange } from "@/app/messages/actions";
+import type { ChatChange } from "@/app/[lang]/messages/actions";
 import type { StorageLike } from "@/components/seeker/session";
 
 export const OUTBOX_KEY = "zhaogong:chat-outbox";

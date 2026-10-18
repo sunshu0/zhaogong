@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { answerMyInterview } from "@/app/me/interview-actions";
+import { answerMyInterview } from "@/app/[lang]/me/interview-actions";
 import { downloadInterviewIcs } from "@/components/seeker/interview-client";
 import {
   formatSlot,

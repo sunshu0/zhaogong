@@ -2,7 +2,7 @@
 import { useState, type RefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Employer, Job } from "@/lib/types";
-import type { ChangeResult } from "@/app/employer/actions";
+import type { ChangeResult } from "@/app/[lang]/employer/actions";
 import { jobPhase, type Phase } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";

@@ -3,7 +3,7 @@
 // 企业主页 for visitors (ADR 0022): businesses' public pages come from the server, asked once per business per page
 // load. The businesses a page needs at once (its own, or the counterparts of a chat list) go in one ask.
 import { useEffect, useSyncExternalStore } from "react";
-import { employerPublicPages } from "@/app/employer/page-actions";
+import { employerPublicPages } from "@/app/[lang]/employer/page-actions";
 import type { EmployerPublicProfile } from "@/lib/employer-public-profile";
 
 /** Per business: its page, null when it has none (or is banned), missing until the server answered. */

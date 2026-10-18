@@ -8,7 +8,7 @@ import {
   getMyJobApplicants,
   markMyApplicantsSeen,
   type Applicant,
-} from "@/app/employer/applicant-actions";
+} from "@/app/[lang]/employer/applicant-actions";
 import type { Job } from "@/lib/types";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { DECISION_LABELS, type ApplicationDecision } from "@/components/seeker/applications";

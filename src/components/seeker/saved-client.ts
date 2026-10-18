@@ -4,7 +4,7 @@
 // fetched once per page load and replaced by each answer. A click shows 已收藏 only once the server has it (the
 // button is busy until then), so leaving the page right after never shows a save that was lost.
 import { useEffect, useSyncExternalStore } from "react";
-import { mySavedJobIds, saveMyJob, unsaveMyJob } from "@/app/me/saved/actions";
+import { mySavedJobIds, saveMyJob, unsaveMyJob } from "@/app/[lang]/me/saved/actions";
 import { useSession } from "@/components/seeker/session-client";
 import { toast } from "@/components/ui/Toast";
 

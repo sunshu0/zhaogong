@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LANG, LANGS, isLang, langFrom, localeTag } from "@/i18n/lang";
+import { DEFAULT_LANG, LANGS, isLang, langFrom, langRoute, localeTag, sitePath } from "@/i18n/lang";
 
 describe("languages", () => {
   it("are Chinese and English, Chinese first and by default", () => {
@@ -18,5 +18,25 @@ describe("languages", () => {
   it("gives <html lang> and Intl the Chinese of mainland China and the English of New Zealand", () => {
     expect(localeTag("zh")).toBe("zh-CN");
     expect(localeTag("en")).toBe("en-NZ");
+  });
+
+  it("drops the internal language segment from a path, and only a whole segment", () => {
+    expect(sitePath("/zh/jobs/j1")).toBe("/jobs/j1");
+    expect(sitePath("/en")).toBe("/");
+    expect(sitePath("/zh")).toBe("/");
+    expect(sitePath("/jobs")).toBe("/jobs");
+    expect(sitePath("/")).toBe("/");
+    expect(sitePath("/zhaopin")).toBe("/zhaopin");
+    expect(sitePath("/english/x")).toBe("/english/x");
+  });
+
+  it("routes a page request by the cookie, and sends an address with a language back to the plain one", () => {
+    expect(langRoute("/jobs", undefined)).toEqual({ rewrite: "/zh/jobs" });
+    expect(langRoute("/jobs", "en")).toEqual({ rewrite: "/en/jobs" });
+    expect(langRoute("/jobs", "fr")).toEqual({ rewrite: "/zh/jobs" });
+    expect(langRoute("/", "en")).toEqual({ rewrite: "/en" });
+    expect(langRoute("/", undefined)).toEqual({ rewrite: "/zh" });
+    expect(langRoute("/en/jobs", "en")).toEqual({ redirect: "/jobs" });
+    expect(langRoute("/zh", undefined)).toEqual({ redirect: "/" });
   });
 });

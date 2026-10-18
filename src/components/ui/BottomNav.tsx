@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useMessages, useSitePathname } from "@/i18n/client";
 import { Briefcase, ClipboardList, MessageSquare, Plus, UserRound, type LucideIcon } from "lucide-react";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useChat } from "@/components/seeker/chat-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { chatTitle } from "@/components/ui/HeaderNav";
 import { activeBottomKey, bottomNavItems, hidesBottomNav, navRole, type NavKey } from "@/components/ui/nav";
+import { uiMessages } from "@/i18n/messages/ui";
 
 const ICONS: Partial<Record<NavKey, LucideIcon>> = {
   jobs: Briefcase,
@@ -23,7 +24,7 @@ const ICONS: Partial<Record<NavKey, LucideIcon>> = {
  * BottomNavShell as the fallback (also what a browser without JavaScript keeps there).
  */
 export function BottomNav() {
-  return <BottomNavBar pathname={usePathname()} />;
+  return <BottomNavBar pathname={useSitePathname()} />;
 }
 
 /** The signed-out bar with nothing highlighted, for before the address is known. */
@@ -35,17 +36,18 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
   const hydrated = useHydrated();
   const session = useSession();
   const { totalUnread } = useChat();
+  const w = useMessages(uiMessages).nav;
   if (pathname !== null && hidesBottomNav(pathname)) return null;
   const role = navRole(hydrated ? session : null);
   const active = pathname === null ? null : activeBottomKey(pathname);
   return (
     <nav
       id="bottom-nav"
-      aria-label="底部导航"
+      aria-label={w.bottom}
       className="fixed inset-x-0 bottom-0 z-20 [view-transition-name:bottom-nav] border-t border-border/70 bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md backdrop-saturate-150 md:hidden"
     >
       <ul className="flex h-14">
-        {bottomNavItems(role).map((item) => {
+        {bottomNavItems(role, w).map((item) => {
           const current = item.key === active;
           if (item.key === "post") {
             return (
@@ -70,7 +72,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
               <Link
                 href={item.href}
                 aria-current={current ? "page" : undefined}
-                title={item.key === "chat" && role !== "out" ? chatTitle(unread) : undefined}
+                title={item.key === "chat" && role !== "out" ? chatTitle(unread, w) : undefined}
                 className={`pressable flex h-full flex-col items-center justify-center gap-0.5 text-meta ${
                   current ? "font-semibold text-brand" : "text-muted"
                 }`}

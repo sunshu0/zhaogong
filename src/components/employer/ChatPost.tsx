@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import type { ChatState } from "@/lib/ai-post";
 import type { CountryCode } from "@/lib/types";
-import { chatAssistantKind, chatTurn } from "@/app/employer/actions";
+import { chatAssistantKind, chatTurn } from "@/app/[lang]/employer/actions";
 import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";

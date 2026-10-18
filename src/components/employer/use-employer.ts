@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { Employer } from "@/lib/types";
-import { getMyEmployer, getMyVerification, type MyVerification } from "@/app/employer/actions";
-import { getMyTeam, type MyTeam } from "@/app/employer/team-actions";
+import { getMyEmployer, getMyVerification, type MyVerification } from "@/app/[lang]/employer/actions";
+import { getMyTeam, type MyTeam } from "@/app/[lang]/employer/team-actions";
 
 /**
  * The account's business as the server has it now: verification and a ban can change after the session

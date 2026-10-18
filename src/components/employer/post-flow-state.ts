@@ -11,7 +11,7 @@ import {
 } from "react";
 import { resumeChat, startChat, type ChatState } from "@/lib/ai-post";
 import type { CountryCode, Job } from "@/lib/types";
-import { parseDraft, publishJob } from "@/app/employer/actions";
+import { parseDraft, publishJob } from "@/app/[lang]/employer/actions";
 import { emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useDraftForm, type DraftFormState } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";

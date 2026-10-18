@@ -22,3 +22,23 @@ export function langFrom(value: string | null | undefined): Lang {
 export function localeTag(lang: Lang): "zh-CN" | "en-NZ" {
   return lang === "en" ? "en-NZ" : "zh-CN";
 }
+
+/**
+ * The address people use for a path with the internal language segment (ADR 0023 §2): /zh/jobs → /jobs, /en → /.
+ * Pages live under app/[lang] and the proxy rewrites to it, so a page's own pathname may carry the segment on the
+ * server and not in the browser; reading it through this keeps both sides the same.
+ */
+export function sitePath(pathname: string): string {
+  return pathname.replace(/^\/(zh|en)(?=\/|$)/, "") || "/";
+}
+
+/**
+ * Where the proxy sends a page request (ADR 0023 §2). An address with a language segment goes back, permanently,
+ * to the one without it (one address per page until English gets its own, §9); any other is served from the copy
+ * in the cookie's language, Chinese without one. The address in the browser does not change.
+ */
+export function langRoute(pathname: string, cookie: string | undefined): { redirect: string } | { rewrite: string } {
+  const plain = sitePath(pathname);
+  if (plain !== pathname) return { redirect: plain };
+  return { rewrite: `/${langFrom(cookie)}${pathname === "/" ? "" : pathname}` };
+}

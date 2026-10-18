@@ -21,7 +21,7 @@ import {
   inviteTeammate,
   setMyTeamName,
   type MyTeam,
-} from "@/app/employer/team-actions";
+} from "@/app/[lang]/employer/team-actions";
 import { inputClass } from "@/components/ui/input-class";
 
 const INPUT = inputClass();

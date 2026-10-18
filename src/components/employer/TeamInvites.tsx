@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { TEAM_NAME_MAX, TEAM_ROLE_LABEL } from "@/components/employer/team";
-import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/employer/team-actions";
+import { answerTeamInvite, getMyTeamInvites, type MyTeamInvite } from "@/app/[lang]/employer/team-actions";
 import { setIdentity } from "@/components/seeker/session-client";
 
 const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { revealContact } from "@/app/jobs/[id]/actions";
+import { revealContact } from "@/app/[lang]/jobs/[id]/actions";
 import type { Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { buttonClass } from "@/components/ui/Button";

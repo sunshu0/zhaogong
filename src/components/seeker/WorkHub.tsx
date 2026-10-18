@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useSitePathname } from "@/i18n/client";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
@@ -21,7 +22,7 @@ const CHAT_WIDTH = "lg:ml-[calc(50%_-_min(48rem,_50vw_-_1.5rem))] lg:w-[min(96re
  * the content the sample's type (`type-app`); each line passes it once its pages have the new cards.
  */
 export function WorkHubFrame({ look, children }: { look?: "app"; children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = useSitePathname();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const width = pathname === "/messages" ? CHAT_WIDTH : WIDE_ON_DESKTOP;

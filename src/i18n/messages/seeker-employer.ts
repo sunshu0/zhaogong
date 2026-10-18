@@ -1,15 +1,15 @@
 // Round 20 (ADR 0023): the business page as job seekers see it — EmployerPublicPage.tsx and app/employers/[id]
-// (title, loading, not-found). 「雇主主页」 as it reads today; step 1 makes it 「企业主页」 (导师决定 7), and this follows.
+// (title, loading, not-found). One name for the page everywhere: 「企业主页」 (导师决定 7, step 1).
 // The business's own words (name, about, address, contact name) are not translated.
 
 import type { Dictionary } from "@/i18n/messages";
 
 const employerZh = {
-  title: (name: string) => `${name} · 雇主主页`,
+  title: (name: string) => `${name} · 企业主页`,
   missing: "雇主不存在",
-  loading: "加载雇主主页…",
+  loading: "加载企业主页…",
   back: "← 找工作",
-  eyebrow: (id: string) => `雇主主页 · 演示企业 · ID：${id}`,
+  eyebrow: (id: string) => `企业主页 · 演示企业 · ID：${id}`,
   noRegion: "地区待补充",
   chooseJob: "选择岗位并沟通",
   noOpenJobs: "暂无在招岗位",

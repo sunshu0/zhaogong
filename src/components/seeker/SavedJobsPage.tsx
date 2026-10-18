@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { mySavedJobs, setMyJobStage, unsaveMyJob, type SavedJobView } from "@/app/me/saved/actions";
+import { mySavedJobs, setMyJobStage, unsaveMyJob, type SavedJobView } from "@/app/[lang]/me/saved/actions";
 import { SAVED_STAGES, SAVED_STAGE_LABELS, parseSavedStage } from "@/components/seeker/saved-jobs";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { sendWaitingChanges } from "@/components/seeker/chat-client";

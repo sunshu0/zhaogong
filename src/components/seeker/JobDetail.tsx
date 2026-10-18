@@ -145,7 +145,7 @@ export function JobDetail({
             transitionTypes={FORWARD}
             className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
           >
-            查看雇主主页 →
+            查看企业主页 →
           </Link>
         </section>
       )}

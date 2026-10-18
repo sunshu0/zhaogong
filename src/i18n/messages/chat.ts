@@ -55,7 +55,7 @@ const chatZh = {
   thread: {
     label: (person: string) => `与${person}的聊天`,
     seekerProfile: "求职者主页",
-    employerProfile: "雇主主页",
+    employerProfile: "企业主页",
     viewJob: "查看职位",
     report: "举报",
     back: "返回会话列表",

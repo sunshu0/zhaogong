@@ -1,6 +1,7 @@
 // A person's own data (#54, R-30): everything the server keeps about an account, for 导出我的数据, and deleting the
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
+import type { Lang } from "@/i18n/lang";
 import { and, asc, count, eq, inArray, ne, or } from "drizzle-orm";
 import { listAiUsageOf, type AiUsageRow } from "@/db/ai-usage";
 import { listSharedConversations } from "@/db/conversations";
@@ -20,7 +21,7 @@ import type { AccountRole, Employer, Job } from "@/lib/types";
 
 /** The server's part of the export. The browser adds what it keeps itself (profiles, reports sent, jobs viewed). */
 export interface ServerAccountData {
-  account: { email: string; createdAt: string; lastRole: AccountRole };
+  account: { email: string; createdAt: string; lastRole: AccountRole; lang: Lang | null };
   /** The account's place in its business's team (#87): role, the name the team sees, since when. */
   team: { role: string; name: string | null; joinedAt: string | null } | null;
   /** Team invitations this account received or sent (#87), whatever their status. */
@@ -212,7 +213,12 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .orderBy(asc(t.sessions.createdAt));
 
   return {
-    account: { email: account.email, createdAt: account.createdAt, lastRole: account.lastRole },
+    account: {
+      email: account.email,
+      createdAt: account.createdAt,
+      lastRole: account.lastRole,
+      lang: account.lang ?? null,
+    },
     team: account.employerId
       ? { role: account.teamRole ?? "admin", name: account.teamName, joinedAt: account.teamJoinedAt }
       : null,

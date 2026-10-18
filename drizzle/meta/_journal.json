@@ -176,6 +176,13 @@
       "when": 1792294721291,
       "tag": "0024_job_contact_by",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1792324957193,
+      "tag": "0025_accounts_lang",
+      "breakpoints": true
     }
   ]
 }

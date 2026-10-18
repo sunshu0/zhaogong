@@ -77,7 +77,7 @@ function ThreadHeader({
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // 更多: their page, the job, 举报 — so the header keeps only back, who, and this one button.
   const more: MoreMenuItem[] = [
-    ...(profileHref ? [{ label: isEmployer ? "求职者主页" : "雇主主页", href: profileHref }] : []),
+    ...(profileHref ? [{ label: isEmployer ? "求职者主页" : "企业主页", href: profileHref }] : []),
     ...(conversation.job ? [{ label: "查看职位", href: `/jobs/${conversation.job}` }] : []),
     { label: "举报", danger: true, onSelect: () => setReporting(true) },
   ];

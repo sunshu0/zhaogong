@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { accountStatus } from "@/app/login/actions";
+import { accountStatus } from "@/app/[lang]/login/actions";
 import { setIdentity, syncAccountIdentity, useSession } from "@/components/seeker/session-client";
 
 /**

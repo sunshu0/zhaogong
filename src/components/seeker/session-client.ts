@@ -3,7 +3,7 @@
 // The browser's copy of the session, for display only. The real session is the httpOnly cookie on the server
 // (src/lib/auth, A12-1); every Server Function reads that. The copy is filled from the server's answers and
 // corrected once per page load (syncWithServer), so editing localStorage signs nobody in.
-import { accountStatus, signOutAccount, switchIdentity, type AccountStatus } from "@/app/login/actions";
+import { accountStatus, signOutAccount, switchIdentity, type AccountStatus } from "@/app/[lang]/login/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { claimGuestActivity } from "@/components/seeker/identity-activity";
 import { applyServerSession, syncSessionIdentity, unconfirmedSwitch } from "@/components/seeker/identity";
@@ -27,7 +27,7 @@ export function useSession(): DemoSession | null {
   return store.useValue();
 }
 
-/** Starts the copy after a sign-in, with the identity the server confirmed (see src/app/login/actions.ts). */
+/** Starts the copy after a sign-in, with the identity the server confirmed (see src/app/[lang]/login/actions.ts). */
 export function startSession(email: string, identity: SessionIdentity): DemoSession | undefined {
   return store.update((storage) => {
     const session = writeSession(storage, email, new Date(), identity);

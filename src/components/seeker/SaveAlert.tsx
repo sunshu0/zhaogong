@@ -3,7 +3,7 @@
 import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { saveMyJobAlert, type SaveAlertResult } from "@/app/me/alerts/actions";
+import { saveMyJobAlert, type SaveAlertResult } from "@/app/[lang]/me/alerts/actions";
 import { jobsHref } from "@/components/seeker/filter-query";
 import { ALERT_LIMIT, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { externalAlertHref } from "@/lib/external-jobs/alerts";

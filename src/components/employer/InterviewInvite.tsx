@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cancelMyApplicantInterview, inviteMyApplicant } from "@/app/employer/interview-actions";
+import { cancelMyApplicantInterview, inviteMyApplicant } from "@/app/[lang]/employer/interview-actions";
 import {
   aucklandToInstant,
   employerInterviewStatus,

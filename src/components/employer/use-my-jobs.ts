@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@/lib/types";
-import { getMyJob, getMyJobsOverview, type JobsOverview } from "@/app/employer/actions";
+import { getMyJob, getMyJobsOverview, type JobsOverview } from "@/app/[lang]/employer/actions";
 
 type Loaded = JobsOverview & { email: string; now: number };
 

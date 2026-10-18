@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { myInterviewTodos } from "@/app/me/interview-actions";
-import type { InterviewTodo } from "@/app/me/interview-notifications";
+import { myInterviewTodos } from "@/app/[lang]/me/interview-actions";
+import type { InterviewTodo } from "@/app/[lang]/me/interview-notifications";
 import type { DemoSession } from "@/components/seeker/session";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { interviewIcs, type InterviewView } from "@/components/seeker/interviews";

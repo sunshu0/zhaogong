@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { shouldDismiss } from "@/components/ui/sheet-drag";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 /**
  * A bottom sheet (Round 19, an app's feel): on a phone a panel slides up from the bottom; from 768 px it is a centred
@@ -23,6 +25,7 @@ export function BottomSheet({
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const closeLabel = useMessages(uiMessages).close;
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useId();
   const drag = useRef<{ startY: number; startAt: number } | null>(null);
@@ -95,7 +98,7 @@ export function BottomSheet({
             <button
               type="button"
               onClick={onClose}
-              aria-label="关闭"
+              aria-label={closeLabel}
               className="pressable -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-background"
             >
               <X aria-hidden="true" className="size-5" />

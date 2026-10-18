@@ -13,7 +13,7 @@ export function StatusCard({
   actions,
 }: {
   icon: LucideIcon;
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   actions: ReactNode;
 }) {

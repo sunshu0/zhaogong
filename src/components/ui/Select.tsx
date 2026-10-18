@@ -5,6 +5,8 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore, type Keyboard
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { fieldBorder, type FieldTone } from "@/components/ui/input-class";
 import { listboxKey, shownLabel, typeAhead } from "@/components/ui/select-keys";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 export type SelectOption = { value: string; label: string };
 
@@ -35,7 +37,7 @@ export function Select({
   options,
   value: controlled,
   defaultValue = "",
-  placeholder = "不限",
+  placeholder: givenPlaceholder,
   required = false,
   onChange,
   id: triggerId,
@@ -56,6 +58,8 @@ export function Select({
   tone?: FieldTone;
 }) {
   const hydrated = useHydrated();
+  const anyWord = useMessages(uiMessages).any;
+  const placeholder = givenPlaceholder ?? anyWord;
   const id = useId();
   const [own, setOwn] = useState(defaultValue);
   const value = controlled ?? own;

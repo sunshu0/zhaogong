@@ -3,7 +3,7 @@ import { chooseOption, fillSignInCode, freshEmail, selectTrigger, signIn } from 
 
 // 收藏 and 职位提醒 for 实习 and 专业职位 (#131): the demo external jobs a moderator already approved
 // (src/mock/external-jobs.ts). Nothing here approves or hides a job, so both projects can share the server; the
-// notification a moderator's 通过 sends is in src/app/me/alerts/external-alerts.test.ts.
+// notification a moderator's 通过 sends is in src/app/[lang]/me/alerts/external-alerts.test.ts.
 
 const saveButton = (page: Page, title: string) =>
   page.getByRole("button", { name: `收藏：${title}`, exact: true }).filter({ visible: true });

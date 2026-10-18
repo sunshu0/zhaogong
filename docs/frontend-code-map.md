@@ -38,7 +38,7 @@
 | 输入框 | `input-class.ts` | `inputClass()`、`fieldBorder()` |
 | 顶栏和底部导航 | `StickyHeader.tsx`、`HeaderNav.tsx`、`BottomNav.tsx` | 吸顶、半透明；当前项图标变实心 |
 
-求职者这边（`src/components/seeker/`）：职位卡 `JobCard.tsx`（`look="app"` 是 Round 19 的卡，`action` 放卡片底部那一行的额外按钮，要点、状态、标签在 `job-card-parts.ts`）；「我的」几页的框架 `WorkHub.tsx` 的 `WorkHubFrame look="app"`；找不到和出错的卡 `StatusCard.tsx`（`src/app/not-found.tsx`、`error.tsx`、`global-error.tsx` 用它）。雇主后台补充的样式在 `src/components/employer/app-style.ts`。
+求职者这边（`src/components/seeker/`）：职位卡 `JobCard.tsx`（`look="app"` 是 Round 19 的卡，`action` 放卡片底部那一行的额外按钮，要点、状态、标签在 `job-card-parts.ts`）；「我的」几页的框架 `WorkHub.tsx` 的 `WorkHubFrame look="app"`；找不到和出错的卡 `StatusCard.tsx`（`src/app/[lang]/not-found.tsx`、`error.tsx`、`global-error.tsx` 用它）。雇主后台补充的样式在 `src/components/employer/app-style.ts`。
 
 ## 雇主发帖与管理
 
@@ -50,7 +50,7 @@
 | 招聘表单 | `DraftForm.tsx` | `DraftFormSections.tsx` 展示要求、描述和联系方式；`DraftFormParts.tsx` 提供字段、提示和输入控件 |
 | 职位管理 | `ManageJobs.tsx` | `ManagedJob.tsx` 展示单条职位；`ManagedJobActions.tsx` 展示刷新、结束招聘等操作 |
 
-发帖表单状态仍在 `use-draft-form.ts`，表单与职位转换在 `post-form.ts`。对话生成规则在 `src/lib/ai-post/`，发布前检查在 `src/lib/compliance/`，演示数据操作通过 `src/app/employer/actions.ts` 调用。
+发帖表单状态仍在 `use-draft-form.ts`，表单与职位转换在 `post-form.ts`。对话生成规则在 `src/lib/ai-post/`，发布前检查在 `src/lib/compliance/`，演示数据操作通过 `src/app/[lang]/employer/actions.ts` 调用。
 
 ## 验证
 

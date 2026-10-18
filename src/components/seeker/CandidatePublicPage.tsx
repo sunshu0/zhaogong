@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
-import { getMyJob } from "@/app/employer/actions";
+import { getMyJob } from "@/app/[lang]/employer/actions";
 import { candidateContext } from "@/components/account/candidate-context";
 import { useCandidateDirectory } from "@/components/seeker/hub-client";
 import { useChat } from "@/components/seeker/chat-client";
@@ -43,7 +43,7 @@ export function CandidatePublicPage() {
     return (
       <div className="space-y-4">
         <BackToChat href={chatHref} />
-        <h1 className="text-title font-semibold">求职主页暂不可查看</h1>
+        <h1 className="text-title font-semibold">求职者主页暂不可查看</h1>
         <p className="text-body text-muted">该求职者尚未公开资料或已关闭公开主页。</p>
       </div>
     );

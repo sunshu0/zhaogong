@@ -32,6 +32,13 @@ const uiZh = {
   copyFailed: "复制失败",
   print: "打印 / 存为 PDF",
   signIn: "登录 / 注册",
+  // LangSwitch.tsx: the other language, written in itself, and what pressing it does.
+  langSwitch: {
+    other: "English",
+    otherTag: "en",
+    title: "切换到英文界面",
+    row: "界面语言：中文",
+  },
   // Skeleton.tsx
   loading: "正在加载",
   loadingJobs: "正在加载职位",
@@ -89,7 +96,7 @@ export const uiMessages: Dictionary<typeof uiZh> = {
       chatUnread: (n) => `Chat, ${n} unread ${n === 1 ? "message" : "messages"}`,
       mine: "Me",
       manage: "My jobs",
-      post: "Post a job",
+      post: "Post",
       candidates: "Suggested candidates",
       workspace: "Workspace",
       main: "Main",
@@ -104,6 +111,12 @@ export const uiMessages: Dictionary<typeof uiZh> = {
     copyFailed: "Couldn't copy",
     print: "Print / save as PDF",
     signIn: "Sign in or sign up",
+    langSwitch: {
+      other: "中文",
+      otherTag: "zh-CN",
+      title: "Switch to Chinese",
+      row: "Language: English",
+    },
     loading: "Loading",
     loadingJobs: "Loading jobs",
     verification: {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { changeMyJobAlert, deleteMyJobAlert, myJobAlerts, type JobAlertView } from "@/app/me/alerts/actions";
+import { changeMyJobAlert, deleteMyJobAlert, myJobAlerts, type JobAlertView } from "@/app/[lang]/me/alerts/actions";
 import { ALERT_LIMIT, ALERT_NAME_MAX, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button, ButtonLink } from "@/components/ui/Button";

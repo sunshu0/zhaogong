@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { countJobView } from "@/app/employer/count-view";
+import { countJobView } from "@/app/[lang]/employer/count-view";
 import { rememberView } from "@/components/seeker/activity-client";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";

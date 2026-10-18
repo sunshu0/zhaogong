@@ -258,14 +258,14 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
   - `WorkHubFrame look="app"` 给内容加 `type-app`；桌面左栏的工作台导航是一张卡，行按下变暗。B、C 线的工作台页面改好后也传 `look="app"`。
   - 各列表、空状态、登录提示都是卡片；输入框用 `inputClass()`，「进度」「持有的签证」换成 `Select`。e2e 里看 Select 当前的值用 `selectTrigger(范围, "标签")` 的名字（「进度 已面试」）。
   - 新加 `loading.tsx`：雇主主页、浏览与举报、我的主页、中英文简历。
-- **找不到页面和出错页（#161）：** `StatusCard`：一张居中的卡，图标、标题、一句原因、一个主按钮（最多再加一个次按钮）。全站的 404（`src/app/not-found.tsx`，以前是 Next 自带的英文页）、出错页（`error.tsx`「重试」，根布局出错时 `global-error.tsx`），以及职位、雇主的 404 都用它。
+- **找不到页面和出错页（#161）：** `StatusCard`：一张居中的卡，图标、标题、一句原因、一个主按钮（最多再加一个次按钮）。全站的 404（`src/app/[lang]/not-found.tsx`，以前是 Next 自带的英文页）、出错页（`error.tsx`「重试」，根布局出错时 `global-error.tsx`），以及职位、雇主的 404 都用它。
 - **长流程里的出错（#178）：** 发布的每一步、打开的聊天外面包一层 `RetryBoundary`（`src/components/seeker`，用 Next 16 的 `catchError`）：出错时只把这一块换成浅黄图标、一句说明和「重试」，用户填的内容放在边界外面的状态里，重试后还在。发布草稿另外存在本标签页的 `sessionStorage`（`post-draft-store.ts`）。整页出错时，`/employer/post`、`/messages` 有自己的 `error.tsx`，在 #161 的卡片上说清楚草稿 / 没送到的消息还在。测试构建里用 `localStorage` 的 `zg-e2e-crash` 让某一块出错（`src/lib/test-crash.ts`）。
 - **编辑职位、重新发布、复制为新职位（#193）：** 同一套做法。表单包在 `RetryBoundary` 里（`KeptJobForm.tsx`），改到一半的表单按「页面 + 职位」存在本标签页（`job-draft-store.ts`，同一账号、一天内），和职位原来一样时不存；刷新后顶上一行「接着上次没保存的改动继续」，带「放弃改动」。保存或发布成功后清掉。
 - **共用的：** `SoftTag`（浅底圆角标签，`urgent` / `brand` / `neutral`），`linkCardClass()`（整张卡是一个链接时用）。
 
 ### 雇主后台（第三步，#148）
 
-- **整个 `/employer`** 由 `src/app/employer/layout.tsx` 套上 `type-app`，每个路由有 `loading.tsx`（列表用 `ListPageSkeleton`，其余用 `DetailPageSkeleton`）；布局里放了 `NoScriptStreams`，没有 JavaScript 时内容照常显示。
+- **整个 `/employer`** 由 `src/app/[lang]/employer/layout.tsx` 套上 `type-app`，每个路由有 `loading.tsx`（列表用 `ListPageSkeleton`，其余用 `DetailPageSkeleton`）；布局里放了 `NoScriptStreams`，没有 JavaScript 时内容照常显示。
 - **页面里的块：** ui `Section look="app"`（#152）。其余零件在 `src/components/employer/app-style.ts`：`APP_CARD`、`ACTION_BUTTON`（卡片里的小操作，44 高）、`STICKY_BAR`（表单底部的半透明操作栏）、`BAR_TEXT_ACTION`（栏里的「取消」「上一步」）、`BACK_LINK`（标题上面的「← 职位管理」）、`noticeClass()`（保存成功 / 失败的提示行）。
 - **状态切换**（职位管理的「全部 / 招聘中…」、发布方式、发到哪个平台）：一排胶囊 `PILL_TABS` + `pillTab()`，选中的填品牌色。
 - **短选项**（工作类型、签证、语言、岗位类别、续期多久、招到了吗）：`ChoicePill`，圆角胶囊里是新样式的单选圆点或复选框，选中填浅品牌色；长一点的单选（联系方式怎么给、面试时间、身份）用 ui `Radio`。

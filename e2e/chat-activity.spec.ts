@@ -33,7 +33,7 @@ test("seeker sees employer activity and receipts only change when the counterpar
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("seeker-chat-activity.png"), fullPage: true });
-  await (await chatMenuItem(page, "雇主主页")).click();
+  await (await chatMenuItem(page, "企业主页")).click();
   await expect(page.getByLabel("雇主沟通情况", { exact: true })).toContainText(/今日已回复 \d+ 位求职者/);
 });
 

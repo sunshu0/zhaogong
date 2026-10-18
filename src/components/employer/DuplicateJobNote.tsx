@@ -4,7 +4,7 @@
 // to it — renewing or editing that one is usually what the employer wants. A hint; publishing goes on as before.
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMyLiveJobsTitled, type JobTwin } from "@/app/employer/actions";
+import { getMyLiveJobsTitled, type JobTwin } from "@/app/[lang]/employer/actions";
 import { closeDateZh } from "@/components/employer/job-status";
 
 /** Asks the server once the title has stopped changing for a moment. */

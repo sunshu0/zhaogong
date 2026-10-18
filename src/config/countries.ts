@@ -13,6 +13,8 @@ export interface CountryConfig {
   code: CountryCode;
   enabled: boolean;
   nameZh: string;
+  /** The English interface's name for the country (Round 20). */
+  nameEn: string;
   currency: "NZD" | "AUD";
   currencySymbol: string;
   /** Adult minimum hourly wage and the date it took effect. */
@@ -27,6 +29,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     code: "NZ",
     enabled: true,
     nameZh: "新西兰",
+    nameEn: "New Zealand",
     currency: "NZD",
     currencySymbol: "$",
     minimumWage: {
@@ -61,6 +64,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     code: "AU",
     enabled: false,
     nameZh: "澳大利亚",
+    nameEn: "Australia",
     currency: "AUD",
     currencySymbol: "$",
     // Placeholder until the AU market opens; check Fair Work before enabling.

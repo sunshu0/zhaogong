@@ -1,6 +1,6 @@
 "use client";
 import type { Job } from "@/lib/types";
-import { refreshMyJob, type ChangeResult } from "@/app/employer/actions";
+import { refreshMyJob, type ChangeResult } from "@/app/[lang]/employer/actions";
 import { cardActions, type Asking, type CardActionKey } from "@/components/employer/job-card";
 import { ButtonLink } from "@/components/ui/Button";
 import { MoreMenu } from "@/components/ui/MoreMenu";

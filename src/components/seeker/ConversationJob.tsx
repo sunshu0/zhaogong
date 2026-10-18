@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { jobSummary, type JobSummary } from "@/app/jobs/[id]/actions";
+import { jobSummary, type JobSummary } from "@/app/[lang]/jobs/[id]/actions";
 
 /** The job a conversation is about, fixed above the messages so both sides know which job they are discussing. */
 export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallbackTitle: string }) {

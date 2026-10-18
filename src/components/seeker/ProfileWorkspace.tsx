@@ -58,7 +58,7 @@ export function ProfileWorkspace() {
   return (
     <div className="space-y-section">
       <header>
-        <h1 className="text-title font-semibold">{isEmployer ? "企业主页" : "我的求职主页"}</h1>
+        <h1 className="text-title font-semibold">{isEmployer ? "企业主页" : "我的主页"}</h1>
         <p className="mt-0.5 text-meta text-muted">
           {isEmployer
             ? "改动会自动保存到企业主页，团队里的人和求职者都看同一份。"

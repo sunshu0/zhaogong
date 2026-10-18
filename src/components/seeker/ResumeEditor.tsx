@@ -174,7 +174,7 @@ export function DiscoverableToggle(props: ResumeProps) {
       checked={value.discoverable}
       onChange={(event) => update({ discoverable: event.target.checked })}
     >
-      允许向雇主推荐我的求职主页
+      允许向雇主推荐我的主页
     </Checkbox>
   );
 }

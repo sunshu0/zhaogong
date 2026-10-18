@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import type { Employer } from "@/lib/types";
-import { lookupBusiness, requestVerification, type MyVerification } from "@/app/employer/actions";
-import type { MyTeam } from "@/app/employer/team-actions";
+import { lookupBusiness, requestVerification, type MyVerification } from "@/app/[lang]/employer/actions";
+import type { MyTeam } from "@/app/[lang]/employer/team-actions";
 import type { RegisterEntry } from "@/components/employer/business-register";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useEmployerProfile, useMyTeam, useMyVerification } from "@/components/employer/use-employer";

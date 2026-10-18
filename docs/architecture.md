@@ -54,11 +54,11 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 | 文件 | 函数 |
 | --- | --- |
-| `src/app/login/actions.ts` | `requestSignInCode`、`signInAccount`、`accountStatus`、`switchIdentity`、`openEmployerForAccount`、`signOutAccount` |
-| `src/app/jobs/[id]/actions.ts` | `revealContact`、`reportJob`、`jobSummary` |
-| `src/app/messages/actions.ts` | `myChat`、`changeMyChat`、`importMyChat`、`myNotificationReads`、`markMyNotificationsRead` |
-| `src/app/employer/actions.ts` | `getMyJobs`、`getMyJob`、`getContactViewCounts`、`parseDraft`、`chatTurn`、`publishJob`、`editMyJob`、`closeMyJob`、`confirmHires`、`refreshMyJob`、`getMyEmployer`、`lookupBusiness`、`verifyBusiness` |
-| `src/app/admin/actions.ts` | `getModerationQueue`、`approveJob`、`takeDownJob`、`dismissReports`、`banJobEmployer`、`getModerators`、`addModerator`、`removeModerator` |
+| `src/app/[lang]/login/actions.ts` | `requestSignInCode`、`signInAccount`、`accountStatus`、`switchIdentity`、`openEmployerForAccount`、`signOutAccount` |
+| `src/app/[lang]/jobs/[id]/actions.ts` | `revealContact`、`reportJob`、`jobSummary` |
+| `src/app/[lang]/messages/actions.ts` | `myChat`、`changeMyChat`、`importMyChat`、`myNotificationReads`、`markMyNotificationsRead` |
+| `src/app/[lang]/employer/actions.ts` | `getMyJobs`、`getMyJob`、`getContactViewCounts`、`parseDraft`、`chatTurn`、`publishJob`、`editMyJob`、`closeMyJob`、`confirmHires`、`refreshMyJob`、`getMyEmployer`、`lookupBusiness`、`verifyBusiness` |
+| `src/app/[lang]/admin/actions.ts` | `getModerationQueue`、`approveJob`、`takeDownJob`、`dismissReports`、`banJobEmployer`、`getModerators`、`addModerator`、`removeModerator` |
 
 请求、响应和错误的详细说明在 `docs/api.md`。另有一个只在开发环境存在的路由 `POST /api/dev/chat-reply`，让演示对话的对方已读或回复，浏览器测试用。
 

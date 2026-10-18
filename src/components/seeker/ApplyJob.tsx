@@ -9,7 +9,7 @@ import {
   myJobApplication,
   withdrawMyApplication,
   type MyApplication,
-} from "@/app/jobs/[id]/apply-actions";
+} from "@/app/[lang]/jobs/[id]/apply-actions";
 import { refreshApplied, useAppliedJobIds } from "@/components/seeker/applied-client";
 import {
   APPLY_PARAM,

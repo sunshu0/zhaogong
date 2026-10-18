@@ -1,11 +1,11 @@
 // Round 20 (ADR 0023): 团队. Covers src/components/employer/TeamPage.tsx, src/components/employer/TeamInvites.tsx,
 // the wording and refusal texts in src/components/employer/team.ts, the error texts in
-// src/app/employer/team-actions.ts, the notifications in src/app/employer/team-notifications.ts, and the title and
-// description of src/app/employer/team/page.tsx.
+// src/app/[lang]/employer/team-actions.ts, the notifications in src/app/[lang]/employer/team-notifications.ts, and the title and
+// description of src/app/[lang]/employer/team/page.tsx.
 import type { Dictionary } from "@/i18n/messages";
 
 const employerTeamZh = {
-  /** src/app/employer/team/page.tsx */
+  /** src/app/[lang]/employer/team/page.tsx */
   teamRoute: {
     metaTitle: "团队",
     metaDescription: "邀请同事一起管理企业的职位、申请和聊天，分管理员和成员。",
@@ -89,7 +89,7 @@ const employerTeamZh = {
     decline: "婉拒",
   },
 
-  /** src/app/employer/team-actions.ts */
+  /** src/app/[lang]/employer/team-actions.ts */
   teamActions: {
     noEmployerRole: "需要先开通雇主身份。",
     signIn: "请先登录。",
@@ -112,7 +112,7 @@ const employerTeamZh = {
     },
   },
 
-  /** src/app/employer/team-notifications.ts */
+  /** src/app/[lang]/employer/team-notifications.ts */
   teamNotifications: {
     type: "团队",
     title: (businessName: string) => `${businessName} 邀请你加入团队`,

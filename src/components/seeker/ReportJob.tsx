@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
-import { reportJob } from "@/app/jobs/[id]/actions";
+import { reportJob } from "@/app/[lang]/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { rememberReport, useSentReports } from "@/components/seeker/activity-client";
 import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/report";

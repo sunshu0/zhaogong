@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { changeMyChat, importMyChat, myChat, type ChatChange, type ChatSnapshot } from "@/app/messages/actions";
+import { changeMyChat, importMyChat, myChat, type ChatChange, type ChatSnapshot } from "@/app/[lang]/messages/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, stringifyStoredIdentities } from "@/components/seeker/identity-scope";

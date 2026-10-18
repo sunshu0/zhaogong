@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { markMyNotificationsRead, myNotificationReads, type ReadsSnapshot } from "@/app/messages/actions";
-import { myAlertNotifications } from "@/app/me/alerts/actions";
+import { markMyNotificationsRead, myNotificationReads, type ReadsSnapshot } from "@/app/[lang]/messages/actions";
+import { myAlertNotifications } from "@/app/[lang]/me/alerts/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { profileChanges } from "@/components/seeker/profile-client";
 import { useSession } from "@/components/seeker/session-client";
@@ -14,7 +14,7 @@ import {
   type Notification,
 } from "@/components/seeker/hub-state";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
-import { recommendedCandidates } from "@/app/profile/candidate-actions";
+import { recommendedCandidates } from "@/app/[lang]/profile/candidate-actions";
 import type { Candidate } from "@/lib/candidate-matching";
 import { employerPublicProfile } from "@/lib/employer-public-profile";
 import { usePublicPage } from "@/components/employer/public-pages-client";

@@ -2,6 +2,11 @@
 // One name per feature everywhere (Round 10 A22 table).
 import { POST_JOB_PATH } from "@/components/seeker/identity";
 import type { DemoSession } from "@/components/seeker/session";
+import { uiMessages } from "@/i18n/messages/ui";
+
+/** The entries' names (Round 20): the page's language through useMessages(uiMessages).nav, Chinese by default. */
+export type NavWords = typeof uiMessages.en.nav;
+const ZH: NavWords = uiMessages.zh.nav;
 
 export type NavRole = "out" | "seeker" | "employer";
 export type NavKey = "jobs" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine";
@@ -20,26 +25,26 @@ export function navRole(session: DemoSession | null): NavRole {
 const signInFirst = (next: string) => `/login?next=${encodeURIComponent(next)}`;
 
 /** Phone bottom bar. Signed out, 聊天 and 我的 go through sign-in. 发布 is drawn as the raised middle button. */
-export function bottomNavItems(role: NavRole): NavItem[] {
+export function bottomNavItems(role: NavRole, w: NavWords = ZH): NavItem[] {
   switch (role) {
     case "out":
       return [
-        { key: "jobs", href: "/jobs", label: "职位" },
-        { key: "chat", href: signInFirst("/messages"), label: "聊天" },
-        { key: "mine", href: signInFirst(ACCOUNT_PATH), label: "我的" },
+        { key: "jobs", href: "/jobs", label: w.jobs },
+        { key: "chat", href: signInFirst("/messages"), label: w.chat },
+        { key: "mine", href: signInFirst(ACCOUNT_PATH), label: w.mine },
       ];
     case "seeker":
       return [
-        { key: "jobs", href: "/jobs", label: "职位" },
-        { key: "chat", href: "/messages", label: "聊天" },
-        { key: "mine", href: ACCOUNT_PATH, label: "我的" },
+        { key: "jobs", href: "/jobs", label: w.jobs },
+        { key: "chat", href: "/messages", label: w.chat },
+        { key: "mine", href: ACCOUNT_PATH, label: w.mine },
       ];
     case "employer":
       return [
-        { key: "manage", href: MANAGE_JOBS_PATH, label: "职位管理" },
-        { key: "post", href: POST_JOB_PATH, label: "发布" },
-        { key: "chat", href: "/messages", label: "聊天" },
-        { key: "mine", href: ACCOUNT_PATH, label: "我的" },
+        { key: "manage", href: MANAGE_JOBS_PATH, label: w.manage },
+        { key: "post", href: POST_JOB_PATH, label: w.post },
+        { key: "chat", href: "/messages", label: w.chat },
+        { key: "mine", href: ACCOUNT_PATH, label: w.mine },
       ];
   }
 }
@@ -48,22 +53,22 @@ export function bottomNavItems(role: NavRole): NavItem[] {
  * Desktop header links (the account menu and 发布招聘 come after them). Signed out there is no 聊天;
  * job seekers get no 发布招聘 (they open an employer identity from the account menu).
  */
-export function headerItems(role: NavRole): NavItem[] {
+export function headerItems(role: NavRole, w: NavWords = ZH): NavItem[] {
   switch (role) {
     case "out":
-      return [{ key: "jobs", href: "/jobs", label: "找工作" }];
+      return [{ key: "jobs", href: "/jobs", label: w.findJobs }];
     case "seeker":
       return [
-        { key: "jobs", href: "/jobs", label: "找工作" },
-        { key: "chat", href: "/messages", label: "聊天" },
-        { key: "workspace", href: "/workspace", label: "工作台" },
+        { key: "jobs", href: "/jobs", label: w.findJobs },
+        { key: "chat", href: "/messages", label: w.chat },
+        { key: "workspace", href: "/workspace", label: w.workspace },
       ];
     case "employer":
       return [
-        { key: "manage", href: MANAGE_JOBS_PATH, label: "职位管理" },
-        { key: "candidates", href: "/employer/candidates", label: "推荐人才" },
-        { key: "chat", href: "/messages", label: "聊天" },
-        { key: "workspace", href: "/workspace", label: "工作台" },
+        { key: "manage", href: MANAGE_JOBS_PATH, label: w.manage },
+        { key: "candidates", href: "/employer/candidates", label: w.candidates },
+        { key: "chat", href: "/messages", label: w.chat },
+        { key: "workspace", href: "/workspace", label: w.workspace },
       ];
   }
 }

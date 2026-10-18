@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteMyAccount, myServerData } from "@/app/account/actions";
+import { deleteMyAccount, myServerData } from "@/app/[lang]/account/actions";
 import { confirmsEmail, forgetLocalData, localDataFor, myDataFile, myDataFileName } from "@/components/account/my-data";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button, ButtonLink } from "@/components/ui/Button";

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { config, proxy } from "@/proxy";
 
-const page = (cookie?: string) =>
-  new NextRequest("http://localhost/jobs/j2", cookie ? { headers: { cookie } } : undefined);
+const request = (path: string, cookie?: string, method = "GET") =>
+  new NextRequest(`http://localhost${path}`, { method, ...(cookie ? { headers: { cookie } } : {}) });
+const page = (cookie?: string) => request("/jobs/j2", cookie);
+const rewrittenTo = (response: Response) => response.headers.get("x-middleware-rewrite");
 
 describe("proxy: the visitor id comes with the job page (#79)", () => {
   it("gives a browser without one a random httpOnly id for a year", () => {
@@ -18,7 +20,35 @@ describe("proxy: the visitor id comes with the job page (#79)", () => {
     expect(proxy(page("zg_visitor=../../etc")).cookies.get("zg_visitor")?.value).toMatch(/^[A-Za-z0-9_-]{22}$/);
   });
 
-  it("runs only for job pages", () => {
-    expect(config.matcher).toBe("/jobs/:id");
+  it("only on a job page, and only with the page itself (GET)", () => {
+    expect(proxy(request("/jobs")).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(request("/jobs/j2/x")).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(request("/jobs/j2", undefined, "POST")).cookies.get("zg_visitor")).toBeUndefined();
+  });
+});
+
+describe("proxy: the interface language (Round 20, ADR 0023)", () => {
+  it("serves the copy in the cookie's language, Chinese without one, at the same address", () => {
+    expect(rewrittenTo(proxy(request("/jobs?q=厨师")))).toBe("http://localhost/zh/jobs?q=%E5%8E%A8%E5%B8%88");
+    expect(rewrittenTo(proxy(request("/jobs", "zg_lang=en")))).toBe("http://localhost/en/jobs");
+    expect(rewrittenTo(proxy(request("/", "zg_lang=en")))).toBe("http://localhost/en");
+    expect(rewrittenTo(proxy(request("/me", "zg_lang=fr")))).toBe("http://localhost/zh/me");
+    expect(rewrittenTo(proxy(request("/jobs/j2", "zg_lang=en", "POST")))).toBe("http://localhost/en/jobs/j2");
+  });
+
+  it("sends an address with a language back to the plain one, for good", () => {
+    const response = proxy(request("/en/jobs?q=x", "zg_lang=en"));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("http://localhost/jobs?q=x");
+    expect(proxy(request("/zh")).headers.get("location")).toBe("http://localhost/");
+  });
+
+  it("runs for every page, not for Next's files, the API or files with an extension", () => {
+    const [matcher] = config.matcher;
+    const runs = (path: string) => new RegExp(`^${matcher}$`).test(path);
+    for (const path of ["/", "/jobs", "/jobs/j2", "/me/saved", "/external/demo-kowhai:4002", "/en/jobs"])
+      expect(runs(path), path).toBe(true);
+    for (const path of ["/_next/static/chunks/a.js", "/api/dev/job-closing", "/robots.txt", "/icons/favicon-32.png"])
+      expect(runs(path), path).toBe(false);
   });
 });

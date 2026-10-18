@@ -6,8 +6,8 @@
 // server once per identity, then every change is saved here first and sent after (one at a time, always the whole
 // page, so the last one sent is the page). A member sees the business's page as the server has it, read-only.
 import { useEffect, useSyncExternalStore } from "react";
-import { myProfile, saveMyProfile, type ProfileSnapshot } from "@/app/profile/actions";
-import { myEmployerPage, saveMyEmployerPage, type EmployerPageSnapshot } from "@/app/employer/page-actions";
+import { myProfile, saveMyProfile, type ProfileSnapshot } from "@/app/[lang]/profile/actions";
+import { myEmployerPage, saveMyEmployerPage, type EmployerPageSnapshot } from "@/app/[lang]/employer/page-actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, scopeRole, stringifyStoredIdentities } from "@/components/seeker/identity-scope";

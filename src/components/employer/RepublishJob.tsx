@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
-import { publishJob } from "@/app/employer/actions";
+import { publishJob } from "@/app/[lang]/employer/actions";
 import { canCopy, canRepublish, closeDateZh } from "@/components/employer/job-status";
 import { PUBLISH_ERRORS } from "@/components/employer/post-flow-state";
 import { Published } from "@/components/employer/Published";

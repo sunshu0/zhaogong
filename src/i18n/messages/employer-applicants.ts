@@ -1,12 +1,12 @@
 // Round 20 (ADR 0023): 申请人、面试、推荐人才. Covers src/components/employer/JobApplicants.tsx,
 // src/components/employer/applicant-filter.ts, src/components/employer/InterviewInvite.tsx,
-// src/components/employer/CandidateRecommendations.tsx, the errors src/app/employer/interview-actions.ts sends to
-// InterviewInvite, and the titles of src/app/employer/jobs/[id]/applicants/page.tsx,
-// src/app/employer/candidates/page.tsx and src/app/employer/candidates/loading.tsx.
+// src/components/employer/CandidateRecommendations.tsx, the errors src/app/[lang]/employer/interview-actions.ts sends to
+// InterviewInvite, and the titles of src/app/[lang]/employer/jobs/[id]/applicants/page.tsx,
+// src/app/[lang]/employer/candidates/page.tsx and src/app/[lang]/employer/candidates/loading.tsx.
 import type { Dictionary } from "@/i18n/messages";
 
 const employerApplicantsZh = {
-  /** src/app/employer/jobs/[id]/applicants/page.tsx */
+  /** src/app/[lang]/employer/jobs/[id]/applicants/page.tsx */
   applicantsPage: {
     metaTitle: "申请人",
   },
@@ -73,13 +73,13 @@ const employerApplicantsZh = {
     collapse: "收起",
   },
 
-  /** src/app/employer/interview-actions.ts, shown by InterviewInvite */
+  /** src/app/[lang]/employer/interview-actions.ts, shown by InterviewInvite */
   interviewActions: {
     signInAsEmployer: "请用店铺身份登录后再约面试",
     applicationGone: "找不到这个申请，可能对方已经撤回",
   },
 
-  /** src/app/employer/candidates/page.tsx, src/app/employer/candidates/loading.tsx */
+  /** src/app/[lang]/employer/candidates/page.tsx, src/app/[lang]/employer/candidates/loading.tsx */
   candidatesPage: {
     metaTitle: "推荐人才",
     loading: "正在加载推荐人才",

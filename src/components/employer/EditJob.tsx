@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { CountryCode, Job } from "@/lib/types";
-import { editMyJob } from "@/app/employer/actions";
+import { editMyJob } from "@/app/[lang]/employer/actions";
 import { canEdit } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { CLEAR_OF_STICKY_BARS, holdReason, keepFocusClear } from "@/components/employer/use-draft-form";

@@ -7,7 +7,7 @@ import {
   myResumeShareLink,
   shareMyResume,
   type ResumeShareView,
-} from "@/app/profile/resume/actions";
+} from "@/app/[lang]/profile/resume/actions";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { PrintButton } from "@/components/seeker/PrintButton";
 import { useProfile } from "@/components/seeker/hub-client";

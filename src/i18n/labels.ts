@@ -1,4 +1,5 @@
-// Display labels for shared enums. Chinese first; English is shown alongside where useful.
+// Display labels for shared enums, in both interface languages (Round 20): `LABELS[id][lang]`. The English follows
+// the glossary (Employment NZ and Immigration NZ's own words) and the mentor's decisions.
 import type {
   EmployerVerification,
   EmploymentType,
@@ -11,12 +12,12 @@ import type {
 export const INDUSTRY_LABELS: Record<Industry, { zh: string; en: string }> = {
   hospitality: { zh: "餐饮", en: "Hospitality" },
   retail: { zh: "零售", en: "Retail" },
-  beauty: { zh: "美容美发", en: "Beauty" },
-  construction: { zh: "装修建筑", en: "Construction" },
+  beauty: { zh: "美容美发", en: "Hair and beauty" },
+  construction: { zh: "装修建筑", en: "Construction and renovation" },
   cleaning: { zh: "清洁", en: "Cleaning" },
-  logistics: { zh: "物流仓储", en: "Logistics" },
+  logistics: { zh: "物流仓储", en: "Warehouse and logistics" },
   driver: { zh: "司机", en: "Driver" },
-  office: { zh: "文员行政", en: "Office" },
+  office: { zh: "文员行政", en: "Office and admin" },
   other: { zh: "其他", en: "Other" },
 };
 
@@ -27,11 +28,11 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, { zh: string; en: st
 };
 
 export const VISA_LABELS: Record<VisaAccepted, { zh: string; en: string }> = {
-  citizen_resident: { zh: "公民 / 永居", en: "Citizen / Resident" },
+  citizen_resident: { zh: "公民 / 永居", en: "NZ citizen or resident" },
   open_work: { zh: "开放工签", en: "Open work visa" },
-  aewv: { zh: "持 AEWV 工签者", en: "AEWV" },
+  aewv: { zh: "持 AEWV 工签者", en: "AEWV holder" },
   student: { zh: "学签", en: "Student visa" },
-  working_holiday: { zh: "打工度假", en: "Working holiday" },
+  working_holiday: { zh: "打工度假", en: "Working Holiday Visa" },
 };
 
 export const LANGUAGE_LABELS: Record<LanguageRequirement, { zh: string; en: string }> = {
@@ -41,17 +42,17 @@ export const LANGUAGE_LABELS: Record<LanguageRequirement, { zh: string; en: stri
 };
 
 export const VERIFICATION_LABELS: Record<EmployerVerification, { zh: string; en: string }> = {
-  unverified: { zh: "未验证", en: "Unverified" },
+  unverified: { zh: "未验证", en: "Not verified" },
   business_verified: { zh: "已验证企业", en: "Verified business" },
   accredited_employer: { zh: "认证雇主", en: "Accredited employer" },
 };
 
 export const REPORT_REASON_LABELS: Record<ReportReason, { zh: string; en: string }> = {
   fake_job: { zh: "虚假职位", en: "Fake job" },
-  charges_fee: { zh: "收押金 / 介绍费", en: "Charges a fee" },
-  below_min_wage: { zh: "低于最低工资", en: "Below minimum wage" },
+  charges_fee: { zh: "收押金 / 介绍费", en: "Charges a fee or deposit for the job" },
+  below_min_wage: { zh: "低于成人最低工资", en: "Below the adult minimum wage" },
   discriminatory: { zh: "歧视性内容", en: "Discriminatory" },
-  visa_selling: { zh: "卖工签 / 包签", en: "Selling visas" },
+  visa_selling: { zh: "卖工签 / 包签", en: "Offers to sell or arrange a visa" },
   inappropriate: { zh: "不当内容", en: "Inappropriate" },
   other: { zh: "其他", en: "Other" },
 };

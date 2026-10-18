@@ -3,7 +3,7 @@
 // Which jobs the signed-in account applied for (#84), for 已申请 on the job rows. The server's list is the truth:
 // fetched once per page load, and again after the account applies or withdraws (refreshApplied).
 import { useEffect, useSyncExternalStore } from "react";
-import { myAppliedJobIds } from "@/app/jobs/[id]/apply-actions";
+import { myAppliedJobIds } from "@/app/[lang]/jobs/[id]/apply-actions";
 import { useSession } from "@/components/seeker/session-client";
 
 let ids: ReadonlySet<string> | null = null;

@@ -86,14 +86,14 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
   await expect(page.getByRole("heading", { name: "公开求职者", exact: true })).toBeVisible();
   await expect(page.getByRole("main")).not.toContainText("PRIVATE-");
   // The job seeker withdraws it; the employer's next visit no longer shows it.
-  await seeker.getByLabel("允许向雇主推荐我的求职主页").uncheck();
+  await seeker.getByLabel("允许向雇主推荐我的主页").uncheck();
   await expectProfileSaved(seeker);
   await seeker.context().close();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "求职主页暂不可查看", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "求职者主页暂不可查看", exact: true })).toBeVisible();
   await expect(page.getByRole("main")).not.toContainText("公开个人介绍");
   await page.goto("/candidates/missing");
-  await expect(page.getByRole("heading", { name: "求职主页暂不可查看", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "求职者主页暂不可查看", exact: true })).toBeVisible();
 
   await page.goto("/messages?conversation=candidate-lin");
   const profile = page.getByRole("link", { name: "查看林晓的主页", exact: true });

@@ -13,8 +13,16 @@ export const MARGIN = 0.12;
 export function routeSizes(stats, sizeOf) {
   return stats.map(({ route, firstLoadChunkPaths }) => {
     const paths = [...new Set(firstLoadChunkPaths.map((p) => p.replaceAll("\\", "/")))];
-    return { route, bytes: paths.reduce((sum, p) => sum + sizeOf(p), 0) };
+    return { route: siteRoute(route), bytes: paths.reduce((sum, p) => sum + sizeOf(p), 0) };
   });
+}
+
+/**
+ * The route as people see it: pages live under app/[lang] (Round 20, ADR 0023) but the address has no language,
+ * so `/[lang]/jobs` is budgeted as `/jobs` and `/[lang]` as `/`.
+ */
+export function siteRoute(route) {
+  return route.replace(/^\/\[lang\](?=\/|$)/, "") || "/";
 }
 
 /** A budget in KB (1024 bytes): the size plus the margin, rounded up to a whole KB. */

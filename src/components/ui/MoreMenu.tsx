@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { nextMenuIndex } from "@/components/ui/menu-keys";
+import { useMessages } from "@/i18n/client";
+import { uiMessages } from "@/i18n/messages/ui";
 
 export type MoreMenuItem = {
   label: string;
@@ -19,7 +21,7 @@ export type MoreMenuItem = {
  */
 export function MoreMenu({
   items,
-  label = "更多",
+  label,
   showLabel = false,
   align = "end",
 }: {
@@ -30,6 +32,8 @@ export function MoreMenu({
   showLabel?: boolean;
   align?: "start" | "end";
 }) {
+  const words = useMessages(uiMessages).nav;
+  const name = label ?? words.more;
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -94,19 +98,19 @@ export function MoreMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={showLabel ? undefined : label}
+        aria-label={showLabel ? undefined : name}
         onClick={() => (open ? close(false) : openAt(0))}
         onKeyDown={onButtonKeyDown}
         className="pressable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-control px-2 text-body text-muted hover:bg-background hover:text-foreground"
       >
         <MoreHorizontal aria-hidden="true" className="size-5" />
-        {showLabel && label}
+        {showLabel && name}
       </button>
       {open && (
         <div
           id={menuId}
           role="menu"
-          aria-label={label}
+          aria-label={name}
           onKeyDown={onMenuKeyDown}
           className={`absolute top-full z-30 mt-1 min-w-40 animate-pop-in rounded-control bg-surface p-1 shadow-pop ${
             align === "end" ? "right-0" : "left-0"

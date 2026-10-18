@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { canModerate } from "@/app/admin/entry-actions";
+import { canModerate } from "@/app/[lang]/admin/entry-actions";
 import { useSession } from "@/components/seeker/session-client";
 
 /** The link to the moderation pages (#73), shown only where useCanModerate() says yes. */

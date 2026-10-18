@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MARGIN, budgetKb, checkBudgets, makeBudgets, routeSizes } from "./perf-budget-rules.mjs";
+import { MARGIN, budgetKb, checkBudgets, makeBudgets, routeSizes, siteRoute } from "./perf-budget-rules.mjs";
 
 const SIZES = { ".next/static/chunks/a.js": 1000, ".next/static/chunks/b.js": 2000, ".next/static/chunks/c.js": 500 };
 const sizeOf = (path) => SIZES[path];
@@ -17,6 +17,17 @@ describe("routeSizes", () => {
       { route: "/", bytes: 3000 },
       { route: "/jobs", bytes: 1500 },
     ]);
+  });
+});
+
+describe("siteRoute", () => {
+  it("drops the internal [lang] segment (Round 20), so budgets keep the addresses people see", () => {
+    expect(siteRoute("/[lang]")).toBe("/");
+    expect(siteRoute("/[lang]/jobs")).toBe("/jobs");
+    expect(siteRoute("/[lang]/employer/jobs/[id]")).toBe("/employer/jobs/[id]");
+    expect(siteRoute("/[lang]/_not-found")).toBe("/_not-found");
+    expect(siteRoute("/_not-found")).toBe("/_not-found");
+    expect(siteRoute("/api/dev/job-closing")).toBe("/api/dev/job-closing");
   });
 });
 

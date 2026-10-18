@@ -2,7 +2,7 @@
 // the job seeker's résumé settings (ResumeEditor) and 中英文简历 (ResumePage, app/profile/resume), the shared résumé
 // page (app/resume/[id]), 求职者主页 (CandidatePublicPage, app/candidates/[id]) and candidateFacts() from
 // lib/candidate-matching.ts. The printed résumé (ResumeSheet, resume-doc.ts) is already in both languages and stays
-// as it is. 「企业主页」「我的主页」「我的求职主页」 as they read today (导师决定 7, step 1).
+// as it is. 「企业主页」 and 「我的主页」 (求职者主页 to others), one name each since step 1 (导师决定 7).
 
 import type { Dictionary } from "@/i18n/messages";
 
@@ -22,7 +22,7 @@ const profileZh = {
   // ProfileWorkspace.tsx
   workspace: {
     employerTitle: "企业主页",
-    seekerTitle: "我的求职主页",
+    seekerTitle: "我的主页",
     employerSaves: "改动会自动保存在这台设备上。",
     seekerSaves: "改动会自动保存到你的账号，换一台设备登录也能看到。",
     preview: "别人看到的样子",
@@ -134,7 +134,7 @@ const profileZh = {
     minHours: "最少小时",
     maxHours: "最多小时",
     regions: "可工作地区",
-    discoverable: "允许向雇主推荐我的求职主页",
+    discoverable: "允许向雇主推荐我的主页",
   },
   // ResumePage.tsx, app/profile/resume/actions.ts
   resume: {
@@ -186,7 +186,7 @@ const profileZh = {
   },
   // CandidatePublicPage.tsx
   candidate: {
-    unavailable: "求职主页暂不可查看",
+    unavailable: "求职者主页暂不可查看",
     unavailableHint: "该求职者尚未公开资料或已关闭公开主页。",
     page: "求职者主页",
     demo: " · 演示资料",

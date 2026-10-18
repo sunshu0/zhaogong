@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
 import type { Employer, Job } from "@/lib/types";
 import { jobRoles } from "@/lib/job-roles";
-import { closeMyJob, confirmHires, renewMyJob, type ChangeResult } from "@/app/employer/actions";
+import { closeMyJob, confirmHires, renewMyJob, type ChangeResult } from "@/app/[lang]/employer/actions";
 import {
   canEdit,
   canRepublish,

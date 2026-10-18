@@ -13,6 +13,7 @@ import { LinkList, type LinkListItem } from "@/components/ui/LinkList";
 import { Section } from "@/components/ui/Section";
 import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
+import { LangSwitch } from "@/components/ui/LangSwitch";
 
 /**
  * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Round 19: cards
@@ -84,6 +85,11 @@ export function AccountHome() {
       {!employer && <TeamInvites email={session.email} />}
       <Section look="app">
         <LinkList items={rows} />
+      </Section>
+      <Section look="app">
+        <div className="py-group">
+          <LangSwitch look="row" />
+        </div>
       </Section>
       <Section look="app" className="overflow-hidden">
         <button
