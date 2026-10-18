@@ -11,7 +11,7 @@ import {
 } from "@/app/[lang]/employer/applicant-actions";
 import type { Job } from "@/lib/types";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
-import { DECISION_LABELS, type ApplicationDecision } from "@/components/seeker/applications";
+import { decisionLabel, type ApplicationDecision } from "@/components/seeker/applications";
 import { useChat } from "@/components/seeker/chat-client";
 import { Section } from "@/components/ui/Section";
 import { BACK_LINK } from "@/components/employer/app-style";
@@ -45,12 +45,8 @@ const APPLIED_AT: Intl.DateTimeFormatOptions = {
   minute: "2-digit",
 };
 
-/**
- * Whether a fact is the 「待补充」 of candidateFacts(): the facts come from the server (applicant-actions.ts), which
- * still builds them in Chinese, so both languages' wording counts.
- */
-const isMissingFact = (value: string, lang: Lang) =>
-  value === candidateMatchingMessages.zh.facts.missing || value === pick(candidateMatchingMessages, lang).facts.missing;
+/** Whether a fact is the 「待补充」 of candidateFacts(), which applicant-actions.ts builds in the request's language. */
+const isMissingFact = (value: string, lang: Lang) => value === pick(candidateMatchingMessages, lang).facts.missing;
 
 /**
  * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
@@ -65,6 +61,7 @@ export function JobApplicants({ jobId }: { jobId: string }) {
 
 function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   const t = useMessages(employerApplicantsMessages).jobApplicants;
+  const lang = useLang();
   const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; applicants: Applicant[] } | null }>();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ApplicantFilter>("all");
@@ -114,7 +111,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     setError("");
     const ok = await decideMyApplicant(id, decision).catch(() => false);
     if (!ok) return setError(t.saveFailed);
-    toast(decision ? t.marked(DECISION_LABELS[decision]) : t.markCleared);
+    toast(decision ? t.marked(decisionLabel(decision, lang)) : t.markCleared);
     setLoaded((current) =>
       current?.data
         ? {
@@ -230,7 +227,9 @@ function ApplicantCard({
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
             <span lang={contentLang(a.profile.name)}>{a.profile.name}</span>
             {a.isNew && <Tag kind="urgent">{t.isNew}</Tag>}
-            {a.decision && <Tag kind={a.decision === "unfit" ? "neutral" : "perk"}>{DECISION_LABELS[a.decision]}</Tag>}
+            {a.decision && (
+              <Tag kind={a.decision === "unfit" ? "neutral" : "perk"}>{decisionLabel(a.decision, lang)}</Tag>
+            )}
           </h2>
           {a.profile.headline && (
             <p lang={contentLang(a.profile.headline)} className="text-body text-muted">
@@ -282,7 +281,7 @@ function ApplicantCard({
               onClick={() => onDecide(a.decision === d ? null : d)}
               className={`${buttonClass("secondary")} ${a.decision === d ? "bg-brand-soft" : ""}`}
             >
-              {DECISION_LABELS[d]}
+              {decisionLabel(d, lang)}
             </button>
           ))}
         </div>

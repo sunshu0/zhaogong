@@ -24,7 +24,7 @@ import { inputClass } from "@/components/ui/input-class";
 import { buttonClass, type ButtonSize } from "@/components/ui/Button";
 import { busyProps } from "@/components/ui/busy";
 import { contentLang } from "@/i18n/lang";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { candidateFacts } from "@/lib/candidate-matching";
 
@@ -132,8 +132,9 @@ function ApplyDialog({
 }) {
   const { profile } = useProfile();
   const t = useMessages(seekerJobsMessages).apply;
+  const lang = useLang();
   const page = applicationProfileFrom(profile);
-  const facts = page ? candidateFacts(applicantCandidate("me", page)) : [];
+  const facts = page ? candidateFacts(applicantCandidate("me", page), lang) : [];
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

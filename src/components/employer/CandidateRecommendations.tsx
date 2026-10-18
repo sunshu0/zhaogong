@@ -108,7 +108,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               onChange={setJobId}
             />
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 text-body text-muted">
-              <Pay pay={job.pay} country={job.country} />
+              <Pay pay={job.pay} country={job.country} lang={lang} />
               <span>{formatEmploymentTypes(job.employmentType, lang)}</span>
               <span>
                 {job.hoursPerWeek

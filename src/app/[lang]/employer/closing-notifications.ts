@@ -2,7 +2,7 @@
 // so only server code that read the email from the session calls it (messages/server-notifications.ts). Server only.
 import { getAccountEmployer, listJobsByEmployer } from "@/lib/data";
 import { closingReminders } from "@/components/employer/job-reminders";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import type { Notification } from "@/components/seeker/hub-state";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -21,7 +21,7 @@ export async function myClosingNotifications(
     type,
     title: reminder.title,
     detail: reminder.detail,
-    time: postedAgoZh(reminder.since, now),
+    time: postedAgo(reminder.since, now, lang),
     unread: true,
     target: { type: "closing_jobs" },
   }));

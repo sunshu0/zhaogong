@@ -35,6 +35,12 @@ import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
 
 type Words = Messages<typeof employerJobsMessages.zh>;
 
+/** The job's area in the interface language (Round 20); most areas read the same in both. */
+function regionName(job: Job, lang: Lang): string | undefined {
+  const region = regionById(job.country, job.regionId);
+  return region && (lang === "en" ? region.nameEn : region.nameZh);
+}
+
 /** Tells the list what happened, with the text to show when it worked. */
 export type JobChangeDone = (result: ChangeResult, okText: string) => void;
 
@@ -177,14 +183,14 @@ function JobSummary({
             <span lang="en" className="font-latin">
               {job.titleEn}
             </span>{" "}
-            · {regionById(job.country, job.regionId)?.nameZh}
+            · {regionName(job, lang)}
           </p>
           {poster && <p className="text-meta text-muted">{poster}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <PhaseTag phase={phase} />
           <p className="leading-none">
-            <Pay pay={job.pay} country={job.country} />
+            <Pay pay={job.pay} country={job.country} lang={lang} />
           </p>
         </div>
       </div>

@@ -4,7 +4,7 @@
 import { getAccountEmployer } from "@/lib/data";
 import { listVerifications } from "@/db/verification-requests";
 import { kindLabels, rejectReasons } from "@/components/employer/verification";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import type { Notification } from "@/components/seeker/hub-state";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -32,7 +32,7 @@ export async function myVerificationNotifications(
         r.status === "approved"
           ? t.approvedDetail(kinds[r.kind])
           : t.rejectedDetail(reasons[r.rejectReason!], r.rejectNote?.replace(/[。.]$/, "") ?? ""),
-      time: postedAgoZh(r.decidedAt!, now),
+      time: postedAgo(r.decidedAt!, now, lang),
       unread: true,
       target: { type: "verification" },
     }));

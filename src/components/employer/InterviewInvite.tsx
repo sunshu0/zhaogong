@@ -7,6 +7,7 @@ import {
   employerInterviewStatus,
   instantToAuckland,
   INTERVIEW_MODES,
+  interviewModeName,
   INTERVIEW_NOTE_MAX,
   PLACE_MAX,
   SLOT_MAX,
@@ -19,7 +20,7 @@ import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { toast } from "@/components/ui/Toast";
 import { busyProps } from "@/components/ui/busy";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
 
 const inputClass = "w-full rounded-control border border-border bg-background px-3 text-body focus:border-brand";
@@ -40,6 +41,7 @@ export function InterviewInvite({
   onChange: (interview: InterviewView) => void;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
+  const lang = useLang();
   // The earliest a time may be, worked out when the form opens (Auckland wall clock, for datetime-local).
   const [openAt, setOpenAt] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -70,9 +72,9 @@ export function InterviewInvite({
     <div className="mt-3 border-t border-border pt-3">
       {interview && (
         <div role="status" aria-label={t.statusLabel(name)} className="mb-2 text-body">
-          <p className="font-medium">{employerInterviewStatus(interview)}</p>
+          <p className="font-medium">{employerInterviewStatus(interview, lang)}</p>
           {live && interview.status !== "confirmed" && (
-            <p className="text-meta text-muted">{t.timesGiven(whenText(interview))}</p>
+            <p className="text-meta text-muted">{t.timesGiven(whenText(interview, lang))}</p>
           )}
         </div>
       )}
@@ -148,6 +150,7 @@ function InviteForm({
   }) => void;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
+  const lang = useLang();
   const [callFirst, setCallFirst] = useState(initial?.callFirst ?? false);
   const [times, setTimes] = useState<string[]>(initial?.slots.length ? initial.slots.map(instantToAuckland) : [""]);
   const [mode, setMode] = useState<InterviewMode | "">(initial?.mode ?? "");
@@ -222,9 +225,9 @@ function InviteForm({
           name="interview-mode"
           label={t.modeLabel}
           placeholder={t.modePlaceholder}
-          options={(Object.entries(INTERVIEW_MODES) as [InterviewMode, string][]).map(([value, label]) => ({
+          options={(Object.keys(INTERVIEW_MODES) as InterviewMode[]).map((value) => ({
             value,
-            label,
+            label: interviewModeName(value, lang),
           }))}
           defaultValue={mode}
           onChange={(value) => setMode(value as InterviewMode | "")}

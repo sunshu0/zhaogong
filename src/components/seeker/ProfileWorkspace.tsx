@@ -253,6 +253,7 @@ function asCandidate(profile: Profile): Candidate {
 
 function SeekerPreview({ profile }: { profile: Profile }) {
   const w = useMessages(seekerProfileMessages).workspace;
+  const lang = useLang();
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
@@ -267,10 +268,9 @@ function SeekerPreview({ profile }: { profile: Profile }) {
         </div>
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-body">
-        {candidateFacts(asCandidate(profile)).map((fact) => (
+        {candidateFacts(asCandidate(profile), lang).map((fact) => (
           <div key={fact.label} className="min-w-0">
             <dt className="text-meta text-muted">{fact.label}</dt>
-            {/* candidateFacts() is line B's; its words follow once it takes a language. */}
             <dd lang={contentLang(fact.value)} className={`break-words ${fact.value === "待补充" ? "text-muted" : ""}`}>
               {fact.value}
             </dd>

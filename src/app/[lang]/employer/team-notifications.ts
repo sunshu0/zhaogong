@@ -4,7 +4,7 @@
 import { getAccount } from "@/lib/data";
 import { invitesFor } from "@/db/team";
 import { teamRoleLabel } from "@/components/employer/team";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import type { Notification } from "@/components/seeker/hub-state";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -24,7 +24,7 @@ export async function myTeamInviteNotifications(
     type: t.type,
     title: t.title(invite.employerName),
     detail: t.detail(roles[invite.role]),
-    time: postedAgoZh(invite.createdAt, now),
+    time: postedAgo(invite.createdAt, now, lang),
     unread: true,
     target: { type: "team_invite" },
   }));

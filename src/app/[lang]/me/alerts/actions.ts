@@ -115,6 +115,6 @@ export async function myAlertNotifications(): Promise<{ scope: string; items: No
   const isEmployer = session.activeRole === "employer";
   return {
     scope: scopeOf(session),
-    items: await serverNotifications({ email: session.email, isEmployer }, Date.now()),
+    items: await serverNotifications({ email: session.email, isEmployer }, Date.now(), await requestLang()),
   };
 }

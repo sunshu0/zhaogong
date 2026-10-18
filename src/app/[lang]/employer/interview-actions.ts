@@ -21,11 +21,12 @@ async function myBusinessId(): Promise<string | null> {
 
 /** Invites the applicant, or replaces the invitation: it is open again and the earlier answer is cleared. */
 export async function inviteMyApplicant(applicationId: string, invite: unknown): Promise<InviteResult> {
-  const t = pick(employerApplicantsMessages, await requestLang()).interviewActions;
+  const lang = await requestLang();
+  const t = pick(employerApplicantsMessages, lang).interviewActions;
   const employerId = await myBusinessId();
   if (!employerId || typeof applicationId !== "string") return { ok: false, error: t.signInAsEmployer };
   const now = new Date();
-  const parsed = parseInvite(invite, now.getTime());
+  const parsed = parseInvite(invite, now.getTime(), lang);
   if (!parsed.ok) return parsed;
   const row = await inviteToInterview(employerId, applicationId, parsed.invite, now);
   return row ? { ok: true, interview: interviewView(row) } : { ok: false, error: t.applicationGone };

@@ -85,9 +85,8 @@ export function CandidatePublicPage() {
           </header>
         </Group>
         <Group>
-          {/* candidateFacts() is line B's (lib/candidate-matching.ts): its words follow once it takes a language. */}
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body" aria-label={c.facts}>
-            {candidateFacts(candidate).map((fact) => (
+            {candidateFacts(candidate, lang).map((fact) => (
               <Fact
                 key={fact.label}
                 term={fact.label}

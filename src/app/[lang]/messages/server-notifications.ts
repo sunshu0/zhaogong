@@ -14,7 +14,7 @@ import { applicationOutcomeNotifications } from "@/app/[lang]/me/application-not
 import { externalAlertNotifications } from "@/app/[lang]/me/external-alert-notifications";
 import { myVerificationNotifications } from "@/app/[lang]/employer/verification-notifications";
 import { myTeamInviteNotifications } from "@/app/[lang]/employer/team-notifications";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -47,7 +47,7 @@ export async function serverNotifications(
           job && isOpenJob(job, now)
             ? t.hiring(employer?.name ?? "", job.titleZh)
             : t.noLongerHiring(job?.titleZh ?? t.thisJob),
-        time: postedAgoZh(hit.createdAt, now),
+        time: postedAgo(hit.createdAt, now, lang),
         unread: true,
         target: { type: "job", id: hit.jobId },
       };

@@ -2,7 +2,7 @@
 // server code that read the email from the session calls it (messages/server-notifications.ts). Server only.
 import { getAccountEmployer, getJob } from "@/lib/data";
 import { applicationsOfBusiness } from "@/db/job-applications";
-import { postedAgoZh } from "@/components/seeker/format";
+import { postedAgo } from "@/components/seeker/format";
 import { applicationNotificationId } from "@/components/seeker/applications";
 import type { Notification } from "@/components/seeker/hub-state";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
@@ -27,7 +27,7 @@ export async function myApplicationNotifications(
         type: t.type,
         title: t.applied(row.profile.name, job?.titleZh ?? t.yourJob),
         detail: row.note ? t.note(row.note) : t.noNote,
-        time: postedAgoZh(row.appliedAt, now),
+        time: postedAgo(row.appliedAt, now, lang),
         unread: !row.seenAt,
         target: { type: "applicants", jobId: row.jobId },
       };
