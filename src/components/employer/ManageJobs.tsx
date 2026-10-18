@@ -16,6 +16,8 @@ import { APP_CARD, noticeClass } from "@/components/employer/app-style";
 import { ButtonLink } from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
+import { inputClass } from "@/components/ui/input-class";
+import { SEARCH_FROM, searchJobs } from "@/components/employer/job-search";
 
 type TabKey = "all" | Phase;
 
@@ -50,8 +52,12 @@ function Manage({ me }: { me: EmployerIdentity }) {
   const { profile } = useEmployerProfile(me.email);
   const [tab, setTab] = useState<TabKey>(() => tabFrom(asked));
   const [notice, setNotice] = useState<Notice>();
+  const [query, setQuery] = useState("");
   const noticeRef = useFocusOnChange<HTMLParagraphElement>(notice);
   const employer = profile ?? undefined;
+  // #198: with many jobs, a search narrows every tab, and the tabs count what it kept.
+  const searchable = (ready?.jobs.length ?? 0) >= SEARCH_FROM;
+  const searched = ready && searchable ? { ...ready, jobs: searchJobs(ready.jobs, query) } : ready;
 
   const done: JobChangeDone = (result, okText) => {
     setNotice(noticeFor(result, okText));
@@ -61,7 +67,17 @@ function Manage({ me }: { me: EmployerIdentity }) {
   return (
     <div className="space-y-4">
       <ManageHeader name={employer?.name ?? me.employerName} employer={employer} />
-      <StatusTabs ready={ready} value={tab} onChange={setTab} />
+      {searchable && (
+        <input
+          type="search"
+          aria-label="搜索职位名称"
+          placeholder="搜索职位名称"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className={`${inputClass()} w-full sm:max-w-sm`}
+        />
+      )}
+      <StatusTabs ready={searched} value={tab} onChange={setTab} />
       {employer?.bannedAt && (
         <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
           这个雇主账号已被停用，职位已全部下架，不能再发布。
@@ -69,7 +85,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
       )}
       {notice && <NoticeLine notice={notice} noticeRef={noticeRef} />}
       <TabPanel idBase={TAB_ID_BASE} value={tab}>
-        <JobsInTab ready={ready} tab={tab} employer={employer} onDone={done} />
+        <JobsInTab ready={searched} tab={tab} query={searchable ? query : ""} employer={employer} onDone={done} />
       </TabPanel>
     </div>
   );
@@ -134,11 +150,14 @@ function NoticeLine({ notice, noticeRef }: { notice: Notice; noticeRef: RefObjec
 function JobsInTab({
   ready,
   tab,
+  query,
   employer,
   onDone,
 }: {
   ready?: Loaded;
   tab: TabKey;
+  /** The search the jobs were narrowed by (#198), "" without one. */
+  query: string;
   employer?: Employer;
   onDone: JobChangeDone;
 }) {
@@ -148,7 +167,11 @@ function JobsInTab({
   if (shown.length === 0) {
     return (
       <p className={`${APP_CARD} py-10 text-center text-body text-muted`}>
-        {ready.jobs.length === 0 ? "还没有发布过职位。" : "这个状态下没有职位。"}
+        {query.trim()
+          ? `${ready.jobs.length === 0 ? "" : "这个状态下"}没有名称里有「${query.trim()}」的职位。`
+          : ready.jobs.length === 0
+            ? "还没有发布过职位。"
+            : "这个状态下没有职位。"}
       </p>
     );
   }
