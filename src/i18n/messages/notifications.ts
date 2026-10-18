@@ -28,6 +28,23 @@ const notificationsZh = {
     resume: "简历",
     job: "职位",
   },
+  // A demo account's notifications (hub-state.ts). Names, the demo job's title and the quoted chat replies are the
+  // demo people's own words and stay as written; these are the sentences around them.
+  demo: {
+    tenMinutesAgo: "10 分钟前",
+    yesterday: "昨天",
+    monday: "周一",
+    repliedToInvite: (name: string) => `${name}回复了你的面试邀请`,
+    sentCv: (name: string) => `${name}发来了简历`,
+    sentCvDetail: (job: string) => `应聘${job}，查看求职经历与可工作时间。`,
+    finishProfile: "招聘资料待完善",
+    finishProfileDetail: "补充企业介绍和工作地址。",
+    businessReplied: (business: string) => `${business}回复了你`,
+    jobMatch: "有一个职位适合你的资料",
+    jobMatchDetail: (place: string, job: string) => `${place} 餐馆正在招聘${job}`,
+    viewedCv: (business: string) => `${business}查看了你的简历`,
+    viewedCvDetail: "对方可能会在近期联系你",
+  },
   // The round badge's mark for each kind: one character in Chinese, a short distinct mark in English.
   badges: {
     application: "申",
@@ -67,6 +84,21 @@ export const notificationsMessages: Dictionary<typeof notificationsZh> = {
       chat: "Chat",
       resume: "CV",
       job: "Job",
+    },
+    demo: {
+      tenMinutesAgo: "10 minutes ago",
+      yesterday: "Yesterday",
+      monday: "Monday",
+      repliedToInvite: (name) => `${name} replied to your interview invitation`,
+      sentCv: (name) => `${name} sent a CV`,
+      sentCvDetail: (job) => `Applying for ${job}: see their experience and when they can work.`,
+      finishProfile: "Your hiring details need finishing",
+      finishProfileDetail: "Add an introduction to the business and where the work is.",
+      businessReplied: (business) => `${business} replied to you`,
+      jobMatch: "A job that fits your profile",
+      jobMatchDetail: (place, job) => `A restaurant in ${place} is hiring: ${job}`,
+      viewedCv: (business) => `${business} looked at your CV`,
+      viewedCvDetail: "They may get in touch soon",
     },
     badges: {
       application: "Ap",

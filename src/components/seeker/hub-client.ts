@@ -1,5 +1,6 @@
 "use client";
 
+import { useLang } from "@/i18n/client";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { markMyNotificationsRead, myNotificationReads, type ReadsSnapshot } from "@/app/[lang]/messages/actions";
 import { myAlertNotifications } from "@/app/[lang]/me/alerts/actions";
@@ -155,7 +156,7 @@ function useAlertItems(scope: string): readonly Notification[] {
 export function useNotifications() {
   const session = useSession();
   const scope = identityScope(session);
-  const items = notificationsFor(session, notificationReads.useValue()[scope] ?? [], useAlertItems(scope));
+  const items = notificationsFor(session, notificationReads.useValue()[scope] ?? [], useAlertItems(scope), useLang());
   const signedIn = Boolean(session);
   useEffect(() => {
     if (!signedIn) return;

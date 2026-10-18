@@ -3,6 +3,7 @@ import { describeAction, moderatorLabel, ruleLabel } from "@/app/[lang]/admin/mo
 import { waitText } from "@/app/[lang]/admin/moderation-stats";
 import { profileChecklist } from "@/components/account/profile-checklist";
 import { workspaceTodos } from "@/components/account/todos";
+import { initialNotifications } from "@/components/seeker/hub-state";
 import { resendLabel } from "@/components/seeker/code-resend";
 import { identityLabel, openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
 import { dayLabel, factLines, payLabel, sourceLine } from "@/lib/external-jobs/labels";
@@ -129,6 +130,31 @@ describe("我的 in English", () => {
         "Couldn't reach anyone by phone. Fix your details and send them again.",
       ],
       ["Business page: 5 things missing", "Area, Photo, Languages and more"],
+    ]);
+  });
+});
+
+describe("a demo account's notifications in English (#244)", () => {
+  const seeker = { email: "seeker@example.com", signedInAt: "", activeRole: "seeker" } as const;
+  it("say the sentences in English and keep the demo people's own words, listed in marks", () => {
+    const [reply, match, viewed] = initialNotifications(seeker as never, "en");
+    expect([reply.title, reply.detail, reply.time]).toEqual([
+      "北岸早茶酒家 replied to you",
+      "方便今天下午聊一下吗？",
+      "10 minutes ago",
+    ]);
+    expect(reply.marks).toEqual(["北岸早茶酒家", "方便今天下午聊一下吗？"]);
+    expect([match.title, match.detail, match.time]).toEqual([
+      "A job that fits your profile",
+      "A restaurant in Mt Eden is hiring: 前厅服务员",
+      "Yesterday",
+    ]);
+    expect([viewed.title, viewed.time]).toEqual(["洁净家政 looked at your CV", "Monday"]);
+    // In Chinese they read as before.
+    expect(initialNotifications(seeker as never).map((n) => n.title)).toEqual([
+      "北岸早茶酒家回复了你",
+      "有一个职位适合你的资料",
+      "洁净家政查看了你的简历",
     ]);
   });
 });

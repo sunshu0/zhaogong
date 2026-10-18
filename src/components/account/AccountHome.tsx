@@ -62,10 +62,10 @@ export function AccountHome() {
         <div className="flex items-center gap-3 py-group">
           <AvatarImage avatar={profile.avatar} fallback={name} large />
           <div className="min-w-0">
-            <p lang={contentLang(name)} className="truncate text-title font-semibold">
+            <p lang={contentLang(name)} className="break-words text-title font-semibold">
               {name}
             </p>
-            <p className="truncate text-meta text-muted">{session.email}</p>
+            <p className="break-all text-meta text-muted">{session.email}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 py-group">

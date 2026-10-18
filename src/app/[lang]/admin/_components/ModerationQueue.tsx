@@ -255,7 +255,7 @@ function QueueCard({
           <h2 lang={contentLang(job.titleZh)} className="break-words text-subtitle font-semibold">
             {job.titleZh}
           </h2>
-          <p className="truncate text-meta text-muted">
+          <p className="break-words text-meta text-muted">
             <span lang="en" className="font-latin">
               {job.titleEn}
             </span>{" "}

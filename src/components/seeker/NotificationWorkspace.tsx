@@ -9,6 +9,7 @@ import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
 import { toast } from "@/components/ui/Toast";
 import { useLang, useMessages } from "@/i18n/client";
+import { contentLang } from "@/i18n/lang";
 import { notificationsMessages } from "@/i18n/messages/notifications";
 
 // Round 19 (操作质感): the list is one card; a row darkens while pressed, and an unread one has a brand tint.
@@ -111,13 +112,50 @@ function NotificationContent({ item, hasLink }: { item: Notification; hasLink: b
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
-          <strong className={`text-body ${item.unread ? "font-semibold" : "font-medium"}`}>{item.title}</strong>
+          <strong className={`text-body ${item.unread ? "font-semibold" : "font-medium"}`}>
+            <Marked text={item.title} marks={item.marks} />
+          </strong>
           {item.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label={t.unread} />}
         </span>
-        <span className="mt-0.5 block text-body text-muted">{item.detail}</span>
+        <span className="mt-0.5 block text-body text-muted">
+          <Marked text={item.detail} marks={item.marks} />
+        </span>
         <span className="mt-1 block text-meta text-muted">{item.time}</span>
       </span>
       {hasLink && <ChevronRight aria-hidden="true" className="mt-2.5 size-4 shrink-0 text-muted" />}
     </>
+  );
+}
+
+/**
+ * A notification's sentence with people's own words in it (`marks`: a name, a job's title, a quoted reply): those
+ * parts are marked lang="zh-CN" when Chinese, so an English page reads them as theirs (#244, ADR 0023 §6).
+ */
+function Marked({ text, marks = [] }: { text: string; marks?: readonly string[] }) {
+  const words = [...marks].filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!words.length) return text;
+  const parts: { text: string; theirs: boolean }[] = [];
+  let rest = text;
+  while (rest) {
+    const at = words
+      .map((word) => ({ word, index: rest.indexOf(word) }))
+      .filter((hit) => hit.index >= 0)
+      .sort((a, b) => a.index - b.index || b.word.length - a.word.length)[0];
+    if (!at) {
+      parts.push({ text: rest, theirs: false });
+      break;
+    }
+    if (at.index > 0) parts.push({ text: rest.slice(0, at.index), theirs: false });
+    parts.push({ text: at.word, theirs: true });
+    rest = rest.slice(at.index + at.word.length);
+  }
+  return parts.map((part, i) =>
+    part.theirs ? (
+      <span key={i} lang={contentLang(part.text)}>
+        {part.text}
+      </span>
+    ) : (
+      part.text
+    ),
   );
 }
