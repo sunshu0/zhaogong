@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useState, useTransition } from "react";
 import { regionById } from "@/config/countries";
+import { placeName } from "@/components/seeker/format";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
@@ -258,11 +259,7 @@ function QueueCard({
             <span lang="en" className="font-latin">
               {job.titleEn}
             </span>{" "}
-            ·{" "}
-            {lang === "en"
-              ? regionById(job.country, job.regionId)?.nameEn
-              : regionById(job.country, job.regionId)?.nameZh}{" "}
-            · {job.id}
+            · {placeName(regionById(job.country, job.regionId), lang)} · {job.id}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -291,7 +288,7 @@ function QueueCard({
                 <span className="font-medium">{REPORT_REASON_LABELS[r.reason][lang]}</span>
                 {r.note && (
                   <span>
-                    {lang === "en" ? ": " : "："}
+                    {t.queue.noteSeparator}
                     <span lang={contentLang(r.note)}>{r.note}</span>
                   </span>
                 )}

@@ -8,11 +8,11 @@ import { pick } from "@/i18n/messages";
 import { accountMessages } from "@/i18n/messages/account";
 
 /** The link to the moderation pages (#73), shown only where useCanModerate() says yes; adminEntry(lang) to name it. */
-export const ADMIN_ENTRY = { href: "/admin", label: accountMessages.zh.rows.admin } as const;
+export const ADMIN_HREF = "/admin";
 
 /** The same link named in the page's language: 审核后台 / Moderation. */
 export function adminEntry(lang: Lang): { href: string; label: string } {
-  return { href: ADMIN_ENTRY.href, label: pick(accountMessages, lang).rows.admin };
+  return { href: ADMIN_HREF, label: pick(accountMessages, lang).rows.admin };
 }
 
 /**

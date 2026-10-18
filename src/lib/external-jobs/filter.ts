@@ -11,12 +11,6 @@ export const SECTION_PATHS: Record<ExternalSection, string> = {
   internship: "/internships",
   professional: "/professional",
 };
-/** The sections' names in Chinese (the external dictionary's `sections` for the page's language). */
-export const SECTION_TITLES: Record<ExternalSection, string> = {
-  internship: externalMessages.zh.sections.internship,
-  professional: externalMessages.zh.sections.professional,
-};
-
 export const SECTION_KINDS: Record<ExternalSection, ExternalKind[]> = {
   internship: ["internship", "graduate"],
   professional: ["full_time", "part_time", "contract"],

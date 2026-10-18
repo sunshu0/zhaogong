@@ -9,12 +9,6 @@ import { requestLang } from "@/i18n/server";
 
 export type ModeratorCheck = { ok: true; email: string } | { ok: false; reason: "signed_out" | "not_moderator" };
 
-/** Why a request is refused, in Chinese (refusedText for the visitor's language). */
-export const REFUSED_ZH: Record<"signed_out" | "not_moderator", string> = {
-  signed_out: adminMessages.zh.access.signedOut,
-  not_moderator: adminMessages.zh.access.notModerator,
-};
-
 /** Why a request is refused, in the language of the request (Round 20). */
 export async function refusedText(reason: "signed_out" | "not_moderator"): Promise<string> {
   const t = pick(adminMessages, await requestLang()).access;

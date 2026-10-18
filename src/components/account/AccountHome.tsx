@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
-import { ADMIN_ENTRY, useCanModerate } from "@/components/account/moderator-entry";
+import { ADMIN_HREF, useCanModerate } from "@/components/account/moderator-entry";
 import { useNotifications, useProfile } from "@/components/seeker/hub-client";
 import { employerSignUpHref } from "@/components/seeker/identity";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
@@ -51,7 +51,7 @@ export function AccountHome() {
           { href: ALERTS_PATH, label: t.rows.alerts, detail: t.rows.alertsDetail },
           { href: "/me", label: t.rows.history, detail: t.rows.historyDetail },
         ]),
-    ...(moderator ? [{ ...ADMIN_ENTRY, label: t.rows.admin, detail: t.rows.adminDetail }] : []),
+    ...(moderator ? [{ href: ADMIN_HREF, label: t.rows.admin, detail: t.rows.adminDetail }] : []),
     { href: ACCOUNT_DATA_PATH, label: t.rows.data, detail: t.rows.dataDetail },
   ];
 

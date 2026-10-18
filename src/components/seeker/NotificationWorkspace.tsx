@@ -8,7 +8,7 @@ import { notificationHref, type Notification } from "@/components/seeker/hub-sta
 import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
 import { toast } from "@/components/ui/Toast";
-import { useMessages } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { notificationsMessages } from "@/i18n/messages/notifications";
 
 // Round 19 (操作质感): the list is one card; a row darkens while pressed, and an unread one has a brand tint.
@@ -33,6 +33,7 @@ export function NotificationWorkspace() {
   useFreshAlertNotifications();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
+  const lang = useLang();
   const t = useMessages(notificationsMessages);
   // #202: 全部标为已读 goes away once nothing is unread; the focus moves to the list's heading instead of the page top.
   const listHeading = useRef<HTMLHeadingElement>(null);
@@ -41,7 +42,7 @@ export function NotificationWorkspace() {
     <div className="space-y-4">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-meta font-medium text-brand">{workspaceTitle(isEmployer)}</p>
+          <p className="text-meta font-medium text-brand">{workspaceTitle(isEmployer, lang)}</p>
           <h1 className="mt-1 text-[1.75rem] leading-tight font-black">
             {isEmployer ? t.employerHeading : t.seekerHeading}
           </h1>
@@ -106,7 +107,7 @@ function NotificationContent({ item, hasLink }: { item: Notification; hasLink: b
       <span
         className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-meta font-semibold ${item.unread ? "bg-brand text-white" : "bg-neutral-soft text-muted"}`}
       >
-        {(TYPE_KEYS[item.type] ? t.types[TYPE_KEYS[item.type]] : item.type).slice(0, 1)}
+        {TYPE_KEYS[item.type] ? t.badges[TYPE_KEYS[item.type]] : item.type.slice(0, 1)}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">

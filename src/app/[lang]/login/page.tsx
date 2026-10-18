@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getCurrentSession } from "@/lib/auth";
 import { regionById } from "@/config/countries";
+import { placeName } from "@/components/seeker/format";
 import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, LoginFormSkeleton, LoginIntro, type DemoBusiness } from "@/components/seeker/LoginForm";
@@ -55,7 +56,7 @@ async function demoBusinesses(): Promise<DemoBusiness[]> {
     .map((e) => ({
       id: e.id,
       name: e.name,
-      regionName: (lang === "en" ? regionById("NZ", e.regionId)?.nameEn : regionById("NZ", e.regionId)?.nameZh) ?? "",
+      regionName: placeName(regionById("NZ", e.regionId), lang) ?? "",
       verification: e.verification,
       claimed: claimed.has(e.id),
     }));

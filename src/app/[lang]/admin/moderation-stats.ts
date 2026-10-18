@@ -263,6 +263,3 @@ export function waitText(ms: number, lang: Lang = DEFAULT_LANG): string {
   const days = Math.floor(hours / 24);
   return hours % 24 ? t.daysHours(days, hours % 24) : t.days(days);
 }
-
-/** The wait in Chinese (waitText for the page's language). */
-export const waitZh = (ms: number): string => waitText(ms, "zh");

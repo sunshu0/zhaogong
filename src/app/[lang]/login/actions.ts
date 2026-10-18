@@ -10,7 +10,7 @@ import {
   verifyCode,
   type SessionView,
 } from "@/lib/auth";
-import { RESEND_AFTER_MS } from "@/lib/auth/config";
+import { CODE_TTL_MS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { cookies } from "next/headers";
 import { langOnSignIn } from "@/db/account-lang";
 import { langCookieOptions } from "@/i18n/cookie";
@@ -43,14 +43,20 @@ function validEmail(email: unknown): string | null {
  */
 export async function requestSignInCode(
   email: string,
-): Promise<{ ok: true; devCode?: string; resendInSec: number } | (Failure & { retryAfterSec?: number })> {
+): Promise<
+  { ok: true; devCode?: string; resendInSec: number; validMinutes: number } | (Failure & { retryAfterSec?: number })
+> {
   const lang = await requestLang();
   const t = pick(loginMessages, lang);
   const address = validEmail(email);
   if (!address) return { ok: false, error: t.email.invalid };
   const result = await requestCode(address, new Date(), lang);
   const resendInSec = RESEND_AFTER_MS / 1000;
-  if (result.ok) return result.devCode ? { ok: true, devCode: result.devCode, resendInSec } : { ok: true, resendInSec };
+  const validMinutes = CODE_TTL_MS / 60_000;
+  if (result.ok)
+    return result.devCode
+      ? { ok: true, devCode: result.devCode, resendInSec, validMinutes }
+      : { ok: true, resendInSec, validMinutes };
   if (result.reason === "throttled") {
     const { retryAfterSec } = result;
     return { ok: false, error: t.errors.sentRecently(retryAfterSec), retryAfterSec };
@@ -113,7 +119,7 @@ export async function accountStatus(email?: string): Promise<AccountStatus | nul
 export async function openEmployerForAccount(
   email: string,
   choice: unknown,
-): Promise<{ ok: true; employer: { id: string; name: string } } | Failure> {
+): Promise<{ ok: true; employer: { id: string; name: string } } | (Failure & { reason?: "taken" })> {
   const lang = await requestLang();
   const session = await accountStatus(typeof email === "string" ? email : "");
   if (!session) return { ok: false, error: pick(loginMessages, lang).errors.signInFirst };
@@ -130,7 +136,10 @@ export async function openEmployerForAccount(
         ? parsed.choice.employerId
         : (await createEmployer({ name: parsed.choice.name, regionId: parsed.choice.regionId })).id;
     const opened = await openEmployerIdentity(address, employerId);
-    if (!opened.ok) return { ok: false, error: openErrorMessage(opened.reason, lang) };
+    if (!opened.ok) {
+      const error = openErrorMessage(opened.reason, lang);
+      return opened.reason === "taken" ? { ok: false, error, reason: "taken" } : { ok: false, error };
+    }
   }
   const switched = await switchRole("employer");
   return { ok: true, employer: switched.employer! };

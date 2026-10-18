@@ -14,8 +14,13 @@ import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/app/[lang]/admin/_components/use-swap-focus";
-import { missingChecks, type Checklist, type RejectReason } from "@/components/employer/verification";
-import { badgeName, rejectReasonsIn } from "@/app/[lang]/admin/verification-words";
+import {
+  kindLabels,
+  missingChecks,
+  rejectReasons,
+  type Checklist,
+  type RejectReason,
+} from "@/components/employer/verification";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
@@ -94,7 +99,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
         <h2 lang={contentLang(request.tradingName)} className="text-subtitle font-semibold">
           {request.tradingName}
         </h2>
-        <Tag kind="neutral">{t.applyingFor(badgeName(request.kind, lang))}</Tag>
+        <Tag kind="neutral">{t.applyingFor(kindLabels(lang)[request.kind])}</Tag>
         {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
         {employer?.bannedAt && <Tag kind="urgent">{t.banned}</Tag>}
         <span className="text-meta text-muted">{t.submitted(formatDate(request.submittedAt, lang, TIME))}</span>
@@ -277,7 +282,7 @@ function RejectForm({
   const id = useId();
   const lang = useLang();
   const t = useMessages(adminVerificationMessages);
-  const reasons = rejectReasonsIn(lang);
+  const reasons = rejectReasons(lang);
   return (
     <fieldset ref={formRef} className="space-y-2 rounded-control border border-danger/40 p-3">
       <legend className="px-1 text-body font-medium">{t.rejectLegend}</legend>

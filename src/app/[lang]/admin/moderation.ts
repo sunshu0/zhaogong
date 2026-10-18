@@ -3,12 +3,8 @@ import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { adminMessages } from "@/i18n/messages/admin";
-import type { RuleId } from "@/lib/compliance";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { ModerationLogEntry, Report, ReportReason } from "@/lib/types";
-
-/** The checks run when a job is posted, by name (Chinese; ruleLabel for the page's language). */
-export const RULE_LABELS: Record<RuleId, string> = adminMessages.zh.rules;
 
 export function ruleLabel(rule: string, lang: Lang = DEFAULT_LANG): string {
   const rules: Record<string, string> = pick(adminMessages, lang).rules;

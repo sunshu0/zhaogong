@@ -8,7 +8,6 @@ import type { Dictionary } from "@/i18n/messages";
 const adminZh = {
   title: "审核后台",
   loading: "正在加载",
-  notOpen: "审核后台未开放。",
   signInFor: "登录后进入审核后台",
   // Around the command (kept as it is): 只有审核员能使用审核后台。第一位审核员在服务器上用 <code> 添加，…
   whoBefore: "只有审核员能使用审核后台。第一位审核员在服务器上用",
@@ -46,6 +45,8 @@ const adminZh = {
     banned: "已封禁",
     posted: (when: string) => `发布于 ${when}`,
     reportCount: (n: number) => `${n} 条举报`,
+    // Between a report's reason and what the reporter wrote.
+    noteSeparator: "：",
     ruleChecks: "规则检查",
     dismiss: "驳回举报",
     approve: "没问题，通过",
@@ -126,7 +127,6 @@ export const adminMessages: Dictionary<typeof adminZh> = {
   en: {
     title: "Moderation",
     loading: "Loading",
-    notOpen: "Moderation isn't open.",
     signInFor: "Sign in to open Moderation",
     whoBefore: "Only moderators can use Moderation. The first moderator is added on the server with",
     whoCommand: "npm run admin:grant <email>",
@@ -161,6 +161,7 @@ export const adminMessages: Dictionary<typeof adminZh> = {
       banned: "Banned",
       posted: (when) => `Posted ${when}`,
       reportCount: (n) => (n === 1 ? "1 report" : `${n} reports`),
+      noteSeparator: ": ",
       ruleChecks: "Rule checks",
       dismiss: "Dismiss reports",
       approve: "Looks fine, approve",

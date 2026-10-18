@@ -11,8 +11,12 @@ export function hideReasons(lang: Lang = DEFAULT_LANG): Record<HideReason, strin
   return externalWords(lang).hideReasons;
 }
 
-/** The reasons in Chinese, for callers with no language to hand. */
-export const HIDE_REASONS: Record<HideReason, string> = hideReasons();
+const HIDE_REASON_KEYS: readonly string[] = [
+  "requirement",
+  "wrong_field",
+  "wrong_facts",
+  "other",
+] satisfies HideReason[];
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; error_zh: string };
 
@@ -25,7 +29,7 @@ export function parseHide(
   lang: Lang = DEFAULT_LANG,
 ): Parsed<{ reason: HideReason; note: string }> {
   const t = externalWords(lang).reviewErrors;
-  if (typeof reason !== "string" || !(reason in HIDE_REASONS)) return { ok: false, error_zh: t.pickReason };
+  if (typeof reason !== "string" || !HIDE_REASON_KEYS.includes(reason)) return { ok: false, error_zh: t.pickReason };
   const n = text(note, 200);
   if (reason === "other" && !n) return { ok: false, error_zh: t.otherNeedsNote };
   return { ok: true, value: { reason: reason as HideReason, note: n } };

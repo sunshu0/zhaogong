@@ -38,10 +38,10 @@ describe("workspaceTodos", () => {
       exchanges: { "clean-home": [exchange({})] },
       profileMissing: { count: 4, labels: ["期望时薪", "经验", "头像", "技能"] },
     });
-    expect(todos.map((todo) => todo.title)).toEqual([
-      "家政公司想和你交换联系方式",
-      "北岸早茶酒家发来 2 条新消息",
-      "资料还差 4 项",
+    expect(todos.map((todo) => [todo.title, todo.detail])).toEqual([
+      ["家政公司", "想和你交换联系方式，等你同意或拒绝"],
+      ["北岸早茶酒家", "发来 2 条新消息"],
+      ["资料还差 4 项", "期望时薪、经验、头像 等"],
     ]);
     expect(todos[0].href).toBe("/messages?conversation=clean-home");
     expect(todos[2]).toMatchObject({ href: "/profile", detail: "期望时薪、经验、头像 等" });
@@ -55,7 +55,7 @@ describe("workspaceTodos", () => {
       profileMissing: { count: 1, labels: ["经验"] },
     });
     expect(todos.map((todo) => todo.title)).toEqual([
-      "北岸早茶酒家发来 1 条新消息",
+      "北岸早茶酒家",
       "明天的面试：川味小馆「前厅服务员」",
       "资料还差 1 项",
     ]);
@@ -95,7 +95,7 @@ describe("workspaceTodos", () => {
       "「旧职位」已截止",
       "「服务员」今天截止",
       "「厨师」3 天后截止",
-      "「收银」审核中",
+      "收银",
       "企业资料还差 1 项",
     ]);
   });
@@ -114,7 +114,7 @@ describe("workspaceTodos", () => {
       unseenApplications: { 服务员: 2, 收银: 0 },
     });
     expect(todos.map((todo) => [todo.title, todo.detail, todo.href])).toEqual([
-      ["2 个新申请", "「服务员」", "/employer/jobs/%E6%9C%8D%E5%8A%A1%E5%91%98/applicants"],
+      ["2 个新申请", "服务员", "/employer/jobs/%E6%9C%8D%E5%8A%A1%E5%91%98/applicants"],
       ["「厨师」1 天后截止", expect.any(String), "/employer/jobs?tab=ending"],
     ]);
   });

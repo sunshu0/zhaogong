@@ -15,14 +15,10 @@ import { contentLang } from "@/i18n/lang";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import { loginMessages } from "@/i18n/messages/login";
 import type { EmployerVerification } from "@/lib/types";
-import {
-  businessChoice,
-  defaultBusinessChoice,
-  openErrorMessage,
-  reconcileIdentity,
-} from "@/components/seeker/identity";
+import { businessChoice, defaultBusinessChoice, reconcileIdentity } from "@/components/seeker/identity";
 import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
 import { emailTypoFix } from "@/components/seeker/email-typos";
+import { placeName } from "@/components/seeker/format";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
@@ -78,6 +74,8 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   // Outside production there is no mail service: the server also prints the code to its log and sends it back here.
   const [devCode, setDevCode] = useState<string | null>(null);
+  // How long a code works and how soon another may be asked for, as the server says (lib/auth/config.ts).
+  const [codeTimes, setCodeTimes] = useState({ validMinutes: 10, resendMinutes: 1 });
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
@@ -207,6 +205,7 @@ export function LoginForm({
       waitBeforeResend(result.resendInSec);
       setEmail(address);
       setDevCode(result.devCode ?? null);
+      setCodeTimes({ validMinutes: result.validMinutes, resendMinutes: Math.ceil(result.resendInSec / 60) });
       setStep("code");
       sent?.();
     });
@@ -336,7 +335,7 @@ export function LoginForm({
           </span>
         </p>
       ) : (
-        <p className="text-meta text-muted">{t.code.validity}</p>
+        <p className="text-meta text-muted">{t.code.validity(codeTimes.validMinutes, codeTimes.resendMinutes)}</p>
       )}
       <label className="block">
         <span className={labelClass}>{t.code.label}</span>
@@ -427,7 +426,7 @@ function BusinessStep({
       const result = await openEmployerForAccount(email, payload).catch(() => null);
       if (!result) return setError(t.networkError);
       if (!result.ok) {
-        if (choice !== "new" && result.error === openErrorMessage("taken", lang)) {
+        if (choice !== "new" && result.reason === "taken") {
           setTakenHere([...takenHere, choice]); // the choice moves on by itself (businessChoice)
         }
         return setError(result.error);
@@ -476,7 +475,7 @@ function BusinessStep({
             label={t.hiring.areaLabel}
             placeholder={t.hiring.areaPlaceholder}
             required
-            options={regions.map((r) => ({ value: r.id, label: lang === "en" ? r.nameEn : r.nameZh }))}
+            options={regions.map((r) => ({ value: r.id, label: placeName(r, lang) ?? r.nameZh }))}
           />
         </div>
       )}

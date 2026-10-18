@@ -1,3 +1,4 @@
+import { contentLang } from "@/i18n/lang";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
@@ -18,8 +19,14 @@ export function LinkList({ items, label }: { items: LinkListItem[]; label?: stri
             className="pressable-row -mx-4 flex min-h-14 items-center gap-3 px-4 py-2 hover:bg-background focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand sm:-mx-5 sm:px-5"
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-subtitle">{item.label}</span>
-              {item.detail && <span className="block text-meta text-muted">{item.detail}</span>}
+              <span lang={contentLang(item.label)} className="block text-subtitle">
+                {item.label}
+              </span>
+              {item.detail && (
+                <span lang={contentLang(item.detail)} className="block text-meta text-muted">
+                  {item.detail}
+                </span>
+              )}
             </span>
             {item.badge ? <UnreadBadge count={item.badge} /> : null}
             <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted" />

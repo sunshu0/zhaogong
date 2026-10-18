@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { factLines, NOT_STATED, payLabel, sourceLine } from "@/lib/external-jobs/labels";
+import { factLines, payLabel, sourceLine } from "@/lib/external-jobs/labels";
+
+const NOT_STATED = "原文未说明";
 import { approvalProblem, parseHide, parseNote, parseTakedown } from "@/lib/external-jobs/review";
 
 describe("external job wording (#112, #113)", () => {

@@ -28,6 +28,18 @@ const notificationsZh = {
     resume: "简历",
     job: "职位",
   },
+  // The round badge's mark for each kind: one character in Chinese, a short distinct mark in English.
+  badges: {
+    application: "申",
+    hiring: "招",
+    team: "团",
+    verification: "验",
+    alert: "提",
+    interview: "面",
+    chat: "聊",
+    resume: "简",
+    job: "职",
+  },
 };
 
 export const notificationsMessages: Dictionary<typeof notificationsZh> = {
@@ -55,6 +67,17 @@ export const notificationsMessages: Dictionary<typeof notificationsZh> = {
       chat: "Chat",
       resume: "CV",
       job: "Job",
+    },
+    badges: {
+      application: "Ap",
+      hiring: "Hi",
+      team: "Te",
+      verification: "Ve",
+      alert: "Al",
+      interview: "In",
+      chat: "Ch",
+      resume: "CV",
+      job: "Jo",
     },
   },
 };

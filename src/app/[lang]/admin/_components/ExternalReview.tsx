@@ -22,6 +22,7 @@ import { placedByTitle } from "@/lib/external-jobs/facts";
 import { dayLabel, externalWords, factLines, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { hideReasons, type HideReason } from "@/lib/external-jobs/review";
 import { useLang, useMessages } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
 import { contentLang } from "@/i18n/lang";
 import { adminExternalMessages } from "@/i18n/messages/admin-external";
 import { Button } from "@/components/ui/Button";
@@ -240,6 +241,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
   };
   const block = company.block;
   const terms = company.terms;
+  const checkedOn = terms ? formatDate(terms.checkedOn, lang, { dateStyle: "medium" }) : "";
   const status = block ? (
     block.kind === "takedown" ? (
       <WithTheirWords
@@ -253,7 +255,7 @@ function CompanyRow({ company, onDone }: { company: ExternalCompanyItem; onDone:
     t.notListed
   ) : terms ? (
     <WithTheirWords
-      sentence={(w) => (terms.allowsDisplay ? t.termsChecked(w, terms.checkedOn) : t.termsForbid(w, terms.checkedOn))}
+      sentence={(w) => (terms.allowsDisplay ? t.termsChecked(w, checkedOn) : t.termsForbid(w, checkedOn))}
       words={terms.checkedBy}
     />
   ) : (

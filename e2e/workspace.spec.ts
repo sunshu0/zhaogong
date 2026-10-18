@@ -56,7 +56,7 @@ test("总览 lists what needs doing, most urgent first, and each item opens the 
   // Requests waiting for consent come before unread chats, and the profile comes last.
   await expect(items.first()).toContainText("想和你交换");
   await expect(items.last()).toContainText(/资料还差 \d+ 项/);
-  await todos.getByRole("link", { name: /北岸早茶酒家发来 \d+ 条新消息/ }).click();
+  await todos.getByRole("link", { name: /北岸早茶酒家\s*发来 \d+ 条新消息/ }).click();
   await expect(page).toHaveURL("/messages?conversation=north-tea");
   await page.goto("/workspace");
   await expect(todos.getByRole("link", { name: /北岸早茶酒家发来/ })).toHaveCount(0);

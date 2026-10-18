@@ -7,5 +7,5 @@ export function adminEnabled(): boolean {
 
 /** First line of every admin Server Function: refuse outright while the switch is off. */
 export function requireAdmin(): void {
-  if (!adminEnabled()) throw new Error("审核后台未开放。");
+  if (!adminEnabled()) throw new Error("/admin is switched off (set ADMIN_ENABLED=1 to turn it on).");
 }

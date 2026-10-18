@@ -47,13 +47,13 @@ const accountZh = {
   },
   // todos.ts: what waits for the user, on 总览 and 我的.
   todos: {
-    exchangeAsked: (person: string, what: string) => `${person}想和你交换${what}`,
-    exchangeAskedDetail: "等你同意或拒绝",
-    newMessages: (person: string, count: number) => `${person}发来 ${count} 条新消息`,
+    // The title or the detail of each to-do is either these words or what someone wrote (a name, a job title),
+    // never both, so the list can mark the person's words as theirs (lang).
+    exchangeAsked: (what: string) => `想和你交换${what}，等你同意或拒绝`,
+    exchangeKinds: { contact: "联系方式", resume: "简历与企业资料" },
+    newMessages: (count: number) => `发来 ${count} 条新消息`,
     newApplications: (count: number) => `${count} 个新申请`,
-    jobTitle: (title: string) => `「${title}」`,
-    jobInReview: (title: string) => `「${title}」审核中`,
-    jobInReviewDetail: "通过后会出现在职位列表，不需要你操作",
+    jobInReview: "审核中：通过后会出现在职位列表，不需要你操作",
     verificationRejected: "企业验证没有通过",
     // The reason's words come from B's employer-verify dictionary.
     verificationRejectedDetail: (reason: string | null) => `${reason ? `${reason}，` : ""}改好资料重新提交`,
@@ -171,14 +171,11 @@ export const accountMessages: Dictionary<typeof accountZh> = {
       dataDetail: "Download my data, delete account",
     },
     todos: {
-      exchangeAsked: (person, what) => `${person} wants to swap ${what} with you`,
-      exchangeAskedDetail: "Accept or decline",
-      newMessages: (person, count) =>
-        count === 1 ? `1 new message from ${person}` : `${count} new messages from ${person}`,
+      exchangeAsked: (what) => `Wants to swap ${what} with you. Accept or decline.`,
+      exchangeKinds: { contact: "contact details", resume: "CVs and business details" },
+      newMessages: (count) => (count === 1 ? "1 new message" : `${count} new messages`),
       newApplications: (count) => (count === 1 ? "1 new application" : `${count} new applications`),
-      jobTitle: (title) => `“${title}”`,
-      jobInReview: (title) => `“${title}” is under review`,
-      jobInReviewDetail: "Once approved it shows in the job list. Nothing to do.",
+      jobInReview: "Under review: once approved it shows in the job list. Nothing to do.",
       verificationRejected: "Business verification didn't go through",
       verificationRejectedDetail: (reason) => `${reason ? `${reason}. ` : ""}Fix your details and send them again.`,
       verificationInReview: "Business verification under review",

@@ -8,7 +8,6 @@ import type { RejectReason, RequestStatus } from "@/components/employer/verifica
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { accountMessages } from "@/i18n/messages/account";
-import { chatMessages } from "@/i18n/messages/chat";
 import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
 
 export type Todo = { id: string; title: string; detail?: string; href: string };
@@ -45,8 +44,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       if (exchange.from !== "them" || exchange.status !== "pending") continue;
       todos.push({
         id: `exchange:${exchange.id}`,
-        title: t.exchangeAsked(conversation.person, pick(chatMessages, lang).exchangeKinds[exchange.kind]),
-        detail: t.exchangeAskedDetail,
+        title: conversation.person,
+        detail: t.exchangeAsked(t.exchangeKinds[exchange.kind]),
         href: conversationHref(conversation.id),
       });
     }
@@ -57,7 +56,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
     if (!count) continue;
     todos.push({
       id: `unread:${conversation.id}`,
-      title: t.newMessages(conversation.person, count),
+      title: conversation.person,
+      detail: t.newMessages(count),
       href: conversationHref(conversation.id),
     });
   }
@@ -71,7 +71,7 @@ export function workspaceTodos(input: TodoInput): Todo[] {
       todos.push({
         id: `applications:${job.id}`,
         title: t.newApplications(count),
-        detail: t.jobTitle(job.titleZh),
+        detail: job.titleZh,
         href: `/employer/jobs/${encodeURIComponent(job.id)}/applicants`,
       });
     }
@@ -82,8 +82,8 @@ export function workspaceTodos(input: TodoInput): Todo[] {
     for (const job of input.jobs.filter((job) => job.status === "pending_review")) {
       todos.push({
         id: `review:${job.id}`,
-        title: t.jobInReview(job.titleZh),
-        detail: t.jobInReviewDetail,
+        title: job.titleZh,
+        detail: t.jobInReview,
         href: "/employer/jobs",
       });
     }

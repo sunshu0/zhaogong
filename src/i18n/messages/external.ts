@@ -251,7 +251,7 @@ export const externalMessages: Dictionary<typeof externalZh> = {
       visaList: (lines) => lines.join("; "),
       pay: "Pay",
     },
-    source: (company, checkedOn) => `External job · From ${company}'s site · Checked on ${checkedOn}`,
+    source: (company, checkedOn) => `From ${company}'s site · Checked on ${checkedOn}`,
     filter: {
       label: "Filters",
       field: "Field",
@@ -270,7 +270,7 @@ export const externalMessages: Dictionary<typeof externalZh> = {
     },
     list: {
       introBefore: " These are ",
-      introStrong: "external jobs",
+      introStrong: "jobs from company sites",
       introAfter:
         ": not posted by employers on 找工. We only sort out the facts; apply on the company's site. See also",
       introAnd: " and ",
@@ -289,7 +289,7 @@ export const externalMessages: Dictionary<typeof externalZh> = {
       kindNotStated: (notStated) => `Type: ${notStated}`,
     },
     job: {
-      title: "External job",
+      title: "Job from a company site",
       back: (section) => `← ${section}`,
       apply: "Apply on the company's site (new window)",
       factsHeading: "About the job (from the original posting)",

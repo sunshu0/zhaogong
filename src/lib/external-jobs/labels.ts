@@ -6,25 +6,10 @@ import { formatDate } from "@/i18n/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { externalMessages } from "@/i18n/messages/external";
-import type {
-  DegreeLevel,
-  DegreeSubject,
-  ExternalCity,
-  ExternalFacts,
-  ExternalField,
-  ExternalSource,
-  ExternalFlag,
-  ExternalKind,
-  ExternalPay,
-  VisaFact,
-} from "@/lib/external-jobs/types";
+import type { ExternalFacts, ExternalPay, ExternalSource } from "@/lib/external-jobs/types";
 
 /** The external dictionary in the reader's language. */
 export const externalWords = (lang: Lang = DEFAULT_LANG) => pick(externalMessages, lang);
-
-const zh = externalMessages.zh;
-
-export const NOT_STATED = zh.notStated;
 
 /** The applicant-tracking systems by their own names, for the moderators (#112, Ashby #138). */
 export const SOURCE_NAMES: Record<ExternalSource, string> = {
@@ -32,16 +17,6 @@ export const SOURCE_NAMES: Record<ExternalSource, string> = {
   lever: "Lever",
   ashby: "Ashby",
 };
-
-export const FIELD_LABELS: Record<ExternalField, string> = zh.fields;
-export const KIND_LABELS: Record<ExternalKind, string> = zh.kinds;
-export const CITY_LABELS: Record<ExternalCity, string> = zh.cities;
-/** What the posting says, worded as the posting's statement, never as advice. */
-export const VISA_LABELS: Record<VisaFact, string> = zh.visas;
-export const DEGREE_LABELS: Record<DegreeLevel, string> = zh.degrees;
-export const SUBJECT_LABELS: Record<DegreeSubject, string> = zh.subjects;
-/** For moderators (#112): why a job needs a look before it can show. */
-export const FLAG_LABELS: Record<ExternalFlag, string> = zh.flags;
 
 /** 「10月17日」 / "17 Oct" in New Zealand time. */
 export function dayLabel(iso: string, lang: Lang = DEFAULT_LANG): string {

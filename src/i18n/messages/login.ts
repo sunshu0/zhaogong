@@ -41,7 +41,8 @@ const loginZh = {
     typoQuestion: "地址是不是拼错了？",
     useInstead: (fix: string) => `改用 ${fix}`,
     devNote: "开发环境没有接邮件服务，验证码打印在服务器日志里：",
-    validity: "10 分钟内有效。没收到可以 1 分钟后重新获取。",
+    validity: (minutes: number, resendMinutes: number) =>
+      `${minutes} 分钟内有效。没收到可以 ${resendMinutes} 分钟后重新获取。`,
     label: "验证码",
     placeholder: "6 位数字",
     invalid: "请输入 6 位数字验证码",
@@ -138,7 +139,8 @@ export const loginMessages: Dictionary<typeof loginZh> = {
       typoQuestion: "Is the address misspelt?",
       useInstead: (fix) => `Use ${fix}`,
       devNote: "No mail service in development: the code is in the server log:",
-      validity: "The code works for 10 minutes. No email? You can ask for a new one after a minute.",
+      validity: (minutes, resendMinutes) =>
+        `The code works for ${minutes} minutes. No email? You can ask for a new one after ${resendMinutes === 1 ? "a minute" : `${resendMinutes} minutes`}.`,
       label: "Sign-in code",
       placeholder: "6 digits",
       invalid: "Enter the 6-digit code",

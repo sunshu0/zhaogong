@@ -92,7 +92,7 @@ describe("external jobs in English", () => {
     expect(payLabel({ minCents: 3000, currency: "NZD", period: "hour" }, "en")).toBe("From $30 NZD an hour");
     expect(dayLabel("2026-10-16T20:00:00.000Z", "en")).toBe("17 Oct");
     expect(sourceLine("Rocket Lab", "2026-10-16T20:00:00.000Z", "en")).toBe(
-      "External job · From Rocket Lab's site · Checked on 17 Oct",
+      "From Rocket Lab's site · Checked on 17 Oct",
     );
   });
 

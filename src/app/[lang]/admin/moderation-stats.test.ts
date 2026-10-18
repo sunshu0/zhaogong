@@ -6,7 +6,7 @@ import {
   median,
   moderationStats,
   nzDay,
-  waitZh,
+  waitText,
   weekOf,
   type AiUsageEntry,
 } from "@/app/[lang]/admin/moderation-stats";
@@ -49,11 +49,11 @@ describe("weeks in New Zealand (#70)", () => {
   });
 
   it("says a wait in words", () => {
-    expect(waitZh(20_000)).toBe("不到 1 分钟");
-    expect(waitZh(25 * 60_000)).toBe("25 分钟");
-    expect(waitZh(3 * HOUR + 59 * 60_000)).toBe("3 小时");
-    expect(waitZh(48 * HOUR)).toBe("2 天");
-    expect(waitZh(53 * HOUR)).toBe("2 天 5 小时");
+    expect(waitText(20_000, "zh")).toBe("不到 1 分钟");
+    expect(waitText(25 * 60_000, "zh")).toBe("25 分钟");
+    expect(waitText(3 * HOUR + 59 * 60_000, "zh")).toBe("3 小时");
+    expect(waitText(48 * HOUR, "zh")).toBe("2 天");
+    expect(waitText(53 * HOUR, "zh")).toBe("2 天 5 小时");
   });
 });
 

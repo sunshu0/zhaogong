@@ -8,6 +8,8 @@ import type { Employer } from "@/lib/types";
 import { buildRegister, findInRegister, type RegisterEntry } from "@/components/employer/business-register";
 import {
   checklistFor,
+  kindLabels,
+  rejectReasons,
   missingChecks,
   parseRejection,
   sanitizeChecklist,
@@ -21,7 +23,6 @@ import {
 } from "@/db/verification-requests";
 import { describeAction } from "@/app/[lang]/admin/moderation";
 import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
-import { badgeName, checklistIn, rejectReasonsIn } from "@/app/[lang]/admin/verification-words";
 import type { Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { adminVerificationMessages } from "@/i18n/messages/admin-verification";
@@ -50,7 +51,7 @@ function item(
     request: view as VerificationItem["request"],
     employer,
     register: findInRegister(register, request.nzbn),
-    checklist: checklistIn(checklistFor(request), lang),
+    checklist: checklistFor(request, lang),
   };
 }
 
@@ -81,7 +82,7 @@ async function decide(id: unknown, checklistInput: unknown, decision: Decision):
   const employer = await getEmployer(pending.employerId);
   if (decision.approve && employer?.bannedAt) return { ok: false, error_zh: t.errors.banned };
 
-  const items = checklistIn(checklistFor(pending), lang);
+  const items = checklistFor(pending, lang);
   const checklist = sanitizeChecklist(checklistInput, items);
   const missing = missingChecks(items, checklist);
   if (decision.approve && missing.length)
@@ -94,8 +95,8 @@ async function decide(id: unknown, checklistInput: unknown, decision: Decision):
     employerId: pending.employerId,
     employerName: employer?.name ?? pending.tradingName,
     note: decision.approve
-      ? t.logApproved(badgeName(pending.kind, lang), pending.nzbn)
-      : t.logRejected(rejectReasonsIn(lang)[decision.rejection.reason], decision.rejection.note),
+      ? t.logApproved(kindLabels(lang)[pending.kind], pending.nzbn)
+      : t.logRejected(rejectReasons(lang)[decision.rejection.reason], decision.rejection.note),
     moderator: me.email,
   });
   return { ok: true, text: describeAction(entry, lang) };
