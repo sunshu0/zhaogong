@@ -16,7 +16,7 @@ import { grantModerator, revokeModerator } from "@/db/moderators";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 import { ensureAccount } from "@/lib/data";
 import { isValidEmail } from "@/components/seeker/session";
-import { describeDemoImport, importRealJobsIntoDemo, retireDemoExternalJobs } from "@/lib/external-jobs/demo-import";
+import { retireDemoExternalJobs, runDemoImport } from "@/lib/external-jobs/demo-import";
 import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { politeFetcher } from "@/lib/external-jobs/polite-fetch";
 
@@ -107,7 +107,7 @@ async function main(command: string | undefined, arg: string | undefined, rest: 
   const n = await seedDemoData();
   console.log(`Loaded the demo data: ${n.employers} employers, ${n.jobs} jobs, ${n.contactViews} contact views.`);
   if (process.env.EXTERNAL_JOBS !== "demo") {
-    console.log(describeDemoImport(await importRealJobsIntoDemo({ getJson: politeFetcher({ fetch }) })));
+    console.log(await runDemoImport()); // never fails the seed: offline, the made-up jobs stay
   }
   return 0;
 }

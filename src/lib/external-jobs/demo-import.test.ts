@@ -8,7 +8,13 @@ import { resetDatabaseForTests } from "@/db/ready";
 import { listModerationLog } from "@/lib/data";
 import { DEMO_MODERATOR } from "@/lib/demo-accounts";
 import { isDemoCompany } from "@/lib/external-jobs/demo";
-import { AUTO_APPROVED_NOTE, describeDemoImport, importRealJobsIntoDemo } from "@/lib/external-jobs/demo-import";
+import {
+  AUTO_APPROVED_NOTE,
+  describeDemoImport,
+  importRealJobsIntoDemo,
+  runDemoImport,
+  withDeadline,
+} from "@/lib/external-jobs/demo-import";
 import { postingsUrl } from "@/lib/external-jobs/sources";
 
 const GREENHOUSE = JSON.parse(
@@ -44,6 +50,33 @@ describe("real external jobs in the demo database (导师 10-19)", () => {
     expect(await demoUp()).toHaveLength(before);
     expect((await listModerationLog()).filter((e) => e.action === "external_approve")).toEqual([]);
   });
+
+  it("stops waiting when the import's time is up, and never throws", async () => {
+    const result = await importRealJobsIntoDemo({
+      companies: [KOWHAI],
+      getJson: () => new Promise(() => {}), // a site that never answers
+      now,
+      deadlineMs: 50,
+    });
+    expect(result).toMatchObject({ imported: false, reports: [{ company: "kowhai", status: "failed" }] });
+    expect(describeDemoImport(result)).toMatch(/kowhai: the import's 0.05 s were up/);
+    expect((await demoUp()).length).toBeGreaterThan(0);
+    // After the deadline, a request fails at once.
+    let t = 0;
+    const late = withDeadline(
+      async () => "answer",
+      10,
+      () => t,
+    );
+    expect(await late("a")).toBe("answer");
+    t = 11;
+    await expect(late("b")).rejects.toThrow(/were up/);
+    // runDemoImport reads the companies through polite-fetch and only reports a failure.
+    const offline = (async () => {
+      throw new TypeError("fetch failed");
+    }) as unknown as typeof fetch;
+    expect(await runDemoImport(offline)).toMatch(/^External jobs: no real jobs could be read/);
+  }, 20_000); // polite-fetch spaces out the requests to one host by 2 s
 
   it("online: the unflagged real jobs show, approved by the demo moderator in the log; flagged ones wait", async () => {
     const result = await importRealJobsIntoDemo({

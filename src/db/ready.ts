@@ -28,13 +28,12 @@ export function realExternalJobsWanted(env: Record<string, string | undefined> =
 /** In the background, so the first page does not wait for the companies' sites; it shows the made-up jobs meanwhile. */
 function importRealExternalJobs(): void {
   if (!realExternalJobsWanted()) return;
-  void (async () => {
-    const [{ describeDemoImport, importRealJobsIntoDemo }, { politeFetcher }] = await Promise.all([
-      import("@/lib/external-jobs/demo-import"),
-      import("@/lib/external-jobs/polite-fetch"),
-    ]);
-    console.log(describeDemoImport(await importRealJobsIntoDemo({ getJson: politeFetcher({ fetch }) })));
-  })().catch((error) => console.error("External jobs: the import failed; the demo keeps its made-up ones.", error));
+  void import("@/lib/external-jobs/demo-import")
+    .then(({ runDemoImport }) => runDemoImport())
+    .then(
+      (line) => console.log(line),
+      (error) => console.error("External jobs: the import failed; the demo keeps its made-up ones.", error),
+    );
 }
 
 async function prepare(): Promise<Db> {
