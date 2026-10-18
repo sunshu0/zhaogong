@@ -11,6 +11,7 @@ import {
   minYearsOf,
   nzCity,
   payOf,
+  placedByTitle,
   visaOf,
 } from "@/lib/external-jobs/facts";
 import type { RawPosting } from "@/lib/external-jobs/types";
@@ -70,6 +71,16 @@ describe("external job facts (#111)", () => {
     expect(fieldOf("Senior Failure Analysis Engineer", ["Hardware", "Hardware Reliability"], "ashby")).toBeNull();
     expect(fieldOf("Engineering Manager", ["Product & Engineering"], "ashby")).toBeNull();
     expect(fieldOf("Office Manager", ["Engineering"], "ashby")).toBeNull();
+  });
+
+  it("knows a field placed by the title from one placed by the department, for the moderator (#191)", () => {
+    expect(placedByTitle("Senior Software Engineer", "greenhouse")).toBe(true);
+    expect(placedByTitle("Embedded Software Engineer", "lever")).toBe(true);
+    expect(placedByTitle("Electronics Engineer", "ashby")).toBe(true);
+    expect(placedByTitle("Graduate Engineer", "greenhouse")).toBe(false);
+    expect(placedByTitle("Summer Intern", "lever")).toBe(false);
+    expect(placedByTitle("Engineering Manager", "ashby")).toBe(false);
+    expect(placedByTitle("Senior Engineer - Database", "ashby")).toBe(false);
   });
 
   it("counts Developer only when it is the job, not the people a role serves; product roles are not engineering (#180)", () => {

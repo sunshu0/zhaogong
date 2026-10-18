@@ -18,6 +18,7 @@ import { Empty, Loading } from "@/app/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/admin/_components/Failed";
 import { useAdminLoad } from "@/app/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/app/admin/_components/use-swap-focus";
+import { placedByTitle } from "@/lib/external-jobs/facts";
 import { dayLabel, factLines, FIELD_LABELS, FLAG_LABELS, KIND_LABELS, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { HIDE_REASONS, type HideReason } from "@/lib/external-jobs/review";
 import { Button } from "@/components/ui/Button";
@@ -112,6 +113,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
     });
   };
   const approved = job.review === "approved";
+  const byDepartment = !placedByTitle(job.title, job.source); // #191
   const { opener: hideOpenerRef, form: hideFormRef } = useSwapFocus(hiding);
 
   return (
@@ -121,6 +123,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
           {job.title}
         </h3>
         <Tag kind="neutral">{FIELD_LABELS[job.field]}</Tag>
+        {byDepartment && <Tag kind="neutral">按部门判断</Tag>}
         {job.kind && <Tag kind="neutral">{KIND_LABELS[job.kind]}</Tag>}
         {approved && (job.shown ? <Tag kind="perk">正在显示</Tag> : <Tag kind="neutral">已通过，暂不显示</Tag>)}
       </div>
@@ -128,6 +131,9 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
         {job.companyName} · 首次导入 {dayLabel(job.firstSeenAt)} · 信息取于 {dayLabel(job.lastSeenAt)}
         {approved && !job.shown && "（超过 2 天没刷新到，或已过截止日）"}
       </p>
+      {byDepartment && (
+        <p className="text-meta text-muted">职位名没说是软件还是电子电气，领域是按部门判断的，请在原文里核对。</p>
+      )}
       {job.flags.length > 0 && (
         <div role="alert" className="space-y-1 rounded-control bg-danger-soft p-3 text-body text-danger">
           <p className="font-medium">需要核对原文：</p>

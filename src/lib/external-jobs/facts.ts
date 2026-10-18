@@ -112,6 +112,15 @@ export function fieldOf(title: string, departments: string[], source?: ExternalS
   return null;
 }
 
+/**
+ * Whether the title alone places a job's field. When it does not, the stored field came from the department (a
+ * generic title), the likelier guess to be wrong, which the moderator is asked to check against the original (#191).
+ * The departments are not stored, but the title and the source are, so this can be worked out again at any time.
+ */
+export function placedByTitle(title: string, source?: ExternalSource): boolean {
+  return fieldOf(title, [], source) != null;
+}
+
 // ---- kind ----
 
 /** What the title, the commitment field or the text says the job is; null when none of them says. */
