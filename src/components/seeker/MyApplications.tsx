@@ -12,6 +12,7 @@ import { RetryLine } from "@/components/seeker/RetryLine";
 import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { formatJobDate } from "@/components/seeker/job-facts";
+import { identityScope } from "@/components/seeker/identity-scope";
 import { useSession } from "@/components/seeker/session-client";
 import { Pay } from "@/components/ui/Pay";
 import { Tag } from "@/components/ui/Tag";
@@ -27,23 +28,27 @@ import { contentLang } from "@/i18n/lang";
  */
 export function MyApplications() {
   const t = useMessages(seekerMeMessages).applications;
-  const signedIn = Boolean(useSession());
+  const session = useSession();
+  const signedIn = Boolean(session);
+  const scope = identityScope(session);
   const [list, setList] = useState<MyApplicationView[] | null>(null);
   const [error, setError] = useState("");
-  // The list got no answer (#254): said with 重试, which asks again.
-  const [loadFailed, setLoadFailed] = useState(false);
+  // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
+  // is not hidden behind it.
+  const [failedFor, setFailedFor] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
+  const loadFailed = failedFor === scope;
 
   useEffect(() => {
     if (!signedIn) return;
     let current = true;
     myApplicationViews()
       .then((answer) => current && setList(answer))
-      .catch(() => current && setLoadFailed(true));
+      .catch(() => current && setFailedFor(scope));
     return () => {
       current = false;
     };
-  }, [signedIn, asked]);
+  }, [signedIn, scope, asked]);
 
   if (loadFailed)
     return (
@@ -51,7 +56,7 @@ export function MyApplications() {
         className="mb-4"
         text={t.loadFailed}
         onRetry={() => {
-          setLoadFailed(false);
+          setFailedFor(null);
           setAsked((n) => n + 1);
         }}
       />

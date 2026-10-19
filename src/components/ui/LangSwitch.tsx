@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { setLang } from "@/i18n/actions";
-import { useLang, useMessages } from "@/i18n/client";
+import { useLang, useMessages, useSitePathname } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
 /**
@@ -16,7 +16,11 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
   const lang = useLang();
   const t = useMessages(uiMessages).langSwitch;
   const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState(false);
+  // The page where the last press got no answer: the note is about that press, and in the footer (part of the
+  // layout) it would otherwise outlive the page.
+  const path = useSitePathname();
+  const [failedOn, setFailedOn] = useState<string | null>(null);
+  const failed = failedOn === path;
   const button = (
     <Button
       variant="link"
@@ -25,7 +29,7 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
       onClick={() =>
         startTransition(async () => {
           const hash = location.hash;
-          setFailed(false);
+          setFailedOn(null);
           // No answer (offline, the server restarting): the page stays as it is and says so beside the switch,
           // instead of the error page in its place (#251).
           if (
@@ -34,7 +38,7 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
               () => false,
             ))
           )
-            return setFailed(true);
+            return setFailedOn(path);
           // The cookie set in the answer makes Next refresh the page, which can drop a #hash from the address (#90):
           // put it back, so the reload comes back to the same place.
           if (hash && location.hash !== hash) history.replaceState(history.state, "", hash);

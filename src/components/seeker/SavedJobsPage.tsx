@@ -36,11 +36,13 @@ export function SavedJobsPage() {
   // undefined: loading.
   const [jobs, setJobs] = useState<SavedJobView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  // The list got no answer (#254): said with 重试, which asks again.
-  const [loadFailed, setLoadFailed] = useState(false);
+  // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
+  // is not hidden behind it.
+  const [failedFor, setFailedFor] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
 
   const scope = identityScope(session);
+  const loadFailed = failedFor === scope;
   useEffect(() => {
     if (!signedIn) return;
     let current = true;
@@ -48,7 +50,7 @@ export function SavedJobsPage() {
     sendWaitingChanges(scope)
       .then(() => mySavedJobs())
       .then((list) => current && setJobs(list))
-      .catch(() => current && setLoadFailed(true));
+      .catch(() => current && setFailedFor(scope));
     return () => {
       current = false;
     };
@@ -73,7 +75,7 @@ export function SavedJobsPage() {
       <RetryLine
         text={s.loadFailed}
         onRetry={() => {
-          setLoadFailed(false);
+          setFailedFor(null);
           setAsked((n) => n + 1);
         }}
       />

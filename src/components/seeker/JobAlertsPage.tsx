@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { changeMyJobAlert, deleteMyJobAlert, myJobAlerts, type JobAlertView } from "@/app/[lang]/me/alerts/actions";
+import { identityScope } from "@/components/seeker/identity-scope";
 import { ALERT_LIMIT, ALERT_NAME_MAX, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { RetryLine } from "@/components/seeker/RetryLine";
@@ -32,12 +33,15 @@ export function JobAlertsPage() {
   const hydrated = useHydrated();
   const session = useSession();
   const signedIn = Boolean(session);
+  const scope = identityScope(session);
   // undefined: loading.
   const [alerts, setAlerts] = useState<JobAlertView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  // The list got no answer (#254): said with 重试, which asks again.
-  const [loadFailed, setLoadFailed] = useState(false);
+  // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
+  // is not hidden behind it.
+  const [failedFor, setFailedFor] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
+  const loadFailed = failedFor === scope;
   const top = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -45,11 +49,11 @@ export function JobAlertsPage() {
     let current = true;
     myJobAlerts()
       .then((list) => current && setAlerts(list))
-      .catch(() => current && setLoadFailed(true));
+      .catch(() => current && setFailedFor(scope));
     return () => {
       current = false;
     };
-  }, [signedIn, asked]);
+  }, [signedIn, scope, asked]);
 
   /** Sends a change; the server's answer is the list from then on. True when the server took it. */
   async function run(change: () => Promise<JobAlertView[] | null>): Promise<boolean> {
@@ -87,7 +91,7 @@ export function JobAlertsPage() {
         <RetryLine
           text={a.loadFailed}
           onRetry={() => {
-            setLoadFailed(false);
+            setFailedFor(null);
             setAsked((n) => n + 1);
           }}
         />

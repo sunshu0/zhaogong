@@ -20,23 +20,29 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
+// Only the latest ask's answer is kept: a refresh after applying may cross the page's first load.
+let latest = 0;
+
+function ask() {
+  const n = ++latest;
+  loading = true;
+  myAppliedJobIds()
+    .then((answer) => n === latest && set(answer ? new Set(answer) : null))
+    // No answer (#250): ask again once the browser is back online, not only on the next page.
+    .catch(() => n === latest && window.addEventListener("online", load, { once: true }))
+    .finally(() => {
+      if (n === latest) loading = false;
+    });
+}
+
 /** Asks the server again (after applying or withdrawing). */
 export function refreshApplied(): void {
-  myAppliedJobIds()
-    .then((answer) => set(answer ? new Set(answer) : null))
-    .catch(() => {});
+  ask();
 }
 
 function load() {
   if (ids || loading) return;
-  loading = true;
-  myAppliedJobIds()
-    .then((answer) => set(answer ? new Set(answer) : null))
-    // No answer (#250): ask again once the browser is back online, not only on the next page.
-    .catch(() => window.addEventListener("online", load, { once: true }))
-    .finally(() => {
-      loading = false;
-    });
+  ask();
 }
 
 /** The ids of jobs applied for, or null while signed out or not loaded yet. */

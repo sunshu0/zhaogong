@@ -137,6 +137,8 @@ function businessOf(scope: string): string | undefined {
 // sending them first would put a new device's page over the server's before anyone could choose.
 const compared = new Set<string>();
 const asked = new Set<string>();
+// Identities waiting for the browser to come back online to compare again: one listener each, however many fails.
+const awaitingOnline = new Set<string>();
 
 function compare(scope: string) {
   const remote = remoteOf(scope);
@@ -144,6 +146,8 @@ function compare(scope: string) {
   asked.add(scope);
   (async () => {
     const account = await remote.load();
+    // An answer came: whatever "not reached" said before is over; the steps below say what is true now.
+    setStatus(scope, IDLE);
     if (!account || account.scope !== scope) return asked.delete(scope);
     // A member does not send: the page shown is the server's, and this browser's own copy is left as it was.
     if (!account.canEdit) return setStatus(scope, { state: "readonly", account });
@@ -158,7 +162,16 @@ function compare(scope: string) {
     // No answer: say so either way (#252), since the page shown may not be the account's, and compare again once
     // the browser is back online.
     setStatus(scope, { state: readMark(scope)?.dirty ? "offline" : "unreached" });
-    window.addEventListener("online", () => compare(scope), { once: true });
+    if (awaitingOnline.has(scope)) return;
+    awaitingOnline.add(scope);
+    window.addEventListener(
+      "online",
+      () => {
+        awaitingOnline.delete(scope);
+        compare(scope);
+      },
+      { once: true },
+    );
   });
 }
 
@@ -247,6 +260,15 @@ export function useProfileSave() {
     admins: status.state === "readonly" ? (status.account?.admins ?? []) : undefined,
     /** What on the business's page cannot be public, when the last save was refused (#195). */
     refused: status.state === "refused" ? (status.account?.refused ?? []) : undefined,
+    /**
+     * 重试 after no answer (#252): compares again when this page load has not compared yet, otherwise sends again.
+     * A server restarting brings no `online` event, so the person can ask instead of waiting for the next visit.
+     */
+    retry() {
+      if (status.state !== "offline" && status.state !== "unreached") return;
+      if (compared.has(scope)) void send(scope);
+      else compare(scope);
+    },
     keepAccount() {
       const account = status.account;
       if (!remote || status.state !== "ask" || !account?.profile || !account.updatedAt) return;

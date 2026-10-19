@@ -8,6 +8,7 @@ import { useProfile, useProfileSave, type SaveState } from "@/components/seeker/
 import { useSession } from "@/components/seeker/session-client";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerProfileMessages } from "@/i18n/messages/seeker-profile";
+import { uiMessages } from "@/i18n/messages/ui";
 import { contentLang, DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 
@@ -48,13 +49,24 @@ export function saveNote(
 export function ProfileSaveNote({ localSave, className = "" }: { localSave: boolean | null; className?: string }) {
   const lang = useLang();
   const session = useSession();
-  const { state, onAccount } = useProfileSave();
+  const { state, onAccount, retry } = useProfileSave();
+  const retryWord = useMessages(uiMessages).load.retry;
   const failed =
     localSave === false || (onAccount && (state === "offline" || state === "unreached" || state === "refused"));
-  return (
+  const note = (
     <p role="status" className={`${className} text-meta ${failed ? "text-danger" : "text-muted"}`.trim()}>
       {saveNote(state, onAccount, localSave, session?.activeRole === "employer", lang)}
     </p>
+  );
+  if (!onAccount || localSave === false || (state !== "offline" && state !== "unreached")) return note;
+  // No answer from the account: 重试 beside the note (#252), since a server restarting brings no `online` event.
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3">
+      {note}
+      <button type="button" onClick={retry} className="pressable min-h-11 text-meta font-medium text-brand">
+        {retryWord}
+      </button>
+    </div>
   );
 }
 

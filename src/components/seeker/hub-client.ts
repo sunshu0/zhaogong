@@ -155,19 +155,24 @@ const alertScopes = new Set<string>();
 const NO_ITEMS: readonly Notification[] = [];
 // The identity whose alert notifications got no answer (#252): the page says so rather than showing fewer as all.
 let alertsFailed: string | null = null;
+// Only the latest ask counts: the notifications page asks again while the bell's ask may still be out, and an
+// older failure coming back last must not say 没取到 over a newer answer.
+let alertAsk = 0;
 
 function loadAlertItems(scope: string) {
   if (alertScopes.has(scope)) return;
   alertScopes.add(scope);
+  const n = ++alertAsk;
   myAlertNotifications()
     .then((answer) => {
       if (!answer || answer.scope !== scope) return alertScopes.delete(scope);
       alertItems = { ...alertItems, [scope]: answer.items };
-      if (alertsFailed === scope) alertsFailed = null;
+      if (n === alertAsk && alertsFailed === scope) alertsFailed = null;
       for (const listener of alertListeners) listener();
     })
     .catch(() => {
       alertScopes.delete(scope);
+      if (n !== alertAsk) return;
       alertsFailed = scope;
       for (const listener of alertListeners) listener();
     });

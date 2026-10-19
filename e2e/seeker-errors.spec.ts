@@ -18,8 +18,11 @@ async function cutCalls(page: Page, path: string) {
   return cut;
 }
 
-async function expectNoViolations(page: Page) {
-  const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+/** axe on the page, or only on `scope` where the page also lists what other specs published (#241's lesson). */
+async function expectNoViolations(page: Page, scope?: string) {
+  let axe = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]);
+  if (scope) axe = axe.include(scope);
+  const { violations } = await axe.analyze();
   expect(violations).toEqual([]);
 }
 
@@ -36,6 +39,7 @@ test("the CV's share link: no answer is said in the share card, the CV stays (#2
   cut.on = true;
   await make.click();
   await expect(card.getByRole("alert")).toHaveText("网络有问题，分享链接没有改成，请稍后再试。");
+  await expect(make).toBeEnabled();
   await expect(page.getByRole("article", { name: "中英文简历" }).filter({ visible: true })).toBeVisible();
   await expectNoViolations(page);
 
@@ -63,15 +67,18 @@ test("renaming an alert with no answer keeps the form and the typed name (#251)"
 
   const cut = await cutCalls(page, "/me/alerts");
   cut.on = true;
-  await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page.getByRole("alert")).toHaveText("网络有问题，没有改成，请重试。");
+  const save = page.getByRole("button", { name: "保存", exact: true });
+  await save.click();
+  const changeFailed = page.getByRole("alert").filter({ hasText: "网络有问题，没有改成，请重试。" });
+  await expect(changeFailed).toBeVisible();
   await expect(name).toHaveValue("包餐清洁工");
+  await expect(save).toBeEnabled();
   await expectNoViolations(page);
 
   cut.on = false;
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await save.click();
   await expect(page.getByRole("article", { name: "提醒：包餐清洁工" })).toBeVisible();
-  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(changeFailed).toHaveCount(0);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
@@ -83,7 +90,12 @@ test("the language switch with no answer stays on the page and says so beside it
   await footer.getByRole("button", { name: "English" }).click();
   await expect(footer.getByRole("alert")).toHaveText("网络有问题，没有切换，请稍后再试。");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expectNoViolations(page);
+  // /jobs lists what other specs published: axe looks at the footer, where the switch and its note are.
+  await expectNoViolations(page, "footer");
+  // Another page: the note was about this press and goes.
+  await page.getByRole("link", { name: "找工", exact: true }).first().click();
+  await expect(footer.getByRole("alert")).toHaveCount(0);
+  await page.goto("/jobs");
 
   cut.on = false;
   await footer.getByRole("button", { name: "English" }).click();
