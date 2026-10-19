@@ -36,13 +36,19 @@ export function siteOrigin(siteUrl: string | undefined, host: string | null, for
   return `${proto}://${name}`;
 }
 
-/** The home page, the job list, every open job, and the page of each business that has one. */
+/**
+ * The home page, the job list, the internship and professional sections (#264), every open job, and the page of each
+ * business that has one. An external job's own page stays out: it is noindex (ADR 0014, 10).
+ */
 export function sitemapEntries(origin: string, jobs: Job[], employers: Employer[], now: number): MetadataRoute.Sitemap {
   const open = jobs.filter((job) => isOpenJob(job, now));
   const hiring = new Set(open.map((job) => job.employerId));
   return [
     { url: `${origin}/`, changeFrequency: "daily", priority: 1 },
     { url: `${origin}/jobs`, changeFrequency: "hourly", priority: 0.9 },
+    // The external jobs in them are imported once a day.
+    { url: `${origin}/internships`, changeFrequency: "daily", priority: 0.7 },
+    { url: `${origin}/professional`, changeFrequency: "daily", priority: 0.7 },
     ...open.map((job) => ({
       url: `${origin}/jobs/${job.id}`,
       lastModified: job.postedAt,

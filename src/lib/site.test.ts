@@ -50,6 +50,12 @@ describe("sitemapEntries", () => {
     for (const id of ["j2", "j3", "j4"]) expect(urls).not.toContain(`https://zhaogong.nz/jobs/${id}`);
   });
 
+  it("lists the internship and professional sections, but no external job's own page (#264)", () => {
+    expect(urls).toContain("https://zhaogong.nz/internships");
+    expect(urls).toContain("https://zhaogong.nz/professional");
+    expect(urls.some((url) => url.includes("/external/"))).toBe(false);
+  });
+
   it("lists the businesses that are hiring and not banned", () => {
     expect(urls).toContain("https://zhaogong.nz/employers/e1");
     for (const id of ["e2", "e3", "e4"]) expect(urls).not.toContain(`https://zhaogong.nz/employers/${id}`);
