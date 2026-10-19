@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   decideMyApplicant,
   getMyJobApplicants,
@@ -24,7 +24,7 @@ import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
-import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
+import { PILL_TABS, TabList, TabPanel, pillTab, tabIds } from "@/components/employer/Tabs";
 import {
   applicantFilterCounts,
   applicantFilters,
@@ -69,6 +69,17 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; applicants: Applicant[] } | null }>();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ApplicantFilter>("all");
+  // #256: the marks on their way, by card (the button pressed); that card's other marks wait for it.
+  const [deciding, setDeciding] = useState<Readonly<Record<string, ApplicationDecision>>>({});
+  // #256: where the focus goes once a marked card has left the filtered list: the next applicant's marks, else the
+  // filter's own tab. Read after the render that took the card away.
+  const focusNext = useRef<string | null>(null);
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    document.getElementById(target)?.focus();
+  });
   // #246: the ask (by its version, which 重试 moves on) that got no answer.
   const [version, setVersion] = useState(0);
   const [failed, setFailed] = useState<{ email: string; version: number }>();
@@ -122,11 +133,21 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     );
   }
 
-  async function decide(id: string, decision: ApplicationDecision | null) {
+  async function decide(id: string, decision: ApplicationDecision | null, button: ApplicationDecision) {
+    if (deciding[id]) return;
     setError("");
+    setDeciding((now) => ({ ...now, [id]: button }));
+    const shown = filterApplicants(applicants, filter);
     const ok = await decideMyApplicant(id, decision).catch(() => false);
+    setDeciding((now) => Object.fromEntries(Object.entries(now).filter(([key]) => key !== id)));
     if (!ok) return setError(t.saveFailed);
     toast(decision ? t.marked(decisionLabel(decision, lang)) : t.markCleared);
+    // Marked out of the filter (未处理 → 合适, say), the card goes, and the pressed button with it.
+    if (filterApplicants([{ decision }], filter).length === 0) {
+      const at = shown.findIndex((a) => a.id === id);
+      const next = shown[at + 1] ?? shown[at - 1];
+      focusNext.current = next ? markButtonId(next.id) : tabIds(FILTER_ID_BASE, filter).tab;
+    }
     setLoaded((current) =>
       current?.data
         ? {
@@ -179,7 +200,8 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
                     <ApplicantCard
                       applicant={a}
                       job={job}
-                      onDecide={(d) => void decide(a.id, d)}
+                      busy={deciding[a.id]}
+                      onDecide={(d, button) => void decide(a.id, d, button)}
                       onInterview={(interview) => setInterview(a.id, interview)}
                     />
                   </li>
@@ -219,15 +241,21 @@ function ApplicantFilterTabs({
   );
 }
 
+/** The first mark button of an applicant's card, where the focus goes when the card before it leaves the list. */
+const markButtonId = (applicationId: string) => `applicant-marks-${applicationId}`;
+
 function ApplicantCard({
   applicant: a,
   job,
+  busy,
   onDecide,
   onInterview,
 }: {
   applicant: Applicant;
   job: Job;
-  onDecide: (decision: ApplicationDecision | null) => void;
+  /** The mark button whose answer is on its way (#256): it shows busy and keeps the focus; the others wait. */
+  busy?: ApplicationDecision;
+  onDecide: (decision: ApplicationDecision | null, button: ApplicationDecision) => void;
   onInterview: (interview: InterviewView) => void;
 }) {
   const t = useMessages(employerApplicantsMessages).jobApplicants;
@@ -288,13 +316,16 @@ function ApplicantCard({
           {t.startChat}
         </button>
         <div role="group" aria-label={t.markGroupLabel(a.profile.name)} className="flex gap-2">
-          {(["fit", "unfit", "hired"] as const).map((d) => (
+          {(["fit", "unfit", "hired"] as const).map((d, i) => (
             <button
               key={d}
+              id={i === 0 ? markButtonId(a.id) : undefined}
               type="button"
               aria-pressed={a.decision === d}
-              onClick={() => onDecide(a.decision === d ? null : d)}
+              onClick={() => onDecide(a.decision === d ? null : d, d)}
               className={`${buttonClass("secondary")} ${a.decision === d ? "bg-brand-soft" : ""}`}
+              {...busyProps(busy !== undefined)}
+              aria-busy={busy === d || undefined}
             >
               {decisionLabel(d, lang)}
             </button>

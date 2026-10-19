@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { freshEmail, signIn } from "../helpers";
 import { CLEAN_MESSAGE, lastAssistant, publishJob, signUpEmployer, uniqueCjkTitle, uniqueTitle } from "./helpers";
 
 // The whole post flow with the keyboard only: every control can be reached with Tab, shows a
@@ -205,6 +206,44 @@ test("取消 on a job card's question and on a team row's confirm gives the focu
   await expect(page.getByRole("button", { name: "确认退出" })).toBeFocused();
   await page.getByRole("button", { name: "取消", exact: true }).click();
   await expect(leave).toBeFocused();
+});
+
+test("申请人: a mark shows busy while it is on its way, and one that takes the card out of 未处理 moves the focus on (#256)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  const jobId = (await publishJob(page, uniqueTitle("前厅服务员", testInfo)))!;
+  // A demo job seeker (林晓's page, #125) applies.
+  const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.keys"));
+  await seeker.getByRole("button", { name: "申请", exact: true }).click();
+  const form = seeker.getByRole("dialog", { name: /申请这个职位|我的申请/ });
+  await form.getByRole("button", { name: "提交申请" }).click();
+  await expect(form.getByRole("status")).toHaveText("已申请，等雇主查看");
+  await seeker.context().close();
+
+  const path = `/employer/jobs/${jobId}/applicants`;
+  await page.goto(path);
+  const filters = page.getByRole("tablist", { name: "按处理状态" });
+  await filters.getByRole("tab", { name: "未处理 1" }).click();
+  const applicant = page.getByRole("article", { name: "申请人 林晓" });
+  const fit = applicant.getByRole("button", { name: "合适", exact: true });
+  await fit.focus();
+  const release = await holdCalls(page, path);
+  await page.keyboard.press("Enter");
+  // On its way: the pressed mark is busy and keeps the focus; the card's other marks wait.
+  await expect(fit).toHaveAttribute("aria-busy", "true");
+  await expect(fit).toBeFocused();
+  await expect(applicant.getByRole("button", { name: "不合适" })).toHaveAttribute("aria-disabled", "true");
+  await page.keyboard.press("Enter");
+  release();
+  // 合适 takes the card out of 未处理; with nobody after it, the focus goes to the filter's own tab.
+  await expect(applicant).toHaveCount(0);
+  await expect(filters.getByRole("tab", { name: "未处理 0" })).toBeFocused();
+  await filters.getByRole("tab", { name: "合适 1" }).click();
+  // Pressed twice, sent once: still 合适, not taken back off.
+  await expect(fit).toHaveAttribute("aria-pressed", "true");
 });
 
 test("团队: 保存称呼 keeps the focus while it saves, then the notice takes it (#202)", async ({ page }, testInfo) => {
