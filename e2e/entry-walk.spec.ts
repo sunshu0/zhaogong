@@ -534,7 +534,8 @@ test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通�
   await expect(card.getByRole("link", { name: "看官网原文" })).toHaveCount(0);
   if (isPhone(testInfo)) {
     // Flagged (U.S. person): 通过 waits for the tick; this walk hides it instead, with a reason.
-    await expect(card.getByRole("alert")).toContainText("U.S. person");
+    // #305: the flags are a group named by its heading, not an alert.
+    await expect(card.getByRole("group", { name: "需要核对原文：" })).toContainText("U.S. person");
     await expect(card.getByRole("button", { name: "通过" })).toBeDisabled();
     await card.getByRole("button", { name: "不显示" }).click();
     await card.getByRole("radio", { name: "有按国籍、种族招人的要求" }).check();
