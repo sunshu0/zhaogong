@@ -12,10 +12,15 @@ vi.mock("next/headers", () => ({
 // A Server Component's root parameter: the copy of the page the proxy picked (app/[lang]).
 let rootLang: string | undefined = "zh";
 vi.mock("next/root-params", () => ({ lang: async () => rootLang }));
+// The test dictionary's English, answered by englishFor for its key (#267: dictionaries never carry it inline).
+vi.mock("@/i18n/english", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/i18n/english")>();
+  return { ...real, englishFor: (key: string) => (key === "test.save" ? { save: "Save" } : real.englishFor(key)) };
+});
 const { messages, requestLang, serverLang } = await import("@/i18n/server");
 
 const saveZh = { save: "收藏" };
-const saveMessages: Dictionary<typeof saveZh> = { zh: saveZh, en: { save: "Save" } };
+const saveMessages: Dictionary<typeof saveZh> = { key: "test.save", zh: saveZh };
 
 beforeEach(() => {
   cookies.clear();

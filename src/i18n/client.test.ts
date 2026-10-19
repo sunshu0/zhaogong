@@ -1,15 +1,19 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LangProvider, useLang, useMessages } from "@/i18n/client";
 import type { Lang } from "@/i18n/lang";
 import type { Dictionary } from "@/i18n/messages";
 
+// The test dictionary's English, answered by englishFor for its key (#267: dictionaries never carry it inline).
+vi.mock("@/i18n/english", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/i18n/english")>();
+  const en = { save: "Save", savedCount: (n: number) => `${n} saved` };
+  return { ...real, englishFor: (key: string) => (key === "test.save" ? en : real.englishFor(key)) };
+});
+
 const saveZh = { save: "收藏", savedCount: (n: number) => `已收藏 ${n} 个` };
-const saveMessages: Dictionary<typeof saveZh> = {
-  zh: saveZh,
-  en: { save: "Save", savedCount: (n) => `${n} saved` },
-};
+const saveMessages: Dictionary<typeof saveZh> = { key: "test.save", zh: saveZh };
 
 function SaveButton() {
   const t = useMessages(saveMessages);

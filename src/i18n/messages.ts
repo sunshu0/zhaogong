@@ -20,8 +20,9 @@
 //     savedCount: (n) => (n === 1 ? "1 saved" : `${n} saved`),
 //   };
 //
-// The browser loads the English sides only on English pages (src/i18n/english.ts). A dictionary not moved yet may
-// still carry `en` inline; pick() uses it.
+// The browser loads the English sides only on English pages (src/i18n/english.ts). The English side is never written
+// in the dictionary itself (#267): there it would go into every page's JavaScript, Chinese pages included, so the
+// type does not allow it.
 //
 // Wording with a number or a name in it is a function, never a template string to fill in later. A plain object
 // literal (not a function call) keeps unused dictionaries out of the browser's JavaScript.
@@ -44,16 +45,11 @@ export type Messages<T> = {
         : Messages<T[K]>;
 };
 
-/**
- * A dictionary: the Chinese text as written, and the key its English side is listed under in messages/en/index.ts
- * (or, until it is moved there, the English side inline).
- */
-export type Dictionary<T> =
-  | { readonly key: string; readonly zh: T; readonly en?: undefined }
-  | { readonly key?: undefined; readonly zh: T; readonly en: Messages<T> };
+/** A dictionary: the Chinese text as written, and the key its English side is listed under in messages/en/index.ts. */
+export type Dictionary<T> = { readonly key: string; readonly zh: T };
 
 /** One language's side of a dictionary. */
 export function pick<T>(dictionary: Dictionary<T>, lang: Lang): Messages<T> {
   if (lang !== "en") return dictionary.zh as unknown as Messages<T>;
-  return dictionary.key === undefined ? dictionary.en : (englishFor(dictionary.key) as Messages<T>);
+  return englishFor(dictionary.key) as Messages<T>;
 }

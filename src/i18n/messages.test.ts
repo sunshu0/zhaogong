@@ -1,23 +1,30 @@
 import { readdirSync } from "node:fs";
-import { describe, expect, it } from "vitest";
-import { pick, type Dictionary } from "@/i18n/messages";
+import { describe, expect, it, vi } from "vitest";
+import { pick, type Dictionary, type Messages } from "@/i18n/messages";
 
-// The shape the dictionaries in src/i18n/messages/ follow (messages.ts).
+// The shape the dictionaries in src/i18n/messages/ follow (messages.ts): the Chinese side and a key, the English
+// side listed under that key in messages/en/ (#240, #267). The sample's English is listed here instead: englishFor
+// answers for the "test." keys and leaves every other key to the real table.
+const testEnglish = vi.hoisted(() => ({}) as Record<string, unknown>);
+vi.mock("@/i18n/english", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/i18n/english")>();
+  return { ...real, englishFor: (key: string) => (key in testEnglish ? testEnglish[key] : real.englishFor(key)) };
+});
+
 const sampleZh = {
   save: "收藏",
   savedCount: (n: number) => `已收藏 ${n} 个`,
   steps: ["填写", "预览"],
   form: { title: "职位名称", tooLong: (max: number) => `最多 ${max} 个字` },
 };
-const sample: Dictionary<typeof sampleZh> = {
-  zh: sampleZh,
-  en: {
-    save: "Save",
-    savedCount: (n) => (n === 1 ? "1 saved" : `${n} saved`),
-    steps: ["Fill in", "Preview"],
-    form: { title: "Job title", tooLong: (max) => `${max} characters at most` },
-  },
+const sample: Dictionary<typeof sampleZh> = { key: "test.sample", zh: sampleZh };
+const sampleEn: Messages<typeof sampleZh> = {
+  save: "Save",
+  savedCount: (n) => (n === 1 ? "1 saved" : `${n} saved`),
+  steps: ["Fill in", "Preview"],
+  form: { title: "Job title", tooLong: (max) => `${max} characters at most` },
 };
+testEnglish["test.sample"] = sampleEn;
 
 describe("dictionaries", () => {
   it("give each language its own side, nested groups and wording with figures included", () => {
@@ -38,28 +45,35 @@ describe("dictionaries", () => {
   });
 
   it("are checked by tsc: the English side has exactly the Chinese side's keys and parameters", () => {
-    // Each marked line must fail `tsc` (npm run typecheck); the directive itself fails if it ever compiles.
-    const missing: Dictionary<{ save: string; saved: string }> = {
-      zh: { save: "收藏", saved: "已收藏" },
-      // @ts-expect-error a key is missing in English
-      en: { save: "Save" },
-    };
-    const extra: Dictionary<{ save: string }> = {
-      zh: { save: "收藏" },
+    // Each marked line must fail `tsc` (npm run typecheck); the directive itself fails if it ever compiles. The
+    // English files in messages/en/ are typed Messages<(typeof …)["zh"]>, as these are.
+    // @ts-expect-error a key is missing in English
+    const missing: Messages<{ save: string; saved: string }> = { save: "Save" };
+    const extra: Messages<{ save: string }> = {
+      save: "Save",
       // @ts-expect-error a key English has and Chinese does not
-      en: { save: "Save", saveAll: "Save all" },
+      saveAll: "Save all",
     };
-    const wrongParameter: Dictionary<{ count: (n: number) => string }> = {
-      zh: { count: (n: number) => `${n} 个` },
+    const wrongParameter: Messages<{ count: (n: number) => string }> = {
       // @ts-expect-error English takes a different parameter
-      en: { count: (n: string) => n },
+      count: (n: string) => n,
     };
-    const notWording: Dictionary<{ count: (n: number) => string }> = {
-      zh: { count: (n: number) => `${n} 个` },
+    const notWording: Messages<{ count: (n: number) => string }> = {
       // @ts-expect-error English must be wording too, not a number
-      en: { count: (n: number) => n },
+      count: (n: number) => n,
     };
     expect([missing, extra, wrongParameter, notWording]).toHaveLength(4);
+  });
+
+  it("are checked by tsc: the English side is never written in the dictionary itself (#267)", () => {
+    // Inline it would go into every page's JavaScript, Chinese pages included.
+    const inline: Dictionary<{ save: string }> = {
+      key: "test.inline",
+      zh: { save: "收藏" },
+      // @ts-expect-error English belongs in messages/en/, listed under the key
+      en: { save: "Save" },
+    };
+    expect(inline.key).toBe("test.inline");
   });
 });
 
@@ -72,8 +86,8 @@ const modules: [string, Record<string, unknown>][] = await Promise.all(
 );
 
 describe("the English sides kept apart (#240)", () => {
-  // Every dictionary in src/i18n/messages/: English either inline (not moved yet) or listed in en/index.ts under its
-  // key, so pick(…, "en") never throws on a page.
+  // Every dictionary in src/i18n/messages/ has its English listed in en/index.ts under its key, so pick(…, "en")
+  // never throws on a page.
   const dictionaries = modules.flatMap(([file, exports]) =>
     Object.entries(exports)
       .filter(([, value]) => typeof value === "object" && value !== null && "zh" in value)
