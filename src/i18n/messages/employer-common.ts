@@ -66,6 +66,7 @@ const employerCommonZh = {
     stats: "职位数据",
     team: "团队",
     verification: "企业验证",
+    candidates: "账号上的人选",
   },
 
   /** The labels of the skeletons under app/employer/**\/loading.tsx. */

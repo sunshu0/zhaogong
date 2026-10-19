@@ -5,7 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { signIn } from "../helpers";
-import { CLEAN_MESSAGE, openTheForm, signUpEmployer } from "./helpers";
+import { CLEAN_MESSAGE, openTheForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -116,5 +116,35 @@ test("employer actions that get no answer say so where they were pressed, keep w
   await tidy.click();
   await expect(page.getByLabel("职位名称（中文）")).toBeVisible();
   await expect(page.getByText(noAnswer)).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("推荐人才 says when the candidates with accounts got no answer, with 重试, and shows them once they come (#277)", async ({
+  page,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  await publishJob(page, uniqueTitle("前厅服务员", testInfo));
+  // Only the directory's call is cut: it takes no arguments (its body is []), the jobs' call carries its options.
+  let cut = true;
+  await page.route(
+    (url) => url.pathname === "/employer/candidates",
+    (route) =>
+      cut && route.request().method() === "POST" && route.request().postData() === "[]"
+        ? route.abort("internetdisconnected")
+        : route.fallback(),
+  );
+  await page.goto("/employer/candidates");
+  const failed = page.getByRole("alert").filter({ hasText: "账号上的人选没取到" });
+  await expect(failed).toBeVisible();
+  // The rest of the page is there (the examples are still listed), and nothing says the list is all there is.
+  const title = page.getByText(/^推荐求职者 · \d+ 人$/);
+  await expect(title).toBeVisible();
+  await expect(page.getByText("暂无符合条件的求职者")).toHaveCount(0);
+  await expectNoViolations(page);
+
+  cut = false;
+  await failed.getByRole("button", { name: "重试" }).click();
+  await expect(failed).toHaveCount(0);
+  await expect(title).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });

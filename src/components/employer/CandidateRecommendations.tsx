@@ -62,7 +62,10 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
   const names = useMessages(employerCommonMessages).load;
   const lang = useLang();
   const { ready, failed, reload } = useMyJobs(me.email);
-  const { candidates } = useCandidateDirectory();
+  // #277: the accounts' candidates come from the server; the examples are always there. Missing ones are said, and
+  // while they are on their way the list waits, rather than show fewer people as all there is (ADR 0024).
+  const directory = useCandidateDirectory();
+  const { candidates } = directory;
   const [jobId, setJobId] = useState("");
   const [query, setQuery] = useState("");
   const [minimum, setMinimum] = useState("0");
@@ -152,17 +155,22 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               />
             </div>
           </section>
+          {directory.failed && <LoadFailed what={names.candidates} onRetry={directory.reload} />}
           <Section
             look="app"
             title={t.listTitle(matches.length)}
             action={<span className="text-meta text-muted">{t.sortNote}</span>}
           >
-            {!matches.length ? (
-              <p role="status" className="py-12 text-center text-body text-muted">
-                {t.noMatches}
-              </p>
-            ) : (
+            {!directory.loaded && !directory.failed ? (
+              <SkeletonList count={3} />
+            ) : matches.length ? (
               <MatchList key={job.id} matches={matches} job={job} />
+            ) : (
+              !directory.failed && (
+                <p role="status" className="py-12 text-center text-body text-muted">
+                  {t.noMatches}
+                </p>
+              )
             )}
           </Section>
         </>

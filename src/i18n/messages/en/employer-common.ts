@@ -66,6 +66,7 @@ export const employerCommonEn: Messages<(typeof employerCommonMessages)["zh"]> =
     stats: "this job's numbers",
     team: "your team",
     verification: "your business verification",
+    candidates: "the candidates with accounts",
   },
 
   loading: {
