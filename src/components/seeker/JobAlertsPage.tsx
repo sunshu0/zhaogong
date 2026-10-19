@@ -90,7 +90,7 @@ export function JobAlertsPage() {
             <AlertRow
               key={alert.id}
               alert={alert}
-              onRename={async (name) => void (await run(() => changeMyJobAlert(alert.id, { name })))}
+              onRename={(name) => run(() => changeMyJobAlert(alert.id, { name }))}
               onPause={async (paused) => void (await run(() => changeMyJobAlert(alert.id, { paused })))}
               onDelete={async () => {
                 // The row and its buttons go away: the focus goes to the line above the list (#202).
@@ -121,7 +121,8 @@ function AlertRow({
   onDelete,
 }: {
   alert: JobAlertView;
-  onRename: (name: string) => Promise<void>;
+  /** True when the server took the new name. */
+  onRename: (name: string) => Promise<boolean>;
   onPause: (paused: boolean) => Promise<void>;
   onDelete: () => Promise<void>;
 }) {
@@ -157,8 +158,11 @@ function AlertRow({
             onSubmit={async (event) => {
               event.preventDefault();
               const name = String(new FormData(event.currentTarget).get("name") ?? "");
-              await act(() => onRename(name))();
-              closeRename();
+              setBusy(true);
+              const saved = await onRename(name);
+              setBusy(false);
+              // Not taken (offline, #251): the form stays with what was typed, the reason is above the list.
+              if (saved) closeRename();
             }}
           >
             <label className="sr-only" htmlFor={`alert-name-${alert.id}`}>

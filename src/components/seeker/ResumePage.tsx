@@ -311,7 +311,9 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const shareNow = () => {
     setActing("share");
     startTransition(async () => {
-      const result = await shareMyResume(shareCopy(doc));
+      // No answer (offline, the server restarting) is said here, not by the error page in place of the CV (#251).
+      const result = await shareMyResume(shareCopy(doc)).catch(() => null);
+      if (!result) return setError(t.shareNoAnswer);
       setError(result.ok ? "" : result.error);
       if (result.ok) {
         focusAfter.current = "link";
@@ -322,7 +324,12 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const close = () => {
     setActing("close");
     startTransition(async () => {
-      await closeMyResumeShare();
+      try {
+        await closeMyResumeShare();
+      } catch {
+        return setError(t.shareNoAnswer);
+      }
+      setError("");
       focusAfter.current = "make";
       setShare(null);
     });

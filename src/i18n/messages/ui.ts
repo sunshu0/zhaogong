@@ -37,6 +37,7 @@ const uiZh = {
     otherTag: "en",
     title: "切换到英文界面",
     row: "界面语言：中文",
+    noAnswer: "网络有问题，没有切换，请稍后再试。",
   },
   // Skeleton.tsx
   loading: "正在加载",

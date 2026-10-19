@@ -188,6 +188,7 @@ const profileZh = {
     shareUpdate: "更新分享内容",
     shareOff: "关闭链接",
     shareMake: "生成分享链接",
+    shareNoAnswer: "网络有问题，分享链接没有改成，请稍后再试。",
     signInFirst: "请先登录",
     switchToShare: "请切换为求职者身份后再分享简历",
     nameFirst: "先在主页填写称呼，再分享简历",

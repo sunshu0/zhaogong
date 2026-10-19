@@ -184,6 +184,7 @@ export const seekerProfileEn: Messages<(typeof seekerProfileMessages)["zh"]> = {
     shareUpdate: "Update the shared CV",
     shareOff: "Turn off the link",
     shareMake: "Make a share link",
+    shareNoAnswer: "Network problem: the share link didn't change. Try again later.",
     signInFirst: "Sign in first",
     switchToShare: "Switch to job seeker to share your CV",
     nameFirst: "Add your name to your profile before sharing your CV",

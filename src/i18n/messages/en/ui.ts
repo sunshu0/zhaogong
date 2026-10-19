@@ -34,6 +34,7 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     otherTag: "zh-CN",
     title: "Switch to Chinese",
     row: "Language: English",
+    noAnswer: "Network problem: the language didn't change. Try again later.",
   },
   loading: "Loading",
   loadingJobs: "Loading jobs",
