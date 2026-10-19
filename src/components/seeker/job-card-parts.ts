@@ -26,7 +26,10 @@ export function cardPoints(job: Job, regionName: string | undefined, lang: Lang 
   // The card shows whole points on one line and leaves out from the end those that don't fit (#242, 导师 10-19):
   // the area and how to reach the employer (A25) first, so a phone always shows them; then the hours, short; the
   // shifts, in the employer's words, last (the job page has them in full).
-  if (regionName) points.push({ text: regionName });
+  // An area named after two places ("Mt Wellington / Sylvia Park") shows the first: in full it pushed the contact
+  // off a 375 px line (gate18). The job page names the area in full.
+  const area = regionName?.split(" / ")[0];
+  if (area) points.push({ text: area });
   points.push({ text: job.contactPublic ? t.contactPublic : t.contactByChat });
   if (work) points.push({ text: work });
   if (shifts) points.push({ text: shifts, zh: true });

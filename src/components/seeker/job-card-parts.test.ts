@@ -17,6 +17,8 @@ describe("a job card's parts (Round 19)", () => {
     ]);
     const bare: Job = { ...j5, employmentType: [], hoursPerWeek: undefined, shiftsZh: " ", contactPublic: true };
     expect(cardPoints(bare, undefined).map((p) => p.text)).toEqual(["联系方式公开"]);
+    // An area named after two places shows the first, so the contact stays on a phone's line (#242).
+    expect(cardPoints(bare, "Mt Wellington / Sylvia Park")[0]).toEqual({ text: "Mt Wellington" });
   });
 
   it("shows one status: 急招 before a verified employer, nothing for an unverified one", () => {
