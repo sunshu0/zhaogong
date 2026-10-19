@@ -13,6 +13,7 @@ import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentSettingsButton } from "@/components/analytics/ConsentSettingsButton";
 import { Toaster } from "@/components/ui/Toast";
 import { LangProvider } from "@/i18n/client";
+import { aboutMessages } from "@/i18n/messages/about";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import { LANGS, isLang, localeTag } from "@/i18n/lang";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   if (!isLang(await rootLang())) notFound();
   const lang = await serverLang();
   const { site } = await messages(uiMessages);
+  const { footer } = await messages(aboutMessages);
   return (
     <html lang={localeTag(lang)} className={`${archivo.variable} h-full antialiased`}>
       <head>
@@ -83,6 +85,17 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
           <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
             <p>{site.lawNote}</p>
+            <nav aria-label={footer.label} className="flex flex-wrap justify-center gap-x-4">
+              <Link href="/about" className="inline-flex min-h-11 items-center underline underline-offset-2">
+                {footer.about}
+              </Link>
+              <Link href="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-2">
+                {footer.privacy}
+              </Link>
+              <Link href="/terms" className="inline-flex min-h-11 items-center underline underline-offset-2">
+                {footer.terms}
+              </Link>
+            </nav>
             <LangSwitch look="footer" />
             <ConsentSettingsButton />
           </footer>

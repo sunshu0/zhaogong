@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { useLang, useMessages, useSitePathname } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -149,7 +150,12 @@ function ConsentPrompt({
       data-clarity-mask="true"
     >
       <div className="mx-auto max-w-3xl space-y-3 rounded-card bg-surface p-4 text-body shadow-card">
-        <p>{t.body}</p>
+        <p>
+          {t.body}{" "}
+          <Link href="/privacy" className="text-brand underline underline-offset-2">
+            {t.privacy}
+          </Link>
+        </p>
         {consent && <p className="text-meta text-muted">{consent === "clarity" ? t.on : t.off}</p>}
         <div ref={buttons} className="flex gap-2">
           <Button className="flex-1" onClick={() => onAnswer("clarity")}>

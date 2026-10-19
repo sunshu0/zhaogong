@@ -49,8 +49,10 @@ export function sitemapEntries(origin: string, jobs: Job[], employers: Employer[
     // The external jobs in them are imported once a day.
     { url: `${origin}/internships`, changeFrequency: "daily", priority: 0.7 },
     { url: `${origin}/professional`, changeFrequency: "daily", priority: 0.7 },
-    // 关于找工 (#324).
+    // 关于找工 (#324), and the privacy statement and terms of use (#323).
     { url: `${origin}/about`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${origin}/privacy`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${origin}/terms`, changeFrequency: "monthly", priority: 0.3 },
     ...open.map((job) => ({
       url: `${origin}/jobs/${job.id}`,
       lastModified: job.postedAt,

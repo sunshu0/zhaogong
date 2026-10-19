@@ -1,6 +1,6 @@
 // /about (#324): who runs 找工, who it is for, what it costs, the rules every job keeps and how to reach us. Every
-// statement is checked against New Zealand law (the PR lists the sections); facts only the operator can give are
-// placeholders in square brackets until the user fills them in (Progress lists them).
+// statement is checked against New Zealand law (the PR lists the sections); facts only the company can give are
+// placeholders in square brackets, written as on the privacy page (#323) so the user fills each in once.
 import type { Dictionary } from "@/i18n/messages";
 
 const aboutZh = {
@@ -9,7 +9,7 @@ const aboutZh = {
     "找工是给在新西兰的华人用的中文招聘信息平台，先从奥克兰开始：餐饮、零售、清洁、美容美发、装修建筑、物流仓储等行业的职位，以及从公司官网导入的实习和专业职位。",
   who: {
     heading: "谁在做",
-    body: "找工由 [运营方名称] 运营，地址：[运营方地址]。找工只发布招聘信息，不是雇主，不是职业中介，也不是移民顾问：雇佣关系在你和雇主之间。",
+    body: "找工由 [公司名称] 运营，地址：[公司地址]。找工只发布招聘信息，不是雇主，不是职业中介，也不是移民顾问：雇佣关系在你和雇主之间。",
   },
   cost: {
     heading: "收不收费",
@@ -36,13 +36,15 @@ const aboutZh = {
   },
   data: {
     heading: "你的资料",
-    body: "我们怎样收集和使用你的资料，写在隐私说明里。你可以在「我的 → 数据与账号」下载或删除自己的数据。隐私负责人：[隐私负责人]，联系方式见下面。",
+    body: "我们怎样收集和使用你的资料，写在隐私说明里。你可以在「我的 → 数据与账号」下载或删除自己的数据。隐私官：[隐私官姓名或职位]，邮箱：[隐私联系邮箱]。",
     privacy: "隐私说明",
   },
   contact: {
     heading: "联系我们",
     body: "邮箱：[联系邮箱]。职位的问题请先在职位页按「举报这个职位」，这样处理得最快。",
   },
+  // The footer's links to the three pages (the layout), named as each page is titled (#323 has the other two).
+  footer: { label: "关于和法律信息", about: "关于找工", privacy: "隐私说明", terms: "使用条款" },
 };
 
 export const aboutMessages: Dictionary<typeof aboutZh> = { key: "about", zh: aboutZh };
