@@ -93,6 +93,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     },
   },
   alerts: {
+    foundWhat: "the new jobs your alerts found",
     signInFor: "Sign in to save your filters and hear about new jobs",
     loadFailed: "Network problem: your alerts can't be opened right now. Try again later.",
     changeFailed: "Network problem: the change didn't go through. Try again.",
@@ -239,6 +240,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     data: "Data and account",
     toDo: (n) => `${plural(n, "thing", "things")} to do`,
     loadingTodos: "Loading your to-dos",
+    interviewsWhat: "your interview to-dos",
     todos: "To do",
     allDone: "All done",
     employerEmpty: "New applications and chats show up here.",

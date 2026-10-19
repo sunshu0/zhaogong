@@ -102,6 +102,7 @@ const seekerMeZh = {
   },
   // JobAlertsPage.tsx, SaveAlert.tsx, job-alerts.ts
   alerts: {
+    foundWhat: "职位提醒找到的新职位",
     signInFor: "登录后可以保存筛选条件，有新职位时提醒你",
     loadFailed: "网络有问题，提醒暂时打不开，请稍后再试。",
     changeFailed: "网络有问题，没有改成，请重试。",
@@ -252,6 +253,7 @@ const seekerMeZh = {
     data: "数据与账号",
     toDo: (n: number) => `${n} 件事要处理`,
     loadingTodos: "正在读取待办",
+    interviewsWhat: "面试待办",
     todos: "待办",
     allDone: "都处理完了",
     employerEmpty: "新的应聘和聊天会出现在这里。",

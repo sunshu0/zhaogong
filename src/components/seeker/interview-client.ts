@@ -1,32 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { myInterviewTodos } from "@/app/[lang]/me/interview-actions";
 import type { InterviewTodo } from "@/app/[lang]/me/interview-notifications";
 import type { DemoSession } from "@/components/seeker/session";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { interviewIcs, type InterviewView } from "@/components/seeker/interviews";
+import { useServerLoad } from "@/components/ui/use-server-load";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 
 /**
- * The identity's interview to-dos (#103) from the server; undefined until they arrive, so 总览 waits rather than
- * shows a list that is about to change. Kept per identity: switching identity loads the other side's.
+ * The identity's interview to-dos (#103) from the server; `todos` is undefined until they arrive, so 总览 waits
+ * rather than shows a list that is about to change. Kept per identity: switching identity loads the other side's.
+ * No answer is `failed` (with `reload` for 重试) and no to-dos, so the rest of 总览 still shows and says the
+ * interviews are missing rather than that there are none (#252).
  */
-export function useInterviewTodos(session: DemoSession | null): InterviewTodo[] | undefined {
-  const scope = session ? identityScope(session) : "";
-  const [loaded, setLoaded] = useState<{ scope: string; todos: InterviewTodo[] }>();
-  useEffect(() => {
-    if (!scope) return;
-    let live = true;
-    myInterviewTodos()
-      .then((todos) => live && setLoaded({ scope, todos }))
-      .catch(() => live && setLoaded({ scope, todos: [] }));
-    return () => {
-      live = false;
-    };
-  }, [scope]);
-  if (!session) return [];
-  return loaded?.scope === scope ? loaded.todos : undefined;
+export function useInterviewTodos(session: DemoSession | null): {
+  todos: InterviewTodo[] | undefined;
+  failed: boolean;
+  reload: () => void;
+} {
+  const { value, failed, reload } = useServerLoad(session ? identityScope(session) : undefined, myInterviewTodos);
+  if (!session) return { todos: [], failed: false, reload };
+  return { todos: failed ? [] : value, failed, reload };
 }
 
 /** Saves the confirmed interview as a calendar file (.ics); nothing is sent to any calendar service. */

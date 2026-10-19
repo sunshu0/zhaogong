@@ -14,11 +14,11 @@ export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallb
   const [loaded, setLoaded] = useState<{ jobId: string; job: JobSummary | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    jobSummary(jobId)
-      .catch(() => null)
-      .then((job) => {
-        if (!cancelled) setLoaded({ jobId, job });
-      });
+    // No answer (#252) is not "gone": the bar stays, with the conversation's own title for the job and no pay.
+    jobSummary(jobId).then(
+      (job) => !cancelled && setLoaded({ jobId, job }),
+      () => {},
+    );
     return () => {
       cancelled = true;
     };

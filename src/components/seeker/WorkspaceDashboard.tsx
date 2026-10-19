@@ -11,6 +11,7 @@ import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
 import { ButtonLink } from "@/components/ui/Button";
 import { LinkList } from "@/components/ui/LinkList";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Section } from "@/components/ui/Section";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useLang, useMessages } from "@/i18n/client";
@@ -29,7 +30,7 @@ export function WorkspaceDashboard() {
   const jobs = useMyJobs(employerEmail).ready;
   const employer = useEmployerProfile(employerEmail).profile;
   const verification = useMyVerification(employerEmail).request;
-  const interviews = useInterviewTodos(session);
+  const { todos: interviews, failed: interviewsFailed, reload: reloadInterviews } = useInterviewTodos(session);
   // An employer's jobs and verification, and either side's interviews, come from the server; wait for them rather
   // than list a stale to-do.
   const loading = (isEmployer && (!jobs || !employer || verification === undefined)) || !interviews;
@@ -64,15 +65,18 @@ export function WorkspaceDashboard() {
           {!loading && todos.length > 0 && t.toDo(todos.length)}
         </p>
       </header>
+      {interviewsFailed && <LoadFailed what={t.interviewsWhat} onRetry={reloadInterviews} />}
       {loading ? (
         <SkeletonList count={2} label={t.loadingTodos} />
-      ) : todos.length ? (
-        <Section look="app" id="todos" title={t.todos}>
-          <LinkList
-            label={t.todos}
-            items={todos.map((todo) => ({ href: todo.href, label: todo.title, detail: todo.detail }))}
-          />
-        </Section>
+      ) : todos.length || interviewsFailed ? (
+        todos.length > 0 && (
+          <Section look="app" id="todos" title={t.todos}>
+            <LinkList
+              label={t.todos}
+              items={todos.map((todo) => ({ href: todo.href, label: todo.title, detail: todo.detail }))}
+            />
+          </Section>
+        )
       ) : (
         <Section look="app">
           <div className="py-10 text-center">

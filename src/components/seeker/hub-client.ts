@@ -153,6 +153,8 @@ let alertItems: Readonly<Record<string, readonly Notification[]>> = {};
 const alertListeners = new Set<() => void>();
 const alertScopes = new Set<string>();
 const NO_ITEMS: readonly Notification[] = [];
+// The identity whose alert notifications got no answer (#252): the page says so rather than showing fewer as all.
+let alertsFailed: string | null = null;
 
 function loadAlertItems(scope: string) {
   if (alertScopes.has(scope)) return;
@@ -161,21 +163,47 @@ function loadAlertItems(scope: string) {
     .then((answer) => {
       if (!answer || answer.scope !== scope) return alertScopes.delete(scope);
       alertItems = { ...alertItems, [scope]: answer.items };
+      if (alertsFailed === scope) alertsFailed = null;
       for (const listener of alertListeners) listener();
     })
-    .catch(() => alertScopes.delete(scope));
+    .catch(() => {
+      alertScopes.delete(scope);
+      alertsFailed = scope;
+      for (const listener of alertListeners) listener();
+    });
 }
 
-/** For the notifications page: asks the server again on opening it, so jobs found since the page loaded show. */
-export function useFreshAlertNotifications() {
+const subscribeAlerts = (listener: () => void) => {
+  alertListeners.add(listener);
+  return () => alertListeners.delete(listener);
+};
+
+/**
+ * For the notifications page: asks the server again on opening it, so jobs found since the page loaded show.
+ * `failed` when the jobs the alerts found got no answer, with `reload` for 重试.
+ */
+export function useFreshAlertNotifications(): { failed: boolean; reload: () => void } {
   const session = useSession();
   const scope = identityScope(session);
   const signedIn = Boolean(session);
+  const failedScope = useSyncExternalStore(
+    subscribeAlerts,
+    () => alertsFailed,
+    () => null,
+  );
   useEffect(() => {
     if (!signedIn) return;
     alertScopes.delete(scope);
     loadAlertItems(scope);
   }, [signedIn, scope]);
+  return {
+    failed: signedIn && failedScope === scope,
+    reload: () => {
+      alertsFailed = null;
+      for (const listener of alertListeners) listener();
+      loadAlertItems(scope);
+    },
+  };
 }
 
 function useAlertItems(scope: string): readonly Notification[] {

@@ -36,6 +36,8 @@ export function saveNote(
       return localSave ? t.savedHere : t.readonly;
     case "offline":
       return t.offline;
+    case "unreached":
+      return t.unreached;
     case "ask":
       return t.chooseFirst;
     default:
@@ -47,7 +49,8 @@ export function ProfileSaveNote({ localSave, className = "" }: { localSave: bool
   const lang = useLang();
   const session = useSession();
   const { state, onAccount } = useProfileSave();
-  const failed = localSave === false || (onAccount && (state === "offline" || state === "refused"));
+  const failed =
+    localSave === false || (onAccount && (state === "offline" || state === "unreached" || state === "refused"));
   return (
     <p role="status" className={`${className} text-meta ${failed ? "text-danger" : "text-muted"}`.trim()}>
       {saveNote(state, onAccount, localSave, session?.activeRole === "employer", lang)}

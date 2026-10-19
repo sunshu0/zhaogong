@@ -79,7 +79,8 @@ function remoteOf(scope: string): Remote | undefined {
  * business, who sees the business's page as the server has it; `refused` while a business's page has something that
  * cannot be public (#195): nothing was saved, and the next change is sent again.
  */
-export type SaveState = "idle" | "saving" | "saved" | "offline" | "ask" | "readonly" | "refused";
+// unreached: the account's page got no answer and nothing here waits to be sent (#252).
+export type SaveState = "idle" | "saving" | "saved" | "offline" | "unreached" | "ask" | "readonly" | "refused";
 type Status = { state: SaveState; account?: AccountPage };
 
 const IDLE: Status = { state: "idle" };
@@ -154,7 +155,10 @@ function compare(scope: string) {
     if (account.updatedAt) writeMark(scope, { at: account.updatedAt });
   })().catch(() => {
     asked.delete(scope);
-    if (readMark(scope)?.dirty) setStatus(scope, { state: "offline" });
+    // No answer: say so either way (#252), since the page shown may not be the account's, and compare again once
+    // the browser is back online.
+    setStatus(scope, { state: readMark(scope)?.dirty ? "offline" : "unreached" });
+    window.addEventListener("online", () => compare(scope), { once: true });
   });
 }
 

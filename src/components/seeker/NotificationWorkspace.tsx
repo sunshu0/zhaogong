@@ -7,10 +7,12 @@ import { useFreshAlertNotifications, useNotifications } from "@/components/seeke
 import { notificationHref, type Notification } from "@/components/seeker/hub-state";
 import { useSession } from "@/components/seeker/session-client";
 import { workspaceTitle } from "@/components/seeker/workspace";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { toast } from "@/components/ui/Toast";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { notificationsMessages } from "@/i18n/messages/notifications";
+import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 // Round 19 (操作质感): the list is one card; a row darkens while pressed, and an unread one has a brand tint.
 const ROW =
@@ -31,7 +33,8 @@ const TYPE_KEYS: Record<string, keyof (typeof notificationsMessages)["zh"]["type
 
 export function NotificationWorkspace() {
   const { items, unread, markRead } = useNotifications();
-  useFreshAlertNotifications();
+  const alerts = useFreshAlertNotifications();
+  const found = useMessages(seekerMeMessages).alerts.foundWhat;
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const lang = useLang();
@@ -62,6 +65,7 @@ export function NotificationWorkspace() {
           </button>
         )}
       </header>
+      {alerts.failed && <LoadFailed what={found} onRetry={alerts.reload} />}
       <section className="overflow-hidden rounded-card bg-surface shadow-card" aria-label={t.listLabel}>
         <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:px-5">
           <h2 ref={listHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
@@ -69,7 +73,9 @@ export function NotificationWorkspace() {
           </h2>
           <span className="text-meta text-muted">{unread ? t.unreadCount(unread) : t.allRead}</span>
         </div>
-        {items.length === 0 && <p className="px-4 py-10 text-center text-body text-muted">{t.empty}</p>}
+        {items.length === 0 && !alerts.failed && (
+          <p className="px-4 py-10 text-center text-body text-muted">{t.empty}</p>
+        )}
         <ul className="divide-y divide-border">
           {items.map((item) => (
             <li key={item.id}>

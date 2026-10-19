@@ -104,6 +104,8 @@ export const seekerProfileEn: Messages<(typeof seekerProfileMessages)["zh"]> = {
     useBusiness: "Keep the business page's",
     offline:
       "Couldn't reach the server: changes are kept on this device for now and saved with your next change or next visit.",
+    unreached:
+      "Couldn't reach the server: this shows the details kept on this device, which may not be your account's latest. They're checked again once you're back online.",
     chooseFirst: "Choose which version to keep above. Until then, changes are kept on this device only.",
     autosaves: "Changes save to your account as you type.",
     noName: "(no name)",

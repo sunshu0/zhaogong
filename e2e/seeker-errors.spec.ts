@@ -143,3 +143,31 @@ test("loads that get no answer say so with 重试 instead of a greyed 申请 or 
   await expect(card.getByRole("button", { name: "生成分享链接" })).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
+
+test("loads with no answer are not shown as nothing: 通知 and 总览 say what is missing, with 重试 (#252)", async ({
+  page,
+}) => {
+  await signIn(page, "/workspace", freshEmail("errors.empty"));
+
+  let cut = await cutCalls(page, "/notifications");
+  cut.on = true;
+  await page.goto("/notifications");
+  const alerts = page.getByRole("alert").filter({ hasText: "职位提醒找到的新职位没取到" });
+  await expect(alerts).toBeVisible();
+  await expectNoViolations(page);
+  cut.on = false;
+  await alerts.getByRole("button", { name: "重试" }).click();
+  await expect(alerts).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+
+  cut = await cutCalls(page, "/workspace");
+  cut.on = true;
+  await page.goto("/workspace");
+  const interviews = page.getByRole("alert").filter({ hasText: "面试待办没取到" });
+  await expect(interviews).toBeVisible();
+  await expect(page.getByText("都处理完了")).toHaveCount(0);
+  cut.on = false;
+  await interviews.getByRole("button", { name: "重试" }).click();
+  await expect(interviews).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
