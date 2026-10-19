@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { setLang } from "@/i18n/actions";
-import { useLang, useMessages, useSitePathname } from "@/i18n/client";
+import { useLang, useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
 /**
@@ -16,11 +16,9 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
   const lang = useLang();
   const t = useMessages(uiMessages).langSwitch;
   const [pending, startTransition] = useTransition();
-  // The page where the last press got no answer: the note is about that press, and in the footer (part of the
-  // layout) it would otherwise outlive the page.
-  const path = useSitePathname();
-  const [failedOn, setFailedOn] = useState<string | null>(null);
-  const failed = failedOn === path;
+  // The last press got no answer. It is not cleared on another page: reading the path here (usePathname) would make
+  // every page with the footer dynamic, outside <Suspense> (gate22), so the note stays until the next press.
+  const [failed, setFailed] = useState(false);
   const button = (
     <Button
       variant="link"
@@ -29,7 +27,7 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
       onClick={() =>
         startTransition(async () => {
           const hash = location.hash;
-          setFailedOn(null);
+          setFailed(false);
           // No answer (offline, the server restarting): the page stays as it is and says so beside the switch,
           // instead of the error page in its place (#251).
           if (
@@ -38,7 +36,7 @@ export function LangSwitch({ look = "header" }: { look?: "header" | "footer" | "
               () => false,
             ))
           )
-            return setFailedOn(path);
+            return setFailed(true);
           // The cookie set in the answer makes Next refresh the page, which can drop a #hash from the address (#90):
           // put it back, so the reload comes back to the same place.
           if (hash && location.hash !== hash) history.replaceState(history.state, "", hash);

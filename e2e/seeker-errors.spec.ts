@@ -93,10 +93,6 @@ test("the language switch with no answer stays on the page and says so beside it
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   // /jobs lists what other specs published: axe looks at the footer, where the switch and its note are.
   await expectNoViolations(page, "footer");
-  // Another page: the note was about this press and goes.
-  await page.getByRole("link", { name: "找工", exact: true }).first().click();
-  await expect(footer.getByRole("alert")).toHaveCount(0);
-  await page.goto("/jobs");
 
   cut.on = false;
   await footer.getByRole("button", { name: "English" }).click();
