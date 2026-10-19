@@ -29,6 +29,8 @@ export interface ServerAccountData {
   moderator: { grantedAt: string; grantedBy: string | null } | null;
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
+  /** Whose personal information /admin showed this account as a moderator (#336): when, which kind, which record. */
+  personalInfoViews: { at: string; kind: string; subjectId: string }[];
   /**
    * The business of the employer identity, every job it posted whatever their status, and their renewals (#69); its
    * 企业主页 (ADR 0022), and whether this account saved it last.
@@ -124,6 +126,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.moderationLog)
     .where(eq(t.moderationLog.moderator, address))
     .orderBy(asc(t.moderationLog.at));
+  const shown = await db
+    .select({ at: t.personalInfoViews.at, kind: t.personalInfoViews.kind, subjectId: t.personalInfoViews.subjectId })
+    .from(t.personalInfoViews)
+    .where(eq(t.personalInfoViews.moderator, address))
+    .orderBy(asc(t.personalInfoViews.at), asc(t.personalInfoViews.id));
   const [business] = account.employerId
     ? await db.select().from(t.employers).where(eq(t.employers.id, account.employerId))
     : [];
@@ -237,6 +244,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       jobId: a.jobId,
       employerId: a.employerId,
     })),
+    personalInfoViews: shown,
     employer: business
       ? {
           business: toEmployer(business),
@@ -357,6 +365,11 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.update(t.moderators).set({ grantedBy: DELETED_ACCOUNT }).where(eq(t.moderators.grantedBy, address));
     // The decisions stay in the log (#60), without the moderator's email.
     await tx.update(t.moderationLog).set({ moderator: DELETED_ACCOUNT }).where(eq(t.moderationLog.moderator, address));
+    // So do the records of whose personal information it was shown (#336, ADR 0026): they are for the people shown.
+    await tx
+      .update(t.personalInfoViews)
+      .set({ moderator: DELETED_ACCOUNT })
+      .where(eq(t.personalInfoViews.moderator, address));
     // 企业验证 (#78): a decision is why a business carries its badge, so the application stays, without the person's
     // email or name; one still waiting is withdrawn. Applications this account decided as a moderator lose its email.
     await tx

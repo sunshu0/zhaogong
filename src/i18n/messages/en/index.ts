@@ -28,6 +28,7 @@ import { externalEn } from "./external";
 import { legalPrivacyEn } from "./legal-privacy";
 import { legalTermsEn } from "./legal-terms";
 import { aboutEn } from "./about";
+import { adminViewsEn } from "./admin-views";
 // imports (scripts/i18n-split-en.mjs)
 
 export const english: Record<string, unknown> = {
@@ -58,5 +59,6 @@ export const english: Record<string, unknown> = {
   legalPrivacy: legalPrivacyEn,
   legalTerms: legalTermsEn,
   about: aboutEn,
+  adminViews: adminViewsEn,
   // entries (scripts/i18n-split-en.mjs)
 };

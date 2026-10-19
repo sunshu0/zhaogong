@@ -28,6 +28,8 @@ import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
+import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
+import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { useVerificationQueue, VerificationQueue } from "@/app/[lang]/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/[lang]/admin/_components/ExternalReview";
 import {
@@ -55,7 +57,7 @@ import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "verification" | "external" | "log" | "stats" | "moderators";
+type Tab = "flagged" | "reported" | "verification" | "external" | "log" | "views" | "stats" | "moderators";
 
 // When a job was posted, a report made, a decision taken: day and time, New Zealand time (format.ts).
 const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
@@ -63,6 +65,7 @@ const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hou
 export function ModerationQueue() {
   const lang = useLang();
   const t = useMessages(adminMessages);
+  const tv = useMessages(adminViewsMessages);
   const [tab, setTab] = useState<Tab>("flagged");
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
@@ -71,7 +74,8 @@ export function ModerationQueue() {
   // Refused: not a moderator, or no signed-in session (it expired, or the browser's copy was stale).
   const answer = useAdminLoad<Queue | Refused>(getModerationQueue, version);
   const stats = useModerationStats(version); // #70
-  const verifications = useVerificationQueue(version); // #78
+  // #78; asked only on its tab, as each application it hands over is recorded (#336). The tab counts from the stats.
+  const verifications = useVerificationQueue(version, tab === "verification");
   const external = useExternalReview(version); // #112
 
   const done = (r: AdminResult) => {
@@ -96,7 +100,7 @@ export function ModerationQueue() {
     {
       key: "verification",
       label: t.tabs.verification,
-      count: ready(verifications)?.length,
+      count: ready(verifications)?.length ?? statsNow?.pendingVerifications,
     },
     {
       key: "external",
@@ -104,6 +108,7 @@ export function ModerationQueue() {
       count: ready(external)?.pending.length,
     },
     { key: "log", label: t.tabs.log, count: queue?.log.length },
+    { key: "views", label: tv.tab },
     { key: "stats", label: t.tabs.stats },
     { key: "moderators", label: t.tabs.moderators },
   ];
@@ -136,6 +141,8 @@ export function ModerationQueue() {
       <TabPanel idBase="admin" value={tab}>
         {tab === "moderators" ? (
           <ModeratorList onDone={setResult} />
+        ) : tab === "views" ? (
+          <PersonalInfoViews />
         ) : tab === "verification" ? (
           <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
         ) : tab === "external" ? (

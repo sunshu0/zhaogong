@@ -109,3 +109,28 @@ test("a rejection reaches the employer with its reason, who corrects the details
   await expect(latest).toContainText("验证审核中");
   await expect(latest).toContainText("09 055 0456");
 });
+
+test("opening an application is recorded in 查看记录 with its number, not its details (#336)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const shop = await signUpEmployer(page, testInfo, "/employer/verify");
+  await apply(page, nzbnFor(testInfo), "09 055 0336");
+
+  const admin = await moderatorPage(browser, testInfo);
+  const card = await cardFor(admin, shop);
+  const number = (await card.getByText(/^编号 v\d+$/).textContent())!.replace("编号 ", "");
+
+  await admin.getByRole("tab", { name: /^查看记录/ }).click();
+  const log = admin.getByRole("region", { name: "审核员看过谁的个人信息" });
+  const row = log.getByRole("row").filter({ has: admin.getByRole("cell", { name: number, exact: true }) });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText("企业验证申请");
+  await expect(log).not.toContainText("09 055 0336");
+  await expect(log).not.toContainText("王店主");
+  expect(
+    (await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
+  ).toEqual([]);
+  await admin.screenshot({ path: testInfo.outputPath("admin-views.png"), fullPage: true });
+  await admin.context().close();
+});

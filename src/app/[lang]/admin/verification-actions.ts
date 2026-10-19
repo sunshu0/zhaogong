@@ -2,7 +2,8 @@
 
 // 企业验证 for /admin (#78, PRD R-16, ADR 0011): the applications waiting, and approving or rejecting one after the
 // checklist. A moderator only (requireModerator, as every /admin Server Function); each decision goes into the log
-// with who made it (#60).
+// with who made it (#60). Each application handed to a moderator is recorded first (#336, ADR 0026): its contact's
+// name, role and phone are personal information.
 import { addModerationLog, getEmployer, listEmployers } from "@/lib/data";
 import type { Employer } from "@/lib/types";
 import { buildRegister, findInRegister, type RegisterEntry } from "@/components/employer/business-register";
@@ -21,6 +22,7 @@ import {
   type Decision,
   type VerificationRequest,
 } from "@/db/verification-requests";
+import { recordViews } from "@/db/personal-info-views";
 import { describeAction } from "@/app/[lang]/admin/moderation";
 import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
 import type { Lang } from "@/i18n/lang";
@@ -62,7 +64,13 @@ export async function getVerificationQueue(): Promise<VerificationItem[] | Refus
   const lang = await requestLang();
   const employers = await listEmployers();
   const register = buildRegister(employers);
-  return (await listPendingVerifications()).map((request) =>
+  const pending = await listPendingVerifications();
+  await recordViews(
+    me.email,
+    "verification",
+    pending.map((request) => request.id),
+  );
+  return pending.map((request) =>
     item(
       request,
       employers.find((e) => e.id === request.employerId),

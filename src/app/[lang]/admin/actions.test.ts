@@ -151,6 +151,8 @@ describe("moderation queue", () => {
     const item = flagged.find((f) => f.job.id === "j10");
     expect(item?.employer?.name).toBe("洁净家政");
     expect(item?.findings.map((f) => f.rule)).toEqual(["high_risk"]);
+    // The queue never shows a job's contact details, so they stay on the server (#336).
+    expect(item?.job).not.toHaveProperty("contact");
   });
 
   it("approves a flagged job: live for 30 days from now, and logged", async () => {

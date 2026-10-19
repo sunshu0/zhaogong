@@ -24,6 +24,7 @@ import type { Profile } from "@/components/seeker/hub-state";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
 import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
 import type { EmployerPage } from "@/components/employer/employer-page";
+import type { PersonalInfoKind } from "@/lib/personal-info-views";
 import type {
   DegreeLevel,
   DegreeSubject,
@@ -746,5 +747,31 @@ export const events = sqliteTable(
   (table) => [
     index("events_day_name_idx").on(table.day, table.name),
     index("events_visitor_day_idx").on(table.visitor, table.day, table.name),
+  ],
+);
+
+// ---- 审核员查看个人信息的记录 (#336) ----
+
+/**
+ * One row each time /admin hands a moderator someone's personal information (#336, ADR 0026): who, when, which kind,
+ * which record — never the information itself. `kind` and the deduplication are in src/db/personal-info-views.ts;
+ * rows older than a year are deleted as new ones come in. A deleted moderator's email becomes deleted-account.
+ */
+export const personalInfoViews = sqliteTable(
+  "personal_info_views",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** ISO time, to the second. */
+    at: text("at").notNull(),
+    /** The New Zealand day, YYYY-MM-DD: the page filters by it. */
+    day: text("day").notNull(),
+    moderator: text("moderator_email").notNull(),
+    kind: text("kind").$type<PersonalInfoKind>().notNull(),
+    /** The record's id: a 企业验证 application, a job, an account's profile, a chat. */
+    subjectId: text("subject_id").notNull(),
+  },
+  (table) => [
+    index("personal_info_views_day_idx").on(table.day),
+    index("personal_info_views_moderator_day_idx").on(table.moderator, table.day),
   ],
 );

@@ -25,6 +25,7 @@ import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
 import { adminVerificationMessages } from "@/i18n/messages/admin-verification";
+import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { Button } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
 import { Checkbox, Radio } from "@/components/ui/Checkbox";
@@ -35,9 +36,15 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 // When an application came in: day and time, New Zealand time (format.ts).
 const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
 
-/** The 企业验证 applications waiting, loaded again whenever `version` changes; the count is for the tab. */
-export function useVerificationQueue(version: number) {
-  return useAdminLoad<VerificationItem[] | Refused>(getVerificationQueue, version);
+/** Nothing asked: the tab is not open. */
+const notAsked = async () => undefined;
+
+/**
+ * The 企业验证 applications waiting, while `open` (its tab is), loaded again whenever `version` changes. Not asked
+ * before: each application handed to a moderator is recorded (#336, ADR 0026), so only one they open goes out.
+ */
+export function useVerificationQueue(version: number, open: boolean) {
+  return useAdminLoad<VerificationItem[] | Refused | undefined>(open ? getVerificationQueue : notAsked, version);
 }
 
 /** 企业验证 (#78): each application beside the register entry, with the checklist to work through. */
@@ -72,6 +79,7 @@ export function VerificationQueue({
 function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (result: AdminResult) => void }) {
   const lang = useLang();
   const t = useMessages(adminVerificationMessages);
+  const tv = useMessages(adminViewsMessages);
   const { request, employer, register, checklist } = item;
   const [checks, setChecks] = useState<Checklist>({});
   const [rejecting, setRejecting] = useState(false);
@@ -107,6 +115,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
         {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
         {employer?.bannedAt && <Tag kind="urgent">{t.banned}</Tag>}
         <span className="text-meta text-muted">{t.submitted(formatDate(request.submittedAt, lang, TIME))}</span>
+        <span className="text-meta text-muted">{tv.record(request.id)}</span>
       </div>
       {banned && (
         <p id={whyNotId} className="text-body text-danger">

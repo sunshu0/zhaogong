@@ -11,6 +11,7 @@ import {
 } from "@/lib/data";
 import { grantModerator } from "@/db/moderators";
 import { latestVerification, submitVerification } from "@/db/verification-requests";
+import { listViews } from "@/db/personal-info-views";
 import { myVerificationNotifications } from "@/app/[lang]/employer/verification-notifications";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
@@ -88,6 +89,20 @@ describe("企业验证 in /admin (#78)", () => {
     const mine = queue.find((i) => i.request.id === id)!;
     expect(mine.checklist.map((c) => c.id)).toContain("accredited");
     expect(JSON.stringify(queue)).not.toMatch(/applicant\.\d+@example\.com/);
+  });
+
+  it("records each application it hands a moderator, and nothing for a refused browser (#336)", async () => {
+    const { id } = await applied();
+    const shownTo = async () => (await listViews({ days: 7 })).views.filter((v) => v.subjectId === id);
+    await signIn("not.a.moderator@example.com");
+    await getVerificationQueue();
+    expect(await shownTo()).toEqual([]);
+    await signIn(MODERATOR);
+    await getVerificationQueue();
+    await getVerificationQueue(); // loaded again after a decision: the same view
+    expect(await shownTo()).toEqual([
+      { at: expect.any(String), moderator: MODERATOR, kind: "verification", subjectId: id },
+    ]);
   });
 
   it("approves only when the required items are ticked; the business gets the badge and the log names who", async () => {

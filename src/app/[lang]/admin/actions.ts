@@ -30,7 +30,8 @@ import { isValidEmail } from "@/components/seeker/session";
 const words = async () => pick(adminMessages, await requestLang()).errors;
 
 export interface QueueItem {
-  job: Job;
+  /** Without its contact details (#336, ADR 0026): the queue never shows them, so they stay on the server. */
+  job: Omit<Job, "contact">;
   employer?: Employer;
   findings: Finding[];
 }
@@ -47,7 +48,9 @@ export type Refused = { refused: "signed_out" | "not_moderator"; error_zh: strin
 /** A job in the queue, with what the checks found, worded in the moderator's language. */
 async function item(job: Job, lang: Lang): Promise<QueueItem> {
   const employer = await getEmployer(job.employerId);
-  return { job, employer, findings: checkJob(job, job.country, employer, lang) };
+  const { contact: _contact, ...shown } = job;
+  void _contact;
+  return { job: shown, employer, findings: checkJob(job, job.country, employer, lang) };
 }
 
 /** The queue, for a moderator. */

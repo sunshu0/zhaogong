@@ -28,5 +28,6 @@
 | [0023](0023-interface-language.md) | 中英切换：自写字典，网址不变，内部按语言各预渲染一份，proxy 按 cookie 改写；英文字典只在英文页面加载（#240） | 已采纳 |
 | [0024](0024-no-answer-from-the-server.md) | 服务器没回答时：读取在原处说没取到、可以重试，操作在按下的地方说明，不交给出错页；两端共用 `useServerLoad` / `LoadFailed` | 已采纳 |
 | [0025](0025-click-analytics-clarity-and-funnels.md) | 点击统计：Clarity（同意后才加载、严格遮盖、敏感页不录）看怎么用，自建匿名事件看漏斗，数据留在自己库里 | 已采纳 |
+| [0026](0026-moderator-personal-info-views.md) | 审核员看过谁的个人信息：交出去之前记一条，不记内容，不需要的不交，保留一年 | 已采纳 |
 
 新编号由执行 C 统一分配：要写新 ADR 时先在队列里要一个号，避免两条线撞号。

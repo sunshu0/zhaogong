@@ -101,6 +101,7 @@ test("moderation in English: every tab", async ({ browser, baseURL }, testInfo) 
     ["Business verification", /^(No business verification waiting for review\.|Tick each item)/, []],
     ["External jobs", /^Waiting for review \d+$/, []],
     ["Log", /^(Nothing in the log yet\.|By .+)$/, quoted],
+    ["Access log", /^(Nothing in this period\.|\d+ lines?, newest first)$/, []],
     ["Moderation stats", /^Last \d+ weeks$/, []],
     ["Moderators", /^Moderators · \d+$/, []],
   ] as const) {

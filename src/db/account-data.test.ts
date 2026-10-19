@@ -17,6 +17,7 @@ import { saveResumeShare } from "@/db/resume-shares";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { getEmployerPage, saveEmployerPage } from "@/db/employer-profiles";
 import { recordContactBy } from "@/db/job-posters";
+import { listViews, recordViews } from "@/db/personal-info-views";
 import { inviteToInterview } from "@/db/interviews";
 import { addSharedMessage, openSharedConversation } from "@/db/conversations";
 import { listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
@@ -299,6 +300,11 @@ describe("deleteAccount (#54)", () => {
     expect((await exportAccountData(first))?.moderationActions).toEqual([
       { id: decision.id, at: decision.at, action: "dismiss", jobId: "j2", employerId: null },
     ]);
+    const seen = new Date("2026-10-20T01:02:03Z");
+    await recordViews(first, "verification", ["vr-export"], seen);
+    expect((await exportAccountData(first))?.personalInfoViews).toEqual([
+      { at: "2026-10-20T01:02:03Z", kind: "verification", subjectId: "vr-export" },
+    ]);
 
     expect(await deleteAccount(first)).toBe("deleted");
     expect(await isModerator(first)).toBe(false);
@@ -307,6 +313,11 @@ describe("deleteAccount (#54)", () => {
     const kept = (await listModerationLog()).find((e) => e.id === decision.id);
     expect(kept).toMatchObject({ action: "dismiss", moderator: DELETED_ACCOUNT });
     expect(JSON.stringify(await listModerationLog())).not.toContain(first);
+    // So does the record of what it was shown (#336), without the email.
+    const { views } = await listViews({ days: 7 }, seen);
+    expect(views.filter((v) => v.subjectId === "vr-export")).toEqual([
+      { at: "2026-10-20T01:02:03Z", moderator: DELETED_ACCOUNT, kind: "verification", subjectId: "vr-export" },
+    ]);
 
     // Leave `second` as the only moderator.
     for (const m of await listModerators()) if (m.email !== second) await revokeModerator(m.email);
@@ -336,6 +347,7 @@ describe("deleteAccount (#54)", () => {
       "saved_external_jobs.email",
       "external_job_alert_hits.email",
       "moderation_log.moderator_email",
+      "personal_info_views.moderator_email",
       "moderators.email",
       "conversations.seeker_email",
       "verification_requests.submitted_by_email",
