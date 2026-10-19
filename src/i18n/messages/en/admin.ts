@@ -59,6 +59,11 @@ export const adminEn: Messages<(typeof adminMessages)["zh"]> = {
     keepOne: "There has to be at least one moderator",
     removeLabel: (email) => `Remove moderator ${email}`,
     remove: "Remove",
+    confirmLabel: (email) => `Confirm removing moderator ${email}`,
+    confirm: (email) => `Remove ${email} as a moderator?`,
+    confirmSelf:
+      "Remove yourself as a moderator? You won't be able to open the moderation pages again until another moderator adds you back.",
+    confirmRemove: "Remove",
     addHeading: "Add a moderator",
     emailLabel: "Email",
     emailPlaceholder: "The email they sign in with",

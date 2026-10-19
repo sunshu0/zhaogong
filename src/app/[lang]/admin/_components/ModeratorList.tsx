@@ -10,26 +10,32 @@ import {
 import type { Moderator } from "@/db/moderators";
 import { isFailed, settle } from "@/app/[lang]/admin/load-state";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
+import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { inputClass } from "@/components/ui/input-class";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import type { Messages } from "@/i18n/messages";
 import { adminMessages } from "@/i18n/messages/admin";
 
+type Words = Messages<typeof adminMessages.zh>["moderators"];
+
 /** Who added a moderator: another moderator, the command line (null), or an account deleted since (#54). */
-function grantedByText(grantedBy: string | null, t: Messages<typeof adminMessages.zh>["moderators"]): string {
+function grantedByText(grantedBy: string | null, t: Words): string {
   if (!grantedBy) return t.addedOnServer;
   return grantedBy === DELETED_ACCOUNT ? t.addedByDeleted : t.addedBy(grantedBy);
 }
 
-/** 审核员 (#50): who may moderate, and adding or removing one by email. The last moderator cannot be removed. */
+/**
+ * 审核员 (#50): who may moderate, and adding or removing one by email. The last moderator cannot be removed; 移除 asks
+ * first (#249).
+ */
 export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => void }) {
-  const lang = useLang();
   const t = useMessages(adminMessages).moderators;
   const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
@@ -76,28 +82,15 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
       <Section look="app" title={t.heading(answer.moderators.length)} description={t.description}>
         <ul className="divide-y divide-border">
           {answer.moderators.map((m) => (
-            <li key={m.email} className="flex items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="truncate text-body font-semibold">
-                  {m.email}
-                  {m.email === answer.me && <span className="ml-1.5 font-normal text-muted">{t.you}</span>}
-                </p>
-                <p className="text-meta text-muted">
-                  {formatDate(m.grantedAt, lang, { dateStyle: "medium" })} {grantedByText(m.grantedBy, t)}
-                </p>
-              </div>
-              <Button
-                variant="danger-secondary"
-                disabled={only || (pending && pressed !== m.email)}
-                loading={pending && pressed === m.email}
-                title={only ? t.keepOne : undefined}
-                onClick={() => run("list", () => removeModerator(m.email), undefined, m.email)}
-                className="shrink-0"
-                aria-label={t.removeLabel(m.email)}
-              >
-                {t.remove}
-              </Button>
-            </li>
+            <ModeratorRow
+              key={m.email}
+              moderator={m}
+              mine={m.email === answer.me}
+              only={only}
+              busy={pending && pressed === m.email}
+              disabled={pending && pressed !== m.email}
+              onRemove={() => run("list", () => removeModerator(m.email), undefined, m.email)}
+            />
           ))}
         </ul>
         {failed === "list" && (
@@ -134,5 +127,70 @@ export function ModeratorList({ onDone }: { onDone: (result: AdminResult) => voi
         </form>
       </Section>
     </div>
+  );
+}
+
+/**
+ * One moderator, with 移除. It asks first (#249), in the row: a removal takes effect at once, and one's own takes away
+ * /admin itself. The focus moves to the question and back after 取消 (#189).
+ */
+function ModeratorRow({
+  moderator: m,
+  mine,
+  only,
+  busy,
+  disabled,
+  onRemove,
+}: {
+  moderator: Moderator;
+  mine: boolean;
+  only: boolean;
+  busy: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
+  const lang = useLang();
+  const t = useMessages(adminMessages).moderators;
+  const [confirming, setConfirming] = useState(false);
+  const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
+
+  return (
+    <li className="py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-body font-semibold">
+            {m.email}
+            {mine && <span className="ml-1.5 font-normal text-muted">{t.you}</span>}
+          </p>
+          <p className="text-meta text-muted">
+            {formatDate(m.grantedAt, lang, { dateStyle: "medium" })} {grantedByText(m.grantedBy, t)}
+          </p>
+        </div>
+        {!confirming && (
+          <div ref={opener} className="shrink-0">
+            <Button
+              variant="danger-secondary"
+              disabled={only || disabled}
+              title={only ? t.keepOne : undefined}
+              onClick={() => setConfirming(true)}
+              aria-label={t.removeLabel(m.email)}
+            >
+              {t.remove}
+            </Button>
+          </div>
+        )}
+      </div>
+      {confirming && (
+        <div ref={form} role="group" aria-label={t.confirmLabel(m.email)} className="mt-2 space-y-2">
+          <p className={`text-body ${mine ? "text-danger" : ""}`}>{mine ? t.confirmSelf : t.confirm(m.email)}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="danger" disabled={only || disabled} loading={busy} onClick={onRemove}>
+              {t.confirmRemove}
+            </Button>
+            <Cancel onClick={() => setConfirming(false)} />
+          </div>
+        </div>
+      )}
+    </li>
   );
 }

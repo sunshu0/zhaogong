@@ -62,6 +62,11 @@ const adminZh = {
     keepOne: "至少要留一位审核员",
     removeLabel: (email: string) => `移除审核员 ${email}`,
     remove: "移除",
+    // #249: 移除 asks first; for one's own row it says what follows.
+    confirmLabel: (email: string) => `确认移除审核员 ${email}`,
+    confirm: (email: string) => `移除 ${email} 的审核员身份？`,
+    confirmSelf: "移除你自己的审核员身份？移除后你就不能再进审核后台，要请别的审核员重新添加。",
+    confirmRemove: "确认移除",
     addHeading: "添加审核员",
     emailLabel: "邮箱",
     emailPlaceholder: "对方登录用的邮箱",

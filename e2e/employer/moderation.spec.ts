@@ -95,7 +95,26 @@ test("a moderator adds another account as a moderator, then removes it (#50)", a
   await page.reload();
   await expect(page.getByRole("tab", { name: /发布时被标记/ })).toBeVisible();
 
-  await admin.getByRole("button", { name: `移除审核员 ${email}` }).click();
+  // #249: 移除 asks first, in the row, and takes the focus there; 取消 gives it back.
+  const remove = admin.getByRole("button", { name: `移除审核员 ${email}` });
+  await remove.click();
+  const confirm = admin.getByRole("group", { name: `确认移除审核员 ${email}` });
+  await expect(confirm).toContainText(`移除 ${email} 的审核员身份？`);
+  await expect(confirm.getByRole("button", { name: "确认移除" })).toBeFocused();
+  await confirm.getByRole("button", { name: "取消" }).click();
+  await expect(remove).toBeFocused();
+  // One's own row says what follows.
+  await admin.getByRole("button", { name: `移除审核员 ${MODERATOR_EMAIL}` }).click();
+  await expect(admin.getByRole("group", { name: `确认移除审核员 ${MODERATOR_EMAIL}` })).toContainText(
+    "移除后你就不能再进审核后台",
+  );
+  await admin
+    .getByRole("group", { name: `确认移除审核员 ${MODERATOR_EMAIL}` })
+    .getByRole("button", { name: "取消" })
+    .click();
+
+  await remove.click();
+  await confirm.getByRole("button", { name: "确认移除" }).click();
   await expect(admin.getByRole("status")).toHaveText(`已处理：移除审核员 ${email}`);
   await expect(admin.getByRole("button", { name: `移除审核员 ${email}` })).toHaveCount(0);
   await admin.context().close();

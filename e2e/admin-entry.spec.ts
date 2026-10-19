@@ -64,6 +64,7 @@ test("only a moderator is offered 审核后台; signing in from /login?next=/adm
 
   // No longer a moderator: gone again.
   await admin.getByRole("button", { name: `移除审核员 ${email}` }).click();
+  await admin.getByRole("button", { name: "确认移除" }).click();
   await expect(admin.getByRole("status")).toHaveText(`已处理：移除审核员 ${email}`);
   await admin.context().close();
   expect(await offersAdmin(page, testInfo)).toBe(false);
