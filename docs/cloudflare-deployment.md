@@ -1,125 +1,127 @@
-# Cloudflare 部署说明
+# Cloudflare 部署清单
 
-## 部署对象
+用户 10-20 01:2x 定的方向：**放在境外，跑在 Cloudflare Workers，数据库放在悉尼**。导师先定了 Turso，因为现在的驱动就是 libSQL（`@libsql/client`）。这份文件是一份照着做的清单。**到目前为止没有部署，也没有注册任何账号。** 标着「用户做」的步骤要以公司名义注册或付费（落地主体见 Progress「用户决定 10-20 01:2x」），别人不能代做。
 
-已于 2026-10-14 经用户授权发布：[找工演示站](https://zhaogong-demo.zhaogong.workers.dev)，职位列表在 [/jobs](https://zhaogong-demo.zhaogong.workers.dev/jobs)。Worker 为 `zhaogong-demo`，最终发布版本 `d11cd051-63ae-4e62-a29a-bde6bad0ba28`。HTTPS 已启用，尚未绑定自定义域名，也未配置 Git 自动发布。
+10-14 那次发布的是只读模拟数据的前端演示（Worker `zhaogong-demo`，`zhaogong-demo.zhaogong.workers.dev`），那时还没有数据库。下面写的是有数据库以后的做法。
 
-这是找工的**前端演示版**，部署至 Cloudflare Workers，通过 OpenNext 保留 Next.js 的动态页面、流式渲染和 Server Actions。不能把 `.next` 直接上传至 Pages，也不使用静态导出。
+## 0. 先决定的事
 
-当前配置不需要数据库、R2、KV、Durable Objects、邮件服务或 AI 密钥。业务仍读取模拟数据。
+- **落地主体和账号（用户做）：** Cloudflare 账号、Turso 账号、域名，都以公司名义注册。
+- **登录验证码的邮件服务（Issue #16，还没定）：** 生产环境没有邮件服务就发不出验证码（`src/lib/auth/delivery.ts`：`canSendCodes()` 为假时直接拒绝），也就**没人能登录**。正式开放前一定要定下来。只放演示的话，可以先不开放登录，但所有要登录的功能就都用不了。
+- **Clarity：** 项目 ID 和同意提示（C 的 #313）合并后才用得上，见第 2 节。
 
-> **第 12 轮起（#8）：** 代码改为从数据库读写（Drizzle + libSQL，本机为文件 `data/zhaogong.db`）。Worker 里没有本地文件，下次部署之前，要先选定线上数据库（Turso 或 Cloudflare D1），取舍见 `docs/adr/0006-online-database.md`。选定之前不要用当前代码重新发布。`ASSETS` 提供页面资源及构建时缓存；`WORKER_SELF_REFERENCE` 用于适配器内部请求。
+## 1. 版本和配置
 
-## 固定版本与配置
+- Node.js 24（`.node-version`，24.19.0）；Next.js 16.3.8；`@opennextjs/cloudflare` 1.20.10；Wrangler 4.150.0；`@libsql/client` 0.18.0；`drizzle-orm` 和 drizzle-kit 照 `package.json`。
+- `wrangler.jsonc`：Worker `zhaogong-demo`，`compatibility_date` 2026-09-01，`nodejs_compat` 和 `global_fetch_strictly_public`。日期在 2025-04-01 之后，开了 `nodejs_compat` 就会自动把变量和密钥放进 `process.env`，代码不用改（[Cloudflare 说明](https://developers.cloudflare.com/changelog/post/2025-03-11-process-env-support/)）。正式上线时 Worker 的名字可以改：`name` 和 `services[0].service` 要一起改。
+- `open-next.config.ts`：静态资源增量缓存，`enableCacheInterception: false`（PPR 要靠 Next 自己续上动态内容）。
+- Next 16.4.0 在本地 workerd 里会报 `Unexpected loadManifest(/.next/server/preview-props.json)`，所以停在 16.3.8。升级 Next 或 OpenNext 之前，先照第 6 节在本机构建和预览一遍。
 
-- Node.js：24，当前验证版本为 `.node-version` 中的 24.19.0。
-- Next.js / eslint-config-next：16.3.8。
-- OpenNext Cloudflare：1.20.10。
-- Wrangler：4.150.0。
-- Worker：`zhaogong-demo`，首先使用账户的 `workers.dev` 域名。
-- `compatibility_date`：2026-09-01，启用 `nodejs_compat` 和 `global_fetch_strictly_public`。
+## 2. 要设的变量和密钥
 
-Next 16.4.0 虽然能完成 OpenNext 构建，但本地 Workers 动态请求会报 `Unexpected loadManifest(/.next/server/preview-props.json)`，因此固定在适配器支持的 16.3.8。以后升级 Next 或 OpenNext 时，应重新执行 Workers 浏览器验收。
+都是在 Worker 运行时读的（`process.env`），只有 `NEXT_PUBLIC_*` 和下表标「构建时」的，要在构建时就设好。密钥用 `npx wrangler secret put <名字>`（[Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)），不写进代码、配置文件和这份文档。
 
-配置文件：`wrangler.jsonc`、`open-next.config.ts`、`next.config.ts`。修改 Worker 名称时，同时修改 `wrangler.jsonc` 的 `name` 和 `services[0].service`，二者必须一致。确认目标账户不存在需要保留的同名 Worker，再执行发布。
+| 名字 | 类型 | 必须吗 | 做什么、不设会怎样 | 代码 |
+| --- | --- | --- | --- | --- |
+| `DATABASE_URL` | 变量 | **必须** | Turso 库的地址，`libsql://<库名>-<组织>.turso.io`。不设就去找本地文件 `file:./data/zhaogong.db`，Worker 里没有 | `src/db/client.ts` |
+| `DATABASE_AUTH_TOKEN` | 密钥 | **必须** | Turso 的库令牌 | `src/db/client.ts` |
+| `AUTH_SECRET` | 密钥 | **必须** | 验证码的 HMAC 密钥。生产环境没有就直接报错（`src/lib/auth/config.ts`） | `src/lib/auth/config.ts` |
+| `ZG_EVENTS_SECRET` | 密钥 | 要统计就必须 | 漏斗事件里访客号的 HMAC 密钥（ADR 0025）。生产环境不设就不记事件，日志里会说一次 | `src/lib/events/visitor-key.ts` |
+| `NEXT_PUBLIC_CLARITY_ID` | 变量，**构建时** | 要 Clarity 就要 | Clarity 项目 ID，构建时写进浏览器的 JS。**还没在 main 上**（C 的 #313） | （#313） |
+| `SITE_URL` | 变量 | 用自己的域名时要 | 绝对链接、robots、sitemap 的地址；不设就照请求的 host | `src/lib/site.ts`、`src/app/robots.ts` |
+| `DEMO_DATA` | 变量 | 演示站设 `true` | 生产构建默认 false。设成 true 时，空库在第一次用的时候灌演示数据，首页的数字旁边会标「演示数据」 | `src/db/ready.ts`、`src/config/landing.ts` |
+| `ADMIN_ENABLED` | 变量，**构建时和运行时都要** | 正式站别设 | 设成 `1` 才有 `/admin`。它没有审核员登录，正式站不要开 | `src/app/[lang]/admin/enabled.ts` |
+| `ANTHROPIC_API_KEY` | 密钥 | 要「对话发布」用模型就要 | 生产环境有它就用 Claude，没有就说这个功能现在用不了 | `src/lib/ai-post/model/` |
+| `AI_POST_MODEL` | 变量 | 可以不设 | 换模型；不设用代码里的默认值 | `src/lib/ai-post/model/index.ts` |
+| `AI_POST_BASE_URL` | 变量 | 可以不设 | 默认 `https://api.anthropic.com` | `src/lib/ai-post/model/client.ts` |
+| `TAKEDOWN_EMAIL` | 变量 | 建议设 | 外部职位页下面「公司要求下架」的联系邮箱；不设就不显示 | `src/config/external-companies.ts` |
+| `EXTERNAL_JOBS` | 变量 | 生产环境别设 | `real` 会让空的演示库在后台去公司网站导入真实职位；生产环境默认不导入 | `src/db/ready.ts` |
+| `NEXTJS_ENV` | 变量 | 已经在 `wrangler.jsonc` | `production` | `wrangler.jsonc` |
 
-站点的安装名称、图标和 manifest 链接直接写入根布局的静态 `<head>`，避免动态职位元数据输出到 `<body>` 后，Safari 找不到安装标签。manifest 保存在 `public/manifest.webmanifest`，单元测试检查品牌、颜色和图标尺寸。职位分享元数据仍使用 Next 元数据 API，保留原有爬虫与中文分享应用的阻塞渲染配置，以及 `partialPrefetching`。
+只在开发和测试里用的：`ZG_E2E`、`E2E_PORT`、`AI_POST_FAKE`、`AI_POST_LIVE`、`NEXT_PRIVATE_STANDALONE`，线上不要设。
 
-使用静态资源增量缓存，是因为当前应用没有 ISR、`use cache` 或按需重新验证。保留 `cacheComponents` / PPR，关闭 OpenNext 的 `enableCacheInterception`，让 Next 恢复页面中的动态内容；不能只返回缓存的页面框架。以后新增可写缓存功能时，须更换缓存配置并复验。头像由浏览器保存，图片不调用 Cloudflare Images。
+这张表是 2026-10-20 在 main `db689a6` 上 grep `process.env.*` 和 `env.*` 整理的。加了新变量要回来补这张表。
 
-## 本地准备与验收
+## 3. 线上数据库：Turso，悉尼区
+
+以下命令用 Turso CLI（[说明](https://docs.turso.tech/cli/introduction)）。**账号由公司注册（用户做）**，命令由有权限的人在本机跑。
+
+1. **（用户做）** 用公司名义注册 Turso，在本机 `turso auth login`。
+2. 查悉尼区的代码：`turso db locations`。区域是设在**组**上的，不是设在库上（[group create](https://docs.turso.tech/cli/group/create)）。
+3. 建组和库：
+   ```sh
+   turso group create zhaogong --location <悉尼区的代码>
+   turso db create zhaogong --group zhaogong
+   ```
+   （[db create](https://docs.turso.tech/cli/db/create)；免费方案只有一个组的话，可以直接用默认组，组建在悉尼就行。）
+4. 地址和令牌：
+   ```sh
+   turso db show zhaogong --url          # 就是 DATABASE_URL
+   turso db tokens create zhaogong        # 就是 DATABASE_AUTH_TOKEN
+   ```
+   令牌默认不过期，可以加 `--expiration`（[tokens](https://docs.turso.tech/cli/group/tokens/create)）。令牌只放进 Worker 的密钥和本机临时的环境变量里，**不写进任何文件**。
+
+### 迁移（每次部署前）
+
+Worker 里没有 `drizzle/` 文件夹，所以远程库**不会**在第一次用的时候自动迁移（#329：`migratesOnFirstUse()` 只对本地文件库和内存库为真）。每次有新的迁移，都要在部署 Worker **之前**，在本机对线上库跑一次：
+
+```sh
+DATABASE_URL="libsql://…" DATABASE_AUTH_TOKEN="…" npm run db:migrate
+```
+
+PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'`，再 `npm run db:migrate`，跑完把这两个变量删掉。
+
+### 演示数据
+
+- **演示站：** 照上面迁移完，再跑 `npm run db:seed`（同样带那两个变量）：库是空的就灌入演示数据。也可以 Worker 设 `DEMO_DATA=true`，空库在第一次用的时候灌入。建议用命令灌，第一次打开页面就不用等。
+- **正式站：** 不灌演示数据，`DEMO_DATA` 不设。审核员账号用 `npm run db:migrate` 后的 `tsx src/db/cli.ts admin:grant <邮箱>` 加。
+
+## 4. 部署（Cloudflare）
+
+1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
+2. 设密钥（第 2 节）：`npx wrangler secret put DATABASE_AUTH_TOKEN`、`AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`DATABASE_URL`、`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
+3. 对线上库迁移（第 3 节）。
+4. 本机预检：`npm run check`，再 `npm run cf:dry-run`（构建加上传前的检查，不上传）。
+5. 部署：`npm run cf:deploy`。
+6. 验收：首页、职位列表和筛选、职位页、登录（要有邮件服务）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
+
+以后改用 Workers Builds 自动部署的话：构建命令 `npm run check && npm run cf:build`，部署命令 `npx opennextjs-cloudflare deploy`。构建变量要有 `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`，以及 `NEXT_PUBLIC_CLARITY_ID`（构建时用）（[说明](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)）。
+
+## 5. 回滚
+
+- **代码：** Cloudflare 后台 Worker 的 Deployments 里选上一个版本回退，或者 `npx wrangler rollback`。回退之后，代码和库结构要对得上，见下一条。
+- **数据库：** 迁移只往前走，没有写「往回」的迁移。所以：
+  - 每次迁移之前先备份：`turso db shell zhaogong .dump > zhaogong-<日期>.sql`（放在本机安全的地方，**里面有用户数据**，不进仓库）。
+  - 迁移最好写成「只加不删」（加表、加可以为空的列），这样旧代码在新库上也能跑，代码回退就不用动库。
+  - 真要回到迁移以前的库：用备份建一个新库（`turso db create zhaogong-restore --from-dump zhaogong-<日期>.sql`，参数照 [db create](https://docs.turso.tech/cli/db/create)），把 Worker 的 `DATABASE_URL` 换过去，再回退代码。
+- **演示数据弄乱了：** 演示站可以清空重灌；正式站绝不能这样做。
+
+## 6. 本机构建和预览
 
 ```sh
 npm ci
 npm run check
 npm run cf:build
+npm run cf:preview   # 本地 workerd，8704
 ```
 
-PowerShell 构建前可设置环境变量，避免本机 Next 遥测配置写入的 `EXDEV` 问题：
+PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_METRICS = 'false'`。在本机跑 `cf:build` 算 check 级别的活：要拿找工的 e2e 锁，空闲内存 4 GB 以上，GPU 锁没人用的时候再跑。
 
-```powershell
-$env:NEXT_TELEMETRY_DISABLED = '1'
-$env:WRANGLER_SEND_METRICS = 'false'
-```
+`cf:preview` 跑起来以后，`E2E_PORT=8704 npm run test:e2e` 就是在真正的 workerd 里测。预览要连远程库的话，在 `.dev.vars` 里放 `DATABASE_URL`、`DATABASE_AUTH_TOKEN`（`.gitignore` 已经忽略 `.dev.vars*`，不会进仓库）；不设的话预览会去找本地文件库，workerd 里打不开。
 
-启动实际 Workers 运行环境的本地预览：
+### `@libsql/client` 在 Worker 里
 
-```sh
-npm run cf:preview
-```
+- `@libsql/client` 0.18.0 的 package.json：`import` 条件 `workerd` → `./lib-esm/web.js`。OpenNext 用 esbuild 按 workerd 的条件打包，会拿到 web 版。
+- web 版只认 `libsql://`、`https://`、`wss://`，**不认 `file:`**。线上用 Turso，本来就不用 `file:`。
+- `src/db/client.ts` 引入了 `node:fs` 的 `mkdirSync`，只有在 `file:` 库时才调用；线上不会走到。
+- 迁移见第 3 节：只在本机对线上库跑（#329）。
 
-打开 http://localhost:8704 。此命令先构建，再启动本地 workerd，不连接远程资源。保留预览运行，在另一 PowerShell 窗口执行浏览器测试：
+### 本机构建结果
 
-```powershell
-$env:E2E_PORT = '8704'
-npm run test:e2e
-```
+（2026-10-20：等 GPU 锁空出来就照上面的条件跑一次，结果写在这里。）
 
-先启动 Workers 预览再跑测试，否则现有 Playwright 配置会启动普通 Next 开发服务器，不能验证 Cloudflare 的兼容性。测试改变实例内的演示数据，验收前应重启预览。
+## 7. 参考
 
-检查上传包和资源绑定，但不实际上传：
-
-先在预览终端按 `Ctrl+C` 关闭预览。Windows 中运行中的预览会锁定 `.open-next`，而下面的命令需要重新构建；实际发布前也应先关闭预览。
-
-```sh
-npm run cf:dry-run
-```
-
-可选的绑定类型生成：`npm run cf:typegen`。生成文件 `cloudflare-env.d.ts` 已忽略；应用当前没有直接访问业务绑定。
-
-## 实际发布
-
-用户确定发布后，在目标 Cloudflare 账户登录并部署：
-
-```sh
-npx wrangler login
-npm run cf:deploy
-```
-
-`cf:deploy` 会重新构建并上传 Worker 和静态资源。使用命令返回的地址验收：首页、职位筛选和详情、模拟登录与身份切换、AI 对话发布、雇主主页、聊天资料交换、通知跳转、个人资料与头像。若以后绑定自定义域名，在 Cloudflare 控制台该 Worker 的 Domains & Routes 中设置。
-
-无需为这个演示版配置业务密钥。自动化发布应通过 CI 的保密变量保存 Cloudflare API token，不能写进代码、配置文件或文档。
-
-## 以后接入 Workers Builds
-
-代码已连接私有仓库 [open-alternative-app/zhaogong](https://github.com/open-alternative-app/zhaogong)。本机 `origin` 仍指向原裸仓库，新增的 `github` 远程指向 GitHub；只推送 `main`，分仓与存档分支保留在本机。目前尚未连接 Cloudflare Workers Builds，也未配置 GitHub Actions 自动发布。以后授权连接构建时选择 **Workers** 项目，根目录为本仓库根目录，构建环境使用 Node 24。
-
-- 依赖安装：`npm ci`。
-- 构建命令：`npm run check && npm run cf:build`。
-- 部署命令：`npx opennextjs-cloudflare deploy`，复用上一阶段的构建产物。
-- 构建变量：`NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`。
-
-OpenNext 官方对原生 Windows 的支持有限。本机验证使用 Windows；自动构建优先使用 Cloudflare 的 Linux 环境或 WSL/Linux。Linux 上重新 `npm ci`，不要复用 Windows 的 `node_modules`。若在本机连续构建时遇到生成目录锁定，先关闭 Workers 预览再重新构建。
-
-部署工具的 `@node-minify/core` 间接依赖通过 `overrides` 固定为已修复命令注入的 `glob@10.5.0`；这项覆盖只影响该工具的依赖分支。发布准备使用 `npm audit --omit=dev` 检查应用运行依赖。完整审计仍包含现有 ESLint 工具链的 `braces` 告警，当前上游没有可用修复版；不要用 `npm audit fix --force` 降级 Next 工具链。
-
-## 演示环境的真实限制
-
-- 登录不验证真实邮箱，验证码不通过邮件发送。
-- 审核后台 `/admin` 没有管理员登录，所以线上默认关闭：构建时没有 `ADMIN_ENABLED=1`，`/admin` 就是 404；审核用的 Server Functions 在运行时没有这个变量也一律拒绝。本机开发由 `.env.development` 打开。要在线上打开，构建时和 Worker 运行时（`wrangler.jsonc` 的 `vars` 或面板里的变量）都要设 `ADMIN_ENABLED=1`，而且它仍是公开演示页面，不能当作生产权限系统。
-- AI 发帖是本地规则演示，没有调用模型。
-- 职位发布、企业登记、举报和统计使用实例内存：Worker 重启、更新或分配到另一个实例后可能消失或不同步，不能保证跨用户持久保存。
-- 聊天、通知、双向交换、主页和头像主要使用当前浏览器的 localStorage：不跨设备同步，也不是双方真实即时通信。
-- 本地 workerd 验证能够检查适配兼容性，但不代替发布后的账户域名、流量配额和实际请求性能验收。
-
-## 本轮验证结果
-
-实际线上验收：桌面/手机首轮 25 项通过、1 项失败，失败为手机新建企业后再次打开发布页时雇主身份丢失；单项复测通过，不能据此认为云端内存会稳定保存。AI 对话生成招聘、合规修改及发布的 2 项桌面验收通过。采集到的 106 个运行事件均为 `ok`，无异常记录。日志在 `D:/dev/zhaogong-cloudflare-release-browser.log`、`-recheck.log`、`-ai-browser.log`、`-runtime.log`、`-deploy.log`。验收后复用已验证构建重新发布，清理实例内测试数据。
-
-以下为发布前的本地准备验证记录：
-
-- Windows / Node 24.19.0：`npm run check` 通过，包含格式、类型、lint、287 项单元测试和 Next 生产构建。
-- OpenNext Workers 构建通过；Wrangler `deploy --dry-run` 通过，压缩包约 1501.97 KiB（1.47 MiB），低于免费方案的 3 MiB 上传包限制。实际请求配额与 CPU 限制仍以目标账户和上线验收为准。
-- 真实本地 workerd（8704）的桌面/手机浏览器全量验收：161 通过、1 条件跳过，跳过的是桌面端不适用的触控场景；涵盖登录、身份切换、职位浏览与发布、聊天、交换与举报、通知、主页、头像、推荐人才、安装标签及无障碍检查。
-- 增加 6 项身份同步单测和桌面/手机的延迟校验回归用例，验证用户在校验返回前切换身份或打开主页时，最新选择不会丢失。实际写入仍检查服务器上的演示账号。
-- `npm audit --omit=dev` 为零项漏洞；依赖锁文件的 `npm ci --dry-run --ignore-scripts` 解析通过。
-- 验收结束后关闭测试用 Workers 预览，释放 Windows 构建目录；普通前端预览仍在 8701。本轮没有执行账户登录、发布 Worker、绑定域名、创建远程资源或推送代码。
-
-本机验证日志放在仓库外的 `D:/dev/`：`zhaogong-cloudflare-check.log`、`zhaogong-cloudflare-build.log`、`zhaogong-cloudflare-dry-run.log`、`zhaogong-cloudflare-browser.log`、`zhaogong-cloudflare-validation-preview.log`。
-
-## 官方参考
-
-- [Cloudflare 的 Next.js 部署指南](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/)
+- [Cloudflare：Next.js / OpenNext](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)、[Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[process.env](https://developers.cloudflare.com/changelog/post/2025-03-11-process-env-support/)、[限制](https://developers.cloudflare.com/workers/platform/limits/)
 - [OpenNext Cloudflare 入门](https://opennext.js.org/cloudflare/get-started)
-- [OpenNext 缓存配置](https://opennext.js.org/cloudflare/caching)
-- [Cloudflare Workers 限制](https://developers.cloudflare.com/workers/platform/limits/)
+- Turso：[CLI](https://docs.turso.tech/cli/introduction)、[group create](https://docs.turso.tech/cli/group/create)、[db create](https://docs.turso.tech/cli/db/create)、[tokens](https://docs.turso.tech/cli/group/tokens/create)
