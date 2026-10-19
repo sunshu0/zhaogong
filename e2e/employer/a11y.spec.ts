@@ -175,6 +175,12 @@ test("before the first job, then a job's own pages: edit, applicants and the int
   await expect(applicant.getByRole("form", { name: "约林晓面试" }).locator(":focus")).toHaveCount(1);
   await expectNoZoomOnFocus(page, "main", "the interview form");
   await expectNoViolations(page, "/employer/jobs/[id]/applicants with the interview form");
+  // #304: the two ways to give the time are one group, so the arrow key moves the choice.
+  const times = applicant.getByRole("form", { name: "约林晓面试" }).getByRole("radio");
+  await times.first().focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(times.nth(1)).toBeChecked();
+  await expect(times.nth(1)).toBeFocused();
 
   await page.goto(`/employer/jobs/${jobId}/stats`);
   await expect(page.getByRole("heading", { name: "职位数据", level: 1 })).toBeVisible();

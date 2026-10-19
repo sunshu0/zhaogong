@@ -85,6 +85,8 @@ export function InterviewInvite({
           pending={pending}
           onCancel={() => {
             setOpenAt(null);
+            // #304: a failure belongs to the form that was put away.
+            setError("");
             refocus.current = true;
           }}
           onSend={async (invite) => {
@@ -156,6 +158,8 @@ function InviteForm({
   const [place, setPlace] = useState(initial?.place ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [problem, setProblem] = useState("");
+  // #304: the two ways to give the time are one group: arrow keys move between them, one Tab stop, "1 of 2".
+  const timeChoice = useId();
   // #248: the form takes the place of 邀请面试 / 改时间, and with it the focus: its chosen time option, else the first.
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -184,10 +188,10 @@ function InviteForm({
       <fieldset>
         <legend className="mb-1 text-body font-medium">{t.timeLegend}</legend>
         <div className="flex flex-wrap gap-x-5 px-2">
-          <Radio checked={!callFirst} onChange={() => setCallFirst(false)}>
+          <Radio name={timeChoice} checked={!callFirst} onChange={() => setCallFirst(false)}>
             {t.giveTimes}
           </Radio>
-          <Radio checked={callFirst} onChange={() => setCallFirst(true)}>
+          <Radio name={timeChoice} checked={callFirst} onChange={() => setCallFirst(true)}>
             {t.callFirst}
           </Radio>
         </div>
