@@ -22,6 +22,8 @@ import { busyProps } from "@/components/ui/busy";
 import { InterviewInvite } from "@/components/employer/InterviewInvite";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 import {
   applicantFilterCounts,
@@ -62,24 +64,36 @@ export function JobApplicants({ jobId }: { jobId: string }) {
 
 function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   const t = useMessages(employerApplicantsMessages).jobApplicants;
+  const names = useMessages(employerCommonMessages).load;
   const lang = useLang();
   const [loaded, setLoaded] = useState<{ email: string; data: { job: Job; applicants: Applicant[] } | null }>();
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<ApplicantFilter>("all");
+  // #246: the ask (by its version, which 重试 moves on) that got no answer.
+  const [version, setVersion] = useState(0);
+  const [failed, setFailed] = useState<{ email: string; version: number }>();
 
   useEffect(() => {
     let live = true;
-    getMyJobApplicants(jobId).then((data) => {
-      if (!live) return;
-      setLoaded({ email: me.email, data });
-      // Shown with 新 marked; from now on they count as seen.
-      if (data?.applicants.some((a) => a.isNew)) void markMyApplicantsSeen(jobId).catch(() => {});
-    });
+    getMyJobApplicants(jobId).then(
+      (data) => {
+        if (!live) return;
+        setLoaded({ email: me.email, data });
+        // Shown with 新 marked; from now on they count as seen.
+        if (data?.applicants.some((a) => a.isNew)) void markMyApplicantsSeen(jobId).catch(() => {});
+      },
+      () => {
+        if (live) setFailed({ email: me.email, version });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [jobId, me.email]);
+  }, [jobId, me.email, version]);
 
+  if (failed?.email === me.email && failed.version === version) {
+    return <LoadFailed what={names.applicants} onRetry={() => setVersion((v) => v + 1)} />;
+  }
   if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (

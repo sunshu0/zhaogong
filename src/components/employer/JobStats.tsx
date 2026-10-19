@@ -10,6 +10,8 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { Section } from "@/components/ui/Section";
 import { BACK_LINK } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate, formatNumber } from "@/i18n/format";
 import { contentLang, type Lang } from "@/i18n/lang";
@@ -35,21 +37,33 @@ export function JobStats({ jobId }: { jobId: string }) {
 function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   const lang = useLang();
   const t = useMessages(employerJobsMessages).stats;
+  const names = useMessages(employerCommonMessages).load;
   const [loaded, setLoaded] = useState<{
     email: string;
     data: { job: Job; days: JobDay[]; funnel: ApplicationFunnel } | null;
   }>();
+  // #246: the ask (by its version, which 重试 moves on) that got no answer.
+  const [version, setVersion] = useState(0);
+  const [failed, setFailed] = useState<{ email: string; version: number }>();
 
   useEffect(() => {
     let live = true;
-    getMyJobDays(jobId).then((data) => {
-      if (live) setLoaded({ email: me.email, data });
-    });
+    getMyJobDays(jobId).then(
+      (data) => {
+        if (live) setLoaded({ email: me.email, data });
+      },
+      () => {
+        if (live) setFailed({ email: me.email, version });
+      },
+    );
     return () => {
       live = false;
     };
-  }, [jobId, me.email]);
+  }, [jobId, me.email, version]);
 
+  if (failed?.email === me.email && failed.version === version) {
+    return <LoadFailed what={names.stats} onRetry={() => setVersion((v) => v + 1)} />;
+  }
   if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (

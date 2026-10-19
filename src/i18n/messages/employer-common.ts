@@ -1,6 +1,7 @@
 // Round 20 (ADR 0023): the employer bits every employer page shares. Covers components/employer/EmployerGate.tsx,
-// the employer home page app/employer/page.tsx, the error_zh texts of app/employer/actions.ts, the loading.tsx
-// labels under app/employer/** (the candidates one is in employer-applicants) and the /employer page title.
+// the names LoadFailed shows (#246), the employer home page app/employer/page.tsx, the error_zh texts of
+// app/employer/actions.ts, the loading.tsx labels under app/employer/** (the candidates one is in employer-applicants)
+// and the /employer page title.
 // 企业验证 has its own dictionary (employer-verify.ts).
 import type { Dictionary } from "@/i18n/messages";
 
@@ -55,6 +56,16 @@ const employerCommonZh = {
     verifyAlready: (badge: string) => `你的店铺已经是「${badge}」。`,
     verifyNzbnNotFound: "企业登记里没有这个 NZBN。",
     verifyNzbnRemoved: "这家公司在企业登记里已注销，不能用来验证。",
+  },
+
+  /** #246: what LoadFailed (components/ui) says got no answer, worded to go before 没取到. */
+  load: {
+    jobs: "职位",
+    job: "这个职位",
+    applicants: "申请人",
+    stats: "职位数据",
+    team: "团队",
+    verification: "企业验证",
   },
 
   /** The labels of the skeletons under app/employer/**\/loading.tsx. */

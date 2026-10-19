@@ -59,6 +59,15 @@ export const employerCommonEn: Messages<(typeof employerCommonMessages)["zh"]> =
     verifyNzbnRemoved: "This business is removed from the business register, so it can't be used for verification.",
   },
 
+  load: {
+    jobs: "your jobs",
+    job: "this job",
+    applicants: "the applicants",
+    stats: "this job's numbers",
+    team: "your team",
+    verification: "your business verification",
+  },
+
   loading: {
     employer: "Loading",
   },

@@ -14,6 +14,8 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
@@ -32,9 +34,11 @@ export function EditJob({ jobId, country }: { jobId: string; country: CountryCod
 
 function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; country: CountryCode }) {
   const t = useMessages(employerPostMessages).edit;
+  const names = useMessages(employerCommonMessages).load;
   const email = me.email;
-  const job = useMyJob(jobId, email);
+  const { job, failed, reload } = useMyJob(jobId, email);
 
+  if (failed) return <LoadFailed what={names.job} onRetry={reload} />;
   if (job === undefined) return <SkeletonList count={2} />;
   if (!job || !canEdit(job)) {
     return (

@@ -14,6 +14,8 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { busyProps } from "@/components/ui/busy";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { BACK_LINK, noticeClass } from "@/components/employer/app-style";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang, type Lang } from "@/i18n/lang";
@@ -42,11 +44,12 @@ export function VerifyBusiness() {
 function Verify({ me }: { me: EmployerIdentity }) {
   const lang = useLang();
   const words = useMessages(employerVerifyMessages);
+  const names = useMessages(employerCommonMessages).load;
   const t = words.verify;
   const kindLabel = kindLabels(lang);
   const { profile, reload: reloadProfile } = useEmployerProfile(me.email);
-  const { request, reload } = useMyVerification(me.email);
-  const { team } = useMyTeam(me.email);
+  const { request, failed: requestFailed, reload } = useMyVerification(me.email);
+  const { team, failed: teamFailed, reload: reloadTeam } = useMyTeam(me.email);
   // Only an admin of the team applies (#87); the server refuses anyone else too.
   const isMember = team?.me.role === "member";
   const employer: Pick<Employer, "name" | "verification" | "businessNumber" | "bannedAt"> = profile ?? {
@@ -88,7 +91,20 @@ function Verify({ me }: { me: EmployerIdentity }) {
         </p>
       )}
 
-      {request === undefined ? <SkeletonCard /> : request && <LatestRequest request={request} />}
+      {/* #246: with no answer about the application or the team, the form cannot be shown either. */}
+      {requestFailed || teamFailed ? (
+        <LoadFailed
+          what={names.verification}
+          onRetry={() => {
+            if (requestFailed) reload();
+            if (teamFailed) reloadTeam();
+          }}
+        />
+      ) : request === undefined ? (
+        <SkeletonCard />
+      ) : (
+        request && <LatestRequest request={request} />
+      )}
 
       {employer.bannedAt && <p className="text-body text-danger">{t.banned}</p>}
       {request !== undefined && kinds.length === 0 && (

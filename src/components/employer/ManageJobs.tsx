@@ -15,6 +15,8 @@ import { NO_NUMBERS } from "@/components/employer/job-card";
 import { APP_CARD, noticeClass } from "@/components/employer/app-style";
 import { ButtonLink } from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { inputClass } from "@/components/ui/input-class";
 import { SEARCH_FROM, searchJobs } from "@/components/employer/job-search";
@@ -53,9 +55,10 @@ export function ManageJobs() {
 
 function Manage({ me }: { me: EmployerIdentity }) {
   const t = useMessages(employerJobsMessages);
+  const names = useMessages(employerCommonMessages).load;
   const lang = useLang();
   const asked = useSearchParams().get("tab");
-  const { ready, reload } = useMyJobs(me.email, { withPosters: true });
+  const { ready, failed, reload } = useMyJobs(me.email, { withPosters: true });
   const { profile } = useEmployerProfile(me.email);
   const [tab, setTab] = useState<TabKey>(() => tabFrom(asked));
   const [notice, setNotice] = useState<Notice>();
@@ -90,14 +93,18 @@ function Manage({ me }: { me: EmployerIdentity }) {
       )}
       {notice && <NoticeLine notice={notice} noticeRef={noticeRef} />}
       <TabPanel idBase={TAB_ID_BASE} value={tab}>
-        <JobsInTab
-          ready={searched}
-          tab={tab}
-          query={searchable ? query : ""}
-          employer={employer}
-          lang={lang}
-          onDone={done}
-        />
+        {failed ? (
+          <LoadFailed what={names.jobs} onRetry={reload} />
+        ) : (
+          <JobsInTab
+            ready={searched}
+            tab={tab}
+            query={searchable ? query : ""}
+            employer={employer}
+            lang={lang}
+            onDone={done}
+          />
+        )}
       </TabPanel>
     </div>
   );

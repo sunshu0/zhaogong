@@ -3,6 +3,8 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { noticeClass } from "@/components/employer/app-style";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useMyTeam } from "@/components/employer/use-employer";
@@ -35,9 +37,10 @@ export function TeamPage() {
 
 function Team({ me }: { me: EmployerIdentity }) {
   const words = useMessages(employerTeamMessages);
+  const names = useMessages(employerCommonMessages).load;
   const t = words.teamPage;
   const roles = words.team.roleLabel;
-  const { team, reload } = useMyTeam(me.email);
+  const { team, failed, reload } = useMyTeam(me.email);
   // What a change did, in a line that may carry a person's own name in its own lang.
   const [message, setMessage] = useState<{ ok: boolean; text: ReactNode }>();
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
@@ -51,6 +54,7 @@ function Team({ me }: { me: EmployerIdentity }) {
       if (result.ok) (after ?? reload)();
     });
 
+  if (failed) return <LoadFailed what={names.team} onRetry={reload} />;
   if (team === undefined) return <SkeletonList count={2} label={t.loading} />;
   if (team === null) return <p className="text-body">{t.noEmployerRole}</p>;
   const isAdmin = team.me.role === "admin";

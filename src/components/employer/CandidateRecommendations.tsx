@@ -19,6 +19,8 @@ import {
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { Section } from "@/components/ui/Section";
 import { APP_CARD } from "@/components/employer/app-style";
 import { Pay } from "@/components/ui/Pay";
@@ -56,12 +58,14 @@ export function CandidateRecommendations() {
 
 function Recommendations({ me }: { me: EmployerIdentity }) {
   const t = useMessages(employerApplicantsMessages).candidateRecommendations;
+  const names = useMessages(employerCommonMessages).load;
   const lang = useLang();
-  const { ready } = useMyJobs(me.email);
+  const { ready, failed, reload } = useMyJobs(me.email);
   const { candidates } = useCandidateDirectory();
   const [jobId, setJobId] = useState("");
   const [query, setQuery] = useState("");
   const [minimum, setMinimum] = useState("0");
+  if (failed) return <LoadFailed what={names.jobs} onRetry={reload} />;
   if (!ready) return <SkeletonList count={3} label={t.loadingJobs} />;
   const jobs = ready.jobs.filter((job) => job.status === "active" && Date.parse(job.expiresAt) > ready.now);
   const job = jobs.find((item) => item.id === jobId) ?? jobs[0];

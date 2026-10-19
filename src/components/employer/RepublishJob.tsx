@@ -18,6 +18,8 @@ import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { contentLang } from "@/i18n/lang";
@@ -61,10 +63,12 @@ function Load({
   mode: CopyMode;
 }) {
   const t = useMessages(employerPostMessages).republish;
-  const job = useMyJob(jobId, me.email);
+  const names = useMessages(employerCommonMessages).load;
+  const { job, failed, reload } = useMyJob(jobId, me.email);
   // The time the page opened decides whether the job may be published again; it stays fixed while the form is open.
   const [openedAt] = useState(() => Date.now());
 
+  if (failed) return <LoadFailed what={names.job} onRetry={reload} />;
   if (job === undefined) return <SkeletonList count={2} />;
   const allowed = job && (mode === "copy" ? canCopy(job) : canRepublish(job, openedAt));
   if (!job || !allowed) {

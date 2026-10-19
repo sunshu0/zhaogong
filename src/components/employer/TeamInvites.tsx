@@ -32,9 +32,13 @@ export function TeamInvites({ email }: { email: string }) {
 
   useEffect(() => {
     let live = true;
-    getMyTeamInvites().then((list) => {
-      if (live) setInvites({ email, list });
-    });
+    // #246: with no answer the card stays away, as with no invitations; 我的 still works.
+    getMyTeamInvites().then(
+      (list) => {
+        if (live) setInvites({ email, list });
+      },
+      () => {},
+    );
     return () => {
       live = false;
     };
