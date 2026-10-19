@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAccountEmployer, listEmployers } from "@/lib/data";
+import { banEmployer, getAccountEmployer, listEmployers } from "@/lib/data";
 import { SESSION_COOKIE, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 
@@ -154,6 +154,38 @@ describe("openEmployerForAccount", () => {
     });
     expect(again).toEqual({ ok: true, employer: { id: expect.any(String), name: "老王面馆" } });
     expect((await listEmployers()).length).toBe(before + 1);
+  });
+
+  it("claims no existing business without the demo data, where e1, e2… are real businesses (#348)", async () => {
+    vi.stubEnv("DEMO_DATA", "false");
+    try {
+      await signIn("no.demo@example.com");
+      const before = (await listEmployers()).length;
+      expect(await openEmployerForAccount("no.demo@example.com", { kind: "existing", employerId: "e2" })).toEqual({
+        ok: false,
+        error: "请选择一家店",
+      });
+      expect(await getAccountEmployer("no.demo@example.com")).toBeUndefined();
+      expect((await listEmployers()).length).toBe(before);
+      // A new business still opens, 未验证.
+      const created = await openEmployerForAccount("no.demo@example.com", {
+        kind: "new",
+        name: "没有演示数据的店",
+        regionId: "akl-cbd",
+      });
+      expect(created.ok).toBe(true);
+      expect(await getAccountEmployer("no.demo@example.com")).toMatchObject({ verification: "unverified" });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("refuses a banned demo business (#348)", async () => {
+    await banEmployer("e2");
+    await signIn("after.ban@example.com");
+    const result = await openEmployerForAccount("after.ban@example.com", { kind: "existing", employerId: "e2" });
+    expect(result.ok).toBe(false);
+    expect(await getAccountEmployer("after.ban@example.com")).toBeUndefined();
   });
 
   it("refuses non-demo businesses and bad input without creating anything", async () => {

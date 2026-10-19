@@ -13,6 +13,7 @@ import {
 import { CODE_TTL_MS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { cookies } from "next/headers";
 import { langOnSignIn } from "@/db/account-lang";
+import { demoDataWanted } from "@/db/ready";
 import { langCookieOptions } from "@/i18n/cookie";
 import { LANG_COOKIE } from "@/i18n/lang";
 import { requestLang } from "@/i18n/server";
@@ -122,6 +123,8 @@ export async function accountStatus(email?: string): Promise<AccountStatus | nul
 /**
  * The employer sign-up step for the signed-in account: claim one of the demo businesses or create a new one, open
  * the employer identity for it, and switch the session to it. An account that already has a business keeps it.
+ * A demo business can be claimed only with the demo data (#348): without it, ids like e1 are real businesses, and
+ * one whose team has all gone is for a moderator or an invitation, never for whoever asks. New ones are 未验证.
  */
 export async function openEmployerForAccount(
   email: string,
@@ -138,6 +141,8 @@ export async function openEmployerForAccount(
     if ((await getAccount(address))?.employerId) return { ok: false, error: openErrorMessage("banned", lang) };
     const parsed = parseBusinessChoice(choice, "NZ", lang);
     if (!parsed.ok) return parsed;
+    if (parsed.choice.kind === "existing" && !demoDataWanted())
+      return { ok: false, error: pick(loginMessages, lang).identity.businessMissing };
     const employerId =
       parsed.choice.kind === "existing"
         ? parsed.choice.employerId

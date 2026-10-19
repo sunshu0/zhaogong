@@ -7,6 +7,7 @@ import { getCurrentSession } from "@/lib/auth";
 import { regionById } from "@/config/countries";
 import { placeName } from "@/components/seeker/format";
 import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
+import { demoDataWanted } from "@/db/ready";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, LoginFormSkeleton, LoginIntro, type DemoBusiness } from "@/components/seeker/LoginForm";
 import { nextForSignedIn } from "@/components/seeker/session";
@@ -56,8 +57,12 @@ async function Login({ searchParams }: Pick<PageProps<"/[lang]/login">, "searchP
   );
 }
 
-/** The businesses an employer can pick at sign-up in the demo (banned ones left out; bound ones marked). */
+/**
+ * The businesses an employer can pick at sign-up in the demo (banned ones left out; bound ones marked). None without
+ * the demo data (#348): the server would refuse them, and their ids may be real businesses.
+ */
 async function demoBusinesses(): Promise<DemoBusiness[]> {
+  if (!demoDataWanted()) return [];
   const lang = await serverLang();
   const ids: readonly string[] = DEMO_BUSINESS_IDS;
   const claimed = new Set(await listClaimedEmployerIds());
