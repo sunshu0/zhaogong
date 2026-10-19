@@ -13,7 +13,7 @@
 
 1. **「已录用」是申请的第三种决定。** `job_applications.decision` 原来是 `fit` / `unfit`，加上 `hired`，录用时间用已有的 `decided_at`。它和「合适 / 不合适」互斥：录用了就不再是「合适」。不用迁移（这一列是文本）。
 2. **「职位已结束」不存，读取时按职位算**（`jobEndedAt`）：`expired` 或过了截止时间，结束时间是 `expires_at`；`removed` 的时间从审核记录里找（这个职位的下架，或者它的企业被封禁），找不到时用截止时间和现在里早的那个；待审核的不算结束。和 ADR 0008 一样，这样不需要在职位结束的那一刻去改每份申请，也不会因为「到期」没有人触发而漏掉。
-3. **通知也在读取时生成**（`src/app/me/application-notifications.ts`，由 `serverNotifications` 汇总）：
+3. **通知也在读取时生成**（`src/app/[lang]/me/application-notifications.ts`，由 `serverNotifications` 汇总）：
    - 被录用的人：「〈店名〉录用了你」，编号 `hired:<申请编号>`，雇主标了就有，不等职位结束。
    - 其余申请人，在职位结束后：「〈职位〉已经招满」（雇主结束时说招到了人）或「〈职位〉已结束」，编号 `job-ended:<申请编号>`。
    - 编号固定，所以读过一次就一直是已读（`markMyNotificationsRead` 只接受 `serverNotifications` 给出的编号）。

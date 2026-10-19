@@ -288,7 +288,7 @@
 | `recordTakedownRequest(companyId, requester, note)` | 公司要求删除：记下谁提出（公司邮箱或部门）和内容，效果同停用。 |
 | `resumeExternalCompany(companyId, note)` | 恢复导入：删掉停用记录，这家的职位回到待审，下一次导入重新读。 |
 
-## 实习和专业职位的页面 — `src/app/internships`、`src/app/professional`、`src/app/[lang]/external/[id]`
+## 实习和专业职位的页面 — `src/app/[lang]/internships`、`src/app/[lang]/professional`、`src/app/[lang]/external/[id]`
 
 #113（PRD R-39）。没有 Server Function：服务器组件直接读 `listExternalJobs({ shownAt })`（请求时间，`requestTime()`）和 `getExternalJob(id)`，只显示 `isShown()` 为真的职位。筛选参数（`src/lib/external-jobs/filter.ts`）：`field`（software / electrical）、`kind`（实习：internship / graduate；专业职位：full_time / part_time / contract / unstated）、`experience`（le2 / ge3 / unstated）、`visa`（sponsorship / required / unstated）、`city`、`paid=1`。职位页地址里的编号用 `encodeURIComponent`（编号含冒号）。
 

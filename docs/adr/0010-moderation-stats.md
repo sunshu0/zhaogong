@@ -16,7 +16,7 @@
 ## 决定
 
 1. **记下处理时间。** 迁移 0008 给 `reports` 加可空列 `handled_at`（不用 SQL `DEFAULT`，和 ADR 0005 的约定一致）。`updateReport`（`src/lib/data.ts`）把举报关闭时写入当时的时间，重新打开时清空。审核后台的下架、驳回、封禁都经过它。迁移之前已经处理的举报没有这个时间：不补、不猜，统计里不计入用时，页面上写明有几条。
-2. **每次请求时算。** `getModerationStats()`（`src/app/admin/stats-actions.ts`，先 `requireModerator()`）读出这个市场的全部职位、举报和审核记录，交给纯函数 `moderationStats`（`src/app/admin/moderation-stats.ts`）算。周按新西兰时间、从周一算起；中位数取当周关闭的举报。纯函数有单测，不用数据库。
+2. **每次请求时算。** `getModerationStats()`（`src/app/[lang]/admin/stats-actions.ts`，先 `requireModerator()`）读出这个市场的全部职位、举报和审核记录，交给纯函数 `moderationStats`（`src/app/admin/moderation-stats.ts`）算。周按新西兰时间、从周一算起；中位数取当周关闭的举报。纯函数有单测，不用数据库。
 3. **不加图表库。** 8 周的数字用表格，新举报一列加一条 CSS 宽度的横条，和雇主的职位数据（#55）一样。
 
 ## 后果

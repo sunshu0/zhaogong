@@ -31,7 +31,7 @@
 - 冒充别人只剩偷 cookie 一条路；cookie 是 httpOnly，页面脚本读不到。
 - 浏览器测试改用 `signIn()` 真实登录（读开发环境返回的验证码），不再往 `localStorage` 写假会话。
 - 每个用到会话的请求都要查一次库（会话和账号的企业）。演示规模没有问题；量大时再考虑缓存。
-- 聊天、交换和通知已读也按会话的身份存到服务器（#10，`src/app/messages/actions.ts`；#42 存进数据库），见 `docs/architecture.md`。
+- 聊天、交换和通知已读也按会话的身份存到服务器（#10，`src/app/[lang]/messages/actions.ts`；#42 存进数据库），见 `docs/architecture.md`。
 - 待办：生产环境的邮件服务（#16）。
 
 ## 补充：审核员角色（#50，2026-10-16）
@@ -39,7 +39,7 @@
 用户决定审核后台按账号角色限定审核员，不用邮箱白名单。
 
 - **存在哪里：** `moderators` 表（迁移 0003），每个审核员一行，记着谁在什么时候添加的。没有在 `accounts` 上加一列：给已有的表加 NOT NULL 列需要 SQL `DEFAULT`，而 0005 为了 D1 不用它。
-- **怎么检查：** `requireModerator()`（`src/app/admin/moderator.ts`）依次查 `ADMIN_ENABLED`、会话、审核员；`/admin` 的每个 Server Function 都先调用它，不是审核员一律拒绝。页面本身是静态的，数据只从这些函数来。
+- **怎么检查：** `requireModerator()`（`src/app/[lang]/admin/moderator.ts`）依次查 `ADMIN_ENABLED`、会话、审核员；`/admin` 的每个 Server Function 都先调用它，不是审核员一律拒绝。页面本身是静态的，数据只从这些函数来。
 - **第一位审核员：** 只能在服务器上用命令行 `npm run admin:grant <邮箱>` 添加，网页上没有自助成为审核员的入口。之后审核员在 /admin 的「审核员」一页里按邮箱增删；对方要先登录过一次（账号存在）。最后一位审核员不能被移除（命令行也一样）。
 - **演示数据：** 开发和测试环境的演示数据带一个演示审核员 `moderator@example.com`；开发环境登录页会显示验证码，所以本机谁都能用它进 /admin。真正的数据库没有演示数据，从零个审核员开始。
 - **浏览器测试：** 同一个邮箱一分钟只能要一次验证码，所以 Playwright 的 setup 项目（`e2e/moderator.setup.ts`）只登录一次演示审核员，保存会话；需要审核员的用例用 `moderatorPage()` 另开一个浏览器上下文。

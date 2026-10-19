@@ -49,6 +49,6 @@
 ## 后果
 
 - 「我的」列表多了一行「数据与账号」（`/account/data`）。
-- 接口：`myServerData()`、`deleteMyAccount(邮箱)`（`src/app/account/actions.ts`），见 `docs/api.md`。
+- 接口：`myServerData()`、`deleteMyAccount(邮箱)`（`src/app/[lang]/account/actions.ts`），见 `docs/api.md`。
 - 只能导出和删除当前设备上的浏览器数据；别的设备上的资料要在那台设备上导出或删除。资料以后存到服务器后，这一条就不再需要。
 - #60 给审核记录加上审核员邮箱（`moderation_log.moderator_email`），删除账号时已改成 `deleted-account`，导出里有这个人做过的审核操作（`moderationActions`）。
