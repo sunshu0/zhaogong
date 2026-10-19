@@ -10,6 +10,8 @@ import { employerPageMessages } from "@/i18n/messages/employer-page";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { employerTeamMessages } from "@/i18n/messages/employer-team";
 import { employerVerifyMessages } from "@/i18n/messages/employer-verify";
+import { legalPrivacyMessages } from "@/i18n/messages/legal-privacy";
+import { legalTermsMessages } from "@/i18n/messages/legal-terms";
 
 // Line B's dictionaries (Round 20 step 0): employer pages, chat, compliance, candidate matching. The checks are
 // line C's (line-c.test.ts), so the two lines' dictionaries meet the same bar.
@@ -24,6 +26,8 @@ const DICTIONARIES = {
   chat: chatMessages,
   compliance: complianceMessages,
   "candidate-matching": candidateMatchingMessages,
+  "legal-privacy": legalPrivacyMessages,
+  "legal-terms": legalTermsMessages,
 };
 
 // Texts allowed to break the rules below, each on purpose: the job form's Chinese-title field shows a Chinese
