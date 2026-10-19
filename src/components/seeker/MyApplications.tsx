@@ -20,6 +20,7 @@ import { cardClass } from "@/components/ui/Card";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 
 /**
  * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
@@ -128,6 +129,8 @@ function ApplicationCard({
 }) {
   const lang = useLang();
   const t = useMessages(seekerMeMessages).applications;
+  const [confirming, setConfirming] = useState(false);
+  const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
   const open = a.stage === "open";
   return (
     <article aria-label={a.titleZh} className={cardClass()}>
@@ -169,14 +172,36 @@ function ApplicationCard({
             <span lang={contentLang(a.note)}>{a.note}</span>
           </span>
         )}
-        {open && (
-          <button
-            type="button"
-            onClick={onWithdraw}
-            className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
-          >
-            {t.withdraw}
-          </button>
+        {open && !confirming && (
+          <div ref={opener} className="ml-auto">
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="pressable inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
+            >
+              {t.withdraw}
+            </button>
+          </div>
+        )}
+        {open && confirming && (
+          // #325: the employer stops seeing the application, so it asks first; the focus moves in and back.
+          <div ref={form} role="group" aria-label={t.withdraw} className="ml-auto flex flex-wrap items-center gap-x-3">
+            <span className="text-meta text-muted">{t.withdrawWarning}</span>
+            <button
+              type="button"
+              onClick={onWithdraw}
+              className="pressable inline-flex min-h-11 items-center text-meta font-medium text-danger"
+            >
+              {t.confirmWithdraw}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="pressable inline-flex min-h-11 items-center text-meta text-muted"
+            >
+              {t.cancelWithdraw}
+            </button>
+          </div>
         )}
       </div>
       {open && a.interview && (

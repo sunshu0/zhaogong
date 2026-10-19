@@ -70,8 +70,14 @@ test("apply with a note; the employer sees, chats and decides; the job seeker se
   await expect(page).toHaveURL(/\/messages\?conversation=chat%3A/);
   await expect(page.getByRole("main").getByText("林晓").filter({ visible: true }).first()).toBeVisible();
 
-  // Withdrawn: gone from the employer's list.
+  // Withdrawing asks first (#325): 取消 keeps it, the focus back on 撤回申请; 确认撤回 takes it off the employer's list.
   await mine.getByRole("button", { name: "撤回申请" }).click();
+  await expect(mine.getByRole("button", { name: "确认撤回" })).toBeFocused();
+  await expect(mine).toContainText("撤回后雇主就看不到这份申请了。");
+  await mine.getByRole("button", { name: "取消" }).click();
+  await expect(mine.getByRole("button", { name: "撤回申请" })).toBeFocused();
+  await mine.getByRole("button", { name: "撤回申请" }).click();
+  await mine.getByRole("button", { name: "确认撤回" }).click();
   await expect(seeker.getByRole("region", { name: /^我的申请/ })).toHaveCount(0);
   await seeker.context().close();
   await page.goto(`/employer/jobs/${jobId}/applicants`);
@@ -97,6 +103,20 @@ test("signed out, 申请 signs in and comes back with the form open; a job row s
   await page.goto("/jobs?q=%E7%82%B9%E5%BF%83");
   const row = page.getByRole("region", { name: "职位列表" }).getByRole("article").filter({ hasText: "点心师傅" });
   await expect(row.getByText("已申请", { exact: true })).toBeVisible();
+
+  // The job page's dialog: withdrawing asks first there too (#325); 取消 keeps it, 确认撤回 withdraws.
+  await page.goto("/jobs/j3");
+  await page.getByRole("button", { name: /已申请/ }).click();
+  const mine = applyDialog(page);
+  await mine.getByRole("button", { name: "撤回申请" }).click();
+  await expect(mine.getByRole("button", { name: "确认撤回" })).toBeFocused();
+  await expect(mine).toContainText("撤回后雇主就看不到这份申请了。");
+  await mine.getByRole("button", { name: "取消" }).click();
+  await expect(mine.getByRole("button", { name: "撤回申请" })).toBeFocused();
+  await mine.getByRole("button", { name: "撤回申请" }).click();
+  await mine.getByRole("button", { name: "确认撤回" }).click();
+  await expect(mine).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "申请", exact: true })).toBeVisible();
 });
 
 test("no 申请 for the business's own job, and none on the rows for employers", async ({ page }, testInfo) => {

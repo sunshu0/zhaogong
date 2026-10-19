@@ -28,6 +28,7 @@ import { useLang, useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { candidateFacts } from "@/lib/candidate-matching";
 import { track } from "@/lib/events/track";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 
 /**
  * 申请 on a job page (#84): the job seeker sends their page (as employers see it, no contact details) and a note of
@@ -164,6 +165,8 @@ function ApplyDialog({
 }) {
   const { profile } = useProfile();
   const t = useMessages(seekerJobsMessages).apply;
+  const [confirming, setConfirming] = useState(false);
+  const { opener: withdrawRow, form: confirmRow } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
   const lang = useLang();
   const page = applicationProfileFrom(profile);
   const facts = page ? candidateFacts(applicantCandidate("me", page), lang) : [];
@@ -235,14 +238,29 @@ function ApplyDialog({
                 {error}
               </p>
             )}
-            <div className="flex gap-2">
-              <button ref={first} type="button" onClick={onClose} className={buttonClass("primary")}>
-                {t.ok}
-              </button>
-              <button type="button" onClick={withdraw} className={buttonClass("link")} {...busyProps(busy)}>
-                {t.withdraw}
-              </button>
-            </div>
+            {confirming ? (
+              // #325: the employer stops seeing the application, so it asks first; the focus moves in and back.
+              <div ref={confirmRow} role="group" aria-label={t.withdraw} className="space-y-2">
+                <p className="text-body">{t.withdrawWarning}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={withdraw} className={buttonClass("danger")} {...busyProps(busy)}>
+                    {t.confirmWithdraw}
+                  </button>
+                  <button type="button" onClick={() => setConfirming(false)} className={buttonClass("link")}>
+                    {t.cancel}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div ref={withdrawRow} className="flex gap-2">
+                <button ref={first} type="button" onClick={onClose} className={buttonClass("primary")}>
+                  {t.ok}
+                </button>
+                <button type="button" onClick={() => setConfirming(true)} className={buttonClass("link")}>
+                  {t.withdraw}
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <form

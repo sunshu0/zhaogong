@@ -46,6 +46,10 @@ const seekerMeZh = {
     appliedOn: (date: string) => `${date}申请`,
     note: (note: string) => `附言：${note}`,
     withdraw: "撤回申请",
+    // #325: withdrawing asks first, where 撤回申请 was.
+    withdrawWarning: "撤回后雇主就看不到这份申请了。",
+    confirmWithdraw: "确认撤回",
+    cancelWithdraw: "取消",
     loadFailed: "网络有问题，申请记录暂时打不开。",
     withdrawFailed: "没能撤回，请稍后再试。",
     noteTooLong: (max: number) => `附言最多 ${max} 字`,

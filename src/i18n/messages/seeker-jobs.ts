@@ -186,6 +186,9 @@ const seekerJobsZh = {
     progressWhere: "进度也在「我的 → 收藏和进度」里。",
     ok: "好的",
     withdraw: "撤回申请",
+    // #325: withdrawing asks first, in place of 好的 / 撤回申请 (取消 is `cancel`).
+    withdrawWarning: "撤回后雇主就看不到这份申请了。",
+    confirmWithdraw: "确认撤回",
     shown: "雇主会看到的资料",
     shownHint: "雇主会看到你的主页（不含联系方式）：",
     noName: "还没有名字，雇主不知道是谁申请的。",

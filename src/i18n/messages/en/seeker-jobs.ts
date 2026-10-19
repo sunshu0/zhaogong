@@ -176,6 +176,8 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     progressWhere: "You can also follow it in Me → Saved and applied.",
     ok: "OK",
     withdraw: "Withdraw application",
+    withdrawWarning: "Once it's withdrawn, the employer won't see this application.",
+    confirmWithdraw: "Yes, withdraw",
     shown: "What the employer sees",
     shownHint: "The employer sees your profile (without your contact details):",
     noName: "You haven't added a name yet, so the employer won't know who applied.",
