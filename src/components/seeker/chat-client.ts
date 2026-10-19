@@ -30,6 +30,7 @@ import {
   type ChatRecord,
   type Conversation,
   JUST_NOW,
+  MESSAGE_MAX,
 } from "@/components/seeker/chat-store";
 
 export type { Conversation, Message } from "@/components/seeker/chat-store";
@@ -285,7 +286,8 @@ export function useChat() {
       sendChange(scope, { type: "read", conversationId: id });
     },
     send(id: string, text: string) {
-      if (!view.messages[id] || !text.trim()) return;
+      // Over the server's limit it would show as sent and then be dropped there (#259): not sent at all.
+      if (!view.messages[id] || !text.trim() || text.length > MESSAGE_MAX) return;
       change((current) => addSentMessage(current, id, text, new Date().toISOString()));
       sendChange(scope, { type: "send", conversationId: id, text });
     },

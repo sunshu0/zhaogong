@@ -47,13 +47,13 @@ import {
   parseChatRecord,
   type ChatRecord,
   JUST_NOW,
+  MESSAGE_MAX,
 } from "@/components/seeker/chat-store";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { normalizeEmail } from "@/components/seeker/session";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
 
-const MESSAGE_MAX = 2000;
 const NAME_MAX = 40;
 /** Applied change ids kept per identity: far more than a browser sends before it hears back. */
 const APPLIED_KEPT = 200;

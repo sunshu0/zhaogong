@@ -22,6 +22,10 @@ import { chatMessages } from "@/i18n/messages/chat";
  * messages not on the server yet), shown with shownTime() in the reader's language.
  */
 export const JUST_NOW = "刚刚";
+/** The longest message the server keeps (messages/actions.ts); the composer stops there too (#259). */
+export const MESSAGE_MAX = 2000;
+/** From how many characters the composer shows its count against MESSAGE_MAX. */
+export const MESSAGE_COUNT_FROM = MESSAGE_MAX - 200;
 
 /**
  * A stored message or row time as the reader sees it. The demo chats and older records store Chinese words —

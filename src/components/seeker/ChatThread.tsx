@@ -13,6 +13,7 @@ import { MoreMenu, type MoreMenuItem } from "@/components/ui/MoreMenu";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { outgoingWarningParts } from "@/components/seeker/chat-warnings";
+import { MESSAGE_COUNT_FROM, MESSAGE_MAX } from "@/components/seeker/chat-store";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -198,6 +199,9 @@ function MessageComposer({
     onSubmit(event);
     if (pressed) box.current?.focus();
   };
+  // #259: the count shows near the server's limit, which the box does not let a message pass.
+  const counting = draft.length >= MESSAGE_COUNT_FROM;
+  const describedBy = [warning && "message-draft-warning", counting && "message-draft-count"].filter(Boolean).join(" ");
   return (
     <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
       {tools}
@@ -211,7 +215,8 @@ function MessageComposer({
         onChange={(event) => onDraftChange(event.target.value)}
         placeholder={t.composerPlaceholder}
         rows={3}
-        aria-describedby={warning ? "message-draft-warning" : undefined}
+        maxLength={MESSAGE_MAX}
+        aria-describedby={describedBy || undefined}
         className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
       />
       <button
@@ -223,6 +228,11 @@ function MessageComposer({
         <Send aria-hidden="true" className="size-4" />
         {t.send}
       </button>
+      {counting && (
+        <p id="message-draft-count" className="basis-full text-right text-meta text-muted tabular-nums">
+          {draft.length}/{MESSAGE_MAX}
+        </p>
+      )}
       {warning && (
         <p id="message-draft-warning" role="status" className="basis-full text-meta leading-relaxed text-warn">
           {warning.before}
