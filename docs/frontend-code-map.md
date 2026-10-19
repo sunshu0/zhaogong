@@ -72,6 +72,10 @@
 
 发帖表单状态仍在 `use-draft-form.ts`，表单与职位转换在 `post-form.ts`。对话生成规则在 `src/lib/ai-post/`，发布前检查在 `src/lib/compliance/`，演示数据操作通过 `src/app/[lang]/employer/actions.ts` 调用。
 
+## 读取失败和断网（ADR 0024）
+
+Server Function 没回答时的做法见 [ADR 0024](adr/0024-no-answer-from-the-server.md)。共用部件在 `src/components/ui/`：`useServerLoad`（`use-server-load.ts`，状态规则 `shownLoad` 在 `server-load.ts`）、`LoadFailed.tsx`，文字在 ui 字典的 `load`；求职端已有出错文字的地方用 `src/components/seeker/RetryLine.tsx`。审核后台用自己的 `src/app/[lang]/admin/load-state.ts`。断网的 e2e：`e2e/employer/errors.spec.ts`、`e2e/seeker-errors.spec.ts`、`e2e/admin-errors.spec.ts`。
+
 ## 验证
 
 `npm run check` 检查格式、类型、lint、单元测试和构建。浏览器验收跑在测试构建上（#139）：`npm run e2e:build`，`npm run e2e:start -- 8701`，再在 Git Bash 里 `E2E_SERVER=start E2E_PORT=8701 npx playwright test --workers=1`，跑完关掉服务器。不要用 `next dev` 跑 e2e。
