@@ -65,10 +65,12 @@ export async function chineseLeft(page: Page, allow: readonly (string | RegExp)[
       .map((el) => (el.textContent ?? "").replace(/\s+/g, " ").trim())
       .filter((text) => CJK.test(text))
       .sort((a, b) => b.length - a.length);
+    // The quoted texts go first: an allowed word inside a person's text (the 招 of a title 招聘记录服务员) taken out
+    // first would leave "Save: 聘记录服务员", which no longer matches the marked title (#241).
     const strip = (s: string) =>
-      quoted.reduce(
-        (rest, text) => rest.split(text).join(""),
-        allowed.reduce((rest, re) => rest.replace(re, ""), s),
+      allowed.reduce(
+        (rest, re) => rest.replace(re, ""),
+        quoted.reduce((rest, text) => rest.split(text).join(""), s),
       );
     const markedChinese = (el: Element | null) => !!el?.closest('[lang^="zh"]:not(html)');
     const shown = (el: Element) =>
