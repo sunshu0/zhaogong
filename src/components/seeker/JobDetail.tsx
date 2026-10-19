@@ -46,8 +46,8 @@ export function JobDetail({
   /** Blocks for a right-hand column that stays in view from 1024 px (contact); on phones they follow the description. */
   aside?: ReactNode;
   /**
-   * 立即沟通, 申请 and an icon for the contact details: a bar fixed above the bottom navigation on phones, at the
-   * foot of the header from 768 px. The page sizes them: one main action, one secondary, the rest icons.
+   * 立即沟通 and an icon for the contact details: a bar fixed above the bottom navigation on phones, at the
+   * foot of the header from 768 px. The page sizes them: one main action, the rest icons.
    */
   actions?: ReactNode;
   /** The share button, top right of the header. */

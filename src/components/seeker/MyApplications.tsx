@@ -68,6 +68,7 @@ export function MyApplications() {
       <h2 id="my-applications" className="mb-2 text-subtitle font-semibold">
         {t.title} <span className="text-body font-normal text-muted">{t.count(list.length)}</span>
       </h2>
+      <p className="mb-3 text-meta text-muted">{t.readOnly}</p>
       <div className="space-y-4">
         {groups.map((g) => (
           <section key={g.stage} aria-labelledby={`my-applications-${g.stage}`}>

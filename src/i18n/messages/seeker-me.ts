@@ -38,6 +38,8 @@ const seekerMeZh = {
   // MyApplications.tsx, applications.ts
   applications: {
     title: "我的申请",
+    // #354: 申请 is gone from the job pages (user 10-20); the records stay.
+    readOnly: "这里是以前发出的申请。以后联系雇主，请在职位页点「立即沟通」。",
     count: (n: number) => `${n} 个`,
     open: "进行中",
     ended: "已结束",

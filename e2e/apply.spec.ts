@@ -37,5 +37,7 @@ test("no 申请 on the job page or the job rows; an application stays in 我的�
   await expect(mine).toContainText("雇主觉得合适");
   await expect(mine).toContainText("附言：周末都能上班");
   await expect(mine.getByRole("button")).toHaveCount(0); // nothing to withdraw
+  // #354: it says how to reach an employer now.
+  await expect(seeker.getByRole("region", { name: /^我的申请/ })).toContainText("请在职位页点「立即沟通」");
   await seeker.context().close();
 });

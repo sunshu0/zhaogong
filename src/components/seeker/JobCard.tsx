@@ -24,7 +24,7 @@ const CARD_TAGS = 3;
  * One job in a list, a block of its own (#63: rows between thin lines ran together, users could not tell where one
  * job ended): title (zh, en) with the pay on the right, then
  * 地区 and 工时 with small grey labels and how the employer is reached, then the employer (avatar, name,
- * verification level), up to three tags, 收藏 (#52) and 申请 (#84). Everything else (description, shifts, languages, visas) is on the job page. Only
+ * verification level), up to three tags and 收藏 (#52). Everything else (description, shifts, languages, visas) is on the job page. Only
  * the title is a link; it stretches over the whole row, so screen readers hear the title alone.
  */
 export function JobCard({
@@ -120,8 +120,8 @@ export function JobCard({
 /**
  * The Round 19 card (操作质感, an app's feel): a white card with 16px corners and a soft shadow, no border. The title
  * and the pay lead; under them one light line of points (job-card-parts.ts), one status and at most two soft tags,
- * then the employer with 收藏 / 申请. The whole card opens the job (the title's link is stretched over it) and
- * gives a little when pressed; 收藏, 申请 and an `action` (立即沟通 on an employer's page) sit above the link, so
+ * then the employer with 收藏. The whole card opens the job (the title's link is stretched over it) and
+ * gives a little when pressed; 收藏 and an `action` (立即沟通 on an employer's page) sit above the link, so
  * no button has to hang under the card.
  */
 function AppJobCard({

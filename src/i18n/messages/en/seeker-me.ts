@@ -32,6 +32,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
   },
   applications: {
     title: "My applications",
+    readOnly: "These are applications you sent before. To contact an employer now, use Chat now on the job page.",
     count: (n) => String(n),
     open: "Open",
     ended: "Ended",

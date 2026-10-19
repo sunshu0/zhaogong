@@ -14,7 +14,7 @@ export const aboutEn: Messages<(typeof aboutMessages)["zh"]> = {
   },
   cost: {
     heading: "What it costs",
-    body: "找工 is free for job seekers: browsing, chatting, applying, saving jobs and alerts cost nothing. Employers can also post jobs for free at the moment.",
+    body: "找工 is free for job seekers: browsing, chatting, saving jobs and alerts cost nothing. Employers can also post jobs for free at the moment.",
   },
   rules: {
     heading: "The rules every job keeps",
