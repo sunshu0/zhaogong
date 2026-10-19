@@ -4,8 +4,14 @@ import type { CountryCode } from "@/lib/types";
 import { TEXT_FIELDS, TOPICS, type ChatState, type QuickReply, type TextField, type Topic } from "./chat-state";
 import { startChat } from "./chat-start";
 
+/** A list of short strings (topics, rule keys, matched words): at most 50, each at most 100 characters (#357). */
 const strings = (v: unknown) =>
-  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, 50) : [];
+  Array.isArray(v)
+    ? v
+        .filter((x): x is string => typeof x === "string")
+        .slice(0, 50)
+        .map((x) => x.slice(0, 100))
+    : [];
 
 /**
  * A conversation sent back by the browser, rebuilt with known values only. The draft is cleaned by

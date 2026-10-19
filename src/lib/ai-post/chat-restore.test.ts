@@ -54,6 +54,19 @@ describe("restoreChat (#258)", () => {
     expect(restore({ fixing: "descriptionZh" }).fixing).toBeUndefined();
   });
 
+  it("keeps at most 50 noted keys and matched words, each at most 100 characters (#357)", () => {
+    const many = Array.from({ length: 60 }, (_, i) => `rule${i}:descriptionZh`);
+    const s = restore({
+      noted: [...many, 7],
+      fixing: { field: "descriptionZh", matches: ["长".repeat(500), ...many] },
+    });
+    expect(s.noted).toHaveLength(50);
+    expect(s.noted[0]).toBe("rule0:descriptionZh");
+    expect(s.fixing?.matches).toHaveLength(50);
+    expect(s.fixing?.matches?.[0]).toHaveLength(100);
+    expect(restore({ noted: ["x".repeat(300)] }).noted).toEqual(["x".repeat(100)]);
+  });
+
   it("keeps only known topics in asking, asked and unsure, and never comes back ready", () => {
     const s = restore({ asking: "hack", asked: ["hours", "nope", 1], unsure: ["pay", "x"], ready: true });
     expect(s.asking).toBe("description");
