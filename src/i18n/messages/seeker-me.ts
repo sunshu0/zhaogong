@@ -254,6 +254,7 @@ const seekerMeZh = {
     toDo: (n: number) => `${n} 件事要处理`,
     loadingTodos: "正在读取待办",
     interviewsWhat: "面试待办",
+    employerWhat: "职位和企业的情况",
     todos: "待办",
     allDone: "都处理完了",
     employerEmpty: "新的应聘和聊天会出现在这里。",

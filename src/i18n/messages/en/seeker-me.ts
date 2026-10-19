@@ -241,6 +241,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     toDo: (n) => `${plural(n, "thing", "things")} to do`,
     loadingTodos: "Loading your to-dos",
     interviewsWhat: "your interview to-dos",
+    employerWhat: "your jobs and business details",
     todos: "To do",
     allDone: "All done",
     employerEmpty: "New applications and chats show up here.",

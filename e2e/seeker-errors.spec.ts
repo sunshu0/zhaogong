@@ -5,6 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { expectProfileSaved, freshEmail, signIn } from "./helpers";
+import { signUpEmployer } from "./employer/helpers";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -223,5 +224,22 @@ test("a chat message that has not reached the server says 未送出, and the thr
   await expect(note).toHaveCount(0);
   await expect(log.getByText("未送出")).toHaveCount(0);
   await expect(log.getByText("断网时发出的消息", { exact: true })).toHaveCount(1);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("总览 as a business: the jobs and business details that got no answer say so with 重试, not a skeleton for good", async ({
+  page,
+}, testInfo) => {
+  await signUpEmployer(page, testInfo, "/workspace");
+  const cut = await cutCalls(page, "/workspace");
+  cut.on = true;
+  await page.goto("/workspace");
+  const failed = page.getByRole("alert").filter({ hasText: "职位和企业的情况没取到" });
+  await expect(failed).toBeVisible();
+  await expect(page.getByText("都处理完了")).toHaveCount(0);
+  await expectNoViolations(page);
+  cut.on = false;
+  await failed.getByRole("button", { name: "重试" }).click();
+  await expect(failed).toHaveCount(0);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
