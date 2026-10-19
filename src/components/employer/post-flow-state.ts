@@ -2,6 +2,7 @@
 // State and steps of /employer/post. Each handler is its own function over the state, so the page
 // component only lays things out.
 import {
+  useCallback,
   useEffect,
   useState,
   useTransition,
@@ -77,7 +78,7 @@ function usePostingState(country: CountryCode, email: string): PostingState {
   const [resumed] = useState(() => (saved ? resumeFrom(saved) : undefined));
   const [restored, setRestored] = useState(!!saved);
   const [mode, setMode] = useState<Mode>(saved?.mode ?? "chat");
-  const [step, setStep] = useState<Step>(resumed?.step ?? "chat");
+  const [step, goToStep] = useState<Step>(resumed?.step ?? "chat");
   const [chat, setChat] = useState<ChatState>(() => resumed?.chat ?? startChat(country));
   const [text, setText] = useState(saved?.text ?? "");
   // The badge decides which visas the form offers; it comes from the server, not the session.
@@ -88,6 +89,12 @@ function usePostingState(country: CountryCode, email: string): PostingState {
   const [previewAt, setPreviewAt] = useState(0);
   const [published, setPublished] = useState<Job>();
   const [error, setError] = useState<string>();
+  // #297: an error belongs to the step it happened on; going to another step (返回修改, 换方式, 清空重来, 再发一条)
+  // takes it away, in this one place.
+  const setStep = useCallback<Setter<Step>>((next) => {
+    setError(undefined);
+    goToStep(next);
+  }, []);
   const [pending, startTransition] = useTransition();
 
   // Keep the draft in this tab as it changes; a published job (step "done") is no longer a draft.

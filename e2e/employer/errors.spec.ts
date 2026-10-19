@@ -148,3 +148,25 @@ test("推荐人才 says when the candidates with accounts got no answer, with �
   await expect(title).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
+
+test("发布招聘: an error stays with its step; 返回修改 takes it away (#297)", async ({ page }, testInfo) => {
+  await signUpEmployer(page, testInfo);
+  await page.goto("/employer/post");
+  await openTheForm(page);
+  await page.getByLabel(/把微信群里的招聘消息粘贴进来/).fill(CLEAN_MESSAGE);
+  await page.getByRole("button", { name: "整理成职位" }).click();
+  await page.getByLabel("职位名称（中文）").fill(uniqueTitle("前厅服务员", testInfo));
+  await page.getByRole("button", { name: "预览", exact: true }).click();
+  await expect(page.getByText("这是求职者看到的样子").filter({ visible: true })).toBeVisible();
+
+  const cut = await cutCalls(page, "/employer/post");
+  cut.on = true;
+  await page.getByRole("button", { name: "发布", exact: true }).click();
+  const said = page.getByRole("alert").filter({ hasText: "网络有问题，请稍后再试。" });
+  await expect(said).toBeVisible();
+  cut.on = false;
+  await page.getByRole("button", { name: "返回修改" }).click();
+  await expect(page.getByLabel("职位名称（中文）")).toBeVisible();
+  await expect(said).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
