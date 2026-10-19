@@ -61,6 +61,22 @@ describe("activeNavKey", () => {
     expect(activeNavKey("/jobsearch")).toBeNull();
   });
 
+  it("counts the job sections, an external job and a business's page as 找工作, and the CV as 我的 (#263)", () => {
+    expect(activeNavKey("/internships")).toBe("jobs");
+    expect(activeNavKey("/professional")).toBe("jobs");
+    expect(activeNavKey("/external/ext-1")).toBe("jobs");
+    expect(activeNavKey("/employers/e1")).toBe("jobs");
+    expect(activeBottomKey("/employers/e1")).toBe("jobs");
+    expect(activeNavKey("/profile/resume")).toBe("mine");
+    // Not the employer's own pages, and not a look-alike path.
+    expect(activeNavKey("/employer")).toBe("manage");
+    expect(activeNavKey("/employer/team")).toBe("mine");
+    expect(activeNavKey("/externals")).toBeNull();
+    // A shared CV and a candidate's page stay unmarked.
+    expect(activeNavKey("/resume/r1")).toBeNull();
+    expect(activeNavKey("/candidates/c1")).toBeNull();
+  });
+
   it("puts workspace pages and 推荐人才 under 我的 in the bottom bar", () => {
     expect(activeBottomKey("/workspace")).toBe("mine");
     expect(activeBottomKey("/employer/candidates")).toBe("mine");

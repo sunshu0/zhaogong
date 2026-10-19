@@ -81,9 +81,15 @@ export function showsPostJob(role: NavRole): boolean {
 
 const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
 
+/**
+ * Pages that are part of finding a job besides /jobs (#263): the internship and professional sections (#113), an
+ * external job, and a business's page opened from a job.
+ */
+const JOB_PAGES = ["/internships", "/professional", "/external", "/employers"];
+
 /** Which entry a page belongs to. In the bottom bar, workspace pages count as 我的. */
 export function activeNavKey(pathname: string): NavKey | null {
-  if (under(pathname, "/jobs")) return "jobs";
+  if (under(pathname, "/jobs") || JOB_PAGES.some((base) => under(pathname, base))) return "jobs";
   if (under(pathname, POST_JOB_PATH)) return "post";
   if (under(pathname, MANAGE_JOBS_PATH) || pathname === "/employer") return "manage";
   if (under(pathname, "/employer/candidates")) return "candidates";
@@ -95,6 +101,7 @@ export function activeNavKey(pathname: string): NavKey | null {
       ACCOUNT_DATA_PATH,
       "/notifications",
       "/profile",
+      "/profile/resume", // 中英文简历, from 我的主页 (#263)
       "/me",
       "/me/saved",
       "/me/alerts",
