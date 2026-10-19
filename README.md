@@ -60,7 +60,7 @@ npm run test:e2e
   - 想换成一批全新的真实职位：停掉开发服务器，运行 `npm run db:reset`，再启动。
   - 离线时导入失败，就继续用 `src/mock/external-jobs.ts` 的假职位，审核后台顶部会写明。假职位的「去官网申请」不跳转，只在页面上说明这是演示职位。浏览器测试和单元测试一直用假职位，因为它们需要固定的数据。设 `EXTERNAL_JOBS=demo` 可以让开发服务器也只用假职位。
 - `DATABASE_URL` 可以指定别的库：例如 `file:./data/other.db`；`file::memory:` 是一次性的内存库，服务器重启后就清空。单元测试中每个测试文件各用一个内存库。
-- 线上用哪种数据库（Turso 或 Cloudflare D1）由用户决定（#15），取舍记录在 ADR 0006。决定之前不建远程数据库，也不用当前代码重新部署。
+- 线上数据库用 Cloudflare D1（#15，ADR 0029，用户 10-20 定）。代码现在只连 libSQL，换 D1 要先改写交互式事务（ADR 0031），之后才建库、部署；步骤见 `docs/cloudflare-deployment.md`。
 
 ### 持续集成
 

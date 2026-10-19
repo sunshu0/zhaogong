@@ -1,12 +1,12 @@
 # Cloudflare 部署清单
 
-用户 10-20 01:2x 定的方向：**放在境外，跑在 Cloudflare Workers，数据库放在悉尼**。导师先定了 Turso，因为现在的驱动就是 libSQL（`@libsql/client`）。这份文件是一份照着做的清单。**到目前为止没有部署，也没有注册任何账号。** 标着「用户做」的步骤要以公司名义注册或付费（落地主体见 Progress「用户决定 10-20 01:2x」），别人不能代做。
+用户 10-20 定的：**放在境外，跑在 Cloudflare Workers，数据库用 Cloudflare D1**（23:4x 从 Turso 改过来，理由和代价见 ADR 0029）。**代码现在只连 libSQL**：换 D1 要先改驱动、把交互式事务改写（ADR 0031），那之前第 3 节的 D1 步骤还用不上。这份文件是一份照着做的清单。**到目前为止没有部署，也没有注册任何账号。** 标着「用户做」的步骤要以公司名义注册或付费（落地主体见 Progress「用户决定 10-20 01:2x」），别人不能代做。
 
 10-14 那次发布的是只读模拟数据的前端演示（Worker `zhaogong-demo`，`zhaogong-demo.zhaogong.workers.dev`），那时还没有数据库。下面写的是有数据库以后的做法。
 
 ## 0. 先决定的事
 
-- **落地主体和账号（用户做）：** Cloudflare 账号、Turso 账号、域名，都以公司名义注册。
+- **落地主体和账号（用户做）：** Cloudflare 账号（Worker、D1、R2 都在里面）和域名，都以公司名义注册。
 - **登录验证码的邮件服务（Issue #16，还没定）：** 生产环境没有邮件服务就发不出验证码（`src/lib/auth/delivery.ts`：`canSendCodes()` 为假时直接拒绝），也就**没人能登录**。正式开放前一定要定下来。只放演示的话，可以先不开放登录，但所有要登录的功能就都用不了。
 - **Clarity：** 项目 ID 和同意提示（C 的 #313）合并后才用得上，见第 2 节。
 
@@ -23,8 +23,9 @@
 
 | 名字 | 类型 | 必须吗 | 做什么、不设会怎样 | 代码 |
 | --- | --- | --- | --- | --- |
-| `DATABASE_URL` | 变量 | **必须** | Turso 库的地址，`libsql://<库名>-<组织>.turso.io`。不设就去找本地文件 `file:./data/zhaogong.db`，Worker 里没有 | `src/db/client.ts` |
-| `DATABASE_AUTH_TOKEN` | 密钥 | **必须** | Turso 的库令牌 | `src/db/client.ts` |
+| `DB`（D1 绑定） | `wrangler.jsonc` 的 `d1_databases` | **必须**（ADR 0031 的代码合并后） | 线上的 D1 库，见第 3 节。不是变量也不是密钥，没有令牌 | （ADR 0031） |
+| `DATABASE_URL` | 变量 | 线上不设 | 本机和测试用：libSQL 库的地址，不设就是本地文件 `file:./data/zhaogong.db`。换 D1 以前（ADR 0031）代码只认它 | `src/db/client.ts` |
+| `DATABASE_AUTH_TOKEN` | 密钥 | 线上不设 | 远程 libSQL 库的令牌；用 D1 以后不需要 | `src/db/client.ts` |
 | `AUTH_SECRET` | 密钥 | **必须** | 验证码的 HMAC 密钥。生产环境没有就直接报错（`src/lib/auth/config.ts`） | `src/lib/auth/config.ts` |
 | `ZG_EVENTS_SECRET` | 密钥 | 要统计就必须 | 漏斗事件里访客号的 HMAC 密钥（ADR 0025）。生产环境不设就不记事件，日志里会说一次 | `src/lib/events/visitor-key.ts` |
 | `NEXT_PUBLIC_CLARITY_ID` | 变量，**构建时** | 要 Clarity 就要 | Clarity 项目 ID，构建时写进浏览器的 JS。**还没在 main 上**（C 的 #313） | （#313） |
@@ -44,46 +45,44 @@
 
 这张表是 2026-10-20 在 main `db689a6` 上 grep `process.env.*` 和 `env.*` 整理的。加了新变量要回来补这张表。
 
-## 3. 线上数据库：Turso，悉尼区
+## 3. 线上数据库：Cloudflare D1
 
-以下命令用 Turso CLI（[说明](https://docs.turso.tech/cli/introduction)）。**账号由公司注册（用户做）**，命令由有权限的人在本机跑。
+**这一节要等 ADR 0031（驱动换成 D1、交互式事务改写）的代码合并以后才能真用。** 在那之前代码只连 libSQL，不要建库，也不要部署。命令用 Wrangler（[D1 说明](https://developers.cloudflare.com/d1/)），由有公司账号权限的人在本机跑。
 
-1. **（用户做）** 用公司名义注册 Turso，在本机 `turso auth login`。
-2. 查悉尼区的代码：`turso db locations`。区域是设在**组**上的，不是设在库上（[group create](https://docs.turso.tech/cli/group/create)）。
-3. 建组和库：
+1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
+2. 建库，位置提示给大洋洲：
    ```sh
-   turso group create zhaogong --location <悉尼区的代码>
-   turso db create zhaogong --group zhaogong
+   npx wrangler d1 create zhaogong --location=oc
    ```
-   （[db create](https://docs.turso.tech/cli/db/create)；免费方案只有一个组的话，可以直接用默认组，组建在悉尼就行。）
-4. 地址和令牌：
-   ```sh
-   turso db show zhaogong --url          # 就是 DATABASE_URL
-   turso db tokens create zhaogong        # 就是 DATABASE_AUTH_TOKEN
+   `oc` 只是提示，Cloudflare 不保证库落在哪个城市（ADR 0029「代价」）。
+3. 把命令打印出来的 `database_id` 写进 `wrangler.jsonc`：
+   ```jsonc
+   "d1_databases": [{ "binding": "DB", "database_name": "zhaogong", "database_id": "<上一步的 id>", "migrations_dir": "drizzle" }]
    ```
-   令牌默认不过期，可以加 `--expiration`（[tokens](https://docs.turso.tech/cli/group/tokens/create)）。令牌只放进 Worker 的密钥和本机临时的环境变量里，**不写进任何文件**。
+   绑定名、迁移目录以 ADR 0031 定的为准。没有令牌要保管。
 
 ### 迁移（每次部署前）
 
-Worker 里没有 `drizzle/` 文件夹，所以远程库**不会**在第一次用的时候自动迁移（#329：`migratesOnFirstUse()` 只对本地文件库和内存库为真）。每次有新的迁移，都要在部署 Worker **之前**，在本机对线上库跑一次：
+Worker 里不跑迁移（#329）。每次有新的迁移，都在部署 Worker **之前**，在本机对线上库跑：
 
 ```sh
-DATABASE_URL="libsql://…" DATABASE_AUTH_TOKEN="…" npm run db:migrate
+npx wrangler d1 migrations apply zhaogong --remote
 ```
 
-PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'`，再 `npm run db:migrate`，跑完把这两个变量删掉。
+`drizzle-kit` 生成的 SQL 能不能直接给 Wrangler 用（目录约定、`--> statement-breakpoint` 注释），由 ADR 0031 核对。
 
 ### 演示数据
 
-- **演示站：** 照上面迁移完，再跑 `npm run db:seed`（同样带那两个变量）：库是空的就灌入演示数据。也可以 Worker 设 `DEMO_DATA=true`，空库在第一次用的时候灌入。建议用命令灌，第一次打开页面就不用等。
-- **正式站：** 不灌演示数据，`DEMO_DATA` 不设。审核员账号用 `npm run db:migrate` 后的 `tsx src/db/cli.ts admin:grant <邮箱>` 加。
+- **演示站：** 库迁移好以后灌演示数据，怎么灌（脚本还是 `DEMO_DATA=true` 让空库第一次用时灌）由 ADR 0031 定。
+- **正式站：** 不灌演示数据，`DEMO_DATA` 不设。第一位审核员的加法由 ADR 0031 定（现在的 `admin:grant` 命令只连 libSQL）。
+- **查库：** D1 没有对外的数据库连接。国内同事查数据在 Cloudflare 后台，或者 `npx wrangler d1 execute zhaogong --remote --command "<SQL>"`；照 ADR 0026 的精神，只查需要的。
 
 ## 4. 部署（Cloudflare）
 
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
-2. 设密钥（第 2 节）：`npx wrangler secret put DATABASE_AUTH_TOKEN`、`AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`DATABASE_URL`、`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
+2. 设密钥（第 2 节）：`npx wrangler secret put AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
 2a. **（用户做）举报截图的 R2 桶**（ADR 0027）：以公司名义在 Cloudflare 开 R2，建一个桶（比如 `zhaogong-report-evidence`，位置选亚太 APAC），**不要开公开访问**，也不要绑自定义域名；在 `wrangler.jsonc` 加 `"r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }]`。截图只通过 `/api/report-evidence/[id]` 给审核员看。处理完 180 天后和删号时，代码会把文件一起删掉。
-3. 对线上库迁移（第 3 节）。
+3. 对线上 D1 库迁移（第 3 节，ADR 0031 的代码合并后）。
 4. 本机预检：`npm run check`，再 `npm run cf:dry-run`（构建加上传前的检查，不上传）。**这一步现在过不了，先看第 4a 节。**
 5. 部署：`npm run cf:deploy`。
 6. 验收：首页、职位列表和筛选、职位页、登录（要有邮件服务）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
@@ -154,9 +153,9 @@ PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'
 
 - **代码：** Cloudflare 后台 Worker 的 Deployments 里选上一个版本回退，或者 `npx wrangler rollback`。回退之后，代码和库结构要对得上，见下一条。
 - **数据库：** 迁移只往前走，没有写「往回」的迁移。所以：
-  - 每次迁移之前先备份：`turso db shell zhaogong .dump > zhaogong-<日期>.sql`（放在本机安全的地方，**里面有用户数据**，不进仓库）。
+  - 每次迁移之前先备份：`npx wrangler d1 export zhaogong --remote --output=zhaogong-<日期>.sql`（放在本机安全的地方，**里面有用户数据**，不进仓库）。D1 自己也能回到 30 天内的某个时间点（Time Travel，`npx wrangler d1 time-travel`）。
   - 迁移最好写成「只加不删」（加表、加可以为空的列），这样旧代码在新库上也能跑，代码回退就不用动库。
-  - 真要回到迁移以前的库：用备份建一个新库（`turso db create zhaogong-restore --from-dump zhaogong-<日期>.sql`，参数照 [db create](https://docs.turso.tech/cli/db/create)），把 Worker 的 `DATABASE_URL` 换过去，再回退代码。
+  - 真要回到迁移以前的库：用 Time Travel 回到迁移前的时间点，或者建一个新库、用备份 `npx wrangler d1 execute <新库> --remote --file=zhaogong-<日期>.sql` 灌回去，再把绑定指过去。
 - **演示数据弄乱了：** 演示站可以清空重灌；正式站绝不能这样做。
 
 ## 6. 本机构建和预览
@@ -175,7 +174,7 @@ PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_MET
 ### `@libsql/client` 在 Worker 里
 
 - `@libsql/client` 0.18.0 的 package.json：`import` 条件 `workerd` → `./lib-esm/web.js`。OpenNext 用 esbuild 按 workerd 的条件打包，会拿到 web 版。
-- web 版只认 `libsql://`、`https://`、`wss://`，**不认 `file:`**。线上用 Turso，本来就不用 `file:`。
+- web 版只认 `libsql://`、`https://`、`wss://`，**不认 `file:`**。这一节记的是换 D1 以前的情况（ADR 0029）；换过去以后线上不再用 `@libsql/client`。
 - `src/db/client.ts` 引入了 `node:fs` 的 `mkdirSync`，只有在 `file:` 库时才调用；线上不会走到。
 - 迁移见第 3 节：只在本机对线上库跑（#329）。
 
@@ -210,7 +209,7 @@ PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_MET
 
 - [Cloudflare：Next.js / OpenNext](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)、[Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[process.env](https://developers.cloudflare.com/changelog/post/2025-03-11-process-env-support/)、[限制](https://developers.cloudflare.com/workers/platform/limits/)
 - [OpenNext Cloudflare 入门](https://opennext.js.org/cloudflare/get-started)
-- Turso：[CLI](https://docs.turso.tech/cli/introduction)、[group create](https://docs.turso.tech/cli/group/create)、[db create](https://docs.turso.tech/cli/db/create)、[tokens](https://docs.turso.tech/cli/group/tokens/create)
+- Cloudflare D1：[说明](https://developers.cloudflare.com/d1/)、[Wrangler 的 D1 命令](https://developers.cloudflare.com/workers/wrangler/commands/#d1)、[位置提示](https://developers.cloudflare.com/d1/configuration/data-location/)、[Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)
 
 ### 本机 D1 初始化与维护（2026-10-22 已实测）
 

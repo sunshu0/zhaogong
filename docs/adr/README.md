@@ -9,7 +9,7 @@
 | [0003](0003-one-account-two-identities.md) | 一个账号两种身份，可切换 | 已采纳 |
 | [0004](0004-cloudflare-workers-opennext.md) | 部署到 Cloudflare Workers + OpenNext | 已采纳 |
 | [0005](0005-database-drizzle-libsql.md) | 数据库与 ORM：Drizzle + libSQL，`data.ts` 接数据库 | 已采纳 |
-| [0006](0006-online-database.md) | 线上数据库：Turso 与 D1 的取舍 | 待用户决定（#15） |
+| [0006](0006-online-database.md) | 线上数据库：Turso 与 D1 的取舍 | 已由 0029 定下（D1） |
 | [0007](0007-sign-in-and-sessions.md) | 登录与会话：邮箱验证码 + httpOnly cookie 的服务器会话 | 已采纳；生产环境的邮件服务待用户决定（#16） |
 | [0008](0008-job-expiry-at-read-time.md) | 过期职位读取时判断，不跑定时任务 | 已采纳 |
 | [0009](0009-account-deletion.md) | 导出数据和删除账号：删什么、留什么 | 已采纳 |
@@ -31,6 +31,7 @@
 | [0026](0026-moderator-personal-info-views.md) | 审核员看过谁的个人信息：交出去之前记一条，不记内容，不需要的不交，保留一年 | 已采纳 |
 | [0027](0027-report-evidence.md) | 举报附证据：选站内聊天消息（存举报时的快照）和截图，只给审核员看，处理完 180 天后删 | 已采纳 |
 | [0028](0028-team-invite-links.md) | 团队邀请链接：发到站外，一次性，7 天，只能加入为成员，库里只存哈希 | 已采纳 |
+| [0029](0029-online-database-d1.md) | 线上数据库：Cloudflare D1，位置提示大洋洲；要先把交互式事务改写（ADR 0031） | 已采纳（用户 10-20 23:4x 定） |
 | [0030](0030-chatted-candidates.md) | 候选人改成「这个职位聊过的人」：申请表当候选人表，第一条消息就有一行，不带主页；聊天里也能标合适、已录用 | 已采纳 |
 | [0031](0031-d1-migration.md) | 迁移到 D1：每次写入只交一条语句或一个 batch（五种改法、守卫行、乐观并发），本机照旧 libSQL 但照 D1 的规矩跑，数据库层单测在本机 D1 上再跑一遍 | 已采纳 |
 
