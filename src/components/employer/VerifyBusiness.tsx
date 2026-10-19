@@ -260,7 +260,12 @@ function ApplyForm({
         <p className="text-meta text-muted">{t.demoRegisterNote}</p>
       </form>
 
-      {found?.error_zh && <p className="text-body text-warn">{found.error_zh}</p>}
+      {/* #248: why 查询 found nothing (or got no answer) is said; the focus stays on the search. */}
+      {found?.error_zh && (
+        <p role="alert" className="text-body text-warn">
+          {found.error_zh}
+        </p>
+      )}
       {found && found.results.length > 0 && !chosen && (
         <ul className="space-y-2">
           {found.results.map((entry) => (

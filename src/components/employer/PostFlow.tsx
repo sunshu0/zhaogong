@@ -27,6 +27,8 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
   const posting = usePosting(me.email, country);
   // #202: the step's heading takes the focus on a new step, and when 清空重来 removes the button that was pressed.
   const heading = useFocusOnChange<HTMLHeadingElement>(`${posting.step}:${posting.restored}`);
+  // #248: the error shows at the top while the pressed button is in the bar at the foot, so it takes the focus.
+  const errorRef = useFocusOnChange<HTMLParagraphElement>(posting.error);
 
   // The badge and a ban come from the server; the session only has the name.
   const { profile } = useEmployerProfile(me.email);
@@ -54,7 +56,14 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
       <StepList mode={posting.mode} step={posting.step} />
       {choosingMode && <ModeSwitch mode={posting.mode} onSwitch={posting.switchMode} />}
       {posting.error && (
-        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{posting.error}</p>
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger outline-none"
+        >
+          {posting.error}
+        </p>
       )}
       {posting.restored && (
         <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>

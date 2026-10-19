@@ -157,6 +157,12 @@ function InviteForm({
   const [place, setPlace] = useState(initial?.place ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [problem, setProblem] = useState("");
+  // #248: the form takes the place of 邀请面试 / 改时间, and with it the focus: its chosen time option, else the first.
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const box = form.current;
+    (box?.querySelector<HTMLElement>("input:checked") ?? box?.querySelector<HTMLElement>("input"))?.focus();
+  }, []);
 
   function send() {
     const filled = callFirst ? [] : times.filter(Boolean);
@@ -168,6 +174,7 @@ function InviteForm({
 
   return (
     <form
+      ref={form}
       aria-label={t.formLabel(name)}
       className="space-y-3 rounded-card bg-background p-4"
       onSubmit={(event) => {

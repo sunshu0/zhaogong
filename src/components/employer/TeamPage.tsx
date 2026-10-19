@@ -22,6 +22,7 @@ import {
 } from "@/app/[lang]/employer/team-actions";
 import { inputClass } from "@/components/ui/input-class";
 import { busyProps } from "@/components/ui/busy";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 
 const INPUT = inputClass();
 
@@ -201,6 +202,8 @@ function MemberRow({
   const t = words.teamPage.member;
   const role = words.team.roleLabel[member.role];
   const [confirming, setConfirming] = useState(false);
+  // #248: 确认移除 / 取消 take the place of 移除 / 退出, so the focus moves to them, and back after 取消.
+  const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
   const label = member.name ?? t.noName;
   return (
     <li aria-label={t.rowLabel(label, role)} className="space-y-2 px-4 py-3">
@@ -213,7 +216,7 @@ function MemberRow({
       </div>
       <p className="text-meta break-all text-muted">{member.email}</p>
       {confirming ? (
-        <div className="flex flex-wrap gap-2">
+        <div ref={form} className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             {...busyProps(disabled)}
@@ -230,7 +233,7 @@ function MemberRow({
           </Button>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div ref={opener} className="flex flex-wrap gap-2">
           {isAdmin && !mine && (
             <Button
               variant="link"

@@ -107,6 +107,8 @@ function RepublishForm({
   // #202: 放弃改动 takes itself away, so the heading above the form takes the focus.
   const formHeading = useFocusOnChange<HTMLHeadingElement>(restored);
   const [error, setError] = useState<string>();
+  // #248: the error shows at the top while the pressed button is in the bar at the foot, so it takes the focus.
+  const errorRef = useFocusOnChange<HTMLParagraphElement>(error);
   const noAnswer = useMessages(uiMessages).load.noAnswer;
 
   function publish() {
@@ -148,7 +150,16 @@ function RepublishForm({
             : t.republishNoteAfter(formatDate(job.expiresAt, lang, { month: "long", day: "numeric" }))}
         </p>
       </div>
-      {error && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{error}</p>}
+      {error && (
+        <p
+          ref={errorRef}
+          tabIndex={-1}
+          role="alert"
+          className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger outline-none"
+        >
+          {error}
+        </p>
+      )}
       {restored && <KeptChangesNote onStartOver={startOver} />}
       <DuplicateJobNote titleZh={state.form.titleZh} />
       <div onFocus={keepFocusClear} className={`${WIDE_ON_DESKTOP} ${CLEAR_OF_STICKY_BARS}`}>

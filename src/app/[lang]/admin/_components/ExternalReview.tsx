@@ -17,7 +17,7 @@ import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
-import { useSwapFocus } from "@/app/[lang]/admin/_components/use-swap-focus";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { placedByTitle } from "@/lib/external-jobs/facts";
 import { dayLabel, externalWords, factLines, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { hideReasons, type HideReason } from "@/lib/external-jobs/review";

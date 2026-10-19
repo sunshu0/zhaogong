@@ -150,6 +150,8 @@ test("before the first job, then a job's own pages: edit, applicants and the int
   await expectNoViolations(page, "/employer/jobs/[id]/applicants");
   await applicant.getByRole("button", { name: "约面试" }).click();
   await expect(applicant.getByRole("form", { name: "约林晓面试" })).toBeVisible();
+  // #248: the form took the place of the pressed button, and its focus.
+  await expect(applicant.getByRole("form", { name: "约林晓面试" }).locator(":focus")).toHaveCount(1);
   await expectNoViolations(page, "/employer/jobs/[id]/applicants with the interview form");
 
   await page.goto(`/employer/jobs/${jobId}/stats`);

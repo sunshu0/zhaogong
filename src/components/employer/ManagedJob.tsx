@@ -20,6 +20,7 @@ import { HiresQuestion } from "@/components/employer/HiresQuestion";
 import { RenewQuestion } from "@/components/employer/RenewQuestion";
 import { ACTION_BUTTON, JobActions, type Asking, type Run } from "@/components/employer/ManagedJobActions";
 import { ShareTexts } from "@/components/employer/ShareTexts";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import Link from "next/link";
 import type { JobNumbers } from "@/db/job-stats";
 import type { RenewalCounts } from "@/db/job-renewals";
@@ -82,6 +83,9 @@ export function ManagedJob({
   const t = useMessages(employerJobsMessages);
   const [pending, startTransition] = useTransition();
   const [asking, setAsking] = useState<Asking>();
+  // #248: a question opens in place of a 更多 item and takes the focus itself (autoFocus); when it closes, the focus goes
+  // back to the card's buttons, not to the top of the page.
+  const { opener } = useSwapFocus(!!asking);
   const [sharing, setSharing] = useState(false);
   const status = effectiveStatus(job, now);
   const phase = jobPhase(job, now);
@@ -124,16 +128,18 @@ export function ManagedJob({
         onRenew={canEdit(job) && !asking ? () => setAsking("renew") : undefined}
       />
       {canEdit(job) && (
-        <JobActions
-          job={job}
-          now={now}
-          pending={pending}
-          asking={asking}
-          sharing={sharing}
-          run={run}
-          onAsk={setAsking}
-          onToggleShare={() => setSharing((s) => !s)}
-        />
+        <div ref={opener}>
+          <JobActions
+            job={job}
+            now={now}
+            pending={pending}
+            asking={asking}
+            sharing={sharing}
+            run={run}
+            onAsk={setAsking}
+            onToggleShare={() => setSharing((s) => !s)}
+          />
+        </div>
       )}
       {asking === "close" && (
         <CloseQuestion job={job} pending={pending} run={run} onCancel={() => setAsking(undefined)} />

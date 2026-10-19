@@ -13,7 +13,7 @@ import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
-import { useSwapFocus } from "@/app/[lang]/admin/_components/use-swap-focus";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import {
   kindLabels,
   missingChecks,

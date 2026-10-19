@@ -180,6 +180,33 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 2 人`);
 });
 
+test("取消 on a job card's question and on a team row's confirm gives the focus back (#248)", async ({
+  page,
+}, testInfo) => {
+  const title = uniqueTitle("前厅服务员", testInfo);
+  await signUpEmployer(page, testInfo);
+  await publishJob(page, title);
+  await page.goto("/employer/jobs");
+
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: title }) });
+  const more = card.getByRole("button", { name: /^更多操作/ });
+  await more.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("End");
+  await expect(card.getByRole("menuitem", { name: "结束招聘" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(card.getByLabel("招到了")).toBeFocused();
+  await card.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(more).toBeFocused();
+
+  await page.goto("/employer/team");
+  const leave = page.getByRole("button", { name: "退出团队" });
+  await leave.click();
+  await expect(page.getByRole("button", { name: "确认退出" })).toBeFocused();
+  await page.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(leave).toBeFocused();
+});
+
 test("团队: 保存称呼 keeps the focus while it saves, then the notice takes it (#202)", async ({ page }, testInfo) => {
   await signUpEmployer(page, testInfo, "/employer/team");
   const name = page.getByLabel(/^称呼/);
