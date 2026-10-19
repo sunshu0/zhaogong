@@ -9,6 +9,7 @@ import {
   TEAM_MAX,
   checkTeamChange,
   inviteExpired,
+  linkExpired,
   sortTeam,
   teamFull,
   type TeamChange,
@@ -17,12 +18,12 @@ import {
   type TeamRole,
 } from "@/components/employer/team";
 
-type Tx = Parameters<Parameters<Awaited<ReturnType<typeof database>>["transaction"]>[0]>[0];
-type Reader = Awaited<ReturnType<typeof database>> | Tx;
+export type Tx = Parameters<Parameters<Awaited<ReturnType<typeof database>>["transaction"]>[0]>[0];
+export type Reader = Awaited<ReturnType<typeof database>> | Tx;
 
 export type TeamInvite = typeof t.teamInvites.$inferSelect;
 
-async function membersOf(db: Reader, employerId: string): Promise<TeamMember[]> {
+export async function membersOf(db: Reader, employerId: string): Promise<TeamMember[]> {
   const rows = await db
     .select({
       email: t.accounts.email,
@@ -33,6 +34,29 @@ async function membersOf(db: Reader, employerId: string): Promise<TeamMember[]> 
     .from(t.accounts)
     .where(eq(t.accounts.employerId, employerId));
   return sortTeam(rows.map((r) => ({ ...r, role: r.role ?? "admin" })));
+}
+
+/** The business's open invitation links not expired yet (#349): each holds a place in the team, as an invitation. */
+export async function liveLinkCount(db: Reader, employerId: string, now: Date): Promise<number> {
+  const rows = await db
+    .select({ createdAt: t.teamInviteLinks.createdAt })
+    .from(t.teamInviteLinks)
+    .where(and(eq(t.teamInviteLinks.employerId, employerId), eq(t.teamInviteLinks.status, "open")));
+  return rows.filter((r) => !linkExpired(r.createdAt, now.getTime())).length;
+}
+
+/** Invitations sent and links made by the business in the 24 hours before `now` (#197, #349). */
+export async function sentInLastDay(db: Reader, employerId: string, now: Date): Promise<number> {
+  const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
+  const [{ invites }] = await db
+    .select({ invites: sql<number>`count(*)` })
+    .from(t.teamInvites)
+    .where(and(eq(t.teamInvites.employerId, employerId), gt(t.teamInvites.createdAt, dayAgo)));
+  const [{ links }] = await db
+    .select({ links: sql<number>`count(*)` })
+    .from(t.teamInviteLinks)
+    .where(and(eq(t.teamInviteLinks.employerId, employerId), gt(t.teamInviteLinks.createdAt, dayAgo)));
+  return Number(invites) + Number(links);
 }
 
 /** Everyone working for the business, admins first. */
@@ -76,13 +100,9 @@ export async function inviteToTeam(
     // Expired invitations (#194) hold no place; one to the same person is replaced by the new one.
     const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
     if (pending.some((p) => p.email === address)) return { status: "pending" };
-    if (teamFull(members.length, pending.length)) return { status: "full" };
-    const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
-    const [{ sent }] = await tx
-      .select({ sent: sql<number>`count(*)` })
-      .from(t.teamInvites)
-      .where(and(eq(t.teamInvites.employerId, employerId), gt(t.teamInvites.createdAt, dayAgo)));
-    if (Number(sent) >= INVITES_PER_DAY) return { status: "too_many" };
+    if (teamFull(members.length, pending.length + (await liveLinkCount(tx, employerId, now))))
+      return { status: "full" };
+    if ((await sentInLastDay(tx, employerId, now)) >= INVITES_PER_DAY) return { status: "too_many" };
     for (const old of waiting.filter((p) => p.email === address))
       await tx
         .update(t.teamInvites)

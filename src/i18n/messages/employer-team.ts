@@ -1,7 +1,8 @@
 // Round 20 (ADR 0023): 团队. Covers src/components/employer/TeamPage.tsx, src/components/employer/TeamInvites.tsx,
 // the wording and refusal texts in src/components/employer/team.ts, the error texts in
-// src/app/[lang]/employer/team-actions.ts, the notifications in src/app/[lang]/employer/team-notifications.ts, and the title and
-// description of src/app/[lang]/employer/team/page.tsx.
+// src/app/[lang]/employer/team-actions.ts, the notifications in src/app/[lang]/employer/team-notifications.ts, the title and
+// description of src/app/[lang]/employer/team/page.tsx, and the invitation links (#349, ADR 0028): TeamLinks.tsx and
+// the join page src/app/[lang]/employer/team/join/[token]/page.tsx with TeamJoin.tsx.
 import type { Dictionary } from "@/i18n/messages";
 
 const employerTeamZh = {
@@ -80,6 +81,23 @@ const employerTeamZh = {
       expired: (days: number) => `已过期（${days} 天没回复，可以再邀请）`,
       cancel: "撤回邀请",
     },
+
+    /** src/components/employer/TeamLinks.tsx (#349) */
+    link: {
+      heading: "邀请链接",
+      hint: (days: number) =>
+        `把链接发到微信等地方。对方打开后用邮箱登录（没注册过的会自动注册），填好称呼就加入团队，身份是成员；要当管理员，加入后在这里设。链接 ${days} 天内有效，只能用一次。`,
+      create: "生成邀请链接",
+      createdHeading: "新的邀请链接",
+      createdNote: "这条链接只显示这一次，请现在复制。丢了就撤销，再生成一条。",
+      linkLabel: "邀请链接",
+      copy: "复制链接",
+      openHeading: "还没用掉的链接",
+      openRow: (by: string, made: string, until: string) => `${by} 生成于 ${made} · 加入为成员 · ${until} 前有效`,
+      expired: "已过期",
+      revoke: "撤销链接",
+      revoked: "链接已撤销。",
+    },
   },
 
   /** src/components/employer/TeamInvites.tsx (团队邀请 on 我的) */
@@ -110,14 +128,44 @@ const employerTeamZh = {
       member: "这个人已经在团队里了。",
       has_business: "这个账号已经属于另一家企业，不能再加入。",
       pending: "已经邀请过这个人，等对方回复。",
-      full: (max: number) => `团队最多 ${max} 人（包括还没回复的邀请）。`,
+      full: (max: number) => `团队最多 ${max} 人（包括还没回复的邀请和还没用掉的链接）。`,
       too_many: (perDay: number) => `这家企业 24 小时内已经发了 ${perDay} 条邀请，明天再邀请。`,
+    },
+    link: {
+      gone: "这条链接已经用过或撤销了。",
     },
     answer: {
       gone: "这条邀请已经撤回或回复过了。",
       has_business: "你的账号已经属于一家企业，不能再加入别的企业。",
       full: (max: number) => `这个团队已经满 ${max} 人了。`,
       declined: "",
+    },
+  },
+
+  /** src/app/[lang]/employer/team/join/[token]/page.tsx and src/components/employer/TeamJoin.tsx (#349) */
+  teamJoin: {
+    metaTitle: "加入团队",
+    title: "加入团队",
+    loading: "正在读取邀请",
+    /** After the business's name, which leads the line in its own lang. */
+    invited: " 邀请你加入团队，身份是成员。加入后可以切换到雇主身份，为这家店发职位、处理申请和回复聊天。",
+    signInHint: "先用邮箱登录。没注册过找工的，第一次登录就会自动注册。",
+    signIn: "登录后加入",
+    signedInAs: (email: string) => `你现在登录的是 ${email}。`,
+    nameLabel: (max: number) => `你在团队里的称呼（例如「王经理」，最多 ${max} 个字）`,
+    join: "加入团队",
+    networkError: "网络有问题，请稍后再试。",
+    goTeam: "去团队页",
+    home: "回到找工首页",
+    state: {
+      invalid: "这条邀请链接不对：可能复制时少了几个字，或者被改过。请找发链接的人再发一次。",
+      expired: (days: number) => `这条邀请链接已经过期（${days} 天内有效）。请找这家店的管理员再生成一条。`,
+      used: "这条邀请链接已经用过了，每条只能用一次。请找这家店的管理员再生成一条。",
+      revoked: "这条邀请链接已经被管理员撤销了。",
+      banned: "这家店已被封禁，不能加入。",
+      member: "你已经在这家店的团队里了。",
+      has_business: "你的账号已经属于一家企业。要加入这家店，先在「团队」里退出原来的企业。",
+      full: (max: number) => `这个团队已经满 ${max} 人了，请联系这家店的管理员。`,
     },
   },
 

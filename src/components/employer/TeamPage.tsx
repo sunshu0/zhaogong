@@ -25,19 +25,22 @@ import {
   cancelTeamInvite,
   changeMyTeam,
   inviteTeammate,
+  revokeTeamInviteLink,
   setMyTeamName,
   type MyTeam,
 } from "@/app/[lang]/employer/team-actions";
 import { inputClass } from "@/components/ui/input-class";
 import { busyProps } from "@/components/ui/busy";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
+import { TeamLinks } from "@/components/employer/TeamLinks";
 
 const INPUT = inputClass();
 
 type Done = { ok: true } | { ok: false; error_zh: string };
 
 /**
- * 团队 (#87, PRD R-38): who works for the business. Admins invite by email, change roles and remove people; anyone
+ * 团队 (#87, PRD R-38): who works for the business. Admins invite by email or with a link (#349), change roles and
+ * remove people; anyone
  * sets the name the team sees on their replies, or leaves. The server checks every change.
  */
 export function TeamPage() {
@@ -70,6 +73,11 @@ function Team({ me }: { me: EmployerIdentity }) {
   // #296: the team's only admin can neither step down nor leave (the server refuses both); those buttons are not
   // offered, and the row says why.
   const lastAdmin = checkTeamChange(team.members, team.me.email, { type: "leave" }) === "last_admin";
+  // #296, #349: members, the invitations and the links not expired yet already fill the team.
+  const full = teamFull(
+    team.members.length,
+    team.invites.filter((invite) => !invite.expired).length + team.links.filter((link) => !link.expired).length,
+  );
 
   // The server has closed the employer identity. A full load of 我的 reads the session afresh (syncWithServer runs
   // once per load); changing the browser's copy here first would make EmployerGate send the person to sign-up.
@@ -141,6 +149,7 @@ function Team({ me }: { me: EmployerIdentity }) {
       {isAdmin && (
         <Invite
           team={team}
+          full={full}
           disabled={pending}
           onInvite={(email, role, sent) =>
             run(
@@ -153,6 +162,15 @@ function Team({ me }: { me: EmployerIdentity }) {
             )
           }
           onCancel={(id) => run(() => cancelTeamInvite(id), t.inviteCancelled)}
+        />
+      )}
+      {isAdmin && (
+        <TeamLinks
+          team={team}
+          full={full}
+          disabled={pending}
+          onMade={reload}
+          onRevoke={(id) => run(() => revokeTeamInviteLink(id), t.link.revoked)}
         />
       )}
     </div>
@@ -277,11 +295,14 @@ function MemberRow({
 
 function Invite({
   team,
+  full,
   disabled,
   onInvite,
   onCancel,
 }: {
   team: MyTeam;
+  /** #296: no place left in the team (members, invitations and links not expired yet). */
+  full: boolean;
   disabled: boolean;
   /** `sent` once the invitation went out (#247): the email stays when it did not, to try again. */
   onInvite: (email: string, role: TeamMember["role"], sent: () => void) => void;
@@ -292,8 +313,6 @@ function Invite({
   const roles = words.team.roleLabel;
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamMember["role"]>("member");
-  // #296: members and the invitations not expired yet already fill the team: 发送邀请 waits, and the form says why.
-  const full = teamFull(team.members.length, team.invites.filter((invite) => !invite.expired).length);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onInvite(email.trim(), role, () => setEmail(""));

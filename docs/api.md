@@ -94,13 +94,18 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getMyTeam()` | | `{ employer: { id, name }, me: { email, role, name }, members, invites }`：成员按管理员在前、加入时间排序，每人 `{ email, role, name, joinedAt }`；`invites` 是没回复的邀请 `{ id, email, role, createdAt, expired }`，只给管理员（成员是 `[]`）；`expired` 是 14 天没回复、已经过期（#194） | `null` |
-| `inviteTeammate(email, role)` | 对方注册找工用的邮箱；`role` 是 `admin` 或 `member`（默认） | `{ ok: true }` | 「请填写对方注册找工用的邮箱。」「这个邮箱还没有注册找工。…」「这个人已经在团队里了。」「这个账号已经属于另一家企业，不能再加入。」「已经邀请过这个人，等对方回复。」「团队最多 10 人（包括还没回复的邀请）。」「这家企业 24 小时内已经发了 20 条邀请，明天再邀请。」（#197） |
+| `getMyTeam()` | | `{ employer: { id, name }, me: { email, role, name }, members, invites, links }`：成员按管理员在前、加入时间排序，每人 `{ email, role, name, joinedAt }`；`invites` 是没回复的邀请 `{ id, email, role, createdAt, expired }`，只给管理员（成员是 `[]`）；`expired` 是 14 天没回复、已经过期（#194）；`links` 是还没用掉、没撤销的邀请链接 `{ id, createdBy, createdAt, expiresAt, expired }`（#349），不含链接本身，只给管理员 | `null` |
+| `inviteTeammate(email, role)` | 对方注册找工用的邮箱；`role` 是 `admin` 或 `member`（默认） | `{ ok: true }` | 「请填写对方注册找工用的邮箱。」「这个邮箱还没有注册找工。…」「这个人已经在团队里了。」「这个账号已经属于另一家企业，不能再加入。」「已经邀请过这个人，等对方回复。」「团队最多 10 人（包括还没回复的邀请和还没用掉的链接）。」「这家企业 24 小时内已经发了 20 条邀请，明天再邀请。」（#197；邀请链接一起算，#349） |
 | `cancelTeamInvite(inviteId)` | | `{ ok: true }` | 「这条邀请已经回复或撤回了。」 |
 | `changeMyTeam(change)` | `{ type: "role", email, role }`、`{ type: "remove", email }` 或 `{ type: "leave" }` | `{ ok: true }`；退出后会话切回求职者身份 | 见上；「看不懂这个操作。」 |
 | `setMyTeamName(name)` | 称呼，去掉首尾空格后 1–12 个字，不能有邮箱或电话 | `{ ok: true, name }` | 「请填写称呼，例如「王经理」。」「称呼最多 12 个字。」「称呼里不要写邮箱或电话。」 |
 | `getMyTeamInvites()` | | 发给自己、没回复的邀请 `{ id, employerName, role, createdAt }`，旧的在前；已经有企业时是 `[]`；被封禁的企业和过期（14 天没回复，#194）的邀请不列 | `[]` |
 | `answerTeamInvite(inviteId, answer)` | `{ accept: true, name }` 或 `{ accept: false }` | `{ ok: true, employer? }`：接受时带上企业，会话已切到雇主身份 | 称呼的错误同上；「这条邀请已经撤回或回复过了。」「你的账号已经属于一家企业，不能再加入别的企业。」「这个团队已经满 10 人了。」 |
+| `createTeamInviteLink()` | | `{ ok: true, path, expiresAt }`：`path` 是 `/employer/team/join/<令牌>`，令牌是 32 个随机字节（base64url）；**只在这一次回答里出现**，库里只存它的 SHA-256（#349，ADR 0028）。7 天后过期 | 只有管理员；「团队最多 10 人（包括还没回复的邀请和还没用掉的链接）。」「这家企业 24 小时内已经发了 20 条邀请，明天再邀请。」 |
+| `revokeTeamInviteLink(linkId)` | `links` 里的 `id` | `{ ok: true }` | 只有管理员；「这条链接已经用过或撤销了。」 |
+| `joinTeamWithLink(token, name)` | 链接里的令牌；团队里的称呼（同 `setMyTeamName`） | `{ ok: true, employer? }`：以**成员**加入，链接记成用过，会话切到雇主身份 | 「请先登录。」；称呼的错误同上；「这条邀请链接不对：…」「这条邀请链接已经过期（7 天内有效）。…」「这条邀请链接已经用过了，…」「这条邀请链接已经被管理员撤销了。」「这家店已被封禁，不能加入。」「你已经在这家店的团队里了。」「你的账号已经属于一家企业。…」「这个团队已经满 10 人了，…」 |
+
+邀请链接存在 `team_invite_links`（迁移 0029）：`id`、企业、令牌的哈希、生成人、生成时间、状态（`open` / `used` / `revoked`）、使用人和使用时间。过期在读取时判断（`LINK_DAYS` = 7，`linkExpired`）。没过期、没用掉的链接和邮箱邀请一样占团队的名额。数据函数在 `src/db/team-links.ts`；打开链接的页面直接读 `teamLinkState(token)`，不经过 Server Function。
 
 ## 职位浏览计数 — `src/app/[lang]/employer/count-view.ts`
 
@@ -258,6 +263,7 @@
 `POST /api/dev/job-closing`（`src/app/api/dev/job-closing/route.ts`，#88）：把已登录雇主自己的一个职位的截止时间改到 `daysFromNow` 天后（负数是多少天前），用来在开发和浏览器测试里看「将截止」、续期和重新发布。生产环境返回 404。请求体 `{ jobId, daysFromNow }`（±365 天内）；成功 200，返回改后的职位；401 `{ error: "需要雇主身份" }`；400 `{ error: "找不到这个职位" }`（包括别家的职位）或 `{ error: "天数不对" }`。
 
 `POST /api/dev/apply`（`src/app/api/dev/apply/route.ts`）：职位页没有「申请」以后，浏览器测试用它以已登录的求职者给职位造一份申请（演示账号带林晓的主页），请求体 `{ jobId, note? }`，回答 `applyForJob` 的结果。生产环境返回 404。
+`POST /api/dev/team-link-age`（`src/app/api/dev/team-link-age/route.ts`，#349）：把已登录雇主自己企业的一条邀请链接的生成时间往前挪 `days` 天，用来在浏览器测试里看过期的链接。生产环境返回 404。请求体 `{ token, days }`（1–365 的整数）；成功 200 `{ ok: true }`；401 `{ error: "需要雇主身份" }`；400 `{ error: "天数不对" }` 或 `{ error: "找不到这条链接" }`（包括别家的链接）。
 
 `POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
 
@@ -364,7 +370,8 @@
 | `/employer/post`、`/employer/jobs`、`/employer/jobs/[id]`、`/employer/candidates`、`/employer/verify` | 发布、职位管理（`?tab=ending` 等打开某个状态）、编辑职位、推荐人才、企业验证 | 雇主身份 |
 | `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
 | `/employer/jobs/[id]/copy` | 复制为新职位：用在招或已结束职位的内容新建一条，同一个表单，走 `publishJob`（#190） | 雇主身份 |
-| `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87） | 雇主身份 |
+| `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87）、邀请链接（#349） | 雇主身份 |
+| `/employer/team/join/[token]` | 打开邀请链接：哪家店邀请；没登录时「登录后加入」，登录后填称呼加入为成员；不能用时说明原因（#349，ADR 0028）；不收录、不带 Referer | — |
 | `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/apply` | 浏览器测试造一份申请（见上） | 只在开发环境；登录 |

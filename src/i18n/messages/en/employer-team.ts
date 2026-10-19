@@ -74,6 +74,22 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
       expired: (days) => `Expired (no answer in ${days} days, so you can invite them again)`,
       cancel: "Withdraw the invitation",
     },
+
+    link: {
+      heading: "Invitation link",
+      hint: (days) =>
+        `Send the link on WeChat or anywhere else. Whoever opens it signs in with their email (new emails sign up on the way), adds their name and joins the team as a member; make them an admin here once they've joined. A link works for ${days} days, once.`,
+      create: "Make an invitation link",
+      createdHeading: "New invitation link",
+      createdNote: "This link is shown only this once, so copy it now. If you lose it, revoke it and make another.",
+      linkLabel: "Invitation link",
+      copy: "Copy the link",
+      openHeading: "Links not used yet",
+      openRow: (by, made, until) => `Made by ${by} on ${made} · joins as a member · works until ${until}`,
+      expired: "Expired",
+      revoke: "Revoke the link",
+      revoked: "The link has been revoked.",
+    },
   },
 
   teamInvites: {
@@ -100,15 +116,46 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
       member: "This person is already in the team.",
       has_business: "This account already belongs to another business, so it can't join.",
       pending: "You've already invited this person. Waiting for their answer.",
-      full: (max) => `A team can have up to ${max} people, counting invitations nobody has answered.`,
+      full: (max) => `A team can have up to ${max} people, counting invitations nobody has answered and links not used yet.`,
       too_many: (perDay) =>
         `This business has sent ${perDay} invitations in the last 24 hours. Invite someone tomorrow.`,
+    },
+    link: {
+      gone: "This link has already been used or revoked.",
     },
     answer: {
       gone: "This invitation has already been withdrawn or answered.",
       has_business: "Your account already belongs to a business, so it can't join another one.",
       full: (max) => `This team is full at ${max} people.`,
       declined: "",
+    },
+  },
+
+  teamJoin: {
+    metaTitle: "Join a team",
+    title: "Join a team",
+    loading: "Reading the invitation",
+    invited:
+      " has invited you to join their team as a member. Once you join you can switch to the employer role to post jobs, handle applications and reply in chats for this business.",
+    signInHint: "Sign in with your email first. If you're new to 找工, signing in for the first time signs you up.",
+    signIn: "Sign in to join",
+    signedInAs: (email) => `You're signed in as ${email}.`,
+    nameLabel: (max) => `Your name in the team (for example “Mr Wang”, up to ${max} characters)`,
+    join: "Join the team",
+    networkError: "Network problem. Try again shortly.",
+    goTeam: "Go to the team page",
+    home: "Go to the 找工 home page",
+    state: {
+      invalid:
+        "This invitation link isn't right: part of it may have been lost when it was copied, or it was changed. Ask whoever sent it to send it again.",
+      expired: (days) => `This invitation link has expired (links work for ${days} days). Ask the business's admin for a new one.`,
+      used: "This invitation link has already been used. Each link works once. Ask the business's admin for a new one.",
+      revoked: "The business's admin has revoked this invitation link.",
+      banned: "This business has been banned, so it can't be joined.",
+      member: "You're already in this business's team.",
+      has_business:
+        "Your account already belongs to a business. To join this one, leave your current business first on its Team page.",
+      full: (max) => `This team is full at ${max} people. Contact the business's admin.`,
     },
   },
 

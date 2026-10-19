@@ -5,6 +5,8 @@ import {
   sortTeam,
   teamCan,
   inviteExpired,
+  linkExpired,
+  linkExpiresAt,
   teamFull,
   teamSignature,
   TEAM_MAX,
@@ -50,6 +52,15 @@ describe("inviteExpired (#194)", () => {
     const sent = "2026-10-01T00:00:00.000Z";
     expect(inviteExpired(sent, Date.parse("2026-10-15T00:00:00.000Z"))).toBe(false);
     expect(inviteExpired(sent, Date.parse("2026-10-15T00:00:01.000Z"))).toBe(true);
+  });
+});
+
+describe("linkExpired (#349, ADR 0028)", () => {
+  it("expires an invitation link 7 days after it was made, and says when", () => {
+    const made = "2026-10-20T02:00:00.000Z";
+    expect(linkExpiresAt(made)).toBe("2026-10-27T02:00:00.000Z");
+    expect(linkExpired(made, Date.parse("2026-10-27T02:00:00.000Z"))).toBe(false);
+    expect(linkExpired(made, Date.parse("2026-10-27T02:00:01.000Z"))).toBe(true);
   });
 });
 

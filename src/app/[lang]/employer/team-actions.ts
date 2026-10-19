@@ -3,6 +3,7 @@
 // 雇主多人管理 (#87, PRD R-38, ADR 0012): the team page for a business's admins and members, and the invited
 // account's answer. Who acts comes from the session; the business from that account (getAccountEmployer). Only an
 // admin invites, cancels, or changes someone; anyone may set their own name or leave (a team keeps one admin).
+// Invitation links (#349, ADR 0028): an admin makes and revokes them; the signed-in account joins with one.
 import { getCurrentSession, switchRole } from "@/lib/auth";
 import { getAccount, getAccountEmployer } from "@/lib/data";
 import {
@@ -17,7 +18,16 @@ import {
   type InviteResult,
 } from "@/db/team";
 import {
+  createTeamLink,
+  joinTeamByLink,
+  JOIN_PATH,
+  openLinksOf,
+  revokeTeamLink,
+  type OpenTeamLink,
+} from "@/db/team-links";
+import {
   INVITES_PER_DAY,
+  LINK_DAYS,
   TEAM_MAX,
   checkTeamName,
   teamRefusalText,
@@ -43,6 +53,8 @@ export type MyTeam = {
   members: TeamMember[];
   /** Invitations nobody has answered yet, `expired` after 14 days (#194); admins only (empty for members). */
   invites: { id: string; email: string; role: TeamRole; createdAt: string; expired: boolean }[];
+  /** Invitation links not used or revoked yet (#349), without their tokens; admins only (empty for members). */
+  links: OpenTeamLink[];
 };
 
 type Failure = { ok: false; error_zh: string };
@@ -75,11 +87,13 @@ export async function getMyTeam(): Promise<MyTeam | null> {
           expired,
         }))
       : [];
+  const links = me.role === "admin" ? await openLinksOf(mine.employer.id) : [];
   return {
     employer: { id: mine.employer.id, name: mine.employer.name },
     me: { email: me.email, role: me.role, name: me.name },
     members,
     invites,
+    links,
   };
 }
 
@@ -117,6 +131,59 @@ export async function cancelTeamInvite(inviteId: unknown): Promise<{ ok: true } 
     ok: false,
     error_zh: result.status === "gone" ? t.inviteGone : teamRefusalText(lang)[result.status],
   };
+}
+
+// ---- invitation links (#349, ADR 0028) ----
+
+/**
+ * An admin makes a link to send outside the site. `path` carries the token: this answer is the only place it ever
+ * appears, since only its hash is stored. The page adds the site's origin.
+ */
+export async function createTeamInviteLink(): Promise<{ ok: true; path: string; expiresAt: string } | Failure> {
+  const mine = await myBusiness();
+  if (!mine) return noTeam();
+  const result = await createTeamLink(mine.employer.id, mine.email);
+  if (result.status === "created") return { ok: true, path: `${JOIN_PATH}${result.token}`, expiresAt: result.expiresAt };
+  const errors = await inviteErrors();
+  return { ok: false, error_zh: errors[result.status] };
+}
+
+export async function revokeTeamInviteLink(linkId: unknown): Promise<{ ok: true } | Failure> {
+  const mine = await myBusiness();
+  if (!mine) return noTeam();
+  const result = await revokeTeamLink(mine.employer.id, mine.email, String(linkId ?? ""));
+  if (result.status === "revoked") return { ok: true };
+  const { lang, t } = await words();
+  return { ok: false, error_zh: result.status === "gone" ? t.link.gone : teamRefusalText(lang)[result.status] };
+}
+
+/**
+ * The signed-in account joins the link's team as a member, with the name the team will see, and the session switches
+ * to the employer identity, as accepting an invitation does.
+ */
+export async function joinTeamWithLink(
+  token: unknown,
+  name: unknown,
+): Promise<{ ok: true; employer?: { id: string; name: string } } | Failure> {
+  const lang = await requestLang();
+  const t = pick(employerTeamMessages, lang);
+  const session = await getCurrentSession();
+  if (!session) return { ok: false, error_zh: t.teamActions.signIn };
+  const checked = checkTeamName(String(name ?? ""), lang);
+  if (!checked.ok) return { ok: false, error_zh: checked.error };
+  const result = await joinTeamByLink(session.email, String(token ?? ""), checked.name);
+  if (result.status !== "joined") {
+    const state = t.teamJoin.state;
+    const error_zh =
+      result.status === "expired"
+        ? state.expired(LINK_DAYS)
+        : result.status === "full"
+          ? state.full(TEAM_MAX)
+          : state[result.status];
+    return { ok: false, error_zh };
+  }
+  const switched = await switchRole("employer");
+  return { ok: true, employer: switched.employer };
 }
 
 function parseChange(input: unknown): TeamChange | undefined {

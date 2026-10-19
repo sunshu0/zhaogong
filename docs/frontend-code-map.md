@@ -69,6 +69,7 @@
 | 招聘发布 | `PostFlow.tsx` | `post-flow-state.ts` 管理状态和动作；`PostFlowSteps.tsx` 展示各步骤；`PostFlowBars.tsx` 展示操作栏；`Published.tsx` 展示发布结果 |
 | 招聘表单 | `DraftForm.tsx` | `DraftFormSections.tsx` 展示要求、描述和联系方式；`DraftFormParts.tsx` 提供字段、提示和输入控件 |
 | 职位管理 | `ManageJobs.tsx` | `ManagedJob.tsx` 展示单条职位；`ManagedJobActions.tsx` 展示刷新、结束招聘等操作 |
+| 团队 | `TeamPage.tsx` | 规则在 `team.ts`（ADR 0012）；管理员的邀请链接 `TeamLinks.tsx`；打开链接的页面 `src/app/[lang]/employer/team/join/[token]/page.tsx` 和它的表单 `TeamJoin.tsx`（#349，ADR 0028）；「我的」里收到的邀请 `TeamInvites.tsx` |
 
 发帖表单状态仍在 `use-draft-form.ts`，表单与职位转换在 `post-form.ts`。对话生成规则在 `src/lib/ai-post/`，发布前检查在 `src/lib/compliance/`，演示数据操作通过 `src/app/[lang]/employer/actions.ts` 调用。
 

@@ -27,6 +27,11 @@ export interface ServerAccountData {
   team: { role: string; name: string | null; joinedAt: string | null } | null;
   /** Team invitations this account received or sent (#87), whatever their status. */
   teamInvites: { employerId: string; role: string; received: boolean; status: string; createdAt: string }[];
+  /**
+   * Invitation links this account made or joined with (#349, ADR 0028), whatever their status. No token: only its
+   * hash is stored, and that is not the person's to keep.
+   */
+  teamLinks: { employerId: string; made: boolean; status: string; createdAt: string; usedAt: string | null }[];
   moderator: { grantedAt: string; grantedBy: string | null } | null;
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
@@ -201,6 +206,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.teamInvites)
     .where(or(eq(t.teamInvites.email, address), eq(t.teamInvites.invitedByEmail, address)))
     .orderBy(asc(t.teamInvites.createdAt));
+  const links = await db
+    .select()
+    .from(t.teamInviteLinks)
+    .where(or(eq(t.teamInviteLinks.createdByEmail, address), eq(t.teamInviteLinks.usedByEmail, address)))
+    .orderBy(asc(t.teamInviteLinks.createdAt));
   const hits = await db
     .select()
     .from(t.jobAlertHits)
@@ -238,6 +248,13 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       received: i.email === address,
       status: i.status,
       createdAt: i.createdAt,
+    })),
+    teamLinks: links.map((l) => ({
+      employerId: l.employerId,
+      made: l.createdByEmail === address,
+      status: l.status,
+      createdAt: l.createdAt,
+      usedAt: l.usedAt,
     })),
     moderator: moderator ? { grantedAt: moderator.grantedAt, grantedBy: moderator.grantedBy } : null,
     moderationActions: actions.map((a) => ({
@@ -420,6 +437,15 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .update(t.teamInvites)
       .set({ invitedByEmail: DELETED_ACCOUNT })
       .where(eq(t.teamInvites.invitedByEmail, address));
+    // Invitation links stay as the team's record too, without the email of whoever made or used them (#349).
+    await tx
+      .update(t.teamInviteLinks)
+      .set({ createdByEmail: DELETED_ACCOUNT })
+      .where(eq(t.teamInviteLinks.createdByEmail, address));
+    await tx
+      .update(t.teamInviteLinks)
+      .set({ usedByEmail: DELETED_ACCOUNT })
+      .where(eq(t.teamInviteLinks.usedByEmail, address));
     await tx
       .update(t.contactViews)
       .set({ viewerEmail: DELETED_ACCOUNT })
@@ -458,7 +484,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
 
     // The business stays (reports and the moderation log name it, and a ban must outlive the account). When nobody
     // else in its team carries on, nobody posts for it any more: its jobs come down and the contact details on them,
-    // the person's own, are cleared, and invitations nobody answered are cancelled (#87).
+    // the person's own, are cleared, invitations nobody answered are cancelled (#87) and open links revoked (#349).
     if (account.employerId && !teammates.length) {
       // The business's shared chats (#87) were only ever this person's side of the conversations. Its page goes too:
       // nobody is left to keep it (ADR 0022); the public page shows the business's name only.
@@ -468,6 +494,10 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
         .update(t.teamInvites)
         .set({ status: "cancelled" })
         .where(and(eq(t.teamInvites.employerId, account.employerId), eq(t.teamInvites.status, "pending")));
+      await tx
+        .update(t.teamInviteLinks)
+        .set({ status: "revoked" })
+        .where(and(eq(t.teamInviteLinks.employerId, account.employerId), eq(t.teamInviteLinks.status, "open")));
       await tx
         .update(t.jobs)
         .set({ status: "removed", contact: {}, contactPublic: false })

@@ -35,6 +35,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `accounts` 的 `lang` | 账号选的界面语言，空就是没选过 | ADR 0023 |
 | `conversations`、`messages`、`exchanges` | 求职者和企业共用的一条对话，企业整个团队一起读写 | ADR 0015 |
 | `team_invites`、`team_chats` | 企业的团队和邀请；雇主一侧的聊天按企业存一份 | ADR 0012 |
+| `team_invite_links` | 团队邀请链接：只存令牌的哈希，7 天、一次、可撤销，只能加入为成员（`src/db/team-links.ts`） | ADR 0028 |
 | `moderators` | 审核员名单（`npm run admin:grant` 加第一位） | ADR 0007 补充 |
 | `verification_requests` | 企业验证的申请和审核员的核对、驳回理由 | ADR 0011 |
 | `saved_jobs` | 收藏和进度，只有账号自己读 | |

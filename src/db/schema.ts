@@ -22,7 +22,7 @@ import type { ResumeDoc } from "@/components/seeker/resume-doc";
 import type { InterviewMode, InterviewStatus } from "@/components/seeker/interviews";
 import type { Profile } from "@/components/seeker/hub-state";
 import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/components/employer/verification";
-import type { TeamInviteStatus, TeamRole } from "@/components/employer/team";
+import type { TeamInviteStatus, TeamLinkStatus, TeamRole } from "@/components/employer/team";
 import type { EmployerPage } from "@/components/employer/employer-page";
 import type { PersonalInfoKind } from "@/lib/personal-info-views";
 import type {
@@ -187,6 +187,28 @@ export const teamInvites = sqliteTable(
     answeredAt: text("answered_at"),
   },
   (table) => [index("team_invites_email_idx").on(table.email), index("team_invites_employer_idx").on(table.employerId)],
+);
+
+/**
+ * An admin's invitation link for the team (#349, ADR 0028), sent outside the site: whoever opens it signs in and joins
+ * as a member. Only the token's SHA-256 is stored, never the token. Used once, revocable, expires LINK_DAYS after
+ * `created_at` (decided when read). `created_by_email` / `used_by_email` become deleted-account with their account.
+ */
+export const teamInviteLinks = sqliteTable(
+  "team_invite_links",
+  {
+    id: text("id").primaryKey(),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    tokenHash: text("token_hash").notNull().unique(),
+    createdByEmail: text("created_by_email").notNull(),
+    createdAt: text("created_at").notNull(),
+    status: text("status").$type<TeamLinkStatus>().notNull(),
+    usedByEmail: text("used_by_email"),
+    usedAt: text("used_at"),
+  },
+  (table) => [index("team_invite_links_employer_idx").on(table.employerId)],
 );
 
 // ---- reserved: sign-in and sessions (A12-1) ----

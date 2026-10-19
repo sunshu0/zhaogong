@@ -38,7 +38,8 @@ export const INVITE_DAYS = 14;
 
 /**
  * Invitations one business may send in 24 hours, whatever became of them (#197): each lands in the invited account's
- * 通知, so sending, cancelling and sending again must not reach any number of people.
+ * 通知, so sending, cancelling and sending again must not reach any number of people. Invitation links count too
+ * (#349, ADR 0028): emails and links together.
  */
 export const INVITES_PER_DAY = 20;
 
@@ -47,8 +48,26 @@ export function inviteExpired(createdAt: string, now: number): boolean {
 }
 
 /**
+ * An invitation link (#349, ADR 0028): `open` until someone joins with it (`used`) or an admin takes it back
+ * (`revoked`). It expires LINK_DAYS after it was made, decided when read, like an invitation (#194).
+ */
+export type TeamLinkStatus = "open" | "used" | "revoked";
+
+export const LINK_DAYS = 7;
+
+export function linkExpired(createdAt: string, now: number): boolean {
+  return now - Date.parse(createdAt) > LINK_DAYS * 86_400_000;
+}
+
+/** When a link made at `createdAt` stops working. */
+export function linkExpiresAt(createdAt: string): string {
+  return new Date(Date.parse(createdAt) + LINK_DAYS * 86_400_000).toISOString();
+}
+
+/**
  * Whether a team has no place for another invitation (#296): its members and the invitations not expired yet reach
- * TEAM_MAX. inviteToTeam refuses with "full" then, and 团队 says so before anyone types an email.
+ * TEAM_MAX. inviteToTeam refuses with "full" then, and 团队 says so before anyone types an email. `liveInvites`
+ * counts the open links not expired yet as well (#349).
  */
 export function teamFull(members: number, liveInvites: number): boolean {
   return members + liveInvites >= TEAM_MAX;
