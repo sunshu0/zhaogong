@@ -5,10 +5,12 @@
 
 import { dateFormat } from "@/i18n/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
+import { aucklandParts as parts, INTERVIEW_TZ } from "@/components/seeker/auckland-time";
 import { pick } from "@/i18n/messages";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
-export const INTERVIEW_TZ = "Pacific/Auckland";
+// The time-zone helpers live in auckland-time.ts (no imports, so the browser tests can load them, #240).
+export { INTERVIEW_TZ, aucklandToInstant, instantToAuckland } from "@/components/seeker/auckland-time";
 
 export const INTERVIEW_MODES = { in_person: "到店面试", phone: "电话面试", video: "视频面试" } as const;
 export type InterviewMode = keyof typeof INTERVIEW_MODES;
@@ -55,52 +57,6 @@ export type InterviewResponse =
 
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? [...value.trim()].slice(0, max).join("") : "";
-
-const parts = (ms: number) =>
-  Object.fromEntries(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: INTERVIEW_TZ,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    })
-      .formatToParts(new Date(ms))
-      .filter((p) => p.type !== "literal")
-      .map((p) => [p.type, Number(p.value)]),
-  ) as Record<"year" | "month" | "day" | "hour" | "minute", number>;
-
-/** Auckland's offset from UTC at an instant, in minutes. */
-function offsetAt(ms: number): number {
-  const p = parts(ms);
-  return (Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - Math.floor(ms / 60_000) * 60_000) / 60_000;
-}
-
-/**
- * A wall-clock time in Auckland ("2026-10-20T14:30", as <input type="datetime-local"> gives it) as an instant;
- * null when it is not one, or falls in the hour skipped when daylight saving starts.
- */
-export function aucklandToInstant(local: string): string | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(local);
-  if (!m) return null;
-  const [y, mo, d, h, mi] = m.slice(1).map(Number);
-  const wall = Date.UTC(y, mo - 1, d, h, mi);
-  if (Number.isNaN(wall) || new Date(wall).getUTCDate() !== d || h > 23 || mi > 59) return null;
-  let ms = wall - offsetAt(wall) * 60_000;
-  ms = wall - offsetAt(ms) * 60_000;
-  const back = parts(ms);
-  if (back.hour !== h || back.minute !== mi || back.day !== d) return null;
-  return new Date(ms).toISOString();
-}
-
-/** The Auckland wall-clock time of an instant, for a datetime-local field. */
-export function instantToAuckland(iso: string): string {
-  const p = parts(Date.parse(iso));
-  const two = (n: number) => String(n).padStart(2, "0");
-  return `${p.year}-${two(p.month)}-${two(p.day)}T${two(p.hour)}:${two(p.minute)}`;
-}
 
 const WEEKDAY = new Intl.DateTimeFormat("zh-CN", { timeZone: INTERVIEW_TZ, weekday: "short" });
 

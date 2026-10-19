@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { chatEntry, chooseOption, fillSignInCode, freshEmail, siteNav } from "./helpers";
-import { instantToAuckland } from "../src/components/seeker/interviews";
+import { instantToAuckland } from "../src/components/seeker/auckland-time";
 import {
   CLEAN_MESSAGE,
   cardMenuItem,

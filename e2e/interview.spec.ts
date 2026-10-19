@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { chooseOption, freshEmail, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
-import { instantToAuckland } from "../src/components/seeker/interviews";
+import { instantToAuckland } from "../src/components/seeker/auckland-time";
 
 /** An Auckland wall-clock time `days` from now at hh:mm, as a datetime-local field takes it. */
 function ahead(days: number, hour: number, minute = 0) {
