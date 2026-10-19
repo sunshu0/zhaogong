@@ -1,6 +1,7 @@
 // Round 20 (ADR 0023): the shared pieces — src/components/ui (nav.ts, HeaderNav, BottomNav, BottomSheet, MoreMenu,
 // Select, Skeleton, VerificationBadge, PayReferenceBox), seeker/ChatDialog and CopyButton (ShareJob uses them too),
-// PrintButton, SignInGate, and the site's frame: app/layout.tsx, error.tsx, global-error.tsx, not-found.tsx.
+// PrintButton, SignInGate, LoadFailed and the no-answer words (#246), and the site's frame: app/layout.tsx, error.tsx,
+// global-error.tsx, not-found.tsx.
 // The product name 找工 is not translated (glossary, 不翻译 2). 导师决定 4: the pay reference says it comes from jobs
 // on 找工. 导师决定 8: 「我的」 is Me in the bottom bar until step 1 measures it.
 
@@ -81,6 +82,14 @@ const uiZh = {
     body: "链接可能有误，或者内容已经下架。",
     findJobs: "找工作",
     home: "回首页",
+  },
+  // #246: a Server Function call that got no answer (no network, the server restarting), on the employer and seeker
+  // pages. LoadFailed.tsx: a load, said in its place with the page's own name for it; noAnswer: an action, said where
+  // it was pressed.
+  load: {
+    notLoaded: (what: string) => `${what}没取到，可能是网络断了。`,
+    retry: "重试",
+    noAnswer: "网络有问题，请稍后再试。",
   },
 };
 

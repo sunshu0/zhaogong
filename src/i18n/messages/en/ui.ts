@@ -78,4 +78,9 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     findJobs: "Find jobs",
     home: "Home",
   },
+  load: {
+    notLoaded: (what) => `Couldn't load ${what}. The connection may have dropped.`,
+    retry: "Try again",
+    noAnswer: "Network problem. Try again shortly.",
+  },
 };
