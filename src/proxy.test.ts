@@ -29,6 +29,12 @@ describe("proxy: the visitor id comes with the page (#79, #312)", () => {
     expect(proxy(request("/jobs/j2", undefined, "POST")).cookies.get("zg_visitor")).toBeUndefined();
     expect(proxy(request("/messages", undefined, "POST")).cookies.get("zg_visitor")).toBeUndefined();
   });
+
+  it("not with a prefetch: nobody opened that page yet (#312)", () => {
+    const prefetch = (headers: Record<string, string>) => new NextRequest("http://localhost/jobs", { headers });
+    expect(proxy(prefetch({ "next-router-prefetch": "1" })).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(prefetch({ "sec-purpose": "prefetch" })).cookies.get("zg_visitor")).toBeUndefined();
+  });
 });
 
 describe("proxy: the interface language (Round 20, ADR 0023)", () => {

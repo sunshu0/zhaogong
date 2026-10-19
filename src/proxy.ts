@@ -6,10 +6,12 @@
 //   (the view count used to set it in its own answer, so a reload before that answer arrived counted the same
 //   browser twice), every page since #312 (the funnel events, ADR 0025, join up a visitor's steps). Only with the
 //   page (GET): a page's Server Functions post to the same path, and a cookie set in their answer makes Next refresh
-//   the page, dropping a #contact from the address (#90).
+//   the page, dropping a #contact from the address (#90). Not with a prefetch either (#312): nobody has opened that
+//   page, and a prefetch racing a browser that lost its cookie would hand it a second id.
 import { NextResponse, type NextRequest } from "next/server";
 import { LANG_COOKIE, langRoute } from "@/i18n/lang";
 import { isProduction } from "@/lib/auth/config";
+import { isPrefetch } from "@/lib/events/request";
 import { VISITOR_COOKIE, isVisitorId, newVisitorId, visitorCookieOptions } from "@/lib/visitor";
 
 export function proxy(request: NextRequest) {
@@ -22,7 +24,11 @@ export function proxy(request: NextRequest) {
   }
   url.pathname = route.rewrite;
   const response = NextResponse.rewrite(url);
-  if (request.method === "GET" && !isVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
+  if (
+    request.method === "GET" &&
+    !isPrefetch(request.headers) &&
+    !isVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
+  ) {
     response.cookies.set(VISITOR_COOKIE, newVisitorId(), visitorCookieOptions(isProduction()));
   }
   return response;
