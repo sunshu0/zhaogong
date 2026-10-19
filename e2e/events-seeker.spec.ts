@@ -39,15 +39,10 @@ test("signed out: the home page, the list, a search, a job and 立即沟通 send
   expect(await sent).toEqual({ name: "chat_start", path: "/jobs/[id]", jobId: "j3", detail: "signed_out" });
 });
 
-test("signed in: opening the application form and 立即沟通 send their events", async ({ page }) => {
+test("signed in: 立即沟通 sends its event (申请 and its events are gone, user 10-20)", async ({ page }) => {
   await signIn(page, "/jobs/j3", freshEmail("events.seeker"));
 
-  let sent = eventSent(page, "apply_open");
-  await page.getByRole("button", { name: "申请", exact: true }).click();
-  expect(await sent).toEqual({ name: "apply_open", path: "/jobs/[id]", jobId: "j3" });
-  await page.keyboard.press("Escape");
-
-  sent = eventSent(page, "chat_start");
+  const sent = eventSent(page, "chat_start");
   await page.getByRole("button", { name: "立即沟通", exact: true }).click();
   expect(await sent).toEqual({ name: "chat_start", path: "/jobs/[id]", jobId: "j3" });
   await expect(page).toHaveURL(/conversation=/);

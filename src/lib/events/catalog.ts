@@ -18,8 +18,6 @@ export const EVENTS = {
   jobs_search: { detail: "filters" },
   job_view: { job: true },
   chat_start: { job: true, detail: ["signed_out"] },
-  apply_open: { job: true },
-  apply_submit: { job: true },
   external_list_view: { detail: ["internship", "professional"] },
   external_view: { job: true },
   external_apply_click: { job: true, detail: ["demo"] },

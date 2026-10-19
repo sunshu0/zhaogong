@@ -76,7 +76,7 @@ test("a Select from the keyboard: an arrow opens it, End and Enter pick, Esc clo
   await expect(field).toBeFocused();
 });
 
-test("收藏 and 申请 on a job card work from the keyboard", async ({ page }, testInfo) => {
+test("收藏 on a job card works from the keyboard", async ({ page }) => {
   await signIn(page, "/jobs", freshEmail("keyboard.save"));
   const save = page
     .getByRole("button", { name: /^收藏：/ })
@@ -93,17 +93,6 @@ test("收藏 and 申请 on a job card work from the keyboard", async ({ page }, 
   await expect(save).toHaveAttribute("aria-pressed", "false");
   await expect(save).not.toHaveAttribute("aria-busy");
   await expect(save).toBeFocused();
-
-  // 申请 is on the card from 768px; on a phone it is in the job page's bottom bar.
-  if (testInfo.project.name !== "desktop") return;
-  const apply = page
-    .getByRole("button", { name: /^申请：/ })
-    .filter({ visible: true })
-    .first();
-  await keyboardFocus(page, apply);
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/jobs\/j\w+\?apply=1$/);
-  await expect(page.getByRole("dialog", { name: "申请这个职位" })).toBeVisible();
 });
 
 test("职位提醒 from the keyboard: a working button keeps the focus, one that goes hands it on (#202)", async ({

@@ -1,18 +1,11 @@
 // 一键申请 (#84, PRD R-35): what an application holds and how each side sees its state. Shared by the browser and
-// the server; the server parses everything a browser sends.
+// the server; the server parses everything a browser sends. The job pages have no 申请 since 10-20 (the user):
+// applications made before stay readable, and the browser tests make them through /api/dev/apply.
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { parseResume, type Candidate, type Resume } from "@/lib/candidate-matching";
 import type { Profile } from "@/components/seeker/hub-state";
-
-/** In a job page's address after sign-in from 申请: open the form (ApplyJob). */
-export const APPLY_PARAM = "apply";
-
-/** Sign-in for 申请 while signed out, coming back to the job with the form open. */
-export function applyAfterSignInHref(jobId: string): string {
-  return `/login?role=seeker&next=${encodeURIComponent(`/jobs/${jobId}?${APPLY_PARAM}=1`)}`;
-}
 
 /** The note sent with an application. */
 export const NOTE_MAX = 200;

@@ -1,5 +1,5 @@
 // Records a funnel event for the request being answered (#312, ADR 0025 §4): from /api/events (the browser's
-// track()) and from Server Functions after they succeed (signInAccount, applyForJob, publishJob…). Takes the
+// track()) and from Server Functions after they succeed (signInAccount, publishJob…). Takes the
 // visitor, language and identity from the request; a crawler or a prefetch records nothing, nor does a production
 // server without ZG_EVENTS_SECRET. Never throws: an event that cannot be stored must not break what was being done.
 // Server only.

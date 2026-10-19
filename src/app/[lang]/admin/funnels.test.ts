@@ -44,9 +44,9 @@ describe("funnelReport (#316)", () => {
   });
 
   it("counts a visitor once a step, whichever of the step's events, and however often", () => {
-    const rows = visitors(5, ["home_view", "jobs_list_view", "job_view", "job_view", "chat_start", "apply_open"]);
+    const rows = visitors(5, ["home_view", "jobs_list_view", "job_view", "job_view", "chat_start", "chat_start"]);
     const seek = funnelReport(rows, 7).funnels.find((f) => f.id === "seek")!.steps;
-    expect(seek.map((s) => s.counts.all)).toEqual([5, 5, 5, 0]);
+    expect(seek.map((s) => s.counts.all)).toEqual([5, 5, 5]);
   });
 
   it("shows 1-4 as few, and no rate where a count is under 5", () => {

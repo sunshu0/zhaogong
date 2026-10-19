@@ -54,7 +54,7 @@ describe("POST /api/events and recordRequestEvent (#312, ADR 0025)", () => {
 
   it("joins one browser's steps in a day under one visitor", async () => {
     await send({ name: "home_view", path: "/" });
-    await recordRequestEvent({ name: "apply_submit", path: "/jobs/[id]", jobId: "j3" });
+    await recordRequestEvent({ name: "chat_start", path: "/jobs/[id]", jobId: "j3" });
     const [a, b] = await rows();
     expect(a.visitor).toBe(b.visitor);
   });

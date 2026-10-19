@@ -151,15 +151,14 @@
 
 ## 申请职位 — `src/app/[lang]/jobs/[id]/apply-actions.ts`、`src/app/[lang]/employer/applicant-actions.ts`
 
+**2026-10-20 用户定删掉职位页和职位块上的「申请」**：求职者这边只剩读（`myAppliedJobIds`、`myApplicationViews`）。申请和撤回（`applyForJob`、`withdrawMyApplication`、`myJobApplication`）挪到 `src/lib/applications-server.ts`，不再是 Server Function，只给浏览器测试的 `POST /api/dev/apply` 和单测用，等 B 把候选人列表改成「这个职位聊过的人」。
+
 #84（PRD R-35）。存在 `job_applications`（迁移 0010）：账号 + 职位唯一，附言最多 200 字，`profile` 是申请时求职者主页的一份（`ApplicationProfile`：名字、一句话介绍、所在地、语言、可上班时间、介绍和简历要点，不含头像和联系方式；服务器用 `parseApplicationProfile` 重新检查）。账号取自会话；雇主只通过申请的随机编号操作，看不到求职者的邮箱。撤回就是删除。
 
 求职者（`MyApplication`：`{ jobId, appliedAt, note, status }`，`status` 是「已申请，等雇主查看」「雇主已看过」「雇主觉得合适」之一，「不合适」也显示「雇主已看过」）：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `applyForJob(jobId, note, profile)` | 职位编号；附言；求职者自己的主页 | `{ ok: true, application }` | `{ ok: false, reason, error }`：`signed_out`、`employer_identity`（雇主身份）、`closed`（已截止、已下架或不存在）、`banned`（企业被封禁）、`own_job`（自己企业的职位）、`no_profile`（主页没有名字）、`note_too_long`、`already` |
-| `withdrawMyApplication(jobId)` | 职位编号 | `true` | 未登录时 `false` |
-| `myJobApplication(jobId)` | 职位编号 | `MyApplication` | 没申请过或未登录时 `null` |
 | `myAppliedJobIds()` | | 申请过的职位编号（职位块的「已申请」） | 未登录时 `null` |
 | `myApplicationViews()` | | `MyApplication` 加职位名、时薪、地区、企业名、`gone` 和 `stage`（#105：`open` 进行中，`ended` 已录用或职位已结束），新的在前（「收藏和进度」的「我的申请」）。职位结束后，没被录用的申请 `status` 是「职位已结束」，标没标「不合适」都一样 | 未登录时 `null` |
 
@@ -257,6 +256,8 @@
 ## 只在开发环境存在的接口
 
 `POST /api/dev/job-closing`（`src/app/api/dev/job-closing/route.ts`，#88）：把已登录雇主自己的一个职位的截止时间改到 `daysFromNow` 天后（负数是多少天前），用来在开发和浏览器测试里看「将截止」、续期和重新发布。生产环境返回 404。请求体 `{ jobId, daysFromNow }`（±365 天内）；成功 200，返回改后的职位；401 `{ error: "需要雇主身份" }`；400 `{ error: "找不到这个职位" }`（包括别家的职位）或 `{ error: "天数不对" }`。
+
+`POST /api/dev/apply`（`src/app/api/dev/apply/route.ts`）：职位页没有「申请」以后，浏览器测试用它以已登录的求职者给职位造一份申请（演示账号带林晓的主页），请求体 `{ jobId, note? }`，回答 `applyForJob` 的结果。生产环境返回 404。
 
 `POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
 
@@ -366,6 +367,7 @@
 | `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87） | 雇主身份 |
 | `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
+| `POST /api/dev/apply` | 浏览器测试造一份申请（见上） | 只在开发环境；登录 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
 | `GET /api/report-evidence/[id]` | 职位举报附的一张截图（ADR 0027）：图片本身，`nosniff`、`sandbox`、不缓存；每次交出先记进查看记录（ADR 0026）。不是审核员、编号不是截图都回 404 | `ADMIN_ENABLED=1`，审核员 |

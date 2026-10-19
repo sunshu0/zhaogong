@@ -1,6 +1,6 @@
 // Round 20 (ADR 0023): the job list and the job page — JobList, JobCard, job-card-parts, FilterForm, ActiveFilters,
 // filter-query (the chips), JobDetail, DescriptionTabs, job-facts, seeker/format (pay, hours, posted), SaveJobButton,
-// saved-client, ShareJob, ReportJob, report.ts, ApplyJob, StartEmployerChat, ContactReveal, BackLink, app/jobs
+// saved-client, ShareJob, ReportJob, report.ts, StartEmployerChat, ContactReveal, BackLink, app/jobs
 // (titles, the list's heading, not-found, actions). The share text (shareSummary, withLink) stays Chinese, like B's
 // share-texts: it goes to WeChat groups. The application's status words are in seeker-me (applications.ts).
 // Amounts arrive formatted (formatAmount / formatMoney); places, job titles and employers' names as written.
@@ -193,36 +193,6 @@ const seekerJobsZh = {
       imageTooBig: (mb: number) => `每张截图不能超过 ${mb} MB`,
       notImage: "只能上传 JPG、PNG 或 WebP 格式的图片",
     },
-  },
-  // ApplyJob.tsx
-  apply: {
-    apply: "申请",
-    checkFailed: "没取到你的申请情况，可能是网络断了。",
-    checkAgain: "重试后申请",
-    applied: "已申请",
-    appliedWithStatus: (status: string) => `已申请 · ${status}`,
-    label: (title: string) => `申请：${title}`,
-    titleNew: "申请这个职位",
-    titleMine: "我的申请",
-    note: (note: string) => `附言：${note}`,
-    progressWhere: "进度也在「我的 → 收藏和进度」里。",
-    ok: "好的",
-    withdraw: "撤回申请",
-    // #325: withdrawing asks first, in place of 好的 / 撤回申请 (取消 is `cancel`).
-    withdrawWarning: "撤回后雇主就看不到这份申请了。",
-    confirmWithdraw: "确认撤回",
-    shown: "雇主会看到的资料",
-    shownHint: "雇主会看到你的主页（不含联系方式）：",
-    noName: "还没有名字，雇主不知道是谁申请的。",
-    editProfile: "编辑我的主页",
-    noteLabel: "附言（选填）",
-    notePlaceholder: "比如：周末都能上班，做过两年奶茶店",
-    privacy: "申请不会把你的电话、微信或邮箱给雇主。联系方式照这个职位的方式来。",
-    submitting: "正在提交…",
-    submit: "提交申请",
-    cancel: "取消",
-    networkError: "网络有问题，请稍后再试",
-    withdrawFailed: "没能撤回，请稍后再试",
   },
   // StartEmployerChat.tsx
   chat: {

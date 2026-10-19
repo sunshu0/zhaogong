@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { freshEmail, signIn } from "../helpers";
+import { applyForTest, freshEmail, signIn } from "../helpers";
 import { CLEAN_MESSAGE, lastAssistant, publishJob, signUpEmployer, uniqueCjkTitle, uniqueTitle } from "./helpers";
 
 // The whole post flow with the keyboard only: every control can be reached with Tab, shows a
@@ -209,10 +209,7 @@ test("申请人: a mark shows busy while it is on its way, and one that takes th
   // A demo job seeker (林晓's page, #125) applies.
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
   await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.keys"));
-  await seeker.getByRole("button", { name: "申请", exact: true }).click();
-  const form = seeker.getByRole("dialog", { name: /申请这个职位|我的申请/ });
-  await form.getByRole("button", { name: "提交申请" }).click();
-  await expect(form.getByRole("status")).toHaveText("已申请，等雇主查看");
+  await applyForTest(seeker, jobId);
   await seeker.context().close();
 
   const path = `/employer/jobs/${jobId}/applicants`;

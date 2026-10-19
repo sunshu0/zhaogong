@@ -326,12 +326,11 @@ test("job page: title and pay first, then the facts; share is a button; one main
   await page.keyboard.press("Escape");
 
   const chat = page.getByRole("main").getByRole("link", { name: "立即沟通", exact: true });
-  // 查看联系方式 is an icon beside 立即沟通 and 申请; no label in the bar wraps onto a second line.
+  // 查看联系方式 is an icon beside 立即沟通; its label does not wrap onto a second line.
   const contactLink = page.getByRole("link", { name: "查看联系方式", exact: true });
   await expect(chat).toBeVisible();
   await expect(contactLink).toBeVisible();
-  for (const action of [chat, page.getByRole("main").getByRole("link", { name: "申请", exact: true })])
-    expect((await box(action)).height).toBeLessThanOrEqual(52);
+  expect((await box(chat)).height).toBeLessThanOrEqual(52);
   if (testInfo.project.name === "mobile") {
     // Fixed above the bottom navigation, and the end of the page can scroll clear of it.
     const nav = await box(page.getByRole("navigation", { name: "底部导航" }));

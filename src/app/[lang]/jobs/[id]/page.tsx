@@ -8,7 +8,6 @@ import { regionById } from "@/config/countries";
 import { getEmployer, getJob, listJobs } from "@/lib/data";
 import { BackLink } from "@/components/seeker/BackLink";
 import { RecordView } from "@/components/seeker/RecordView";
-import { ApplyJob } from "@/components/seeker/ApplyJob";
 import { PayReferenceBox } from "@/components/ui/PayReferenceBox";
 import { payReference } from "@/lib/pay-reference";
 import { ReportJob } from "@/components/seeker/ReportJob";
@@ -128,9 +127,6 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
                   closed={isExpired(job, now)}
                 />
               </div>
-              {!isExpired(job, now) && (
-                <ApplyJob size="lg" jobId={job.id} jobTitle={job.titleZh} employerId={job.employerId} />
-              )}
               {job.contactPublic && (
                 <a
                   href="#contact"

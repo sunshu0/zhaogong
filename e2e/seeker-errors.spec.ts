@@ -122,25 +122,11 @@ test("退出登录 with no answer stays signed in and says so, instead of only l
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
-test("loads that get no answer say so with 重试 instead of a greyed 申请 or a share card loading for good (#250)", async ({
-  page,
-}) => {
+test("loads that get no answer say so with 重试 instead of a share card loading for good (#250)", async ({ page }) => {
   await signIn(page, "/jobs/j3", freshEmail("demo.errors.loads"));
 
-  // The job page: whether this account applied got no answer, so 申请 asks again.
-  let cut = await cutCalls(page, "/jobs/j3");
-  cut.on = true;
-  await page.goto("/jobs/j3");
-  const again = page.getByRole("button", { name: "重试后申请" });
-  await expect(again).toBeVisible();
-  await expectNoViolations(page);
-  cut.on = false;
-  await again.click();
-  await expect(page.getByRole("button", { name: "申请", exact: true })).toBeEnabled();
-  await page.unrouteAll({ behavior: "ignoreErrors" });
-
   // The CV's share card.
-  cut = await cutCalls(page, "/profile/resume");
+  const cut = await cutCalls(page, "/profile/resume");
   cut.on = true;
   await page.goto("/profile/resume");
   const card = page.locator("#resume-share");

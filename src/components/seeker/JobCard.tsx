@@ -14,7 +14,6 @@ import { Pay } from "@/components/ui/Pay";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
-import { ApplyRowButton } from "@/components/seeker/ApplyJob";
 import { cardPoints, cardStatus, cardTags } from "@/components/seeker/job-card-parts";
 import { FORWARD } from "@/components/ui/PageTransition";
 
@@ -112,7 +111,6 @@ export function JobCard({
             </ul>
           )}
           <SaveJobButton jobId={job.id} title={job.titleZh} />
-          <ApplyRowButton jobId={job.id} title={job.titleZh} />
         </div>
       </div>
     </article>
@@ -216,7 +214,6 @@ function AppJobCard({
         )}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <SaveJobButton jobId={job.id} title={job.titleZh} />
-          <ApplyRowButton jobId={job.id} title={job.titleZh} />
           {action && <div className="relative z-10 ml-1">{action}</div>}
         </div>
       </div>

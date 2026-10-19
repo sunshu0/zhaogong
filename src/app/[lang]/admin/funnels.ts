@@ -28,7 +28,8 @@ export type Breakdown = keyof typeof GROUPS;
 export const FUNNELS: readonly { id: FunnelId; steps: readonly (readonly EventName[])[] }[] = [
   {
     id: "seek",
-    steps: [["home_view", "jobs_list_view"], ["job_view"], ["chat_start", "apply_open"], ["apply_submit"]],
+    // 申请 went (user 10-20 11:0x): chatting is how a job seeker gets in touch.
+    steps: [["home_view", "jobs_list_view"], ["job_view"], ["chat_start"]],
   },
   { id: "external", steps: [["external_list_view"], ["external_view"], ["external_apply_click"]] },
   { id: "post", steps: [["post_view"], ["post_mode"], ["post_preview"], ["post_publish"]] },

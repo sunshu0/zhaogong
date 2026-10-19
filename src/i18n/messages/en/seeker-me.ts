@@ -39,12 +39,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     gone: "Taken down",
     appliedOn: (date) => `Applied ${date}`,
     note: (note) => `Your message: ${note}`,
-    withdraw: "Withdraw application",
-    withdrawWarning: "Once it's withdrawn, the employer won't see this application.",
-    confirmWithdraw: "Yes, withdraw",
-    cancelWithdraw: "Cancel",
     loadFailed: "Network problem: your applications can't be opened right now.",
-    withdrawFailed: "Couldn't withdraw it. Try again later.",
     noteTooLong: (max) => `Keep your message to ${max} characters or fewer`,
     status: {
       hired: "Hired",

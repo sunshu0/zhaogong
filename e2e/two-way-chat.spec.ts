@@ -1,7 +1,7 @@
 // 双方聊天 (#110, ADR 0015): a job seeker and a business, each in their own browser, talk in one conversation that
 // lives on the server. Nothing is scripted: what one sends, the other reads, within the chat page's 10 seconds.
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { freshEmail, signIn } from "./helpers";
+import { applyForTest, freshEmail, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 async function secondBrowser(browser: Browser, testInfo: TestInfo): Promise<Page> {
@@ -70,10 +70,7 @@ test("the business's 发起聊天 on an applicant reaches the job seeker once it
 
   const seeker = await secondBrowser(browser, testInfo);
   await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.two.way.apply")); // 林晓's demo page to apply with
-  await seeker.getByRole("button", { name: "申请", exact: true }).click();
-  const form = seeker.getByRole("dialog", { name: /申请这个职位|我的申请/ }); // renamed once sent
-  await form.getByRole("button", { name: "提交申请" }).click();
-  await form.getByRole("button", { name: "好的" }).click();
+  await applyForTest(seeker, jobId!);
 
   await page.goto(`/employer/jobs/${jobId}/applicants`);
   await page.getByRole("article", { name: "申请人 林晓" }).getByRole("button", { name: "发起聊天" }).click();

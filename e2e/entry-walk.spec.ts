@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { chatEntry, chooseOption, fillSignInCode, freshEmail, siteNav } from "./helpers";
+import { applyForTest, chatEntry, chooseOption, fillSignInCode, freshEmail, siteNav } from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/auckland-time";
 import {
   CLEAN_MESSAGE,
@@ -230,7 +230,8 @@ async function postAndApplyByClicks(page: Page, browser: Browser, testInfo: Test
   await page.getByRole("button", { name: "发布", exact: true }).click();
   await expect(page.getByRole("heading", { name: "已发布" })).toBeVisible();
 
-  // A job seeker, in another browser: home → sign in → home → search → the job → 申请.
+  // A job seeker, in another browser: home → sign in → home → search → the job. 申请 is gone from the job page (user
+  // 10-20 11:0x); the application the business's side walks through is made for the test.
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
   await seeker.goto("/");
   await signInByClicks(seeker, testInfo, freshEmail("demo.walk")); // starts with 林晓's demo page (#125)
@@ -240,11 +241,8 @@ async function postAndApplyByClicks(page: Page, browser: Browser, testInfo: Test
   await hero.getByRole("button", { name: "找工作" }).click();
   await seeker.getByRole("main").getByRole("link", { name: title, exact: true }).click();
   await expect(seeker).toHaveURL(/\/jobs\/j\d+$/);
-  await seeker.getByRole("button", { name: "申请", exact: true }).click();
-  const form = seeker.getByRole("dialog", { name: "申请这个职位" });
-  await form.getByLabel("附言（选填）").fill("入口走查");
-  await form.getByRole("button", { name: "提交申请" }).click();
-  await expect(seeker.getByRole("dialog").getByRole("status")).toHaveText("已申请，等雇主查看");
+  await expect(seeker.getByRole("button", { name: "申请", exact: true })).toHaveCount(0);
+  await applyForTest(seeker, new URL(seeker.url()).pathname.split("/").pop()!, "入口走查");
   return { title, seeker };
 }
 

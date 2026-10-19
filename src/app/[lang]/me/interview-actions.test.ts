@@ -14,7 +14,8 @@ const jar: CookieJar = {
 };
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
-const { applyForJob, myApplicationViews, withdrawMyApplication } = await import("@/app/[lang]/jobs/[id]/apply-actions");
+const { myApplicationViews } = await import("@/app/[lang]/jobs/[id]/apply-actions");
+const { applyForJob, withdrawMyApplication } = await import("@/lib/applications-server");
 const { getMyJobApplicants } = await import("@/app/[lang]/employer/applicant-actions");
 const { cancelMyApplicantInterview, inviteMyApplicant } = await import("@/app/[lang]/employer/interview-actions");
 const { answerMyInterview, myInterviewTodos } = await import("@/app/[lang]/me/interview-actions");

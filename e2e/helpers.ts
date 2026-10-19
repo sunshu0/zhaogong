@@ -15,6 +15,17 @@ export function freshEmail(tag = "e2e.seeker") {
   return `${tag}.${Date.now()}.${Math.floor(Math.random() * 1e6)}@example.com`;
 }
 
+/**
+ * An application for the job from the page's signed-in job seeker, through /api/dev/apply: the job pages have no
+ * 申请 since the user took it off (10-20 11:0x), but 申请人, interviews and 已录用 still read applications. A demo
+ * account applies with 林晓's page (#125).
+ */
+export async function applyForTest(page: Page, jobId: string, note = ""): Promise<void> {
+  const answer = await page.request.post("/api/dev/apply", { data: { jobId, note } });
+  expect(answer.ok()).toBe(true);
+  expect(await answer.json()).toMatchObject({ ok: true });
+}
+
 /** Signs in through /login like a user would: an email, then the code it was sent; ends on `next`. */
 export async function signIn(page: Page, next: string, email = freshEmail()) {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);

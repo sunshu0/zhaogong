@@ -47,18 +47,11 @@ test("a save the browser refuses says so instead of 已保存", async ({ page })
   await expect(page.getByText("已保存到你的账号")).toHaveCount(0);
 });
 
-test("a real account starts with an empty page, and applying asks for a name first (#125)", async ({ browser }) => {
+test("a real account starts with an empty page (#125)", async ({ browser }) => {
   // Its own browser: the beforeEach signed `page` in with a demo account.
   const page = await (await browser.newContext()).newPage();
   await signIn(page, "/profile", freshEmail("real.seeker"));
   await expect(page.getByLabel("称呼", { exact: true })).toHaveValue("");
   await expect(page.getByRole("region", { name: "别人看到的样子" })).not.toContainText("林晓");
-
-  await page.goto("/jobs/j1");
-  await page.getByRole("button", { name: "申请", exact: true }).first().click();
-  const form = page.getByRole("dialog", { name: "申请这个职位" });
-  await expect(form).toContainText("还没有名字，雇主不知道是谁申请的。");
-  await expect(form.getByRole("button", { name: "提交申请" })).toBeDisabled();
-  await expect(form.getByRole("link", { name: "编辑我的主页" })).toHaveAttribute("href", "/profile");
   await page.context().close();
 });

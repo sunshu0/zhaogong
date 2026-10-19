@@ -31,7 +31,7 @@
 
 | 流程 | 步骤（事件） |
 | --- | --- |
-| 求职：找到职位 → 联系雇主 | `home_view` 或 `jobs_list_view` → `job_view` → `chat_start` 或 `apply_open` → `apply_submit` |
+| 求职：找到职位 → 联系雇主 | `home_view` 或 `jobs_list_view` → `job_view` → `chat_start`（2026-10-20 用户定删掉「申请」以后，原来的 `apply_open`、`apply_submit` 停掉了） |
 | 求职：外部职位 | `external_list_view` → `external_view` → `external_apply_click` |
 | 雇主：发布 | `post_view` → `post_mode` → `post_preview` → `post_publish` |
 | 登录 | `signin_view` → `signin_code_sent` → `signin_success` |
@@ -81,8 +81,6 @@
 | `jobs_search` | 筛选表单提交（`FilterForm.tsx`） | 浏览器 | | 用了哪些筛选的名字，逗号分开：`q,region,industry,type,pay,meals,…`（只有名字，没有值和搜索词） | A |
 | `job_view` | `/jobs/[id]` 显示 | 浏览器 | 有 | | A |
 | `chat_start` | 职位页「立即沟通」拿到对话（`StartEmployerChat.tsx`，`openEmployerChat` 返回编号时） | 浏览器 | 有 | `signed_out`（没登录、先去登录）或空 | A |
-| `apply_open` | 职位页打开申请表（`ApplyJob.tsx`） | 浏览器 | 有 | | A |
-| `apply_submit` | `applyForJob` 成功（`jobs/[id]/apply-actions.ts`） | 服务器 | 有 | | A |
 | `external_list_view` | `/internships`、`/professional` 显示 | 浏览器 | | `internship` / `professional` | C |
 | `external_view` | `/external/[id]` 显示 | 浏览器 | 有（外部职位编号） | | C |
 | `external_apply_click` | 外部职位页按「去官网申请」 | 浏览器 | 有 | `demo`（演示职位）或空 | C |

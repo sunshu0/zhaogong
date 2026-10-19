@@ -2,12 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  myApplicationViews,
-  withdrawMyApplication,
-  type MyApplicationView,
-} from "@/app/[lang]/jobs/[id]/apply-actions";
-import { refreshApplied } from "@/components/seeker/applied-client";
+import { myApplicationViews, type MyApplicationView } from "@/app/[lang]/jobs/[id]/apply-actions";
 import { RetryLine } from "@/components/seeker/RetryLine";
 import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import type { InterviewView } from "@/components/seeker/interviews";
@@ -20,12 +15,12 @@ import { cardClass } from "@/components/ui/Card";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
-import { useSwapFocus } from "@/components/ui/use-swap-focus";
 
 /**
  * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
  * 雇主觉得合适), and the employer's interview invitation to answer (#103). In two groups (#105): 进行中, and 已结束 once
- * hired or once the job ended. Nothing while there are none. Withdrawing takes the application off the employer's list.
+ * hired or once the job ended. Nothing while there are none. Read only since the user took 申请 off the job pages
+ * (10-20 11:0x): the records stay to look at, and an interview invitation can still be answered.
  */
 export function MyApplications() {
   const t = useMessages(seekerMeMessages).applications;
@@ -33,7 +28,6 @@ export function MyApplications() {
   const signedIn = Boolean(session);
   const scope = identityScope(session);
   const [list, setList] = useState<MyApplicationView[] | null>(null);
-  const [error, setError] = useState("");
   // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
   // is not hidden behind it.
   const [failedFor, setFailedFor] = useState<string | null>(null);
@@ -62,21 +56,7 @@ export function MyApplications() {
         }}
       />
     );
-  if (error)
-    return (
-      <p role="alert" className="mb-4 text-body text-danger">
-        {error}
-      </p>
-    );
   if (!list?.length) return null;
-
-  async function withdraw(jobId: string) {
-    setError("");
-    const ok = await withdrawMyApplication(jobId).catch(() => false);
-    if (!ok) return setError(t.withdrawFailed);
-    setList((current) => current?.filter((a) => a.jobId !== jobId) ?? null);
-    refreshApplied();
-  }
 
   const groups = [
     { stage: "open", label: t.open, items: list.filter((a) => a.stage === "open") },
@@ -99,7 +79,6 @@ export function MyApplications() {
                 <li key={a.jobId}>
                   <ApplicationCard
                     application={a}
-                    onWithdraw={() => void withdraw(a.jobId)}
                     onInterview={(interview) =>
                       setList((current) => current?.map((x) => (x.jobId === a.jobId ? { ...x, interview } : x)) ?? null)
                     }
@@ -115,22 +94,18 @@ export function MyApplications() {
 }
 
 /**
- * One application. While it is 进行中 it can be withdrawn and an interview answered; once 已结束 (#105) it stays as a
- * record: the status says 已录用 or 职位已结束.
+ * One application. While it is 进行中 an interview can be answered; once 已结束 (#105) it stays as a record: the
+ * status says 已录用 or 职位已结束.
  */
 function ApplicationCard({
   application: a,
-  onWithdraw,
   onInterview,
 }: {
   application: MyApplicationView;
-  onWithdraw: () => void;
   onInterview: (interview: InterviewView) => void;
 }) {
   const lang = useLang();
   const t = useMessages(seekerMeMessages).applications;
-  const [confirming, setConfirming] = useState(false);
-  const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
   const open = a.stage === "open";
   return (
     <article aria-label={a.titleZh} className={cardClass()}>
@@ -171,37 +146,6 @@ function ApplicationCard({
             {t.note("")}
             <span lang={contentLang(a.note)}>{a.note}</span>
           </span>
-        )}
-        {open && !confirming && (
-          <div ref={opener} className="ml-auto">
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className="pressable inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
-            >
-              {t.withdraw}
-            </button>
-          </div>
-        )}
-        {open && confirming && (
-          // #325: the employer stops seeing the application, so it asks first; the focus moves in and back.
-          <div ref={form} role="group" aria-label={t.withdraw} className="ml-auto flex flex-wrap items-center gap-x-3">
-            <span className="text-meta text-muted">{t.withdrawWarning}</span>
-            <button
-              type="button"
-              onClick={onWithdraw}
-              className="pressable inline-flex min-h-11 items-center text-meta font-medium text-danger"
-            >
-              {t.confirmWithdraw}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="pressable inline-flex min-h-11 items-center text-meta text-muted"
-            >
-              {t.cancelWithdraw}
-            </button>
-          </div>
         )}
       </div>
       {open && a.interview && (

@@ -94,7 +94,7 @@ export const adminStatsEn: Messages<(typeof adminStatsMessages)["zh"]> = {
       signin: "Sign-in",
     },
     steps: {
-      seek: ["Home or job list", "Opened a job", "Started a chat or opened the application", "Applied"],
+      seek: ["Home or job list", "Opened a job", "Started a chat"],
       external: ["Internship or professional list", "External job page", "Apply on the company's site"],
       post: ["Opened the posting page", "Chose a way to post", "Reached the check", "Published"],
       signin: ["Opened sign-in", "Code sent", "Signed in"],
