@@ -73,15 +73,34 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 ## Server Functions
 
-| 文件 | 函数 |
+| 文件 | 管什么 |
 | --- | --- |
-| `src/app/[lang]/login/actions.ts` | `requestSignInCode`、`signInAccount`、`accountStatus`、`switchIdentity`、`openEmployerForAccount`、`signOutAccount` |
-| `src/app/[lang]/jobs/[id]/actions.ts` | `revealContact`、`reportJob`、`jobSummary` |
-| `src/app/[lang]/messages/actions.ts` | `myChat`、`changeMyChat`、`importMyChat`、`myNotificationReads`、`markMyNotificationsRead` |
-| `src/app/[lang]/employer/actions.ts` | `getMyJobs`、`getMyJob`、`getContactViewCounts`、`parseDraft`、`chatTurn`、`publishJob`、`editMyJob`、`closeMyJob`、`confirmHires`、`refreshMyJob`、`getMyEmployer`、`lookupBusiness`、`verifyBusiness` |
-| `src/app/[lang]/admin/actions.ts` | `getModerationQueue`、`approveJob`、`takeDownJob`、`dismissReports`、`banJobEmployer`、`getModerators`、`addModerator`、`removeModerator` |
+| `src/app/[lang]/account/actions.ts` | 数据与账号 |
+| `src/app/[lang]/admin/actions.ts` | 审核后台 |
+| `src/app/[lang]/admin/entry-actions.ts` | 审核后台的入口：账号能不能打开 /admin（#73） |
+| `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
+| `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
+| `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |
+| `src/app/[lang]/employer/actions.ts` | 雇主 |
+| `src/app/[lang]/employer/applicant-actions.ts` | 申请职位 |
+| `src/app/[lang]/employer/count-view.ts` | 职位浏览计数 |
+| `src/app/[lang]/employer/interview-actions.ts` | 约面试 |
+| `src/app/[lang]/employer/page-actions.ts` | 企业主页 |
+| `src/app/[lang]/employer/team-actions.ts` | 团队 |
+| `src/app/[lang]/jobs/[id]/actions.ts` | 职位（求职者） |
+| `src/app/[lang]/jobs/[id]/apply-actions.ts` | 申请职位 |
+| `src/app/[lang]/jobs/pay-reference-actions.ts` | 时薪参考 |
+| `src/app/[lang]/login/actions.ts` | 登录与身份 |
+| `src/app/[lang]/me/alerts/actions.ts` | 职位提醒 |
+| `src/app/[lang]/me/interview-actions.ts` | 约面试 |
+| `src/app/[lang]/me/saved/actions.ts` | 收藏和进度 |
+| `src/app/[lang]/messages/actions.ts` | 聊天、交换和通知 |
+| `src/app/[lang]/profile/actions.ts` | 我的主页 |
+| `src/app/[lang]/profile/candidate-actions.ts` | 推荐人才：雇主看到的求职者主页 |
+| `src/app/[lang]/profile/resume/actions.ts` | 中英文简历的分享链接 |
+| `src/i18n/actions.ts` | 界面语言 |
 
-请求、响应和错误的详细说明在 `docs/api.md`。另有一个只在开发环境存在的路由 `POST /api/dev/chat-reply`，让演示对话的对方已读或回复，浏览器测试用。
+每个文件导出哪些函数、参数、返回和错误，都在 `docs/api.md` 里写到这个文件的那一节（#306：这里只列文件，加函数时只改 api.md）。另有一个只在开发环境存在的路由 `POST /api/dev/chat-reply`，让演示对话的对方已读或回复，浏览器测试用。
 
 ## 发布职位的路径
 
