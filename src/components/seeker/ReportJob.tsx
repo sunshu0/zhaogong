@@ -8,6 +8,7 @@ import { rememberReport, useSentReports } from "@/components/seeker/activity-cli
 import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/report";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
+import { ReportEvidence } from "@/components/seeker/ReportEvidence";
 import type { DemoSession } from "@/components/seeker/session";
 import { Button } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
@@ -16,7 +17,7 @@ import { inputClass } from "@/components/ui/input-class";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 
-/** "举报这个职位" → reasons + optional note → thank-you. */
+/** "举报这个职位" → reasons + optional note (+ chat messages when signed in, ADR 0027) → thank-you. */
 export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string }) {
   const owner = useSession();
   // The session is read after hydration; until then the button waits, so an early tap is not lost when the
@@ -42,6 +43,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   const [error, setError] = useState<string | null>(null);
   // #303: the note's length against NOTE_MAX, as the application's note shows it; the box stops at the limit.
   const [noteLength, setNoteLength] = useState(0);
+  const [picked, setPicked] = useState<number[]>([]);
   const [pending, startTransition] = useTransition();
   const lang = useLang();
   const t = useMessages(seekerJobsMessages).report;
@@ -61,7 +63,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     if (!parsed.ok) return setError(parsed.error);
     setError(null);
     startTransition(async () => {
-      const result = await reportJob(jobId, parsed.reason, parsed.note).catch(() => null);
+      const result = await reportJob(jobId, parsed.reason, parsed.note, picked).catch(() => null);
       if (!result) return setError(t.networkError);
       if (!result.ok) return setError(result.error);
       rememberReport(
@@ -124,6 +126,8 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
       <p className="mt-1 text-right text-meta text-muted">
         {noteLength} / {NOTE_MAX}
       </p>
+
+      {owner && <ReportEvidence jobId={jobId} account={owner.email} picked={picked} onChange={setPicked} />}
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">

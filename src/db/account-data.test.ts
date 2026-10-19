@@ -348,6 +348,7 @@ describe("deleteAccount (#54)", () => {
       "external_job_alert_hits.email",
       "moderation_log.moderator_email",
       "personal_info_views.moderator_email",
+      "report_evidence.reporter_email",
       "moderators.email",
       "conversations.seeker_email",
       "verification_requests.submitted_by_email",

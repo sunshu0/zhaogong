@@ -171,6 +171,20 @@ const seekerJobsZh = {
     noteTooLong: (max: number) => `补充说明最多 ${max} 字`,
     otherNeedsNote: "选择“其他”时，请简单写一下原因",
     jobGone: "找不到这个职位，可能已经下架",
+    // ADR 0027: chat messages attached to the report (ReportEvidence.tsx).
+    evidence: {
+      legend: "附上聊天记录（选填）",
+      hint: (max: number, days: number) =>
+        `从你和这家雇主的聊天里选，最多 ${max} 条。只有审核员能看到，举报处理完 ${days} 天后删除。`,
+      loading: "正在读取聊天记录…",
+      notLoaded: "聊天记录没取到",
+      me: "我",
+      employer: "雇主",
+      about: "职位：",
+      count: (n: number, max: number) => `已选 ${n} / ${max} 条`,
+      signedOut: "登录已经失效，请重新登录后再附上聊天记录",
+      notYours: "选中的聊天记录有变化，请重新选择",
+    },
   },
   // ApplyJob.tsx
   apply: {

@@ -47,6 +47,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `ai_usage` | AI 发帖每次调用的用量，用来限额和算审核数据 | ADR 0018 |
 | `external_jobs`、`external_company_blocks` | 外部职位（只存事实）和公司的停用、删除请求，见下面「外部职位」 | ADR 0014 |
 | `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
+| `report_evidence` | 职位举报附的证据：选中的聊天消息（举报时的快照）和截图，只给审核员看，处理完 180 天后删 | ADR 0027 |
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
 

@@ -9,6 +9,8 @@ import { parseReport } from "@/components/seeker/report";
 import { pick } from "@/i18n/messages";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { requestLang } from "@/i18n/server";
+import { findOwnMessages, listPickableMessages, purgeExpiredEvidence } from "@/db/report-evidence";
+import { parseEvidenceIds, type PickableMessage } from "@/lib/report-evidence";
 
 /** The job page fetches contact details on every visit, so one person counts once per job in this window. */
 const RECORD_AGAIN_AFTER_MS = 30 * 60 * 1000;
@@ -36,15 +38,49 @@ export async function revealContact(jobId: string): Promise<Job["contact"] | nul
 
 export type ReportResult = { ok: true; reportId: string } | { ok: false; error: string };
 
-/** Sends a report on a job seekers can see. Anyone can report; signing in is not needed. */
-export async function reportJob(jobId: string, reason: string, note?: string): Promise<ReportResult> {
+/**
+ * Sends a report on a job seekers can see. Anyone can report; signing in is not needed, except to attach chat
+ * messages (ADR 0027): `messageIds` must be messages of this browser's account's own chats with the job's business,
+ * at most EVIDENCE_MESSAGES_MAX; they are copied into the report as they are now.
+ */
+export async function reportJob(
+  jobId: string,
+  reason: string,
+  note?: string,
+  messageIds?: number[],
+): Promise<ReportResult> {
   const lang = await requestLang();
+  const t = pick(seekerJobsMessages, lang).report;
   const parsed = parseReport({ reason, note }, lang);
   if (!parsed.ok) return parsed;
+  const ids = parseEvidenceIds(messageIds);
+  if (!ids) return { ok: false, error: t.evidence.notYours };
   const job = typeof jobId === "string" ? await getJob(jobId) : undefined;
-  if (!job || !isPublic(job)) return { ok: false, error: pick(seekerJobsMessages, lang).report.jobGone };
-  const report = await submitReport(job.id, parsed.reason, parsed.note);
+  if (!job || !isPublic(job)) return { ok: false, error: t.jobGone };
+  let evidence: Parameters<typeof submitReport>[3];
+  if (ids.length) {
+    const session = await getCurrentSession();
+    if (!session) return { ok: false, error: t.evidence.signedOut };
+    const messages = await findOwnMessages(session.email, job.employerId, ids);
+    if (messages.length !== ids.length) return { ok: false, error: t.evidence.notYours };
+    evidence = { reporterEmail: session.email, messages };
+  }
+  const report = await submitReport(job.id, parsed.reason, parsed.note, evidence);
+  // The report is in; clearing old evidence failing is for the next report of the day to try.
+  await purgeExpiredEvidence().catch(() => 0);
   return { ok: true, reportId: report.id };
+}
+
+/**
+ * The messages the report form lists to attach (ADR 0027): this browser's account's chats with the job's business,
+ * the newest PICKABLE_MESSAGES_MAX, oldest first. Null when signed out.
+ */
+export async function reportableMessages(jobId: string): Promise<PickableMessage[] | null> {
+  const session = await getCurrentSession();
+  if (!session) return null;
+  const job = typeof jobId === "string" ? await getJob(jobId) : undefined;
+  if (!job || !isPublic(job)) return [];
+  return listPickableMessages(session.email, job.employerId);
 }
 
 export type JobSummary = { id: string; title: string; pay: string; open: boolean };

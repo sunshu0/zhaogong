@@ -162,6 +162,19 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     noteTooLong: (max) => `Keep the details to ${max} characters or fewer`,
     otherNeedsNote: "If you choose Other, say briefly what's wrong",
     jobGone: "We can't find this job. It may have been taken down",
+    evidence: {
+      legend: "Attach chat messages (optional)",
+      hint: (max, days) =>
+        `Choose up to ${max} from your chats with this employer. Only moderators see them, and they're deleted ${days} days after the report is dealt with.`,
+      loading: "Getting your chat messages…",
+      notLoaded: "Couldn't get your chat messages",
+      me: "Me",
+      employer: "Employer",
+      about: "Job: ",
+      count: (n, max) => `${n} of ${max} chosen`,
+      signedOut: "You're no longer signed in. Sign in again to attach chat messages",
+      notYours: "The messages you chose have changed. Choose them again",
+    },
   },
   apply: {
     apply: "Apply",

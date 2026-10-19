@@ -775,3 +775,37 @@ export const personalInfoViews = sqliteTable(
     index("personal_info_views_moderator_day_idx").on(table.moderator, table.day),
   ],
 );
+
+/**
+ * What a job report carries as evidence (ADR 0027): messages of the reporter's own chats with the job's business,
+ * copied as they were when reported (`kind` "message"), and screenshots (`kind` "image", the second PR). Only
+ * moderators see it; it goes EVIDENCE_KEEP_DAYS after the report is handled, and with the reporter's account.
+ */
+export const reportEvidence = sqliteTable(
+  "report_evidence",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    reportId: text("report_id")
+      .notNull()
+      .references(() => reports.id),
+    /** Who sent it: for deleting and exporting with their account. Moderators are not shown it. */
+    reporterEmail: text("reporter_email").notNull(),
+    kind: text("kind").$type<"message" | "image">().notNull(),
+    /** The message's row in `messages` when it was reported; no reference, as the conversation may go first. */
+    messageId: integer("message_id"),
+    messageFrom: text("message_from").$type<AccountRole>(),
+    /** Who in the business's team sent it (ADR 0012); null for the job seeker's. */
+    messageByName: text("message_by_name"),
+    messageText: text("message_text"),
+    messageSentAt: text("message_sent_at"),
+    /** The screenshot's key in the evidence store, its format and size. */
+    imageKey: text("image_key"),
+    imageType: text("image_type"),
+    imageBytes: integer("image_bytes"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("report_evidence_report_idx").on(table.reportId),
+    index("report_evidence_reporter_idx").on(table.reporterEmail),
+  ],
+);

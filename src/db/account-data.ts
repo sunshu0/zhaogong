@@ -14,6 +14,7 @@ import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { SharedConversation } from "@/lib/chat-server/shared-view";
 import type { EmployerPage } from "@/components/employer/employer-page";
 import { listJobContactsBy, listJobsPostedBy } from "@/db/job-posters";
+import { listEvidenceOf } from "@/db/report-evidence";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -31,6 +32,8 @@ export interface ServerAccountData {
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
   /** Whose personal information /admin showed this account as a moderator (#336): when, which kind, which record. */
   personalInfoViews: { at: string; kind: string; subjectId: string }[];
+  /** The evidence this account attached to job reports (ADR 0027): chat messages as reported, screenshots by format. */
+  reportEvidence: Awaited<ReturnType<typeof listEvidenceOf>>;
   /**
    * The business of the employer identity, every job it posted whatever their status, and their renewals (#69); its
    * 企业主页 (ADR 0022), and whether this account saved it last.
@@ -245,6 +248,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       employerId: a.employerId,
     })),
     personalInfoViews: shown,
+    reportEvidence: await listEvidenceOf(address),
     employer: business
       ? {
           business: toEmployer(business),
@@ -385,6 +389,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       .set({ decidedByEmail: DELETED_ACCOUNT })
       .where(eq(t.verificationRequests.decidedByEmail, address));
 
+    // The evidence this account attached to job reports goes; the reports stay, with nothing of the person (ADR 0027).
+    await tx.delete(t.reportEvidence).where(eq(t.reportEvidence.reporterEmail, address));
     await tx.delete(t.sessions).where(eq(t.sessions.email, address));
     await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
     await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
