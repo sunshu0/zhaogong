@@ -1,7 +1,7 @@
 // The database as data.ts uses it: migrated once per server instance (and per test file), and loaded
 // with the demo data when it is empty and DEMO_DATA asks for it. Doing this on first use, rather than in
 // a start-up hook, also covers file::memory:, where every module instance has its own database.
-import { getDb, resetDbForTests, type Db } from "@/db/client";
+import { databaseUrl, getDb, resetDbForTests, type Db } from "@/db/client";
 import { migrateDb } from "@/db/migrate";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 
@@ -36,13 +36,25 @@ function importRealExternalJobs(): void {
     );
 }
 
+/**
+ * Whether the server migrates the database on first use (#329): a local file or a memory database, yes. A remote one
+ * (Turso, libsql:// or https://) is migrated from the command line before a deploy (`npm run db:migrate` with its
+ * DATABASE_URL and DATABASE_AUTH_TOKEN, docs/cloudflare-deployment.md): the migrator reads drizzle/ from disk, and a
+ * Cloudflare Worker has no such folder, so migrating there would fail every page that reads the database.
+ */
+export function migratesOnFirstUse(url = databaseUrl()): boolean {
+  return url.startsWith("file:");
+}
+
 async function prepare(): Promise<Db> {
-  try {
-    await migrateDb();
-  } catch {
-    // Two server instances can start migrating one file at the same moment; the second run finds
-    // the migrations applied by the first and has nothing left to do.
-    await migrateDb();
+  if (migratesOnFirstUse()) {
+    try {
+      await migrateDb();
+    } catch {
+      // Two server instances can start migrating one file at the same moment; the second run finds
+      // the migrations applied by the first and has nothing left to do.
+      await migrateDb();
+    }
   }
   if (demoDataWanted() && (await isDatabaseEmpty())) {
     let loaded = false;
