@@ -54,6 +54,8 @@ const employerVerifyZh = {
     search: "查询",
     demoRegisterNote: "演示版查的是一份示例登记；正式版会连新西兰企业登记（NZBN）。",
     /** Before the register's trading names, which are marked as the business's own words. */
+    // #262: said above the results, and to screen readers, once 查询 found some.
+    foundCount: (n: number) => `找到 ${n} 家公司，选一家你的。`,
     resultLine: (nzbn: string) => `NZBN ${nzbn} · 商号：`,
     namesJoiner: "、",
     statusRegistered: "登记状态：正常",

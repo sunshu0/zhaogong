@@ -208,6 +208,8 @@ function ApplyForm({
   const [query, setQuery] = useState(again?.nzbn ?? "");
   const [found, setFound] = useState<{ results: RegisterEntry[]; error_zh?: string }>();
   const [chosen, setChosen] = useState<RegisterEntry>();
+  // #262: how many answers 查询 has had; the reason line is drawn afresh for each, so the same reason is said again.
+  const [answers, setAnswers] = useState(0);
   const [kind, setKind] = useState<VerifyKind>(again && kinds.includes(again.kind) ? again.kind : kinds[0]);
   const [contactName, setContactName] = useState(again?.contactName ?? "");
   const [contactRole, setContactRole] = useState(again?.contactRole ?? "");
@@ -216,14 +218,17 @@ function ApplyForm({
   const [pending, startTransition] = useTransition();
   const detailsHeading = useFocusOnChange<HTMLHeadingElement>(chosen?.nzbn);
   const noAnswer = useMessages(uiMessages).load.noAnswer;
+  const listed = !!found && found.results.length > 0 && !chosen;
 
   function search(e: FormEvent) {
     e.preventDefault();
     setChosen(undefined);
     // #247: with no answer the form says so where results would be, and keeps the search.
-    startTransition(async () =>
-      setFound(await lookupBusiness(query).catch(() => ({ results: [], error_zh: noAnswer }))),
-    );
+    startTransition(async () => {
+      const answer = await lookupBusiness(query).catch(() => ({ results: [], error_zh: noAnswer }));
+      setAnswers((n) => n + 1);
+      setFound(answer);
+    });
   }
 
   function submit(e: FormEvent) {
@@ -264,11 +269,18 @@ function ApplyForm({
 
       {/* #248: why 查询 found nothing (or got no answer) is said; the focus stays on the search. */}
       {found?.error_zh && (
-        <p role="alert" className="text-body text-warn">
+        <p key={answers} role="alert" className="text-body text-warn">
           {found.error_zh}
         </p>
       )}
-      {found && found.results.length > 0 && !chosen && (
+      {/* #262: how many it found, in a status there all through the search step (empty and out of the flow until
+          then); gone once a company is chosen, where the submit's own status takes over. */}
+      {!chosen && (
+        <p role="status" className={listed ? "text-body" : "sr-only"}>
+          {listed ? t.foundCount(found?.results.length ?? 0) : ""}
+        </p>
+      )}
+      {listed && found && (
         <ul className="space-y-2">
           {found.results.map((entry) => (
             <li key={entry.nzbn} className="rounded-card bg-surface p-4 shadow-card">

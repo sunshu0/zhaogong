@@ -48,6 +48,7 @@ export const employerVerifyEn: Messages<(typeof employerVerifyMessages)["zh"]> =
     search: "Search",
     demoRegisterNote:
       "The demo searches a sample register. The real site connects to the New Zealand Business Number (NZBN) register.",
+    foundCount: (n) => (n === 1 ? "Found 1 business. Choose yours." : `Found ${n} businesses. Choose yours.`),
     resultLine: (nzbn) => `NZBN ${nzbn} · Trading names: `,
     namesJoiner: ", ",
     statusRegistered: "Register status: registered",

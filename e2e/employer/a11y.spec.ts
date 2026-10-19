@@ -120,6 +120,8 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   await page.getByRole("button", { name: "查询" }).click();
   // The signed-in shop's own NZBN is also in the header, so wait for the result line itself.
   await expect(page.getByText("NZBN 9429000000001 · 商号：川味小馆").filter({ visible: true })).toBeVisible();
+  // #262: how many it found is said, above the results.
+  await expect(page.getByRole("status").filter({ hasText: /^找到 \d+ 家公司，选一家你的。$/ })).toBeVisible();
   await expectNoViolations(page, "/employer/verify with results");
   await page.getByRole("button", { name: "这是我的公司", disabled: false }).first().click();
   await expectNoZoomOnFocus(page, "main", "/employer/verify with the form open");
