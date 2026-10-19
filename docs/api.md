@@ -336,7 +336,7 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getVerificationQueue()` | | 待审的申请，从早到晚：`{ request, employer, register, checklist }`。`register` 是这个 NZBN 在企业登记里的条目，`checklist` 是这份申请要核对的项目（申请认证雇主时多一项），每项带「去查」的链接。不含任何邮箱 | `{ refused, error_zh }` |
+| `getVerificationQueue()` | | 待审的申请，从早到晚：`{ request, employer, register, checklist }`。`register` 是这个 NZBN 在企业登记里的条目，`checklist` 是这份申请要核对的项目（申请认证雇主时多一项），每项带「去查」的链接。不含任何邮箱。返回之前给每份申请记一条查看记录（`recordViews`，类别 `verification`，见下面「查看记录」） | `{ refused, error_zh }` |
 | `approveVerification(id, checklist)` | `checklist`：`{ [项目]: { done, note? } }` | `{ ok: true, text }`：企业得到申请的标识（认证雇主保持原级别），登记名和 NZBN 写进企业资料；核对结果存进申请；记日志 `verify_approve` | 「还有核对项没打勾：…。」「这份申请已经处理过，或者不存在。」「这家店已被封禁，不能通过验证。」 |
 | `rejectVerification(id, reason, note, checklist)` | `reason`：`register_mismatch`、`phone_unreachable`、`impersonation`、`other`；`note`：说明，雇主会看到 | `{ ok: true, text }`：申请记为驳回，企业的标识不变；记日志 `verify_reject`（`note` 是理由和说明） | 「请选择驳回理由。」「请写明驳回的说明，雇主会看到。」「这份申请已经处理过，或者不存在。」 |
 
@@ -346,7 +346,15 @@
 | --- | --- | --- | --- |
 | `getModerationStats()` | | `{ at, pendingJobs, openReports, oldestPendingJobAt?, oldestOpenReportAt?, pendingVerifications, oldestPendingVerificationAt?, weeks, untimed }`（`pendingVerifications`：待审的企业验证，#78）。`at` 是服务器算的时间；`weeks` 是最近 8 周，本周在前，每周 `{ week（周一，YYYY-MM-DD，新西兰时间）, reported, handled, medianHandleMs（没有时为 null）, takenDown（含封禁一起下架的）, banned }`；`byModerator` 是同样 8 周里每位审核员的 `{ moderator?, approve, takeDown, dismiss, ban, verify, total }`（`verify`：通过或驳回的企业验证，#78），多的在前，#60 之前没记操作人的记录（`moderator` 为空）排最后；`untimed` 是迁移 0008 之前就处理完、没有处理时间的举报数；`aiPosting` 是 AI 发帖用量（#102）：`{ days, total }`，`days` 是最近 7 个新西兰日，今天在前，每天 `{ day, calls, tokens, failed, limited }`（`calls` 是调用模型的次数，含失败的；`tokens` 是输入、输出和缓存合计；`failed` 是出错、被拒或读不出答案的；`limited` 是被限额挡下、没有调用的），`total` 是 7 天合计（`day: "total"`），不含是谁调用的 | `{ refused, error_zh }` |
 
+| `getFunnels(days)` | `days`：7 或 30，别的值按 7 | `FunnelReport`（`src/app/[lang]/admin/funnels.ts`，#316，ADR 0025 第 2、5 节）：`{ days, funnels, singles }`。`funnels` 是四条漏斗 `seek`、`external`、`post`、`signin`，每一步 `{ names, counts, rates }`：`names` 是算作这一步的事件；`counts` 按 `all`、`zh`、`en`、`out`、`seeker`、`employer` 分组，是走到这一步的「访客 + 新西兰日」数，1–4 写成 `"few"`（页面显示「少于 5」）；`rates` 是占第一步的整数百分比，第一步或任一方少于 5 时为 `null`。`singles` 是单独数的 `jobs_search`、`applicants_view`。只有计数离开服务器，不带访客 | `{ refused, error_zh }` |
+
 举报关闭（下架、驳回、封禁）时 `updateReport` 写入 `handledAt`，重新打开时清空。
+
+审核后台的「查看记录」（#336，ADR 0026）在 `src/app/[lang]/admin/views-actions.ts`，同样先 `requireModerator()`。审核后台把谁的个人信息交给审核员之前，先用 `recordViews(moderator, kind, ids)`（`src/db/personal-info-views.ts`）记一条：审核员、时间、类别（`verification` / `contact` / `profile` / `chat`，`src/lib/personal-info-views.ts`）、记录的编号，不记内容；同一位审核员 30 分钟内再看同一条只记一次。存在 `personal_info_views`（迁移 0027），留一年（`KEEP_DAYS`），每天第一条写入时删掉更早的。现在只有企业验证队列会交出个人信息；以后哪个函数要交出聊天、求职者资料或职位联系方式，也要先记。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `getPersonalInfoViews(moderator, days)` | `moderator`：审核员邮箱，空或不在记录里就是全部；`days`：7、30 或 365，别的值按 7 | `{ days, moderator, views, more, moderators }`：`views` 新的在前，每条 `{ at, moderator, kind, subjectId }`，最多 200 条，`more` 表示还有更多；`moderators` 是有记录的审核员，给筛选用。读这份清单本身不记 | `{ refused, error_zh }` |
 
 审核后台的入口（#73）在 `src/app/[lang]/admin/entry-actions.ts`：
 
@@ -361,6 +369,8 @@
 | `/` | 介绍页 | — |
 | `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里：`region`、`industry`、`role`（岗位类别编号，见 `docs/job-roles.md`，#96）、`type`、`minPay`、`visa`、`meals`、`housing`、`q`；职位提醒存的就是这串参数）、职位详情 | — |
 | `/employers/[id]` | 企业公开主页 | — |
+| `/internships`、`/professional`、`/external/[id]` | 实习、专业职位两个分区和外部职位详情（见上面那一节，#113）；详情页不收录 | — |
+| `/about`、`/privacy`、`/terms` | 关于找工（#324）、隐私说明和使用条款（#323）；三页都从页脚进 | — |
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
 | `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |
 | `/me/alerts` | 职位提醒：查看、改名、暂停、删除（#53） | 登录，求职者身份 |
@@ -379,7 +389,7 @@
 | `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
 | `GET /api/report-evidence/[id]` | 职位举报附的一张截图（ADR 0027）：图片本身，`nosniff`、`sandbox`、不缓存；每次交出先记进查看记录（ADR 0026）。不是审核员、编号不是截图都回 404 | `ADMIN_ENABLED=1`，审核员 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
-| `/sitemap.xml` | 首页、职位列表、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；每次请求时生成 | — |
+| `/sitemap.xml` | 首页、职位列表、实习和专业职位两个分区（#264）、关于 / 隐私 / 条款三页、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；外部职位详情不列；每次请求时生成（`sitemapEntries`，`src/lib/site.ts`） | — |
 | `/robots.txt` | 允许收录，但不收录 `/admin`、`/account`、`/workspace`、`/profile`、`/me`、`/messages`、`/notifications`、`/login`、`/employer/`、`/candidates/`、`/resume/`、`/api/`；指向 sitemap | — |
 
 职位详情页 `/jobs/[id]` 在职位在招时带一段 schema.org `JobPosting` 结构化数据（`<script type="application/ld+json">`）：职位名、描述、发布和截止时间、雇主和企业主页链接、地点、时薪、用工形式，**不含联系方式**（`src/lib/job-posting.ts`）。sitemap、robots 和结构化数据里的绝对地址用环境变量 `SITE_URL`，没设置时用请求的域名。

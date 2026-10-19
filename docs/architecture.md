@@ -1,6 +1,6 @@
 # 架构
 
-> 描述 2026-10-19 的代码（Round 20 中英切换、#240 之后）。决定记录在 `docs/adr/`，页面和组件的阅读入口在 `docs/frontend-code-map.md`，Server Function 的完整列表在 `docs/api.md`。
+> 描述 2026-10-20 的代码（点击统计 #312–#321、关于 / 隐私 / 条款 #323–#324、Logo #328、查看记录 #336 之后）。决定记录在 `docs/adr/`，页面和组件的阅读入口在 `docs/frontend-code-map.md`，Server Function 的完整列表在 `docs/api.md`。
 
 ## 一句话
 
@@ -14,8 +14,9 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/components/seeker/` | 求职端页面组件，以及两种身份共用的聊天、通知、主页 | 历史原因放在 seeker 下，阶段二按功能整理 |
 | `src/components/employer/` | 雇主发帖、职位管理、推荐人才、企业验证 | |
 | `src/components/account/` | 「我的」、待办、资料完成度、候选人条件这类跨身份的逻辑 | 纯函数都有单测 |
-| `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Pay`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav` | 视觉规则见 `docs/design-system.md`，设计稿在 `docs/design/` |
-| `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts`；登录和会话 `auth/`；服务器上的聊天存储 `chat-server/`；外部职位 `external-jobs/`（见「外部职位」） | 不依赖 React；`auth/`、`chat-server/` 只在服务器用 |
+| `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Pay`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav`、顶栏的标志 `BrandMark`（#328）、读取失败 `LoadFailed`（ADR 0024）、页面加载时记一条事件的 `TrackView`（#314） | 视觉规则见 `docs/design-system.md`，设计稿在 `docs/design/`（Logo 的设计源在 `docs/design/logo-a/`） |
+| `src/components/analytics/`、`src/components/legal/`、`src/components/external/` | Clarity 的加载和同意提示（ADR 0025）；隐私说明和使用条款共用的页面骨架 `LegalPage`；外部职位的「去官网申请」 | |
+| `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts`；登录和会话 `auth/`；服务器上的聊天存储 `chat-server/`；外部职位 `external-jobs/`（见「外部职位」）；点击统计的事件 `events/` 和 Clarity 的规则 `analytics/`（ADR 0025）；审核员查看个人信息的类别 `personal-info-views.ts`（ADR 0026） | 不依赖 React；`auth/`、`chat-server/` 只在服务器用 |
 | `src/db/` | 数据库：表结构 `schema.ts`、连接和第一次使用时的迁移与演示数据 `ready.ts`、同一进程内排队 `one-at-a-time.ts`、登录用的 `auth-store.ts`、聊天用的 `chat-store.ts` | 迁移文件在 `drizzle/` |
 | `src/config/` | 国家配置（地区、最低工资） | |
 | `src/i18n/` | 中英切换（ADR 0023）：语言和 cookie、字典机制、日期和金额格式、两种语言的名称表 `labels.ts`。字典的中文在 `messages/<模块>.ts`，英文在 `messages/en/<模块>.ts`，浏览器只在英文页面加载英文（#240） | 阅读入口见 `docs/frontend-code-map.md` 的「中英切换」 |
@@ -26,7 +27,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 两层：服务器上的数据库是准的，浏览器只做缓存和还没上服务器的部分。
 
-**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上用哪种数据库待用户决定（#15，ADR 0006）。
+**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位 `jobs`、企业 `employers`、账号 `accounts`（含和企业的绑定）、举报 `reports`、审核日志 `moderation_log`、联系方式查看记录 `contact_views`（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上用哪种数据库待用户决定（#15，ADR 0006）。
 
 后来加的表（都在 `src/db/schema.ts`，读写在 `src/db/` 下对应的模块里，如 `team.ts`、`job-applications.ts`、`external-jobs.ts`）：
 
@@ -49,6 +50,8 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `external_jobs`、`external_company_blocks` | 外部职位（只存事实）和公司的停用、删除请求，见下面「外部职位」 | ADR 0014 |
 | `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
 | `report_evidence` | 职位举报附的证据：选中的聊天消息（举报时的快照）和截图，只给审核员看，处理完 180 天后删 | ADR 0027 |
+| `events` | 点击统计的匿名事件（访客是按天变的 HMAC，不存 IP 和 UA），留 180 天；审核数据的漏斗从这里算（`src/db/events.ts`） | ADR 0025 |
+| `personal_info_views` | 审核员看过谁的个人信息：审核员、时间、类别、记录编号，不记内容，留一年（`src/db/personal-info-views.ts`） | ADR 0026 |
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
 
@@ -83,6 +86,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
 | `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |
+| `src/app/[lang]/admin/views-actions.ts` | 审核后台的查看记录（#336，ADR 0026） |
 | `src/app/[lang]/employer/actions.ts` | 雇主 |
 | `src/app/[lang]/employer/applicant-actions.ts` | 候选人：聊过这个职位的人和以前的申请（ADR 0030） |
 | `src/app/[lang]/employer/count-view.ts` | 职位浏览计数 |

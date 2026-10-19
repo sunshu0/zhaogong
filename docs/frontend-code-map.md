@@ -57,6 +57,7 @@
 | 标签 | `Tag.tsx`、`tag-kind.ts` | `Tag`，浅底的 `SoftTag` |
 | 输入框 | `input-class.ts` | `inputClass()`、`fieldBorder()` |
 | 顶栏和底部导航 | `StickyHeader.tsx`、`HeaderNav.tsx`、`BottomNav.tsx` | 吸顶、半透明；当前项图标变实心 |
+| 标志 | `BrandMark.tsx` | 顶栏「找工」前面的告示卡图形（#328），内联 SVG、`aria-hidden`；图标 PNG 从 `docs/design/logo-a/*.svg` 截出 |
 
 求职者这边（`src/components/seeker/`）：职位卡 `JobCard.tsx`（`look="app"` 是 Round 19 的卡，`action` 放卡片底部那一行的额外按钮，要点、状态、标签在 `job-card-parts.ts`）；「我的」几页的框架 `WorkHub.tsx` 的 `WorkHubFrame look="app"`；找不到和出错的卡 `StatusCard.tsx`（`src/app/[lang]/not-found.tsx`、`error.tsx`、`global-error.tsx` 用它）。雇主后台补充的样式在 `src/components/employer/app-style.ts`。
 
@@ -94,7 +95,8 @@
 | 发布时被标记、被举报、处理记录 | `ModerationQueue.tsx`（也负责标签页本身） | `admin/actions.ts`；分组和处理记录的说法在 `moderation.ts` |
 | 企业验证 | `VerificationQueue.tsx` | `verification-actions.ts`（ADR 0011） |
 | 外部职位 | `ExternalReview.tsx` | `external-actions.ts`（ADR 0014，见下一节） |
-| 审核数据 | `ModerationStats.tsx` | `stats-actions.ts`，数字在 `moderation-stats.ts` 算（ADR 0010） |
+| 审核数据 | `ModerationStats.tsx`，页尾的漏斗 `Funnels.tsx` | `stats-actions.ts`，数字在 `moderation-stats.ts` 算（ADR 0010）；漏斗是 `getFunnels`，在 `admin/funnels.ts` 算（#316，ADR 0025） |
+| 查看记录 | `PersonalInfoViews.tsx` | `views-actions.ts`（#336，ADR 0026）；交出个人信息的函数先 `recordViews`（`src/db/personal-info-views.ts`） |
 | 审核员 | `ModeratorList.tsx` | `admin/actions.ts` 的 `getModerators` 等 |
 
 读取用 `use-admin-load.ts`（规则在 `admin/load-state.ts`），没回答时在原处显示 `Failed.tsx` 的「没取到」和「重试」，操作没回答时卡片里显示「没成功，请重试」（ADR 0024）。`Cancel.tsx`、`Empty.tsx` 是确认步骤的「取消」和空列表的一行字。
@@ -113,6 +115,18 @@
 ## 读取失败和断网（ADR 0024）
 
 Server Function 没回答时的做法见 [ADR 0024](adr/0024-no-answer-from-the-server.md)。共用部件在 `src/components/ui/`：`useServerLoad`（`use-server-load.ts`，状态规则 `shownLoad` 在 `server-load.ts`）、`LoadFailed.tsx`，文字在 ui 字典的 `load`；求职端已有出错文字的地方用 `src/components/seeker/RetryLine.tsx`。审核后台用自己的 `src/app/[lang]/admin/load-state.ts`。断网的 e2e：`e2e/employer/errors.spec.ts`、`e2e/seeker-errors.spec.ts`、`e2e/admin-errors.spec.ts`。
+
+## 页脚、关于和法律页
+
+页脚在 `src/app/[lang]/layout.tsx`：「关于找工」「隐私说明」「使用条款」三个链接，和重新打开统计设置的 `ConsentSettingsButton`。三页是服务器组件：`/about`（`about/page.tsx`，#324，字典 `about`），`/privacy`、`/terms`（#323，共用 `src/components/legal/LegalPage.tsx`，字典 `legal-privacy`、`legal-terms`）。文字里的「[公司名称]」这类占位等用户填，三页用同一套。
+
+## 点击统计（ADR 0025）
+
+| 功能 | 主要文件 | 职责 |
+| --- | --- | --- |
+| 自建事件 | `src/lib/events/`：`catalog.ts`（事件清单）、`track.ts`（浏览器发）、`record.ts`（服务器记）；`src/components/ui/TrackView.tsx` | 页面加载时放一个 `<TrackView event={…} />`；按钮在点击时 `track()`；Server Function 成功后 `recordRequestEvent()`。只收清单里的名字和值，接口见 `docs/api.md` 的「点击统计的事件」 |
+| Clarity 和同意提示 | `src/components/analytics/Analytics.tsx`（根布局里）、`NoClarity.tsx`、规则 `src/lib/analytics/clarity-rules.ts` | 设了 `NEXT_PUBLIC_CLARITY_ID` 才出现；同意后才加载；不能录的页面整页遮盖。实习分区和它的外部职位页不录 |
+| 漏斗报表 | 审核后台「审核数据」的 `Funnels.tsx` | 见上面「审核后台」 |
 
 ## 验证
 
