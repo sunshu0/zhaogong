@@ -10,6 +10,7 @@ import {
   checkTeamChange,
   inviteExpired,
   sortTeam,
+  teamFull,
   type TeamChange,
   type TeamMember,
   type TeamRefusal,
@@ -75,7 +76,7 @@ export async function inviteToTeam(
     // Expired invitations (#194) hold no place; one to the same person is replaced by the new one.
     const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
     if (pending.some((p) => p.email === address)) return { status: "pending" };
-    if (members.length + pending.length >= TEAM_MAX) return { status: "full" };
+    if (teamFull(members.length, pending.length)) return { status: "full" };
     const dayAgo = new Date(now.getTime() - 86_400_000).toISOString();
     const [{ sent }] = await tx
       .select({ sent: sql<number>`count(*)` })

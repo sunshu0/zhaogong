@@ -9,7 +9,15 @@ import { noticeClass } from "@/components/employer/app-style";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useMyTeam } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
-import { INVITE_DAYS, TEAM_MAX, TEAM_NAME_MAX, teamSignature, type TeamMember } from "@/components/employer/team";
+import {
+  INVITE_DAYS,
+  TEAM_MAX,
+  TEAM_NAME_MAX,
+  checkTeamChange,
+  teamFull,
+  teamSignature,
+  type TeamMember,
+} from "@/components/employer/team";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { employerTeamMessages } from "@/i18n/messages/employer-team";
@@ -59,6 +67,9 @@ function Team({ me }: { me: EmployerIdentity }) {
   if (team === undefined) return <SkeletonList count={2} label={t.loading} />;
   if (team === null) return <p className="text-body">{t.noEmployerRole}</p>;
   const isAdmin = team.me.role === "admin";
+  // #296: the team's only admin can neither step down nor leave (the server refuses both); those buttons are not
+  // offered, and the row says why.
+  const lastAdmin = checkTeamChange(team.members, team.me.email, { type: "leave" }) === "last_admin";
 
   // The server has closed the employer identity. A full load of 我的 reads the session afresh (syncWithServer runs
   // once per load); changing the browser's copy here first would make EmployerGate send the person to sign-up.
@@ -113,6 +124,7 @@ function Team({ me }: { me: EmployerIdentity }) {
                 key={member.email}
                 member={member}
                 mine={member.email === team.me.email}
+                lastAdmin={member.email === team.me.email && lastAdmin}
                 isAdmin={isAdmin}
                 disabled={pending}
                 onRole={(role) =>
@@ -186,6 +198,7 @@ function MemberRow({
   mine,
   isAdmin,
   disabled,
+  lastAdmin,
   onRole,
   onRemove,
   onLeave,
@@ -194,6 +207,8 @@ function MemberRow({
   mine: boolean;
   isAdmin: boolean;
   disabled: boolean;
+  /** This row is the signed-in person, the team's only admin (#296). */
+  lastAdmin: boolean;
   onRole: (role: TeamMember["role"]) => void;
   onRemove: () => void;
   onLeave: () => void;
@@ -243,16 +258,17 @@ function MemberRow({
               {member.role === "admin" ? t.makeMember : t.makeAdmin}
             </Button>
           )}
-          {isAdmin && mine && member.role === "admin" && (
+          {isAdmin && mine && member.role === "admin" && !lastAdmin && (
             <Button variant="link" onClick={() => onRole("member")} {...busyProps(disabled)}>
               {t.makeMember}
             </Button>
           )}
-          {(mine || isAdmin) && (
+          {(mine || isAdmin) && !lastAdmin && (
             <Button variant="link" onClick={() => setConfirming(true)} {...busyProps(disabled)}>
               {mine ? t.leave : t.remove}
             </Button>
           )}
+          {lastAdmin && <p className="text-meta text-muted">{words.team.refusal.last_admin}</p>}
         </div>
       )}
     </li>
@@ -276,6 +292,8 @@ function Invite({
   const roles = words.team.roleLabel;
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamMember["role"]>("member");
+  // #296: members and the invitations not expired yet already fill the team: 发送邀请 waits, and the form says why.
+  const full = teamFull(team.members.length, team.invites.filter((invite) => !invite.expired).length);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onInvite(email.trim(), role, () => setEmail(""));
@@ -306,9 +324,19 @@ function Invite({
             </Radio>
           ))}
         </fieldset>
-        <Button type="submit" disabled={!email.trim()} {...busyProps(disabled)}>
+        <Button
+          type="submit"
+          disabled={!email.trim() || full}
+          aria-describedby={full ? "team-full" : undefined}
+          {...busyProps(disabled)}
+        >
           {t.send}
         </Button>
+        {full && (
+          <p id="team-full" className="text-meta text-danger">
+            {words.teamActions.invite.full(TEAM_MAX)}
+          </p>
+        )}
       </form>
       {team.invites.length > 0 && (
         <section aria-labelledby="team-pending" className="space-y-2">

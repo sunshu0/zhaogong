@@ -5,7 +5,9 @@ import {
   sortTeam,
   teamCan,
   inviteExpired,
+  teamFull,
   teamSignature,
+  TEAM_MAX,
   type TeamMember,
 } from "@/components/employer/team";
 
@@ -100,5 +102,14 @@ describe("team names (#87)", () => {
 
   it("lists admins first, then by joining time", () => {
     expect(sortTeam([member, admin2, admin]).map((m) => m.email)).toEqual([admin.email, admin2.email, member.email]);
+  });
+});
+
+describe("teamFull (#296)", () => {
+  it("is full once members and live invitations reach TEAM_MAX, as inviteToTeam counts", () => {
+    expect(teamFull(1, 0)).toBe(false);
+    expect(teamFull(TEAM_MAX - 1, 0)).toBe(false);
+    expect(teamFull(TEAM_MAX - 3, 3)).toBe(true);
+    expect(teamFull(TEAM_MAX, 0)).toBe(true);
   });
 });

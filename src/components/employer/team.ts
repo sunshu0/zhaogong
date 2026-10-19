@@ -46,6 +46,14 @@ export function inviteExpired(createdAt: string, now: number): boolean {
   return now - Date.parse(createdAt) > INVITE_DAYS * 86_400_000;
 }
 
+/**
+ * Whether a team has no place for another invitation (#296): its members and the invitations not expired yet reach
+ * TEAM_MAX. inviteToTeam refuses with "full" then, and 团队 says so before anyone types an email.
+ */
+export function teamFull(members: number, liveInvites: number): boolean {
+  return members + liveInvites >= TEAM_MAX;
+}
+
 /** The name a teammate goes by in the business's chats, e.g. 王经理. */
 export const TEAM_NAME_MAX = 12;
 

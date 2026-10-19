@@ -181,9 +181,7 @@ test("tabs move with the arrow keys; confirming and the result keep the focus", 
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 2 人`);
 });
 
-test("取消 on a job card's question and on a team row's confirm gives the focus back (#248)", async ({
-  page,
-}, testInfo) => {
+test("取消 on a job card's question gives the focus back (#248)", async ({ page }, testInfo) => {
   const title = uniqueTitle("前厅服务员", testInfo);
   await signUpEmployer(page, testInfo);
   await publishJob(page, title);
@@ -199,13 +197,7 @@ test("取消 on a job card's question and on a team row's confirm gives the focu
   await expect(card.getByLabel("招到了")).toBeFocused();
   await card.getByRole("button", { name: "取消", exact: true }).click();
   await expect(more).toBeFocused();
-
-  await page.goto("/employer/team");
-  const leave = page.getByRole("button", { name: "退出团队" });
-  await leave.click();
-  await expect(page.getByRole("button", { name: "确认退出" })).toBeFocused();
-  await page.getByRole("button", { name: "取消", exact: true }).click();
-  await expect(leave).toBeFocused();
+  // The team row's confirm step is in team.spec.ts: since #296 only a team with a second admin offers 退出团队.
 });
 
 test("申请人: a mark shows busy while it is on its way, and one that takes the card out of 未处理 moves the focus on (#256)", async ({

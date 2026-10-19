@@ -67,17 +67,22 @@ test("an admin invites a teammate, who accepts on 我的 and posts for the busin
   await expect(page.getByText(title).filter({ visible: true }).first()).toBeVisible();
   await expect(page.getByRole("article").filter({ hasText: title })).toContainText("小李发布");
 
-  // The only admin cannot leave; after making the member an admin, they can.
+  // The only admin cannot leave or step down (#296: not offered, and the row says why); after making the member an
+  // admin, they can.
   await page.goto("/employer/team");
   const me = page.getByRole("listitem", { name: "王老板，管理员" });
-  await me.getByRole("button", { name: "退出团队" }).click();
-  await me.getByRole("button", { name: "确认退出" }).click();
-  await expect(page.getByRole("main").getByRole("alert")).toHaveText(
-    "团队里至少要有一位管理员：先把另一位成员设为管理员。",
-  );
+  await expect(me).toContainText("团队里至少要有一位管理员：先把另一位成员设为管理员。");
+  await expect(me.getByRole("button", { name: "退出团队" })).toHaveCount(0);
+  await expect(me.getByRole("button", { name: "改为成员" })).toHaveCount(0);
   await page.getByRole("listitem", { name: "小李，成员" }).getByRole("button", { name: "设为管理员" }).click();
   await expect(page.getByRole("listitem", { name: "小李，管理员" })).toBeVisible();
-  await me.getByRole("button", { name: "退出团队" }).click();
+  // #248: 确认退出 takes the place of 退出团队 and the focus; 取消 gives it back.
+  const leave = me.getByRole("button", { name: "退出团队" });
+  await leave.click();
+  await expect(me.getByRole("button", { name: "确认退出" })).toBeFocused();
+  await me.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(leave).toBeFocused();
+  await leave.click();
   await page.getByRole("listitem", { name: "王老板，管理员" }).getByRole("button", { name: "确认退出" }).click();
   await expect(page).toHaveURL("/account");
   await staff.page.goto("/employer/team");
