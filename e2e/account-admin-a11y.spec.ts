@@ -85,7 +85,9 @@ test("审核后台 · 外部职位: the lists, a flagged job's tick, the 不显�
   await expectNoViolations(admin, "/admin 外部职位");
 
   // The demo data has a flagged job waiting, unless another spec on this server has decided it already.
-  const flagged = admin.getByRole("article", { name: /^外部职位：/ }).filter({ has: admin.getByRole("alert") });
+  const flagged = admin
+    .getByRole("article", { name: /^外部职位：/ })
+    .filter({ has: admin.getByRole("group", { name: "需要核对原文：" }) });
   if ((await flagged.count()) > 0) {
     await flagged.first().getByRole("checkbox").check();
     await expectNoViolations(admin, "/admin 外部职位, a flagged job ticked");

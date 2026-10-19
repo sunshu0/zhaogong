@@ -136,9 +136,16 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
         {approved && !job.shown && t.whyHidden}
       </p>
       {byDepartment && <p className="text-meta text-muted">{t.byDepartmentNote}</p>}
+      {/* #305: a group named by its heading, not an alert: these are there from the start, not news. */}
       {job.flags.length > 0 && (
-        <div role="alert" className="space-y-1 rounded-control bg-danger-soft p-3 text-body text-danger">
-          <p className="font-medium">{t.checkOriginal}</p>
+        <div
+          role="group"
+          aria-labelledby={`flags-${job.id}`}
+          className="space-y-1 rounded-control bg-danger-soft p-3 text-body text-danger"
+        >
+          <p id={`flags-${job.id}`} className="font-medium">
+            {t.checkOriginal}
+          </p>
           <ul className="list-disc pl-5">
             {job.flags.map((flag) => (
               <li key={flag}>{w.flags[flag]}</li>
