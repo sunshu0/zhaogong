@@ -217,6 +217,14 @@ function MessageComposer({
         rows={3}
         maxLength={MESSAGE_MAX}
         aria-describedby={describedBy || undefined}
+        // #260: Ctrl+Enter (⌘+Enter on a Mac) sends, as 发送 does; Enter alone is a new line, and not while an input
+        // method is still choosing characters.
+        aria-keyshortcuts="Control+Enter Meta+Enter"
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey) || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          event.currentTarget.form?.requestSubmit();
+        }}
         className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
       />
       <button
