@@ -20,12 +20,22 @@
 
 聊天状态与动作仍集中在 `chat-client.ts`，资料和通知在 `hub-client.ts`。身份隔离由 `identity-scope.ts` 负责；双方交换规则在 `src/lib/chat-consent.ts`，阅读与回复计数规则在 `src/lib/chat-activity.ts`。
 
-## 中英切换（第 20 轮，ADR 0023）
+## 中英切换（第 20 轮和 #240，ADR 0023）
 
 页面都在 `src/app/[lang]/` 下（根布局 `src/app/[lang]/layout.tsx`：`generateStaticParams` 列出 zh、en，`<html lang>`、`LangProvider`、按语言的标题和页脚；不存在的地址走 `[lang]/[...missing]`）。不分语言、留在 `src/app/` 根下的：`api/`、`robots.ts`、`sitemap.ts`、`globals.css`、`global-error.tsx`（中英都写）。`src/proxy.ts` 按 cookie `zg_lang` 改写到哪一份。
 
 - `src/i18n/lang.ts`：`Lang`、`langFrom`、`localeTag`、`langRoute`（proxy 的判断）、`sitePath`、`contentLang`（用户写的中文标 `lang="zh-CN"`）。
-- `src/i18n/messages.ts` 的 `Dictionary` / `pick`；字典在 `src/i18n/messages/<模块>.ts`（A：`seeker-*`、`ui`；B：`employer-*`、`chat`、`compliance`、`candidate-matching`；C：`login`、`account`、`notifications`、`admin*`、`external`）。
+- 字典的类型和 `pick()` 在 `src/i18n/messages.ts`，开头的注释有完整的例子。每个模块的字典分两个文件（#240）：
+  - **中文：** `src/i18n/messages/<模块>.ts`，导出 `{ key, zh }`。
+  - **英文：** `src/i18n/messages/en/<模块>.ts`，类型是 `Messages<(typeof xMessages)["zh"]>`。英文少键、多键、函数参数和中文对不上，`tsc` 都会报错。
+  - 英文要在 `en/index.ts` 里按同一个 `key` 登记。
+  - 两个文件归同一条线（A：`seeker-*`、`ui`；B：`employer-*`、`chat`、`compliance`、`candidate-matching`；C：`login`、`account`、`notifications`、`admin*`、`external`）。
+  - **加一句话：** 中文文件和 `en/` 里的同名文件各加一行。
+- **字典按语言挑：** 服务器上 `messages()`、`pick()` 只取当前语言那一份，所以服务器组件的 HTML 和 RSC 数据里只有一种语言。
+  - **服务器上：** `src/i18n/english.ts` 加载模块时就用 top-level await 把全部英文读进来。
+  - **浏览器里：** 中文那一份跟着组件进 JS。英文是单独的一块，只在英文页面加载：`LangProvider` 先 `use(loadEnglish())`，再渲染子组件。
+  - 所以除了 `english.ts`，别的文件不要直接 import `messages/en/` 下的文件，不然英文会进中文页面的 JS。
+- 旧字典如果还把 `en` 写在中文文件里，用 `node scripts/i18n-split-en.mjs <文件…>` 搬进 `en/`，再跑 prettier 和 tsc。
 - 服务器端 `src/i18n/server.ts`（`messages()`、`serverLang()` 读根参数，`requestLang()` 读 cookie）；客户端 `src/i18n/client.tsx`（`LangProvider`、`useLang()`、`useMessages()`、`useSitePathname()`——看路径一律用它，服务器上的路径带 `/zh`，浏览器里没有）。
 - `src/i18n/format.ts`：日期、时间、数字、金额。切换按钮 `src/components/ui/LangSwitch.tsx`，Server Function `src/i18n/actions.ts`，cookie 设置 `src/i18n/cookie.ts`，账号语言 `src/db/account-lang.ts`。
 - 单测里 `next/root-params` 指到 `src/i18n/testing/root-params.ts`（`vitest.config.mts`）；英文页面的 e2e 检查 `e2e/helpers/english.ts`。

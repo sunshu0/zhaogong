@@ -84,6 +84,15 @@
 - **测试：** 现有 e2e 照旧用中文（默认语言）。英文的检查（cookie `zg_lang=en` 下的 axe、横向溢出、漏翻的中文）在第 3 步加。
 - **还没覆盖的：** 邮件（#16）接上后按账号的 `lang` 发；AI 发帖第一期只生成中文。
 
+## 后来的改动：英文只在英文页面加载（#240）
+
+第 20 轮合并后，性能预算测出每个页面的首屏 JS 多了 30–60 KB：客户端组件用到的字典，中英两份都进了前端。上面第 4 节说的「两种语言都会进前端的 JS」由此改为：
+
+- 字典分成两个文件：中文在 `src/i18n/messages/<模块>.ts`，导出 `{ key, zh }`；英文在 `src/i18n/messages/en/<模块>.ts`，类型是 `Messages<(typeof xMessages)["zh"]>`，在 `en/index.ts` 里按 `key` 登记。`tsc` 照样检查两边的键和参数。
+- **只有 `src/i18n/english.ts` import 英文。** 服务器上，它加载时就用 top-level await 读进全部英文。浏览器里，`LangProvider` 只在英文页面 `use(loadEnglish())`，读完再渲染子组件，英文是单独的一块 JS。`pick()` 按 `key` 找英文，组件不用改。
+- 已有的字典用 `scripts/i18n-split-en.mjs` 搬，三条线各搬各的。
+- 中文页面的 JS 里不再有英文。英文页面第一次打开时多下载一块英文字典。预算的新数字记在 `docs/performance-budget.md`。
+
 ## 不选的做法
 
 - **不挪目录，cookie 在 Suspense 里读。** 顶栏、底栏、页脚、标题都变成动态的，预渲染的外壳里没有文字，打开页面先是一片骨架；`<html lang>` 只能写死中文，或者让整站阻塞渲染。

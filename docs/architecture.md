@@ -10,14 +10,15 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 | 位置 | 内容 | 规则 |
 | --- | --- | --- |
-| `src/app/` | 路由。`page.tsx` 是服务器组件，只取数据、拼页面 | 每个可写的区域旁边有一个 `actions.ts` |
+| `src/app/` | 路由。页面都在 `src/app/[lang]/` 下，每种语言各预渲染一份，`src/proxy.ts` 按 cookie `zg_lang` 改写到其中一份（ADR 0023）；不分语言的 `api/`、`robots.ts`、`sitemap.ts` 留在根下。`page.tsx` 是服务器组件，只取数据、拼页面 | 每个可写的区域旁边有一个 `actions.ts` |
 | `src/components/seeker/` | 求职端页面组件，以及两种身份共用的聊天、通知、主页 | 历史原因放在 seeker 下，阶段二按功能整理 |
 | `src/components/employer/` | 雇主发帖、职位管理、推荐人才、企业验证 | |
 | `src/components/account/` | 「我的」、待办、资料完成度、候选人条件这类跨身份的逻辑 | 纯函数都有单测 |
 | `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Pay`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav` | 视觉规则见 `docs/design-system.md`，设计稿在 `docs/design/` |
 | `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts`；登录和会话 `auth/`；服务器上的聊天存储 `chat-server/` | 不依赖 React；`auth/`、`chat-server/` 只在服务器用 |
 | `src/db/` | 数据库：表结构 `schema.ts`、连接和第一次使用时的迁移与演示数据 `ready.ts`、同一进程内排队 `one-at-a-time.ts`、登录用的 `auth-store.ts`、聊天用的 `chat-store.ts` | 迁移文件在 `drizzle/` |
-| `src/config/`、`src/i18n/` | 国家配置（地区、最低工资）、中文名称表 | |
+| `src/config/` | 国家配置（地区、最低工资） | |
+| `src/i18n/` | 中英切换（ADR 0023）：语言和 cookie、字典机制、日期和金额格式、两种语言的名称表 `labels.ts`。字典的中文在 `messages/<模块>.ts`，英文在 `messages/en/<模块>.ts`，浏览器只在英文页面加载英文（#240） | 阅读入口见 `docs/frontend-code-map.md` 的「中英切换」 |
 | `src/mock/` | 演示数据 | 只由 `data.ts` 读取 |
 | `e2e/` | Playwright 浏览器测试（手机 375 和桌面 1280 两个项目） | |
 
