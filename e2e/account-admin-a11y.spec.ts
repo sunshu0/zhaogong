@@ -74,6 +74,14 @@ test("审核后台 · 外部职位: the lists, a flagged job's tick, the 不显�
   await expect(admin.getByRole("heading", { name: /^待审核 \d+$/ })).toBeVisible();
   // The test database has only the made-up jobs, and 审核后台 says so (导师 10-19).
   await expect(admin.getByText(/^这里有 \d+ 个演示用的假外部职位/)).toBeVisible();
+  // A made-up job has no original to open: no link to example.com, the card says so instead (#283).
+  await expect(admin.getByRole("tabpanel").locator('a[href*="example.com"]')).toHaveCount(0);
+  await expect(
+    admin
+      .getByRole("article", { name: /^外部职位：/ })
+      .first()
+      .getByText("这是演示用的假职位，没有官网原文。"),
+  ).toBeVisible();
   await expectNoViolations(admin, "/admin 外部职位");
 
   // The demo data has a flagged job waiting, unless another spec on this server has decided it already.

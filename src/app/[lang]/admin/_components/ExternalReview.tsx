@@ -18,6 +18,7 @@ import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
+import { isDemoCompany } from "@/lib/external-jobs/demo";
 import { placedByTitle } from "@/lib/external-jobs/facts";
 import { dayLabel, externalWords, factLines, SOURCE_NAMES } from "@/lib/external-jobs/labels";
 import { hideReasons, type HideReason } from "@/lib/external-jobs/review";
@@ -160,11 +161,16 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
           </div>
         ))}
       </dl>
-      <p className="text-body">
-        <a href={job.url} target="_blank" rel="noopener noreferrer nofollow" className="text-brand underline">
-          {t.original}
-        </a>
-      </p>
+      {/* A made-up company's job (offline demo data, #244) has no posting: its address is example.com (#283). */}
+      {isDemoCompany(job.companyId) ? (
+        <p className="text-body text-muted">{t.noOriginal}</p>
+      ) : (
+        <p className="text-body">
+          <a href={job.url} target="_blank" rel="noopener noreferrer nofollow" className="text-brand underline">
+            {t.original}
+          </a>
+        </p>
+      )}
 
       {hiding ? (
         <fieldset ref={hideFormRef} className="space-y-2 rounded-control border border-danger/40 p-3">

@@ -27,6 +27,7 @@ export const adminExternalEn: Messages<(typeof adminExternalMessages)["zh"]> = {
     flagsChecked:
       "I've read the original: the role needs this by law (export controls, say); it isn't picking people by nationality or race",
     original: "See the original posting",
+    noOriginal: "This is a made-up demo job, so there's no original posting.",
     hideLegend: "Why not show it",
     note: "Details",
     noteOptional: "Details (optional)",

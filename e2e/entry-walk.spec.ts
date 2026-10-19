@@ -529,7 +529,9 @@ test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通�
   const title = isPhone(testInfo) ? "Senior Electronics Engineer" : "Software Engineering Intern";
   const card = admin.getByRole("article", { name: `外部职位：${title}` });
   test.skip((await card.count()) === 0, "the demo job was already decided on this server (a second run)");
-  await expect(card.getByRole("link", { name: "看官网原文" })).toHaveAttribute("target", "_blank");
+  // A made-up company's job has no original to open (#283): the card says so instead of linking to example.com.
+  await expect(card.getByText("这是演示用的假职位，没有官网原文。")).toBeVisible();
+  await expect(card.getByRole("link", { name: "看官网原文" })).toHaveCount(0);
   if (isPhone(testInfo)) {
     // Flagged (U.S. person): 通过 waits for the tick; this walk hides it instead, with a reason.
     await expect(card.getByRole("alert")).toContainText("U.S. person");
