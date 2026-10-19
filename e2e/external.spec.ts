@@ -16,6 +16,11 @@ async function expectNoViolations(page: Page, state: string) {
 }
 
 const list = (page: Page) => page.getByRole("region", { name: /列表$/ });
+/** The funnel event `name` on its way to /api/events (#314, ADR 0025), with what it carries. */
+const eventSent = (page: Page, name: string) =>
+  page
+    .waitForRequest((r) => r.url().endsWith("/api/events") && (r.postData() ?? "").includes(`"name":"${name}"`))
+    .then((r) => JSON.parse(r.postData()!) as Record<string, string>);
 
 test("专业职位 lists approved external jobs only, with the source, and filters without JavaScript state", async ({
   page,
@@ -45,10 +50,14 @@ test("专业职位 lists approved external jobs only, with the source, and filte
 test("实习 shows internships and graduate programmes; a job page has facts, 原文未说明 and 去官网申请 only", async ({
   page,
 }) => {
+  const listed = eventSent(page, "external_list_view");
   await page.goto("/internships");
   await expect(page.getByRole("heading", { level: 1, name: "实习" })).toBeVisible();
+  expect(await listed).toEqual({ name: "external_list_view", path: "/internships", detail: "internship" });
   await expectNoViolations(page, "/internships");
+  const viewed = eventSent(page, "external_view");
   await list(page).getByRole("link", { name: "Firmware Intern (Summer 2026/27)" }).click();
+  expect(await viewed).toEqual({ name: "external_view", path: "/external/[id]", jobId: "demo-kowhai:4005" });
 
   await expect(page.getByRole("heading", { level: 1, name: "Firmware Intern (Summer 2026/27)" })).toBeVisible();
   // Next keeps the list page hidden in the DOM after the client navigation: look inside the job's article.
@@ -62,7 +71,9 @@ test("实习 shows internships and graduate programmes; a job page has facts, �
   await expect(page.locator('a[href*="example.com"]')).toHaveCount(0);
   const apply = job.getByRole("button", { name: "去官网申请", exact: true });
   await expect(apply).toHaveAttribute("aria-expanded", "false");
+  const applied = eventSent(page, "external_apply_click");
   await apply.click();
+  expect((await applied).detail).toBe("demo");
   await expect(apply).toHaveAttribute("aria-expanded", "true");
   await expect(job.getByRole("status")).toHaveText(
     "这是演示职位，没有真的官网申请页。真实职位会在新窗口打开公司官网的申请页面。",

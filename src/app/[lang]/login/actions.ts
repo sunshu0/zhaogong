@@ -18,6 +18,7 @@ import { LANG_COOKIE } from "@/i18n/lang";
 import { requestLang } from "@/i18n/server";
 import { pick } from "@/i18n/messages";
 import { loginMessages } from "@/i18n/messages/login";
+import { recordRequestEvent } from "@/lib/events/record";
 import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
 import { isValidCode, isValidEmail, normalizeCode, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
@@ -53,10 +54,12 @@ export async function requestSignInCode(
   const result = await requestCode(address, new Date(), lang);
   const resendInSec = RESEND_AFTER_MS / 1000;
   const validMinutes = CODE_TTL_MS / 60_000;
-  if (result.ok)
+  if (result.ok) {
+    await recordRequestEvent({ name: "signin_code_sent", path: "/login" }); // #314, ADR 0025
     return result.devCode
       ? { ok: true, devCode: result.devCode, resendInSec, validMinutes }
       : { ok: true, resendInSec, validMinutes };
+  }
   if (result.reason === "throttled") {
     const { retryAfterSec } = result;
     return { ok: false, error: t.errors.sentRecently(retryAfterSec), retryAfterSec };
@@ -93,8 +96,10 @@ export async function signInAccount(
         return { ok: false, error: t.errors.wrongCode(result.attemptsLeft) };
     }
   }
+  const isNew = !(await getAccount(address));
   await ensureAccount(address);
   const account = await createSession(address, role === "employer" ? "employer" : "seeker");
+  await recordRequestEvent({ name: "signin_success", path: "/login", detail: isNew ? "new" : "returning" }); // #314
   // The account's language (Round 20, ADR 0023 §5): it comes back on a new device; an account that never chose takes
   // this browser's. When it differs from the page's, the page has to load again in it (`reload`).
   const lang = await langOnSignIn(address, browserLang);

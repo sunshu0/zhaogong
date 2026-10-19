@@ -10,6 +10,7 @@ import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, LoginFormSkeleton, LoginIntro, type DemoBusiness } from "@/components/seeker/LoginForm";
 import { nextForSignedIn } from "@/components/seeker/session";
+import { TrackView } from "@/components/ui/TrackView";
 import { loginMessages } from "@/i18n/messages/login";
 import { messages, serverLang } from "@/i18n/server";
 
@@ -42,7 +43,16 @@ async function Login({ searchParams }: Pick<PageProps<"/[lang]/login">, "searchP
   const role = parseRole(params.role);
   // A different ?role= or ?next= is a different sign-in: start the form over.
   return (
-    <LoginForm key={`${role}|${next ?? ""}`} initialRole={role} nextParam={next} businesses={await demoBusinesses()} />
+    <>
+      {/* The sign-in funnel's first step (#314, ADR 0025 §4); one already signed in left above. */}
+      <TrackView event={{ name: "signin_view", path: "/login", detail: role }} />
+      <LoginForm
+        key={`${role}|${next ?? ""}`}
+        initialRole={role}
+        nextParam={next}
+        businesses={await demoBusinesses()}
+      />
+    </>
   );
 }
 

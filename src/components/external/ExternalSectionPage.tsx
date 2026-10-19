@@ -22,6 +22,7 @@ import { cardClass, linkCardClass } from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
+import { TrackView } from "@/components/ui/TrackView";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Select, type SelectOption } from "@/components/ui/Select";
 import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
@@ -72,6 +73,7 @@ export async function ExternalSectionPage({
         {/* Without JavaScript the streamed list (and loading.tsx's skeleton) would stay hidden (#13). */}
         <NoScriptStreams />
         <FinishSaveAfterSignIn />
+        <TrackView event={{ name: "external_list_view", path: SECTION_PATHS[section], detail: section }} />
         <Suspense
           fallback={
             <div data-nojs-hide="">

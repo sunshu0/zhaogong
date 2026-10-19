@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DemoApply } from "@/components/external/DemoApply";
+import { ExternalApplyLink } from "@/components/external/ExternalApplyLink";
+import { TrackView } from "@/components/ui/TrackView";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { requestTime } from "@/components/seeker/request-time";
@@ -65,6 +67,7 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
   // navigation on phones (at the foot of the title card from 768 px), with room for it at the end of the page.
   return (
     <article aria-labelledby="external-title" className="space-y-3 pb-24 md:pb-0 lg:max-w-3xl">
+      <TrackView event={{ name: "external_view", path: "/external/[id]", jobId: job.id }} />
       <p className="text-meta">
         <Link
           href={SECTION_PATHS[section]}
@@ -95,16 +98,15 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
         <p className="mt-1 text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt, lang)}</p>
         <div className="fixed inset-x-0 bottom-above-nav z-10 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
           {isDemoCompany(job.companyId) ? (
-            <DemoApply label={t.demoApply} note={t.demoNote} />
+            <DemoApply label={t.demoApply} note={t.demoNote} jobId={job.id} />
           ) : (
-            <a
+            <ExternalApplyLink
               href={job.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              jobId={job.id}
               className={`${buttonClass("primary", { block: true, size: "lg" })} font-semibold whitespace-nowrap md:w-auto`}
             >
               {t.apply}
-            </a>
+            </ExternalApplyLink>
           )}
         </div>
       </header>

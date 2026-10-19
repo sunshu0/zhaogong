@@ -207,3 +207,23 @@ describe("the language at sign-in (Round 20, ADR 0023 §5)", () => {
     expect(cookies.get("zg_lang")).toBe("en");
   });
 });
+
+describe("the sign-in funnel's events (#314, ADR 0025)", () => {
+  it("records the code sent and the sign-in, new then returning, and never the email", async () => {
+    const { database } = await import("@/db/ready");
+    const t = await import("@/db/schema");
+    const db = await database();
+    await db.delete(t.events);
+    await signIn("funnel.new@example.com");
+    await signIn("funnel.new@example.com");
+    const rows = await db.select().from(t.events);
+    expect(rows.map((r) => [r.name, r.detail])).toEqual([
+      ["signin_code_sent", null],
+      ["signin_success", "new"],
+      ["signin_code_sent", null],
+      ["signin_success", "returning"],
+    ]);
+    expect(rows.every((r) => r.path === "/login")).toBe(true);
+    expect(JSON.stringify(rows)).not.toContain("funnel.new");
+  });
+});

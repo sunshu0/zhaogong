@@ -15,6 +15,15 @@ import { VISITOR_COOKIE, isVisitorId, newVisitorId } from "@/lib/visitor";
 
 export type RecordResult = "recorded" | "capped" | "invalid" | "skipped";
 
+/** The request's headers; none where there are none to read (a unit test that stands in only for the cookies). */
+async function requestHeaders(): Promise<Headers> {
+  try {
+    return new Headers(await headers());
+  } catch {
+    return new Headers();
+  }
+}
+
 /**
  * Stores `input` if it is on the list (catalog.ts). A browser without the visitor cookie (cookies refused) counts
  * under a throw-away id, so its steps do not join up; the proxy hands the cookie out with every page.
@@ -23,7 +32,7 @@ export async function recordRequestEvent(input: EventInput | unknown, now = new 
   try {
     const event = checkEvent(input);
     if (!event) return "invalid";
-    if (isBotOrPrefetch(await headers())) return "skipped";
+    if (isBotOrPrefetch(await requestHeaders())) return "skipped";
     const secret = eventsSecret();
     if (!secret) return "skipped";
     const sent = (await cookies()).get(VISITOR_COOKIE)?.value;
