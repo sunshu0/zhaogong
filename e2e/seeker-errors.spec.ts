@@ -171,3 +171,17 @@ test("loads with no answer are not shown as nothing: 通知 and 总览 say what 
   await expect(interviews).toHaveCount(0);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
+
+test("收藏 that got no answer offers 重试 beside its own words (#254)", async ({ page }) => {
+  await signIn(page, "/me/saved", freshEmail("errors.saved"));
+  const cut = await cutCalls(page, "/me/saved");
+  cut.on = true;
+  await page.goto("/me/saved");
+  const failed = page.getByRole("alert").filter({ hasText: "网络有问题，收藏暂时打不开，请稍后再试。" });
+  await expect(failed).toBeVisible();
+  await expectNoViolations(page);
+  cut.on = false;
+  await failed.getByRole("button", { name: "重试" }).click();
+  await expect(failed).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});

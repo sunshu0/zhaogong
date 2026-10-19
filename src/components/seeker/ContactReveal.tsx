@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { revealContact } from "@/app/[lang]/jobs/[id]/actions";
 import type { Job } from "@/lib/types";
 import { CopyButton } from "@/components/seeker/CopyButton";
+import { RetryLine } from "@/components/seeker/RetryLine";
 import { buttonClass } from "@/components/ui/Button";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { useMessages } from "@/i18n/client";
@@ -14,7 +15,8 @@ import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 /** A number a phone can call; the demo's masked numbers (021 ••• 0101（演示）) get no tel: link. */
 const DIALABLE = /^\+?[\d\s()-]+$/;
 
-type Loaded = { jobId: string; email: string; contact: Job["contact"] | null };
+/** `contact` null: the server would not show them; `failed`: no answer came (#254), which 重试 asks again. */
+type Loaded = { jobId: string; email: string; contact: Job["contact"] | null; failed?: boolean };
 
 /** Contact details for signed-in users; a sign-in prompt for everyone else. */
 export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[] }) {
@@ -22,20 +24,21 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
   const hydrated = useHydrated();
   const session = useSession();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [asked, setAsked] = useState(0);
 
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
     const email = session.email;
-    revealContact(jobId) // the server reads who is asking from the session cookie
-      .catch(() => null)
-      .then((contact) => {
-        if (!cancelled) setLoaded({ jobId, email, contact });
-      });
+    // The server reads who is asking from the session cookie.
+    revealContact(jobId).then(
+      (contact) => !cancelled && setLoaded({ jobId, email, contact }),
+      () => !cancelled && setLoaded({ jobId, email, contact: null, failed: true }),
+    );
     return () => {
       cancelled = true;
     };
-  }, [jobId, session]);
+  }, [jobId, session, asked]);
 
   const current = session && loaded?.jobId === jobId && loaded.email === session.email ? loaded : null;
 
@@ -61,6 +64,15 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
         </>
       ) : !current ? (
         <p className="mt-1 text-sm text-muted">{t.contact.loading}</p>
+      ) : current.failed ? (
+        <RetryLine
+          className="mt-1"
+          text={t.contact.noAnswer}
+          onRetry={() => {
+            setLoaded(null);
+            setAsked((n) => n + 1);
+          }}
+        />
       ) : !current.contact ? (
         <p className="mt-1 text-sm text-danger">{t.contact.failed}</p>
       ) : (

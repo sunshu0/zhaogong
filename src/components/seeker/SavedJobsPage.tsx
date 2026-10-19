@@ -15,6 +15,7 @@ import { cardClass } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useAppliedJobIds } from "@/components/seeker/applied-client";
+import { RetryLine } from "@/components/seeker/RetryLine";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
@@ -35,6 +36,9 @@ export function SavedJobsPage() {
   // undefined: loading.
   const [jobs, setJobs] = useState<SavedJobView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  // The list got no answer (#254): said with 重试, which asks again.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [asked, setAsked] = useState(0);
 
   const scope = identityScope(session);
   useEffect(() => {
@@ -44,13 +48,13 @@ export function SavedJobsPage() {
     sendWaitingChanges(scope)
       .then(() => mySavedJobs())
       .then((list) => current && setJobs(list))
-      .catch(() => current && setError(s.loadFailed));
+      .catch(() => current && setLoadFailed(true));
     return () => {
       current = false;
     };
-  }, [signedIn, scope, s.loadFailed]);
+  }, [signedIn, scope, asked]);
 
-  if (!hydrated || (signedIn && jobs === undefined && !error))
+  if (!hydrated || (signedIn && jobs === undefined && !error && !loadFailed))
     return <SkeletonList count={2} label={t.pages.loadingSaved} />;
 
   if (!session) {
@@ -63,6 +67,17 @@ export function SavedJobsPage() {
       </div>
     );
   }
+
+  if (loadFailed)
+    return (
+      <RetryLine
+        text={s.loadFailed}
+        onRetry={() => {
+          setLoadFailed(false);
+          setAsked((n) => n + 1);
+        }}
+      />
+    );
 
   if (error)
     return (

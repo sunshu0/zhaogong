@@ -204,6 +204,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     signIn: "Sign in to see contact details",
     loading: "Getting the contact details…",
     failed: "Couldn't get the contact details. Try again later.",
+    noAnswer: "Network problem: the contact details didn't load.",
     phone: "phone",
     wechat: "WeChat",
     email: "email",

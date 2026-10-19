@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { changeMyJobAlert, deleteMyJobAlert, myJobAlerts, type JobAlertView } from "@/app/[lang]/me/alerts/actions";
 import { ALERT_LIMIT, ALERT_NAME_MAX, ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
+import { RetryLine } from "@/components/seeker/RetryLine";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
@@ -34,6 +35,9 @@ export function JobAlertsPage() {
   // undefined: loading.
   const [alerts, setAlerts] = useState<JobAlertView[] | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  // The list got no answer (#254): said with 重试, which asks again.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [asked, setAsked] = useState(0);
   const top = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -41,11 +45,11 @@ export function JobAlertsPage() {
     let current = true;
     myJobAlerts()
       .then((list) => current && setAlerts(list))
-      .catch(() => current && setError(a.loadFailed));
+      .catch(() => current && setLoadFailed(true));
     return () => {
       current = false;
     };
-  }, [signedIn, a.loadFailed]);
+  }, [signedIn, asked]);
 
   /** Sends a change; the server's answer is the list from then on. True when the server took it. */
   async function run(change: () => Promise<JobAlertView[] | null>): Promise<boolean> {
@@ -60,7 +64,7 @@ export function JobAlertsPage() {
     }
   }
 
-  if (!hydrated || (signedIn && alerts === undefined && !error))
+  if (!hydrated || (signedIn && alerts === undefined && !error && !loadFailed))
     return <SkeletonList count={2} label={t.pages.loadingAlerts} />;
 
   if (!session) {
@@ -79,6 +83,15 @@ export function JobAlertsPage() {
       <p ref={top} tabIndex={-1} className="text-body text-muted outline-none">
         {a.howItWorks(ALERT_LIMIT)}
       </p>
+      {loadFailed && (
+        <RetryLine
+          text={a.loadFailed}
+          onRetry={() => {
+            setLoadFailed(false);
+            setAsked((n) => n + 1);
+          }}
+        />
+      )}
       {error && (
         <p role="alert" className="text-body text-danger">
           {error}

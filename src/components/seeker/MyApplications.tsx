@@ -8,6 +8,7 @@ import {
   type MyApplicationView,
 } from "@/app/[lang]/jobs/[id]/apply-actions";
 import { refreshApplied } from "@/components/seeker/applied-client";
+import { RetryLine } from "@/components/seeker/RetryLine";
 import { InterviewAnswer } from "@/components/seeker/InterviewAnswer";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { formatJobDate } from "@/components/seeker/job-facts";
@@ -29,18 +30,32 @@ export function MyApplications() {
   const signedIn = Boolean(useSession());
   const [list, setList] = useState<MyApplicationView[] | null>(null);
   const [error, setError] = useState("");
+  // The list got no answer (#254): said with 重试, which asks again.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [asked, setAsked] = useState(0);
 
   useEffect(() => {
     if (!signedIn) return;
     let current = true;
     myApplicationViews()
       .then((answer) => current && setList(answer))
-      .catch(() => current && setError(t.loadFailed));
+      .catch(() => current && setLoadFailed(true));
     return () => {
       current = false;
     };
-  }, [signedIn, t.loadFailed]);
+  }, [signedIn, asked]);
 
+  if (loadFailed)
+    return (
+      <RetryLine
+        className="mb-4"
+        text={t.loadFailed}
+        onRetry={() => {
+          setLoadFailed(false);
+          setAsked((n) => n + 1);
+        }}
+      />
+    );
   if (error)
     return (
       <p role="alert" className="mb-4 text-body text-danger">

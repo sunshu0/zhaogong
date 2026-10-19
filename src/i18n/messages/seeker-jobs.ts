@@ -216,6 +216,7 @@ const seekerJobsZh = {
     signIn: "登录查看联系方式",
     loading: "正在获取联系方式…",
     failed: "暂时无法获取联系方式，请稍后再试。",
+    noAnswer: "网络有问题，联系方式没取到。",
     phone: "电话",
     wechat: "微信",
     email: "邮箱",
