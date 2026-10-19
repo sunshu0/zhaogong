@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chineseLeft, expectEnglishPage, useEnglish } from "./helpers/english";
+import { chineseLeft, expectEnglishPage, horizontalOverflow, useEnglish } from "./helpers/english";
 import { freshEmail, signIn } from "./helpers";
 
 // Round 20 step 2, line A (#237): the job seeker's pages with zg_lang=en — <html lang>, axe, nothing wider than the
@@ -14,6 +14,11 @@ test("signed out: the home page, the job list with filters, and a job page", asy
   // #340: the header names the site 找工 Zhaogong, as the manifest does.
   await expect(page.getByRole("banner").getByRole("link", { name: "找工 Zhaogong", exact: true })).toBeVisible();
   await expectEnglishPage(page, "/");
+  // #345: at 320 px too; the counts under the heading have labels wider than that screen, and they wrap.
+  const size = page.viewportSize()!;
+  await page.setViewportSize({ width: 320, height: 640 });
+  expect(await horizontalOverflow(page), "/ at 320 px").toBe(0);
+  await page.setViewportSize(size);
 
   await page.goto("/jobs?industry=hospitality&meals=1");
   await expect(page.getByRole("region", { name: "Jobs" })).toBeVisible();

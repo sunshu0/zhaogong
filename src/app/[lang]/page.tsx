@@ -251,17 +251,29 @@ async function HeroCount() {
   const t = await messages(seekerHomeMessages);
   const [open, by, ...more] = heroCounts(jobs.length, verified, stats, lang);
   const figure = (n: number) => <b className="font-figure text-[1.375rem] text-foreground">{formatCount(n, lang)}</b>;
+  // #345: a Chinese part stays whole (a Chinese line may break between any two characters). An English label can be
+  // wider than a 320 px screen, so there the part may wrap, and only the dot and the figure keep to the label's first
+  // word (no-break spaces).
+  const whole = lang === "zh" ? "whitespace-nowrap" : undefined;
+  const glue = lang === "zh" ? " " : "\u00a0";
   return (
     <p data-hero-counts="" className="mt-4 text-body text-muted">
-      <span className="whitespace-nowrap">
-        {figure(open.value)} {open.label} {figure(by.value)} {by.label}
+      <span className={whole}>
+        {figure(open.value)}
+        {glue}
+        {open.label} {figure(by.value)}
+        {glue}
+        {by.label}
       </span>
       {more.map((part) => (
         // The space between parts is outside the unbreakable part, so the line can wrap there.
         <Fragment key={part.label}>
           {" "}
-          <span className="whitespace-nowrap">
-            · {figure(part.value)} {part.label}
+          <span className={whole}>
+            ·{glue}
+            {figure(part.value)}
+            {glue}
+            {part.label}
           </span>
         </Fragment>
       ))}
