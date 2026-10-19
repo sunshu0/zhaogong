@@ -70,6 +70,14 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     closed: "No longer hiring",
   },
 
+  delivery: {
+    waiting: (count) =>
+      `${count} ${count === 1 ? "item hasn't" : "items haven't"} reached the server yet. They'll be sent again once you're back online.`,
+    unreached: "Can't reach the server, so messages may not be up to date.",
+    retry: "Try again",
+    unsent: "Not sent yet",
+    openFailed: "Network problem: the chat didn't open. Try again later.",
+  },
   log: {
     label: "Messages",
     empty: "No messages yet",

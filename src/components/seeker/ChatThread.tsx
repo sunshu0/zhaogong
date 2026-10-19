@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { crashForTests } from "@/lib/test-crash";
 import { ArrowLeft, Send } from "lucide-react";
-import { conversationProfileHref, useChat, type Conversation } from "@/components/seeker/chat-client";
+import { conversationProfileHref, useChat, useChatDelivery, type Conversation } from "@/components/seeker/chat-client";
 import { ChatActivity } from "@/components/seeker/ChatActivity";
 import { ChatExchangeMenu } from "@/components/seeker/ChatInteractions";
 import { ChatReportDialog } from "@/components/seeker/ChatReportButton";
@@ -46,6 +46,7 @@ export function ChatThread({
     <section className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
       {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
+      <DeliveryNote conversationId={conversation.id} />
 
       <ChatActivity
         conversation={conversation}
@@ -65,6 +66,27 @@ export function ChatThread({
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * What this conversation has not got to the server (#253): the outbox keeps it and sends it again, but the person
+ * should know it has not arrived, and that the messages shown may not be the latest when the server is out of reach.
+ */
+function DeliveryNote({ conversationId }: { conversationId: string }) {
+  const t = useMessages(chatMessages).delivery;
+  const { waiting, unreached, retry } = useChatDelivery(conversationId);
+  if (!waiting && !unreached) return null;
+  return (
+    <div
+      role="status"
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-warn-soft px-4 py-2 text-meta text-warn lg:px-6"
+    >
+      <p>{waiting ? t.waiting(waiting) : t.unreached}</p>
+      <button type="button" onClick={retry} className="pressable min-h-11 font-medium underline underline-offset-2">
+        {t.retry}
+      </button>
+    </div>
   );
 }
 

@@ -79,6 +79,14 @@ const chatZh = {
   },
 
   /** MessageLog.tsx */
+  // ChatThread / MessageLog (#253): what the outbox still holds, said where the person is looking.
+  delivery: {
+    waiting: (count: number) => `${count} 项还没送到服务器，连上网后会自动再发。`,
+    unreached: "连不上服务器，消息可能不是最新的。",
+    retry: "重试",
+    unsent: "未送出",
+    openFailed: "网络有问题，没能发起聊天，请稍后再试。",
+  },
   log: {
     label: "消息记录",
     empty: "尚未发送消息",

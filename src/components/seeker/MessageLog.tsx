@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { TriangleAlert } from "lucide-react";
-import { useChat, type Conversation, type Message } from "@/components/seeker/chat-client";
+import { useChat, useChatDelivery, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { ChatExchangeList, ChatReportButton } from "@/components/seeker/ChatInteractions";
 import { incomingWarnings } from "@/components/seeker/chat-warnings";
 import { messageReadLabel } from "@/lib/chat-activity";
@@ -16,7 +16,11 @@ import { shownTime } from "@/components/seeker/chat-store";
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
   const t = useMessages(chatMessages).log;
   const { exchanges, conversations } = useChat();
+  const { unsent } = useChatDelivery(conversationId);
   const conversation = conversations.find((item) => item.id === conversationId);
+  // The last `unsent` of this browser's own messages are the ones the outbox still holds (#253): it goes oldest first.
+  const mineAt = (thread ?? []).flatMap((message, index) => (message.from === "me" ? [index] : []));
+  const unsentFrom = unsent ? (mineAt[mineAt.length - unsent] ?? 0) : Infinity;
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = log.current;
@@ -34,7 +38,13 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
     >
       {!thread?.length && <p className="text-center text-body text-muted">{t.empty}</p>}
       {thread?.map((message, index) => (
-        <MessageBubble key={`${message.time}-${index}`} message={message} index={index} conversation={conversation} />
+        <MessageBubble
+          key={`${message.time}-${index}`}
+          message={message}
+          index={index}
+          conversation={conversation}
+          unsent={message.from === "me" && index >= unsentFrom}
+        />
       ))}
       <ChatExchangeList key={conversationId} conversationId={conversationId} />
     </div>
@@ -45,11 +55,15 @@ function MessageBubble({
   message,
   index,
   conversation,
+  unsent = false,
 }: {
   message: Message;
   index: number;
   conversation?: Conversation;
+  /** Still in the outbox (#253): 未送出 in place of the read state. */
+  unsent?: boolean;
 }) {
+  const delivery = useMessages(chatMessages).delivery;
   const t = useMessages(chatMessages).log;
   const lang = useLang();
   const mine = message.from === "me";
@@ -73,9 +87,15 @@ function MessageBubble({
             </span>
           )}
           <span>{shownTime(message.time, lang)}</span>
-          <span data-message-read="" aria-label={mine ? t.counterpartRead(readLabel) : readLabel}>
-            {readLabel}
-          </span>
+          {unsent ? (
+            <span data-message-unsent="" className="font-medium">
+              {delivery.unsent}
+            </span>
+          ) : (
+            <span data-message-read="" aria-label={mine ? t.counterpartRead(readLabel) : readLabel}>
+              {readLabel}
+            </span>
+          )}
         </p>
       </div>
       {warnings.length > 0 && (

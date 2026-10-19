@@ -1,7 +1,7 @@
 // When a job seeker's Server Function calls get no answer (no network, the server restarting): an action says so
-// where it was pressed and keeps what was typed, instead of giving way to the error page (#251), and 退出登录 does
-// not only look done (#254). The tests cut the page's Server Function calls (POSTs to its own path) for one press;
-// the page and its scripts still load.
+// where it was pressed and keeps what was typed, instead of giving way to the error page (#251); 退出登录 does not
+// only look done (#254); a load says so with 重试 (#250, #252); and chat says what has not arrived (#253). The tests
+// cut the page's Server Function calls (POSTs to its own path) for one press; the page and its scripts still load.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { expectProfileSaved, freshEmail, signIn } from "./helpers";
@@ -183,5 +183,33 @@ test("收藏 that got no answer offers 重试 beside its own words (#254)", asyn
   cut.on = false;
   await failed.getByRole("button", { name: "重试" }).click();
   await expect(failed).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("a chat message that has not reached the server says 未送出, and the thread says so with 重试 (#253)", async ({
+  page,
+}) => {
+  await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.errors.chat"));
+  const log = page.getByRole("log");
+  await expect(log).toBeVisible();
+
+  const cut = await cutCalls(page, "/messages");
+  cut.on = true;
+  await page.getByLabel("输入消息").fill("断网时发出的消息");
+  await page.getByRole("button", { name: "发送", exact: true }).click();
+  const bubble = log
+    .locator("div")
+    .filter({ hasText: /^断网时发出的消息/ })
+    .last();
+  await expect(bubble.getByText("未送出")).toBeVisible();
+  const note = page.getByRole("status").filter({ hasText: "还没送到服务器" });
+  await expect(note).toContainText("1 项还没送到服务器");
+  await expectNoViolations(page);
+
+  cut.on = false;
+  await note.getByRole("button", { name: "重试" }).click();
+  await expect(note).toHaveCount(0);
+  await expect(log.getByText("未送出")).toHaveCount(0);
+  await expect(log.getByText("断网时发出的消息", { exact: true })).toHaveCount(1);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });

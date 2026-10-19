@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { changeMyChat, importMyChat, myChat, type ChatChange, type ChatSnapshot } from "@/app/[lang]/messages/actions";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
@@ -12,6 +12,11 @@ import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { isDemoAccount } from "@/lib/demo-accounts";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
+import { toast } from "@/components/ui/Toast";
+import { useLang } from "@/i18n/client";
+import type { Lang } from "@/i18n/lang";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 import {
   EMPTY_CHAT,
   addExchangeRequest,
@@ -52,6 +57,24 @@ export function parseChats(raw: string | null): Record<string, ChatRecord> {
 }
 const store = createLocalStore(CHAT_KEY, parseChats);
 
+// What the person hears about delivery (#253). The outbox lives in localStorage, so its changes are announced here;
+// `unreached` holds the identities whose last call to the server got no answer (sending, reading again, opening).
+const deliveryListeners = new Set<() => void>();
+let unreached: ReadonlySet<string> = new Set();
+
+function announceDelivery() {
+  for (const listener of deliveryListeners) listener();
+}
+
+function setUnreached(scope: string, on: boolean) {
+  if (unreached.has(scope) === on) return;
+  const next = new Set(unreached);
+  if (on) next.add(scope);
+  else next.delete(scope);
+  unreached = next;
+  announceDelivery();
+}
+
 /**
  * Keeps the server's answer as the copy of the identity it is for. The cookie decides which identity the server
  * answers for; during a switch or sign-in that may not be the one asked about, so the answer names its scope.
@@ -85,7 +108,11 @@ function syncScope(scope: string) {
     if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
     const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
     keep(isEmpty(server.record) && local && !isEmpty(local) ? await importMyChat(local) : server);
-  })().catch(() => syncedScopes.delete(scope));
+    setUnreached(scope, false);
+  })().catch(() => {
+    syncedScopes.delete(scope);
+    setUnreached(scope, true);
+  });
 }
 
 /**
@@ -95,7 +122,8 @@ function syncScope(scope: string) {
 function sendChange(scope: string, change: ChatChange) {
   const item: OutboxItem = { id: crypto.randomUUID(), scope, change };
   addToOutbox(localStorage, item);
-  deliver(item).catch(() => {});
+  announceDelivery();
+  deliver(item).catch(() => setUnreached(scope, true));
 }
 
 /**
@@ -103,7 +131,13 @@ function sendChange(scope: string, change: ChatChange) {
  * next page load. Pages that read chat-derived facts from the server (收藏和进度) call it first.
  */
 export async function sendWaitingChanges(scope: string): Promise<void> {
-  for (const item of outboxFor(localStorage, scope)) if (!(await deliver(item).catch(() => false))) break;
+  for (const item of outboxFor(localStorage, scope)) {
+    const sent = await deliver(item).catch(() => {
+      setUnreached(scope, true);
+      return false;
+    });
+    if (!sent) break;
+  }
 }
 
 /**
@@ -114,6 +148,7 @@ export async function sendWaitingChanges(scope: string): Promise<void> {
 async function refreshChat(scope: string): Promise<void> {
   await sendWaitingChanges(scope);
   const server = await myChat();
+  setUnreached(scope, false);
   if (server?.scope === scope && !outboxFor(localStorage, scope).length) keep(server);
 }
 
@@ -128,7 +163,7 @@ export function useChatRefresh(): void {
   useEffect(() => {
     if (!signedIn) return;
     const refresh = () => {
-      if (document.visibilityState === "visible") refreshChat(scope).catch(() => {});
+      if (document.visibilityState === "visible") refreshChat(scope).catch(() => setUnreached(scope, true));
     };
     const timer = window.setInterval(refresh, CHAT_REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
@@ -143,8 +178,18 @@ export function useChatRefresh(): void {
  * Opens a chat on the server and keeps the answer; the id of the conversation to show, or null when it cannot be
  * opened. A business's chat with an account gets its id from the server, so this one waits for it.
  */
-async function openOnServer(scope: string, conversation: Extract<ChatChange, { type: "open" }>["conversation"]) {
-  const snapshot = await changeMyChat({ type: "open", conversation }).catch(() => null);
+async function openOnServer(
+  scope: string,
+  conversation: Extract<ChatChange, { type: "open" }>["conversation"],
+  lang: Lang,
+) {
+  const snapshot = await changeMyChat({ type: "open", conversation }).catch(() => undefined);
+  if (snapshot === undefined) {
+    // No answer (#253): said, rather than a 发起聊天 that does nothing; a refusal (null) stays as it was.
+    setUnreached(scope, true);
+    toast(pick(chatMessages, lang).delivery.openFailed, 8000);
+    return null;
+  }
   if (snapshot?.scope !== scope) return null;
   keep(snapshot);
   return snapshot.opened ?? null;
@@ -156,7 +201,51 @@ async function deliver(item: OutboxItem): Promise<boolean> {
   keep(snapshot);
   if (snapshot?.scope !== item.scope) return false;
   removeFromOutbox(localStorage, item.id);
+  announceDelivery();
+  setUnreached(item.scope, false);
   return true;
+}
+
+const subscribeDelivery = (listener: () => void) => {
+  deliveryListeners.add(listener);
+  return () => deliveryListeners.delete(listener);
+};
+
+/** "waiting:unsent:unreached" for one conversation: a string, so the store's snapshot compares by value. */
+function deliveryKey(scope: string, conversationId: string): string {
+  const mine = outboxFor(localStorage, scope).filter(
+    (item) => "conversationId" in item.change && item.change.conversationId === conversationId,
+  );
+  const waiting = mine.filter((item) => item.change.type !== "read").length;
+  const unsent = mine.filter((item) => item.change.type === "send").length;
+  return `${waiting}:${unsent}:${unreached.has(scope) ? 1 : 0}`;
+}
+
+/**
+ * What one conversation still has to send (#253): `waiting` changes (messages, exchanges, a report; not reads),
+ * of which `unsent` are messages, the last ones this browser sent, since the outbox goes oldest first; `unreached`
+ * when the last call got no answer. `retry` sends what waits and reads the chat again.
+ */
+export function useChatDelivery(conversationId: string): {
+  waiting: number;
+  unsent: number;
+  unreached: boolean;
+  retry: () => void;
+} {
+  const session = useSession();
+  const scope = identityScope(session);
+  const key = useSyncExternalStore(
+    subscribeDelivery,
+    () => (session ? deliveryKey(scope, conversationId) : "0:0:0"),
+    () => "0:0:0",
+  );
+  const [waiting, unsent, off] = key.split(":").map(Number);
+  return {
+    waiting,
+    unsent,
+    unreached: off === 1,
+    retry: () => void refreshChat(scope).catch(() => setUnreached(scope, true)),
+  };
 }
 
 export function useChat() {
@@ -164,6 +253,7 @@ export function useChat() {
   const accounts = store.useValue();
   const scope = identityScope(session);
   const isEmployer = session?.activeRole === "employer";
+  const lang = useLang();
   const demo = chatDemo(isEmployer, isDemoAccount(session?.email));
   const record = accounts[scope] ?? EMPTY_CHAT;
   // Memoized: pages keep `messages` and the like in effect dependencies.
@@ -239,17 +329,16 @@ export function useChat() {
     async openCandidateChat(candidate: Candidate, job: Job): Promise<string | null> {
       if (!session || !isEmployer || job.employerId !== session.employerId || !candidate.resume.discoverable)
         return null;
-      return openOnServer(scope, {
-        kind: "candidate",
-        jobId: job.id,
-        candidateId: candidate.id,
-        name: candidate.name,
-      });
+      return openOnServer(
+        scope,
+        { kind: "candidate", jobId: job.id, candidateId: candidate.id, name: candidate.name },
+        lang,
+      );
     },
     /** #84: the business chats with someone who applied for one of its jobs; resolves to the conversation's id. */
     async openApplicantChat(applicant: { id: string }, job: Pick<Job, "id" | "employerId">): Promise<string | null> {
       if (!session || !isEmployer || job.employerId !== session.employerId) return null;
-      return openOnServer(scope, { kind: "applicant", jobId: job.id, applicationId: applicant.id });
+      return openOnServer(scope, { kind: "applicant", jobId: job.id, applicationId: applicant.id }, lang);
     },
     openEmployerChat(
       employer: Pick<Employer, "id" | "name">,
