@@ -27,6 +27,7 @@ import { adminExternalEn } from "./admin-external";
 import { externalEn } from "./external";
 import { legalPrivacyEn } from "./legal-privacy";
 import { legalTermsEn } from "./legal-terms";
+import { aboutEn } from "./about";
 // imports (scripts/i18n-split-en.mjs)
 
 export const english: Record<string, unknown> = {
@@ -56,5 +57,6 @@ export const english: Record<string, unknown> = {
   external: externalEn,
   legalPrivacy: legalPrivacyEn,
   legalTerms: legalTermsEn,
+  about: aboutEn,
   // entries (scripts/i18n-split-en.mjs)
 };

@@ -53,6 +53,7 @@ describe("sitemapEntries", () => {
   it("lists the internship and professional sections, but no external job's own page (#264)", () => {
     expect(urls).toContain("https://zhaogong.nz/internships");
     expect(urls).toContain("https://zhaogong.nz/professional");
+    expect(urls).toContain("https://zhaogong.nz/about"); // #324
     expect(urls.some((url) => url.includes("/external/"))).toBe(false);
   });
 

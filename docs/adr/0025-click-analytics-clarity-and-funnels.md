@@ -122,7 +122,7 @@
 
 名单：`/login`、`/account`、`/account/data`、`/messages`、`/notifications`、`/workspace`、`/profile`、`/profile/resume`、`/resume/[id]`、`/candidates/[id]`、`/me` 及其下面、`/admin`、`/employer/verify`、`/employer/team`、`/employer/jobs/[id]/applicants`。职位页上的联系方式块（`ContactReveal.tsx`）和申请表（`ApplyJob.tsx`）也套 `data-clarity-mask="true"`。
 
-**实习分区也不录（未满 18 岁，见「后果」的风险和「待用户」①）：** `/internships`，以及属于实习分区的外部职位页（`sectionOf(kind)` 是 `internship` 的 `/external/[id]`），做法跟上面一样分两层。这些页面的自建事件照记。用户确认以后可以放开。
+**实习分区也不录（未满 18 岁，见「后果」的风险和「待用户」①）：** `/internships`，以及属于实习分区的外部职位页（`sectionOf(kind)` 是 `internship` 的 `/external/[id]`），做法跟上面一样分两层。这些页面的自建事件照记。用户 10-20 确认：实习分区不开 Clarity。
 
 **数据留多久、谁能看**（微软的规定，[FAQ](https://learn.microsoft.com/en-us/clarity/faq)、[团队管理](https://learn.microsoft.com/en-us/clarity/setup-and-installation/team-management)）：
 - 录屏 30 天；收藏的录屏和随机抽样的录屏、热图最多 9 个月。
@@ -187,7 +187,7 @@ Clarity 在生产环境打开之前，隐私页必须已经写好、能打开，
   - **Cookie 有效期：** 微软没写 Clarity 各个 cookie 的有效期，隐私页只能写名字和用途。
   - **欧盟、英国、瑞士：** 微软从 2025-10-31 起对来自欧洲经济区、英国和瑞士的访问强制要求同意信号。我们一律先同意再加载、并发 v2 信号，不受影响。
 - **待用户：**
-  - ① 实习分区现在不录 Clarity；用户确认可以接受以后再放开。
+  - ① ~~实习分区要不要录 Clarity~~：用户 10-20 确认不开，结了。
   - ② 隐私页的写法。
   - ③ Clarity 项目由用户自己注册，把项目 ID 交给部署配置。
 

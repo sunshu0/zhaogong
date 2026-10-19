@@ -49,6 +49,8 @@ export function sitemapEntries(origin: string, jobs: Job[], employers: Employer[
     // The external jobs in them are imported once a day.
     { url: `${origin}/internships`, changeFrequency: "daily", priority: 0.7 },
     { url: `${origin}/professional`, changeFrequency: "daily", priority: 0.7 },
+    // 关于找工 (#324).
+    { url: `${origin}/about`, changeFrequency: "monthly", priority: 0.3 },
     ...open.map((job) => ({
       url: `${origin}/jobs/${job.id}`,
       lastModified: job.postedAt,
