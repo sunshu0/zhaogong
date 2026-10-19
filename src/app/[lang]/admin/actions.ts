@@ -4,7 +4,7 @@
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { matchJobAlerts } from "@/db/job-alerts";
 import { grantModerator, listModerators, revokeModerator, type Moderator } from "@/db/moderators";
-import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
+import { checkJob, type Finding } from "@/lib/compliance";
 import {
   addModerationLog,
   banEmployer,
@@ -18,7 +18,7 @@ import {
 } from "@/lib/data";
 import type { Employer, Job, ModerationLogEntry, Report } from "@/lib/types";
 import { refreshedDates } from "@/components/employer/job-status";
-import { describeAction, groupOpenReports } from "@/app/[lang]/admin/moderation";
+import { approveBlocker, describeAction, groupOpenReports } from "@/app/[lang]/admin/moderation";
 import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
 import { pick } from "@/i18n/messages";
 import { adminMessages } from "@/i18n/messages/admin";
@@ -108,9 +108,9 @@ export async function approveJob(jobId: string): Promise<AdminResult> {
   if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s || s.job.status !== "pending_review") return { ok: false, error_zh: (await words()).notPending };
-  if (s.employer?.bannedAt) return { ok: false, error_zh: (await words()).employerBanned };
   const findings = checkJob(s.job, s.job.country, s.employer);
-  if (!publishDecision(findings).canPublish) return { ok: false, error_zh: (await words()).stillBlocked };
+  const blocker = approveBlocker(s.employer, findings);
+  if (blocker) return { ok: false, error_zh: (await words())[blocker] };
   const approved = await updateJob(s.job.id, { status: "active", ...refreshedDates(Date.now(), s.job.expiresAt) });
   if (approved) await matchJobAlerts(approved); // now live: tell job seekers whose alerts it matches (#53)
   const entry = await addModerationLog({

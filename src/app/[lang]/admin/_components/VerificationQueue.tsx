@@ -80,6 +80,10 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false); // #183: no answer came; the ticks, reason and note stay
   const missing = missingChecks(checklist, checks);
+  // #295: approveVerification refuses a banned business; 通过 waits, and the reason is said before the checklist is
+  // worked through, not after.
+  const banned = !!employer?.bannedAt;
+  const whyNotId = `why-not-verify-${request.id}`;
   const run = (action: () => Promise<AdminResult>) => {
     setFailed(false);
     startTransition(async () => {
@@ -104,6 +108,11 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
         {employer?.bannedAt && <Tag kind="urgent">{t.banned}</Tag>}
         <span className="text-meta text-muted">{t.submitted(formatDate(request.submittedAt, lang, TIME))}</span>
       </div>
+      {banned && (
+        <p id={whyNotId} className="text-body text-danger">
+          {t.errors.banned}
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-control bg-background p-3 text-body">
@@ -183,8 +192,9 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
       ) : (
         <div ref={rejectOpenerRef} className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
           <Button
-            disabled={missing.length > 0}
+            disabled={missing.length > 0 || banned}
             loading={pending}
+            aria-describedby={banned ? whyNotId : undefined}
             onClick={() => run(() => approveVerification(request.id, checks))}
           >
             {t.approve}

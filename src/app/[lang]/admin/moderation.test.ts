@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { describeAction, groupOpenReports, moderatorLabel } from "@/app/[lang]/admin/moderation";
+import { approveBlocker, describeAction, groupOpenReports, moderatorLabel } from "@/app/[lang]/admin/moderation";
+import type { Finding } from "@/lib/compliance";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { ModerationLogEntry, Report } from "@/lib/types";
 
@@ -62,5 +63,24 @@ describe("moderatorLabel (#60)", () => {
     expect(moderatorLabel("mod@example.com")).toBe("mod@example.com");
     expect(moderatorLabel(DELETED_ACCOUNT)).toBe("已删除的审核员");
     expect(moderatorLabel(undefined)).toBe("（较早的记录，未记审核员）");
+  });
+});
+
+describe("approveBlocker (#295)", () => {
+  const finding = (level: Finding["level"]) => ({ level }) as Finding;
+
+  it("lets through a job with only review findings, or none, from an employer in good standing", () => {
+    expect(approveBlocker({}, [])).toBeUndefined();
+    expect(approveBlocker(undefined, [finding("review")])).toBeUndefined();
+  });
+
+  it("stops a banned employer's job first, whatever its findings", () => {
+    expect(approveBlocker({ bannedAt: "2026-10-19T00:00:00.000Z" }, [])).toBe("employerBanned");
+    expect(approveBlocker({ bannedAt: "2026-10-19T00:00:00.000Z" }, [finding("block")])).toBe("employerBanned");
+  });
+
+  it("stops a job that today's rules would not let be posted (a block or a rewrite)", () => {
+    expect(approveBlocker({}, [finding("review"), finding("block")])).toBe("stillBlocked");
+    expect(approveBlocker({}, [finding("rewrite")])).toBe("stillBlocked");
   });
 });

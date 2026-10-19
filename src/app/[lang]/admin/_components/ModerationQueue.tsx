@@ -20,7 +20,7 @@ import {
   type Refused,
 } from "@/app/[lang]/admin/actions";
 import { isFailed, ready, settle } from "@/app/[lang]/admin/load-state";
-import { moderatorLabel } from "@/app/[lang]/admin/moderation";
+import { approveBlocker, moderatorLabel } from "@/app/[lang]/admin/moderation";
 import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
@@ -227,6 +227,11 @@ function QueueCard({
   // Which field of the job a finding is about, named as the posting form names it (B's employer-post dictionary).
   const fieldNames: Record<string, string | undefined> = pick(employerPostMessages, lang).findings.fields;
   const { job, employer, findings } = item;
+  // #295: what approveJob would refuse, said under 通过, which waits: a banned employer, or a job today's rules still
+  // stop (the findings here are checked against them when the queue is read, as the server checks on 通过).
+  const blocker = approveBlocker(employer, findings);
+  const cannotApprove = blocker && t.errors[blocker];
+  const whyNotId = `why-not-approve-${job.id}`;
   const [pending, startTransition] = useTransition();
   // Which button was pressed, so only that one shows it is on its way.
   const [pressed, setPressed] = useState<string>();
@@ -323,8 +328,9 @@ function QueueCard({
           </Button>
         ) : (
           <Button
-            disabled={another("approve")}
+            disabled={another("approve") || !!cannotApprove}
             loading={busy("approve")}
+            aria-describedby={cannotApprove ? whyNotId : undefined}
             onClick={() => run("approve", () => approveJob(job.id))}
           >
             {t.queue.approve}
@@ -338,6 +344,11 @@ function QueueCard({
         >
           {t.queue.takeDown}
         </Button>
+        {!reports && cannotApprove && (
+          <p id={whyNotId} className="w-full text-meta text-danger">
+            {cannotApprove}
+          </p>
+        )}
         {/* Without the employer's record there is nobody to name or ban. */}
         <span ref={banOpenerRef} className="contents">
           {employer &&

@@ -4,7 +4,20 @@ import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { adminMessages } from "@/i18n/messages/admin";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
-import type { ModerationLogEntry, Report, ReportReason } from "@/lib/types";
+import { publishDecision, type Finding } from "@/lib/compliance";
+import type { Employer, ModerationLogEntry, Report, ReportReason } from "@/lib/types";
+
+/**
+ * Why 通过 would be refused for a job waiting for review (#295), one rule for approveJob and the queue's card: the
+ * employer is banned, or today's rules still stop the job. Undefined when it can be approved.
+ */
+export function approveBlocker(
+  employer: Pick<Employer, "bannedAt"> | undefined,
+  findings: Finding[],
+): "employerBanned" | "stillBlocked" | undefined {
+  if (employer?.bannedAt) return "employerBanned";
+  return publishDecision(findings).canPublish ? undefined : "stillBlocked";
+}
 
 export function ruleLabel(rule: string, lang: Lang = DEFAULT_LANG): string {
   const rules: Record<string, string> = pick(adminMessages, lang).rules;
