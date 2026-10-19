@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent, type RefObject } from "react";
 import type { ChatState } from "@/lib/ai-post";
 import type { CountryCode } from "@/lib/types";
@@ -94,6 +95,20 @@ export function ChatPost({
             {t.heading}
           </h1>
           {kind === "script" && <p className="-mt-2 mb-3 text-meta text-muted">{t.scriptAssistant}</p>}
+          {/* #342: before anything leaves for the model (the browser tests' fake stands in for it); never for the
+              script, which sends nothing. */}
+          {(kind === "claude" || kind === "fake") && (
+            <p className="-mt-2 mb-3 text-meta text-muted">
+              {t.sentAbroad}{" "}
+              <Link href="/privacy#share" className="text-brand underline underline-offset-4">
+                {t.sentAbroadPrivacy}
+              </Link>
+              {" · "}
+              <button type="button" onClick={onUseForm} className="text-brand underline underline-offset-4">
+                {t.sentAbroadForm}
+              </button>
+            </p>
+          )}
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
           {/* As tall as the conversation: no empty block before the first answers. */}
           <div role="log" aria-live="polite" aria-label={t.logLabel}>

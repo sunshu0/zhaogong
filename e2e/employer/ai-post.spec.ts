@@ -26,6 +26,9 @@ test("the model fills the job from the conversation, the rules still check it, a
   await page.goto("/employer/post");
   await expect(page.getByRole("heading", { name: "和发帖助手一起写招聘" })).toBeVisible();
   await expect(page.getByText("开发环境：脚本助手，不是 AI。")).toHaveCount(0);
+  // #342: before anything is sent, where it goes, the privacy page's §5, and the way out.
+  await expect(page.getByText("你发给助手的内容会送到美国的 Anthropic 处理。")).toBeVisible();
+  await expect(page.getByRole("link", { name: "隐私说明第 5 节" })).toHaveAttribute("href", "/privacy#share");
 
   const card = page.getByRole("region", { name: /职位卡/ });
   await sayInChat(page, `Mt Eden 川菜馆招${title}，时薪 18，兼职，学签可做，需会普通话`);
@@ -66,4 +69,23 @@ test("outside production without a key, the page says the script is answering, n
   await signUpEmployer(page, testInfo);
   await page.goto("/employer/post");
   await expect(page.getByText("开发环境：脚本助手，不是 AI。")).toBeVisible();
+  // The script sends nothing anywhere, so nothing is said about Anthropic (#342).
+  await expect(page.getByText(/Anthropic/)).toHaveCount(0);
+});
+
+test("the line about Anthropic links to the privacy page's §5 and offers the form instead (#342)", async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  await useFakeModel(page, baseURL);
+  await signUpEmployer(page, testInfo);
+  await page.goto("/employer/post");
+  await page.getByRole("button", { name: "不想发送就直接填表" }).click();
+  // With nothing written yet, 直接填表 opens on its paste step, which sends nothing either.
+  await expect(page.getByRole("button", { name: "直接填表", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { level: 1, name: "一分钟发布招聘" })).toBeVisible();
+  await page.goto("/employer/post");
+  await page.getByRole("link", { name: "隐私说明第 5 节" }).click();
+  await expect(page).toHaveURL(/\/privacy#share$/);
+  await expect(page.getByRole("heading", { level: 2, name: /^5\./ })).toBeVisible();
 });

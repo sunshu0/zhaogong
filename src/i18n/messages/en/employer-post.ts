@@ -88,6 +88,9 @@ export const employerPostEn: Messages<(typeof employerPostMessages)["zh"]> = {
   chat: {
     heading: "Write your job with the posting assistant",
     scriptAssistant: "Development: a script assistant, not AI.",
+    sentAbroad: "What you send the assistant is processed by Anthropic in the United States.",
+    sentAbroadPrivacy: "Privacy, section 5",
+    sentAbroadForm: "Fill in the form instead, which sends nothing",
     logLabel: "Chat with the posting assistant",
     fromAssistant: "Assistant:",
     fromYou: "You:",

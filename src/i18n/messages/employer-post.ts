@@ -101,6 +101,10 @@ const employerPostZh = {
   chat: {
     heading: "和发帖助手一起写招聘",
     scriptAssistant: "开发环境：脚本助手，不是 AI。",
+    // #342: said before anything is sent, when the model answers (privacy page §5 and §6, IPP 12(1)(a)).
+    sentAbroad: "你发给助手的内容会送到美国的 Anthropic 处理。",
+    sentAbroadPrivacy: "隐私说明第 5 节",
+    sentAbroadForm: "不想发送就直接填表",
     logLabel: "和发帖助手的对话",
     fromAssistant: "助手：",
     fromYou: "你：",
