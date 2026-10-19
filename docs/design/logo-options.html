@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>找工 Zhaogong · Logo 方案（3 个）</title>
+<!--
+  Design source (#18, 导师 10-20 01:0x): three logo options for 找工 Zhaogong, side by side, for the user to pick.
+  Nothing here replaces the site's icons yet. Colours are the site's tokens (docs/design-system.md).
+  The "工" in every mark is drawn with shapes, not typed, so no font file is involved. The wordmark text below is
+  shown in system fonts here; the chosen one is outlined from fonts whose licences allow it: Noto Sans SC (Source
+  Han Sans) for 找工 and Archivo for Zhaogong, both SIL Open Font License 1.1.
+-->
+<style>
+  :root { --bg:#f7f7f5; --surface:#fff; --fg:#1c1c1a; --muted:#6b6b66; --border:#e4e4df; --brand:#0f766e; --brand-soft:#e6f4f2; --warn-soft:#fef3e2; --warn:#b45309; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--fg); font-family: "PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif; line-height:1.55; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 24px; max-width:60rem; }
+  .options { display:grid; gap:20px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .option { background:var(--surface); border-radius:16px; padding:20px; box-shadow:0 1px 3px rgb(0 0 0 / .08); }
+  .option h2 { font-size:18px; margin:0 0 6px; }
+  .why { color:var(--muted); margin:0 0 16px; font-size:14px; }
+  .label { font-size:12px; color:var(--muted); margin:12px 0 6px; }
+  .panel { border-radius:12px; padding:18px; display:flex; align-items:center; justify-content:center; }
+  .light { background:var(--bg); border:1px solid var(--border); }
+  .dark { background:#1c1c1a; }
+  .row { display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap; }
+  .row figure { margin:0; text-align:center; font-size:11px; color:var(--muted); }
+  .row figure svg { display:block; margin:0 auto 4px; }
+  .tiny { image-rendering: pixelated; }
+  .wordmark { display:flex; align-items:center; gap:12px; }
+  .wordmark .zh { font-size:34px; font-weight:800; letter-spacing:.04em; line-height:1; }
+  .wordmark .en { font-family: Archivo, "Segoe UI", Arial, sans-serif; font-size:15px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; line-height:1; margin-top:6px; }
+  .light .zh { color:var(--fg); } .light .en { color:var(--brand); }
+  .dark .zh { color:#fff; } .dark .en { color:#9fd8d0; }
+  .notes { margin-top:24px; font-size:13px; color:var(--muted); max-width:60rem; }
+</style>
+</head>
+<body>
+<h1>找工 Zhaogong · Logo 方案</h1>
+<p class="lead">三个方案都用网站现在的品牌青绿（#0f766e）和「橱窗招工启事」的风格；每个方案下面依次是：主标志（浅底、深底），只有图形的方块版（手机和桌面图标 512 / 192、apple-touch-icon 180），浏览器小图标（按真实大小 32 和 16 px 显示）。都没有用银蕨、奇异鸟或国旗。</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- 工, drawn: a short top bar, a stem, a wider bottom bar. 100 × 100 box. -->
+    <symbol id="gong" viewBox="0 0 100 100">
+      <rect x="24" y="22" width="52" height="13" rx="2"/>
+      <rect x="43.5" y="22" width="13" height="56"/>
+      <rect x="14" y="66" width="72" height="13" rx="2"/>
+    </symbol>
+
+    <!-- A · 告示卡: a notice taped to the window, tilted a little, with 工 on it. -->
+    <symbol id="a-mark" viewBox="0 0 100 100">
+      <g transform="rotate(-6 50 52)">
+        <rect x="18" y="16" width="64" height="72" rx="6" fill="#fff" stroke="#0f766e" stroke-width="4"/>
+        <use href="#gong" x="26" y="30" width="48" height="48" fill="#0f766e"/>
+      </g>
+      <rect x="38" y="9" width="24" height="11" rx="2" fill="#fef3e2" stroke="#b45309" stroke-width="1.5" transform="rotate(4 50 14)"/>
+    </symbol>
+    <symbol id="a-icon" viewBox="0 0 100 100">
+      <rect width="100" height="100" rx="22" fill="#0f766e"/>
+      <g transform="rotate(-6 50 54)">
+        <rect x="22" y="20" width="56" height="64" rx="6" fill="#fff"/>
+        <use href="#gong" x="29" y="33" width="42" height="42" fill="#0f766e"/>
+      </g>
+      <rect x="40" y="13" width="20" height="10" rx="2" fill="#fef3e2" transform="rotate(4 50 18)"/>
+    </symbol>
+    <!-- At 32 and 16 px the card and tape would be mush: the small icon keeps only 工 on the brand square. -->
+    <symbol id="a-fav" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="#0f766e"/>
+      <use href="#gong" x="3" y="3" width="26" height="26" fill="#fff"/>
+    </symbol>
+
+    <!-- B · 橱窗: 工 standing in a shop window. The bars stop short of the frame: touching it, they read as 日 or 目. -->
+    <symbol id="b-mark" viewBox="0 0 100 100">
+      <rect x="10" y="10" width="80" height="80" rx="10" fill="#e6f4f2" stroke="#0f766e" stroke-width="8"/>
+      <rect x="31" y="28" width="38" height="10" rx="2" fill="#0f766e"/>
+      <rect x="45" y="28" width="10" height="44" fill="#0f766e"/>
+      <rect x="24" y="62" width="52" height="10" rx="2" fill="#0f766e"/>
+    </symbol>
+    <symbol id="b-icon" viewBox="0 0 100 100">
+      <rect width="100" height="100" rx="22" fill="#0f766e"/>
+      <rect x="18" y="18" width="64" height="64" rx="8" fill="none" stroke="#fff" stroke-width="7"/>
+      <rect x="36" y="33" width="28" height="8" rx="1.5" fill="#fff"/>
+      <rect x="46" y="33" width="8" height="34" fill="#fff"/>
+      <rect x="31" y="59" width="38" height="8" rx="1.5" fill="#fff"/>
+    </symbol>
+    <symbol id="b-fav" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="#0f766e"/>
+      <rect x="4.5" y="4.5" width="23" height="23" rx="3" fill="none" stroke="#fff" stroke-width="2.5"/>
+      <rect x="11" y="10" width="10" height="2.6" fill="#fff"/>
+      <rect x="14.7" y="10" width="2.6" height="11" fill="#fff"/>
+      <rect x="9.5" y="19" width="13" height="2.6" fill="#fff"/>
+    </symbol>
+
+    <!-- C · 放大镜: 工 in a magnifying glass, 找 = looking for. -->
+    <symbol id="c-mark" viewBox="0 0 100 100">
+      <circle cx="42" cy="42" r="29" fill="#e6f4f2" stroke="#0f766e" stroke-width="9"/>
+      <use href="#gong" x="22" y="22" width="40" height="40" fill="#0f766e"/>
+      <line x1="64" y1="64" x2="86" y2="86" stroke="#0f766e" stroke-width="12" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="c-icon" viewBox="0 0 100 100">
+      <rect width="100" height="100" rx="22" fill="#0f766e"/>
+      <circle cx="45" cy="45" r="24" fill="none" stroke="#fff" stroke-width="8"/>
+      <use href="#gong" x="29" y="29" width="32" height="32" fill="#fff"/>
+      <line x1="63" y1="63" x2="80" y2="80" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+    </symbol>
+    <!-- Small: a heavier ring and handle; 工 inside stays two clear bars and a stem down to 16 px. -->
+    <symbol id="c-fav" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="7" fill="#0f766e"/>
+      <circle cx="14" cy="14" r="8.5" fill="none" stroke="#fff" stroke-width="3"/>
+      <rect x="10" y="10" width="8" height="2.2" fill="#fff"/>
+      <rect x="12.9" y="10" width="2.2" height="8" fill="#fff"/>
+      <rect x="9" y="16" width="10" height="2.2" fill="#fff"/>
+      <line x1="20.5" y1="20.5" x2="26" y2="26" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="options">
+  <section class="option" aria-labelledby="a-title">
+    <h2 id="a-title">方案 A · 告示卡</h2>
+    <p class="why">一张略微倾斜、贴着胶带的招工启事，上面一个「工」字，直接接上首页「橱窗告示」的样子，用户在首页看到的和图标是同一样东西。小图标放不下卡片和胶带，只留青绿方块上的「工」。</p>
+    <div class="label">主标志 · 浅底</div>
+    <div class="panel light"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 A"><use href="#a-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">主标志 · 深底</div>
+    <div class="panel dark"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 A 深底"><use href="#a-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">方块图标 · 小图标（按真实大小）</div>
+    <div class="row">
+      <figure><svg width="128" height="128" role="img" aria-label="512 图标 A"><use href="#a-icon"/></svg>512（缩小显示）</figure>
+      <figure><svg width="96" height="96" role="img" aria-label="192 图标 A"><use href="#a-icon"/></svg>192（缩小）</figure>
+      <figure><svg width="60" height="60" role="img" aria-label="apple-touch-icon A"><use href="#a-icon"/></svg>180（缩小）</figure>
+      <figure><svg class="tiny" width="32" height="32" role="img" aria-label="32 小图标 A"><use href="#a-fav"/></svg>32</figure>
+      <figure><svg class="tiny" width="16" height="16" role="img" aria-label="16 小图标 A"><use href="#a-fav"/></svg>16</figure>
+    </div>
+    <div class="label">小图标放在深色和浅色标签栏上</div>
+    <div class="row">
+      <div class="panel light" style="padding:8px"><svg width="16" height="16"><use href="#a-fav"/></svg></div>
+      <div class="panel dark" style="padding:8px"><svg width="16" height="16"><use href="#a-fav"/></svg></div>
+    </div>
+  </section>
+
+  <section class="option" aria-labelledby="b-title">
+    <h2 id="b-title">方案 B · 橱窗</h2>
+    <p class="why">一扇橱窗，窗里立着一个「工」：「橱窗招工启事」浓缩成一个图形。线条横平竖直，缩到 16 px 还是一个窗框加一个「工」。（最早试过让窗棂直接连到窗框，但那样看起来像「日」或「目」，所以横笔和窗框之间留了空。）</p>
+    <div class="label">主标志 · 浅底</div>
+    <div class="panel light"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 B"><use href="#b-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">主标志 · 深底</div>
+    <div class="panel dark"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 B 深底"><use href="#b-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">方块图标 · 小图标（按真实大小）</div>
+    <div class="row">
+      <figure><svg width="128" height="128" role="img" aria-label="512 图标 B"><use href="#b-icon"/></svg>512（缩小显示）</figure>
+      <figure><svg width="96" height="96" role="img" aria-label="192 图标 B"><use href="#b-icon"/></svg>192（缩小）</figure>
+      <figure><svg width="60" height="60" role="img" aria-label="apple-touch-icon B"><use href="#b-icon"/></svg>180（缩小）</figure>
+      <figure><svg class="tiny" width="32" height="32" role="img" aria-label="32 小图标 B"><use href="#b-fav"/></svg>32</figure>
+      <figure><svg class="tiny" width="16" height="16" role="img" aria-label="16 小图标 B"><use href="#b-fav"/></svg>16</figure>
+    </div>
+    <div class="label">小图标放在深色和浅色标签栏上</div>
+    <div class="row">
+      <div class="panel light" style="padding:8px"><svg width="16" height="16"><use href="#b-fav"/></svg></div>
+      <div class="panel dark" style="padding:8px"><svg width="16" height="16"><use href="#b-fav"/></svg></div>
+    </div>
+  </section>
+
+  <section class="option" aria-labelledby="c-title">
+    <h2 id="c-title">方案 C · 放大镜</h2>
+    <p class="why">镜片里一个「工」字：「找工」就是找工作，意思最直白，第一次见的人也看得懂。缺点是放大镜是很常见的搜索符号，辨识度不如 A、B；小图标把镜框和手柄加粗，保证 16 px 还能认出来。</p>
+    <div class="label">主标志 · 浅底</div>
+    <div class="panel light"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 C"><use href="#c-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">主标志 · 深底</div>
+    <div class="panel dark"><div class="wordmark"><svg width="64" height="64" role="img" aria-label="找工 标志 C 深底"><use href="#c-mark"/></svg><div><div class="zh">找工</div><div class="en">Zhaogong</div></div></div></div>
+    <div class="label">方块图标 · 小图标（按真实大小）</div>
+    <div class="row">
+      <figure><svg width="128" height="128" role="img" aria-label="512 图标 C"><use href="#c-icon"/></svg>512（缩小显示）</figure>
+      <figure><svg width="96" height="96" role="img" aria-label="192 图标 C"><use href="#c-icon"/></svg>192（缩小）</figure>
+      <figure><svg width="60" height="60" role="img" aria-label="apple-touch-icon C"><use href="#c-icon"/></svg>180（缩小）</figure>
+      <figure><svg class="tiny" width="32" height="32" role="img" aria-label="32 小图标 C"><use href="#c-fav"/></svg>32</figure>
+      <figure><svg class="tiny" width="16" height="16" role="img" aria-label="16 小图标 C"><use href="#c-fav"/></svg>16</figure>
+    </div>
+    <div class="label">小图标放在深色和浅色标签栏上</div>
+    <div class="row">
+      <div class="panel light" style="padding:8px"><svg width="16" height="16"><use href="#c-fav"/></svg></div>
+      <div class="panel dark" style="padding:8px"><svg width="16" height="16"><use href="#c-fav"/></svg></div>
+    </div>
+  </section>
+</div>
+
+<div class="notes">
+  <p><strong>说明：</strong>图形里的「工」都是用方块画的，不依赖任何字体。字标「找工 Zhaogong」这里先用系统字体显示；选定以后，中文从思源黑体（Noto Sans SC）、英文从 Archivo 转成路径，两者都是 SIL Open Font License 1.1，允许嵌入和转曲。方块图标留了足够的边距，也能直接做 Android 的 maskable 图标。选定以后再生成 512、192、180、32、16 的 PNG 替换 <code>public/icons</code>，现在一个都没换。</p>
+</div>
+</body>
+</html>
