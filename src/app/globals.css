@@ -231,3 +231,13 @@ body {
   /* Full-bleed bands are 100vw wide, which includes a classic scrollbar; never let that scroll sideways. */
   overflow-x: clip;
 }
+
+/*
+ * #356: an iPhone zooms the page into a text field whose text is under 16 px, and stays zoomed. Every field that
+ * takes typing is 16 px or more, whatever size class it carries (outside any layer, so it wins over utilities).
+ */
+input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"]),
+textarea,
+select {
+  font-size: max(1rem, 1em);
+}
