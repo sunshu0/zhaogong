@@ -10,16 +10,17 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
     "What personal information we collect, why, who sees it, how long we keep it, and how you can see, correct and delete it.",
   updated: "Last updated: 20 October 2026",
   placeholders:
-    "Text in square brackets (such as [Operator name]) is not decided yet and will be filled in before launch.",
+    "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
   sections: [
     {
       id: "who",
       heading: "1. Who collects your information",
       body: [
-        'This site is run by [Operator name] ([Operator address]). "We" below means the operator.',
-        "We do business in New Zealand and serve people in New Zealand, so we follow New Zealand's Privacy Act 2020. Under section 4 of that Act it applies even if the operator or the information is outside New Zealand.",
-        "Our privacy officer is [Privacy officer's name or role], at [Privacy contact email]. Contact the privacy officer to see, correct or delete your information, or to complain.",
+        'This site is run by [Company name] ([Company address]), a company registered in China. "We" below means that company.',
+        "We do business in New Zealand and serve people in New Zealand, so we follow New Zealand's Privacy Act 2020. Under section 4 of that Act it applies even if the company or the information is outside New Zealand.",
+        "Our staff in China access the site's data (section 6). That is handling personal information within China, so we also follow China's Personal Information Protection Law (Article 3). Section 11 says what rights that law gives you and how to use them.",
+        "Our privacy officer is [Privacy officer's name or role], at [Privacy contact email]. Contact the privacy officer to see, copy, correct or delete your information, to withdraw consent, or to complain; under the Personal Information Protection Law this is also the personal information handler's contact.",
       ],
     },
     {
@@ -83,6 +84,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Members of the same business's team: the business's chats, its jobs and who posted them.",
             "Moderators: the content involved when they handle reports and review jobs and business verification.",
             "Providers who store and process data for us: hosting and the database ([Hosting and database providers]). They only keep and process it on our behalf, not for their own use; under section 11 of the Privacy Act 2020 this is not a disclosure to them.",
+            "Our staff in China: when needed to run and maintain the site, deal with reports and reviews, and answer your requests (section 6).",
             "AI posting: when an employer posts a job by chatting, the conversation and the job draft (including contact details the employer chooses to make public) are sent to Anthropic's model to be put in order. Anthropic processes them in the United States. Nothing is sent if you don't post by chatting.",
             "If the law requires it, or to prevent a serious threat to someone's safety, we may give information to the authorities (information privacy principle 11).",
           ],
@@ -93,9 +95,10 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
       id: "where",
       heading: "6. Where it is kept, and whether it leaves New Zealand",
       body: [
-        "The site's data is kept in [Where the data is kept], by [Hosting and database providers].",
-        "[Cross-border note: if the data is kept outside New Zealand, or the operator is outside New Zealand, this says which country and why, and how the recipient protects your information to standards comparable to the Privacy Act 2020 (information privacy principle 12).]",
-        "AI posting content is processed by Anthropic in the United States (section 5).",
+        "The site's data is kept on cloud servers in Australia (Sydney), held for us by [Hosting and database providers].",
+        "Staff of the company in China can access this data, to run and maintain the site, deal with reports and reviews, and answer your requests.",
+        "Under section 11 of the Privacy Act 2020, information a provider holds for us is treated as held by us, and our own staff using it is our use of it, not a disclosure to anyone else. So neither is a disclosure overseas under information privacy principle 12, but we remain fully responsible for your information, use and protect it as this page says, and only let staff who need it for their work access it.",
+        "AI posting content is processed by Anthropic in the United States (section 5). United States law may not protect personal information as fully as New Zealand's does; if you don't want that, post the job by pasting or filling in the form, which sends nothing.",
       ],
     },
     {
@@ -164,8 +167,26 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
       ],
     },
     {
+      id: "pipl",
+      heading: "11. Your rights under China's Personal Information Protection Law",
+      body: [
+        "Because we handle your information within China (section 1), you can also use these rights under Chapter IV of the Personal Information Protection Law. Write to the privacy officer; there is no charge:",
+        {
+          list: [
+            "To know how we handle your information, decide whether to agree to it, and restrict or refuse our handling of it, unless the law provides otherwise (Article 44).",
+            "To see and copy your information, and, where the conditions set by the national cyberspace authority are met, to have it moved to another handler you name (Article 45).",
+            "To have inaccurate or incomplete information corrected or completed (Article 46).",
+            "Deletion: we must delete your information ourselves when the purpose has been achieved, cannot be achieved or no longer needs it; when we stop the service or the retention period has ended; when you withdraw consent; or when we handle it against the law or our agreement. If we have not, you can ask us to (Article 47).",
+            "To withdraw consent you gave at any time; this does not affect what was done before (Article 15). Deleting your account is the most direct way.",
+            "To ask us to explain the rules for handling information on this page (Article 48).",
+          ],
+        },
+        "We deal with requests promptly, and give our reasons if we refuse (Article 50); under New Zealand law we also answer within 20 working days (section 10). If we refuse a request, you can bring proceedings in a People's Court, or complain to New Zealand's Privacy Commissioner as section 14 says.",
+      ],
+    },
+    {
       id: "security",
-      heading: "11. How we protect it",
+      heading: "12. How we protect it",
       body: [
         "Sign-in codes and tokens are stored only as hashes; the sign-in, language and visitor cookies cannot be read by scripts on the page; contact details are shown to signed-in job seekers as each employer chooses, and every view is recorded; only moderators can open the moderation pages (information privacy principle 5).",
         "If a privacy breach happens that could cause serious harm, we will tell the Privacy Commissioner and the people affected as soon as we can (sections 114 and 115).",
@@ -173,16 +194,16 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
     },
     {
       id: "age",
-      heading: "12. Young people",
+      heading: "13. Young people",
       body: [
         "You must be 16 or older to use this site (see the terms of use). Young people have the same rights to see and correct their information as adults. If you think we hold information about someone under 16, contact the privacy officer.",
       ],
     },
     {
       id: "complain",
-      heading: "13. Complaints",
+      heading: "14. Complaints",
       body: [
-        "If you think we have mishandled your information, please write to the privacy officer first and we will reply as soon as we can. If you are not satisfied, you can complain to New Zealand's Privacy Commissioner (section 70 of the Privacy Act 2020).",
+        "If you think we have mishandled your information, please write to the privacy officer first and we will reply as soon as we can. If you are not satisfied, you can complain to New Zealand's Privacy Commissioner (section 70 of the Privacy Act 2020). Under the Personal Information Protection Law, if we refuse a request to use your rights, you can also bring proceedings in a People's Court (Article 50).",
         {
           links: [
             {
@@ -195,10 +216,9 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
     },
     {
       id: "changes",
-      heading: "14. Changes to this page",
+      heading: "15. Changes to this page",
       body: [
         "When we change this page we update the date at the top; if a change affects your rights or how we use information, we will tell you on the site before it takes effect.",
-        "[If the operator is in China, the content required by China's Personal Information Protection Law and related rules is added here.]",
       ],
     },
   ],

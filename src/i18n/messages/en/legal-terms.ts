@@ -10,14 +10,14 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
     "The rules for using this site: what it is and isn't, the laws job ads must follow, what is not allowed, reporting, accounts and liability.",
   updated: "Last updated: 20 October 2026",
   placeholders:
-    "Text in square brackets (such as [Operator name]) is not decided yet and will be filled in before launch.",
+    "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
   sections: [
     {
       id: "about",
       heading: "1. About these terms",
       body: [
-        'This site is run by [Operator name] ([Operator address]). "We" below means the operator, and "you" means anyone using the site, job seekers and employers alike.',
+        'This site is run by [Company name] ([Company address]). "We" below means the operator, and "you" means anyone using the site, job seekers and employers alike.',
         "By using the site you agree to these terms and to the privacy page. If you don't agree, please don't use the site.",
       ],
     },
@@ -139,14 +139,19 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
       id: "law",
       heading: "11. Governing law",
       body: [
-        "[Governing law and jurisdiction: once the operator is settled, which country's law governs these terms and which courts hear disputes.]",
-        "Whatever law governs, New Zealand's mandatory rules protecting consumers, workers and job seekers still apply to users in New Zealand.",
+        "These terms are governed by New Zealand law. Disputes about these terms or the use of this site are dealt with by the courts of New Zealand or the Disputes Tribunal.",
+        "New Zealand's mandatory rules protecting consumers, workers and job seekers apply to users in New Zealand.",
+        {
+          links: [
+            { label: "Disputes Tribunal (disputestribunal.govt.nz)", href: "https://www.disputestribunal.govt.nz/" },
+          ],
+        },
       ],
     },
     {
       id: "contact",
       heading: "12. Contact us",
-      body: ["[Operator name], [Operator address], [Contact email]."],
+      body: ["[Company name], [Company address], [Contact email]."],
     },
   ],
 };
