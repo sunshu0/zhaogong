@@ -3,6 +3,7 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
+import { inputClass } from "@/components/ui/input-class";
 import { TEAM_NAME_MAX } from "@/components/employer/team";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
@@ -12,7 +13,8 @@ import { setIdentity } from "@/components/seeker/session-client";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { busyProps } from "@/components/ui/busy";
 
-const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
+// #257: the shared text box, 16px so phones do not zoom in.
+const INPUT = inputClass();
 
 /**
  * 团队邀请 on 我的 (#87): businesses that invited this account. Accepting, with the name the team will see, opens the

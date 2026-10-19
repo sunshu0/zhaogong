@@ -14,6 +14,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { busyProps } from "@/components/ui/busy";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { inputClass } from "@/components/ui/input-class";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -32,7 +33,8 @@ const whenOptions = (lang: Lang): Intl.DateTimeFormatOptions => ({
   minute: "2-digit",
 });
 
-const INPUT = "h-11 w-full rounded-control border border-border bg-surface px-3";
+// #257: the shared text box, 16px so phones do not zoom in.
+const INPUT = inputClass();
 
 /**
  * 企业验证 (#78): find the company in the business register, say who is applying and give the company's phone, then
@@ -250,7 +252,7 @@ function ApplyForm({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.queryPlaceholder}
-            className="h-11 min-w-0 flex-1 rounded-control border border-border bg-surface px-3"
+            className={`${inputClass()} min-w-0 flex-1`}
           />
           {/* #202: disabled only while there is nothing to search for; a search on its way keeps the focus. */}
           <Button type="submit" loading={pending && !chosen} disabled={!query.trim()} {...busyProps(pending)}>

@@ -19,6 +19,23 @@ test.use({ reducedMotion: "reduce" });
 
 // axe on every employer and moderation page, in the states people actually see, at 375 px and
 // 1280 px (the two projects). WCAG 2.1 A and AA, no exceptions.
+/**
+ * #257: every visible text box in `scope` has text of 16px or more, so iPhone does not zoom in when it is focused.
+ * Measured on the phone project, where the body text is 14-15px.
+ */
+async function expectNoZoomOnFocus(page: Page, scope: string, state: string) {
+  const small = await page.locator(scope).evaluate((root) =>
+    Array.from(root.querySelectorAll<HTMLElement>("input:not([type=checkbox]):not([type=radio]), textarea"))
+      .filter((box) => box.offsetParent !== null)
+      .map((box) => ({
+        name: box.id || box.getAttribute("aria-label") || box.outerHTML.slice(0, 60),
+        px: parseFloat(getComputedStyle(box).fontSize),
+      }))
+      .filter((box) => box.px < 16),
+  );
+  expect(small, `text boxes under 16px on ${state}`).toEqual([]);
+}
+
 async function expectNoViolations(page: Page, state: string) {
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -104,6 +121,8 @@ test("employer home, manage jobs and verification", async ({ page }, testInfo) =
   // The signed-in shop's own NZBN is also in the header, so wait for the result line itself.
   await expect(page.getByText("NZBN 9429000000001 · 商号：川味小馆").filter({ visible: true })).toBeVisible();
   await expectNoViolations(page, "/employer/verify with results");
+  await page.getByRole("button", { name: "这是我的公司", disabled: false }).first().click();
+  await expectNoZoomOnFocus(page, "main", "/employer/verify with the form open");
 
   // 团队 (#87): the admin's view, with the invite form.
   await page.goto("/employer/team");
@@ -152,6 +171,7 @@ test("before the first job, then a job's own pages: edit, applicants and the int
   await expect(applicant.getByRole("form", { name: "约林晓面试" })).toBeVisible();
   // #248: the form took the place of the pressed button, and its focus.
   await expect(applicant.getByRole("form", { name: "约林晓面试" }).locator(":focus")).toHaveCount(1);
+  await expectNoZoomOnFocus(page, "main", "the interview form");
   await expectNoViolations(page, "/employer/jobs/[id]/applicants with the interview form");
 
   await page.goto(`/employer/jobs/${jobId}/stats`);

@@ -19,6 +19,7 @@ import {
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { SkeletonList } from "@/components/ui/Skeleton";
+import { inputClass } from "@/components/ui/input-class";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { Section } from "@/components/ui/Section";
@@ -134,7 +135,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={t.searchPlaceholder}
-                  className="h-11 w-full rounded-control border border-border bg-surface px-3 focus:border-brand"
+                  className={inputClass()}
                 />
               </label>
               <Select

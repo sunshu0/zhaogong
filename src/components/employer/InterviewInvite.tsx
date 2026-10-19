@@ -20,10 +20,9 @@ import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { toast } from "@/components/ui/Toast";
 import { busyProps } from "@/components/ui/busy";
+import { inputClass } from "@/components/ui/input-class";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
-
-const inputClass = "w-full rounded-control border border-border bg-background px-3 text-body focus:border-brand";
 
 /**
  * 约面试 on an applicant (#103): the business's invitation as it stands, and the form to send or change it. Any
@@ -204,7 +203,7 @@ function InviteForm({
                     min={min}
                     value={time}
                     onChange={(event) => setTimes(times.map((t, j) => (j === i ? event.target.value : t)))}
-                    className={`${inputClass} h-11`}
+                    className={inputClass()}
                   />
                 </label>
                 {times.length > 1 && (
@@ -246,7 +245,7 @@ function InviteForm({
             maxLength={PLACE_MAX}
             onChange={(event) => setPlace(event.target.value)}
             placeholder={t.placePlaceholder}
-            className={`${inputClass} h-11`}
+            className={inputClass()}
           />
         </label>
       </div>
@@ -257,7 +256,7 @@ function InviteForm({
           value={note}
           maxLength={INTERVIEW_NOTE_MAX}
           onChange={(event) => setNote(event.target.value)}
-          className={`${inputClass} py-2`}
+          className={inputClass({ multiline: true })}
         />
       </label>
       <p className="text-meta text-muted">{t.noContactNote}</p>
