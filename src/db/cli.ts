@@ -17,7 +17,7 @@ import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 import { ensureAccount } from "@/lib/data";
 import { isValidEmail } from "@/components/seeker/session";
 import { retireDemoExternalJobs, runDemoImport } from "@/lib/external-jobs/demo-import";
-import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
+import { importExternalJobs, importSummary, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { politeFetcher } from "@/lib/external-jobs/polite-fetch";
 
 const USAGE =
@@ -81,6 +81,7 @@ async function importExternal(args: string[]): Promise<number> {
       for (const job of r.jobs) console.log(`  ${JSON.stringify(job)}`);
     }
   }
+  console.log(importSummary(reports));
   return reports.some((r) => r.status === "failed") ? 1 : 0;
 }
 

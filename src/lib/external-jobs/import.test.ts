@@ -6,7 +6,7 @@ import { sql } from "drizzle-orm";
 import { EXTERNAL_COMPANIES, importAllowed, type ExternalCompany } from "@/config/external-companies";
 import { getExternalJob, listExternalJobs as listAll, setExternalReview } from "@/db/external-jobs";
 import { database } from "@/db/ready";
-import { importExternalJobs, takeDownUnlisted } from "@/lib/external-jobs/import";
+import { importExternalJobs, importSummary, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { parseAshby, parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
 
@@ -336,5 +336,37 @@ describe("external job import (#111)", () => {
       }
     }
     expect(new Set(EXTERNAL_COMPANIES.map((c) => c.id)).size).toBe(EXTERNAL_COMPANIES.length);
+  });
+});
+
+describe("the import's last line (#294)", () => {
+  const imported = (company: string, added: number, backToReview: number, removed: number) =>
+    ({ company, status: "imported", inFeed: 10, kept: 5, added, updated: 1, backToReview, removed }) as const;
+
+  it("adds up the companies read and what changed, and says where new jobs wait", () => {
+    expect(
+      importSummary([
+        imported("a", 2, 1, 0),
+        imported("b", 0, 0, 3),
+        { company: "c", status: "failed", error: "HTTP 503" },
+        { company: "d", status: "terms_not_checked", takenDown: 1 },
+        { company: "e", status: "stopped", kind: "takedown" },
+        { company: "gone", status: "unlisted", takenDown: 2 },
+      ]),
+    ).toBe(
+      "Read 2 of 5 companies, 1 could not be read: 2 new, 1 back to review, 6 taken down. 3 wait for a moderator: /admin, 外部职位.",
+    );
+  });
+
+  it("says nothing waits when nothing is new, and counts a dry run on its own", () => {
+    expect(importSummary([imported("a", 0, 0, 0)])).toBe(
+      "Read 1 of 1 companies: 0 new, 0 back to review, 0 taken down.",
+    );
+    expect(
+      importSummary([
+        { company: "a", status: "dry_run", inFeed: 4, jobs: [{} as never, {} as never] },
+        { company: "b", status: "dry_run", inFeed: 1, jobs: [] },
+      ]),
+    ).toBe("Dry run: read 2 companies, 2 jobs would be kept. Nothing was stored.");
   });
 });

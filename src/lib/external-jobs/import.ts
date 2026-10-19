@@ -78,6 +78,38 @@ export async function importExternalJobs({
  * companies on the list, so without this a removed company's approved jobs would show until their last refresh is
  * 2 days old. The demo's made-up companies (`demo-…`, src/mock/external-jobs.ts) are never on the list and stay.
  */
+/**
+ * The last line of `npm run import:external` (#294): how many companies on the list were read and how many could
+ * not be, what changed, and where the new jobs wait. A company stopped or with unchecked terms is on the list but
+ * not read; one taken off the list only adds its jobs taken down.
+ */
+export function importSummary(reports: CompanyReport[]): string {
+  const listed = reports.filter((r) => r.status !== "unlisted");
+  if (listed.length > 0 && listed.every((r) => r.status === "dry_run")) {
+    const kept = listed.reduce((n, r) => n + (r.status === "dry_run" ? r.jobs.length : 0), 0);
+    return `Dry run: read ${listed.length} companies, ${kept} jobs would be kept. Nothing was stored.`;
+  }
+  let read = 0;
+  let failed = 0;
+  let added = 0;
+  let back = 0;
+  let down = 0;
+  for (const r of reports) {
+    if (r.status === "imported") {
+      read += 1;
+      added += r.added;
+      back += r.backToReview;
+      down += r.removed;
+    } else if (r.status === "failed") failed += 1;
+    else if (r.status === "terms_not_checked" || r.status === "unlisted") down += r.takenDown;
+  }
+  const readPart = `Read ${read} of ${listed.length} companies${failed > 0 ? `, ${failed} could not be read` : ""}`;
+  const changes = `${added} new, ${back} back to review, ${down} taken down`;
+  const waiting = added + back;
+  const where = waiting > 0 ? ` ${waiting} wait for a moderator: /admin, 外部职位.` : "";
+  return `${readPart}: ${changes}.${where}`;
+}
+
 export async function takeDownUnlisted(listed: ExternalCompany[], now = new Date()): Promise<CompanyReport[]> {
   const onList = new Set(listed.map((c) => c.id));
   const up = (await listExternalJobs()).filter((job) => job.removedAt == null);
