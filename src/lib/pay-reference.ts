@@ -1,6 +1,7 @@
 // 时薪参考 (#85, PRD R-36): what jobs of the same industry pay, from the platform's own open jobs only. No outside
 // data, and nothing about visa or immigration pay thresholds.
 import { COUNTRIES, regionById } from "@/config/countries";
+import { pick } from "@/i18n/messages";
 import { uiMessages } from "@/i18n/messages/ui";
 import type { CountryCode, Industry, Job } from "@/lib/types";
 
@@ -71,7 +72,8 @@ export function payReference(
 
 /** 「全奥克兰」 / All of Auckland for Auckland; the country's own name when the region has no area. */
 function areaName(country: CountryCode, area: string | undefined, lang: "zh" | "en"): string {
-  const t = uiMessages[lang].payReference;
+  // The English side lives apart since #240: pick() finds it.
+  const t = pick(uiMessages, lang).payReference;
   if (area === "Auckland") return t.wholeAuckland;
   if (area) return t.wholeCity(area);
   return lang === "en" ? COUNTRIES[country].nameEn : COUNTRIES[country].nameZh;

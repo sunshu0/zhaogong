@@ -6,6 +6,7 @@ import { useNotifications } from "@/components/seeker/hub-client";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 import { useMessages } from "@/i18n/client";
+import type { Messages } from "@/i18n/messages";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 
 type NavItem = { href: string; label: string };
@@ -35,7 +36,7 @@ function workspaceNav(isEmployer: boolean, t: WorkspaceWords): NavItem[] {
   ];
 }
 
-type WorkspaceWords = (typeof seekerMeMessages)["en"]["workspace"];
+type WorkspaceWords = Messages<(typeof seekerMeMessages)["zh"]>["workspace"];
 
 // The current page: brand and semibold on the brand's soft colour (Round 19, like a chosen option).
 const ACTIVE = "bg-brand-soft font-semibold text-brand";
