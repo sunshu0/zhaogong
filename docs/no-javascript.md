@@ -14,9 +14,9 @@
 - 隐藏带 `data-nojs-hide` 的加载占位。
 - Tailwind 的 preflight 在 `@layer base` 里用 `!important` 隐藏 `[hidden]`。规则写在更早的 `@layer theme` 里，才能压过它。
 
-用到的页面：`/jobs`、`/jobs/[id]`、`/employers/[id]`、`/login`。首页另有 `NoScriptLanding`，在 `<noscript>` 里直接给出平台数据和精选职位，不用这套样式。
+用到的页面：`/jobs`、`/jobs/[id]`、`/employers/[id]`、`/login`、`/resume/[id]`、实习和专业职位（`/internships`、`/professional`，在 `ExternalSectionPage.tsx` 里）、`/external/[id]`，以及整个 `/employer`（在 `src/app/[lang]/employer/layout.tsx` 里）。首页另有 `NoScriptLanding`，在 `<noscript>` 里直接给出平台数据和精选职位，不用这套样式。
 
-浏览器测试：`e2e/no-js.spec.ts`（`javaScriptEnabled: false`）。
+浏览器测试：`e2e/no-js.spec.ts`（`javaScriptEnabled: false`），测职位列表、职位页、企业主页、登录、实习分区和外部职位页。
 
 ## 仍然需要 JavaScript 的部分
 
