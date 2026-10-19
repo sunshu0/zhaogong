@@ -20,6 +20,7 @@ const accountZh = {
     checkFailed: "暂时无法核对雇主身份，请稍后重试。",
   },
   signOut: "退出登录",
+  signOutFailed: "网络有问题，还没有退出登录，请再试一次。",
   // The rows of 我的: a label, and a line under it where there is one.
   rows: {
     workspace: "总览",

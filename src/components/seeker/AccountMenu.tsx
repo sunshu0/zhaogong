@@ -8,6 +8,7 @@ import { adminEntry, useCanModerate } from "@/components/account/moderator-entry
 import { employerSignUpHref, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { ACCOUNT_DATA_PATH, navRole, showsPostJob } from "@/components/ui/nav";
+import { toast } from "@/components/ui/Toast";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
@@ -154,8 +155,8 @@ export function AccountMenu() {
               className={pageItem}
               onClick={async () => {
                 close();
-                await signOut();
-                router.push("/jobs");
+                if (await signOut()) router.push("/jobs");
+                else toast(t.signOutFailed, 8000);
               }}
             >
               {t.signOut}

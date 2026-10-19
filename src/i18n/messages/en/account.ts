@@ -19,6 +19,7 @@ export const accountEn: Messages<(typeof accountMessages)["zh"]> = {
     checkFailed: "Couldn't check your employer role. Try again in a moment.",
   },
   signOut: "Sign out",
+  signOutFailed: "Network problem: you're still signed in. Try again.",
   rows: {
     workspace: "Overview",
     workspaceDetail: "Things to do",

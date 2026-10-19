@@ -96,12 +96,18 @@ export function syncAccountIdentity(
 }
 
 /**
- * Ends the session: the copy at once, the cookie session on the server. Wait for it before leaving the page:
- * Server Function calls go one at a time, so the sign-out can still be queued behind another call, and a page
- * load in the meantime cancels it and leaves the cookie session alive (#73: the page that showed 退出登录 was
- * still asking whether the account may moderate).
+ * Ends the session: the cookie session on the server, then the copy. Wait for it before leaving the page: Server
+ * Function calls go one at a time, so the sign-out can still be queued behind another call, and a page load in the
+ * meantime cancels it and leaves the cookie session alive (#73: the page that showed 退出登录 was still asking
+ * whether the account may moderate). False when the server did not answer: the copy stays, since the account is
+ * still signed in there, and the caller says so and stays on the page (#254: on a shared computer, a sign-out that
+ * only looked done left the account open).
  */
-export async function signOut(): Promise<void> {
-  store.update(clearSession);
-  await signOutAccount().catch(() => {});
+export async function signOut(): Promise<boolean> {
+  const done = await signOutAccount().then(
+    () => true,
+    () => false,
+  );
+  if (done) store.update(clearSession);
+  return done;
 }

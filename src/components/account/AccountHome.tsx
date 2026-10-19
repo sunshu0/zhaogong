@@ -14,6 +14,7 @@ import { Section } from "@/components/ui/Section";
 import { TeamInvites } from "@/components/employer/TeamInvites";
 import { ACCOUNT_DATA_PATH } from "@/components/ui/nav";
 import { LangSwitch } from "@/components/ui/LangSwitch";
+import { toast } from "@/components/ui/Toast";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { accountMessages } from "@/i18n/messages/account";
@@ -103,8 +104,8 @@ export function AccountHome() {
           type="button"
           className="pressable-row -mx-4 flex min-h-14 w-[calc(100%_+_2rem)] items-center justify-center text-subtitle font-medium text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-danger sm:-mx-5 sm:w-[calc(100%_+_2.5rem)]"
           onClick={async () => {
-            await signOut();
-            router.push("/jobs");
+            if (await signOut()) router.push("/jobs");
+            else toast(t.signOutFailed, 8000);
           }}
         >
           {t.signOut}

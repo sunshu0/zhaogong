@@ -280,6 +280,7 @@ const seekerMeZh = {
     toEmployer: (business: string) => `切换为雇主（${business}）`,
     setUpHiring: "开通雇主身份",
     signOut: "退出登录",
+    signOutFailed: "网络有问题，还没有退出登录，请再试一次。",
     postJob: "发布招聘",
   },
 };

@@ -1,6 +1,7 @@
 // When a job seeker's Server Function calls get no answer (no network, the server restarting): an action says so
-// where it was pressed and keeps what was typed, instead of giving way to the error page (#251). The tests cut the
-// page's Server Function calls (POSTs to its own path) for one press; the page and its scripts still load.
+// where it was pressed and keeps what was typed, instead of giving way to the error page (#251), and 退出登录 does
+// not only look done (#254). The tests cut the page's Server Function calls (POSTs to its own path) for one press;
+// the page and its scripts still load.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { expectProfileSaved, freshEmail, signIn } from "./helpers";
@@ -87,5 +88,27 @@ test("the language switch with no answer stays on the page and says so beside it
   cut.on = false;
   await footer.getByRole("button", { name: "English" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en-NZ");
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+test("退出登录 with no answer stays signed in and says so, instead of only looking signed out (#254)", async ({
+  page,
+  context,
+}) => {
+  const email = freshEmail("errors.signout");
+  await signIn(page, "/account", email);
+  await page.goto("/account");
+  const cut = await cutCalls(page, "/account");
+  cut.on = true;
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page.getByText("网络有问题，还没有退出登录，请再试一次。")).toBeVisible();
+  await expect(page).toHaveURL("/account");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("zhaogong:session") ?? "null")?.email)).toBe(email);
+  expect((await context.cookies()).some((c) => c.name === "zg_session")).toBe(true);
+
+  cut.on = false;
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page).toHaveURL("/jobs");
+  await expect.poll(async () => (await context.cookies()).some((c) => c.name === "zg_session")).toBe(false);
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });

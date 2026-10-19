@@ -266,6 +266,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     toEmployer: (business) => `Switch to employer (${business})`,
     setUpHiring: "Set up hiring",
     signOut: "Sign out",
+    signOutFailed: "Network problem: you're still signed in. Try again.",
     postJob: "Post a job",
   },
 };
