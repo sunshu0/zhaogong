@@ -48,6 +48,13 @@ type Directory = { scope: string; candidates: readonly Candidate[] };
 let directory: Directory | null = null;
 const directoryListeners = new Set<() => void>();
 const directoryScopes = new Set<string>();
+// The identity whose accounts' candidates got no answer (#250), so a page can say so instead of its skeleton.
+let directoryFailed: string | null = null;
+
+function setDirectoryFailed(scope: string | null) {
+  directoryFailed = scope;
+  for (const listener of directoryListeners) listener();
+}
 
 function loadDirectory(scope: string) {
   if (directoryScopes.has(scope)) return;
@@ -56,10 +63,18 @@ function loadDirectory(scope: string) {
     .then((answer) => {
       if (!answer || answer.scope !== scope) return directoryScopes.delete(scope);
       directory = answer;
-      for (const listener of directoryListeners) listener();
+      setDirectoryFailed(null);
     })
-    .catch(() => directoryScopes.delete(scope));
+    .catch(() => {
+      directoryScopes.delete(scope);
+      setDirectoryFailed(scope);
+    });
 }
+
+const subscribeDirectory = (listener: () => void) => {
+  directoryListeners.add(listener);
+  return () => directoryListeners.delete(listener);
+};
 
 function useDirectory(): Directory | null {
   return useSyncExternalStore(
@@ -72,17 +87,38 @@ function useDirectory(): Directory | null {
   );
 }
 
-/** The candidates 推荐人才 can show, and whether the accounts' ones have arrived (always true off employer). */
-export function useCandidateDirectory(): { candidates: Candidate[]; loaded: boolean } {
+/**
+ * The candidates 推荐人才 can show, whether the accounts' ones have arrived (always true off employer), and whether
+ * they got no answer (`failed`, with `reload` for 重试).
+ */
+export function useCandidateDirectory(): {
+  candidates: Candidate[];
+  loaded: boolean;
+  failed: boolean;
+  reload: () => void;
+} {
   const session = useSession();
   const scope = identityScope(session);
   const isEmployer = session?.activeRole === "employer";
   const answer = useDirectory();
+  const failedScope = useSyncExternalStore(
+    subscribeDirectory,
+    () => directoryFailed,
+    () => null,
+  );
   useEffect(() => {
     if (isEmployer) loadDirectory(scope);
   }, [isEmployer, scope]);
   const mine = isEmployer && answer?.scope === scope ? answer.candidates : null;
-  return { candidates: [...MOCK_CANDIDATES, ...(mine ?? [])], loaded: !isEmployer || mine !== null };
+  return {
+    candidates: [...MOCK_CANDIDATES, ...(mine ?? [])],
+    loaded: !isEmployer || mine !== null,
+    failed: isEmployer && mine === null && failedScope === scope,
+    reload: () => {
+      setDirectoryFailed(null);
+      loadDirectory(scope);
+    },
+  };
 }
 
 /** Keeps the server's answer as the copy of the identity it is for (see chat-client.ts). */

@@ -22,6 +22,7 @@ import { placeName } from "@/components/seeker/format";
 import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { busyProps } from "@/components/ui/busy";
 import { cardClass } from "@/components/ui/Card";
 import { Radio } from "@/components/ui/Checkbox";
@@ -80,6 +81,9 @@ export function LoginForm({
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
   const [checkedFor, setCheckedFor] = useState<string | null>(null);
+  // The account check that got no answer (#250): for whom, and how many times 重试 asked again.
+  const [checkFailed, setCheckFailed] = useState<string | null>(null);
+  const [checkTry, setCheckTry] = useState(0);
   // #184: when another code may be asked for (the server's once-a-minute rule), counted down on 重新获取验证码.
   const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(0);
@@ -135,24 +139,39 @@ export function LoginForm({
   useEffect(() => {
     if (role !== "employer" || !signedInEmail || checkedFor === signedInEmail) return;
     let cancelled = false;
-    accountStatus(signedInEmail).then((status) => {
-      if (cancelled) return;
-      if (status?.employer) {
-        setIdentity(reconcileIdentity("employer", status));
-        router.replace(next);
-      } else {
-        setIdentity({ activeRole: "seeker" });
-        setCheckedFor(signedInEmail);
-      }
-    });
+    accountStatus(signedInEmail).then(
+      (status) => {
+        if (cancelled) return;
+        if (status?.employer) {
+          setIdentity(reconcileIdentity("employer", status));
+          router.replace(next);
+        } else {
+          setIdentity({ activeRole: "seeker" });
+          setCheckedFor(signedInEmail);
+        }
+      },
+      () => {
+        if (!cancelled) setCheckFailed(signedInEmail);
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [role, signedInEmail, checkedFor, next, router]);
+  }, [role, signedInEmail, checkedFor, next, router, checkTry]);
 
   if (!hydrated) return <Placeholder />;
 
   if (session && role === "employer") {
+    if (checkFailed === session.email)
+      return (
+        <LoadFailed
+          what={t.accountWhat}
+          onRetry={() => {
+            setCheckFailed(null);
+            setCheckTry((n) => n + 1);
+          }}
+        />
+      );
     if (checkedFor !== session.email) return <LoginFormSkeleton label={t.checkingAccount} />;
     return (
       <BusinessStep

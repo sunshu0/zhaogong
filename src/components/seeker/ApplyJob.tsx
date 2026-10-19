@@ -52,6 +52,9 @@ export function ApplyJob({
   const session = useSession();
   const router = useRouter();
   const [mine, setMine] = useState<MyApplication | null | undefined>(undefined);
+  // The lookup of this account's application got no answer (#250): 申请 asks again instead of staying disabled.
+  const [failed, setFailed] = useState(false);
+  const [lookup, setLookup] = useState(0);
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
   const seeker = Boolean(session && session.activeRole === "seeker" && session.employerId !== employerId);
@@ -70,11 +73,11 @@ export function ApplyJob({
         router.replace(`${url.pathname}${url.search}`, { scroll: false });
         if (!answer) setOpen(true);
       })
-      .catch(() => {});
+      .catch(() => current && setFailed(true));
     return () => {
       current = false;
     };
-  }, [seeker, jobId, router]);
+  }, [seeker, jobId, router, lookup]);
 
   if (!hydrated || !session)
     return (
@@ -84,6 +87,27 @@ export function ApplyJob({
       </Link>
     );
   if (!seeker) return null;
+
+  if (failed)
+    return (
+      <>
+        <span role="alert" className="sr-only">
+          {t.checkFailed}
+        </span>
+        <button
+          type="button"
+          title={t.checkFailed}
+          onClick={() => {
+            setFailed(false);
+            setLookup((n) => n + 1);
+          }}
+          className={applyButton}
+        >
+          <Send aria-hidden="true" className="size-4" />
+          {t.checkAgain}
+        </button>
+      </>
+    );
 
   return (
     <>

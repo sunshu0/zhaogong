@@ -28,6 +28,7 @@ import {
 import { ResumePrintStyle, ResumeSheet } from "@/components/seeker/ResumeSheet";
 import { useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { busyProps } from "@/components/ui/busy";
 import { Group, Section } from "@/components/ui/Section";
 import type { VisaAccepted } from "@/lib/types";
@@ -277,6 +278,9 @@ const MAKE = "resume-share-make";
 function ShareSection({ doc }: { doc: ResumeDoc }) {
   const t = useMessages(seekerProfileMessages).resume;
   const [share, setShare] = useState<ResumeShareView | null | undefined>(undefined);
+  // The link's state got no answer (#250): said in the card, with 重试.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [asked, setAsked] = useState(0);
   const [origin, setOrigin] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -298,15 +302,18 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
 
   useEffect(() => {
     let live = true;
-    myResumeShareLink().then((link) => {
-      if (!live) return;
-      setOrigin(window.location.origin);
-      setShare(link);
-    });
+    myResumeShareLink().then(
+      (link) => {
+        if (!live) return;
+        setOrigin(window.location.origin);
+        setShare(link);
+      },
+      () => live && setLoadFailed(true),
+    );
     return () => {
       live = false;
     };
-  }, []);
+  }, [asked]);
 
   const shareNow = () => {
     setActing("share");
@@ -341,7 +348,15 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   return (
     <Section look="app" id="resume-share" title={t.share} description={t.shareHint}>
       <Group className="space-y-3">
-        {share === undefined ? (
+        {share === undefined && loadFailed ? (
+          <LoadFailed
+            what={t.shareWhat}
+            onRetry={() => {
+              setLoadFailed(false);
+              setAsked((n) => n + 1);
+            }}
+          />
+        ) : share === undefined ? (
           <p role="status" className="text-meta text-muted">
             {t.shareLoading}
           </p>

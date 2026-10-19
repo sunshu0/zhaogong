@@ -182,6 +182,7 @@ const profileZh = {
     shareHint:
       "默认不公开。打开后，拿到链接的人不用登录就能看这份简历（不含邮箱），比如不在平台上的雇主。可以随时关闭。",
     shareLoading: "正在读取分享状态…",
+    shareWhat: "分享状态",
     shareOn: "已打开：",
     copyLink: "复制链接",
     shareStale: "资料改过了，链接里还是上次分享时的内容。点「更新分享内容」让链接也变。",
@@ -203,6 +204,7 @@ const profileZh = {
     unavailable: "求职者主页暂不可查看",
     unavailableHint: "该求职者尚未公开资料或已关闭公开主页。",
     page: "求职者主页",
+    profileWhat: "求职者主页",
     demo: " · 演示资料",
     noHeadline: "求职意向待补充",
     noRegion: "地区待补充",

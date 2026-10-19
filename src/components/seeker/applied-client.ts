@@ -32,7 +32,8 @@ function load() {
   loading = true;
   myAppliedJobIds()
     .then((answer) => set(answer ? new Set(answer) : null))
-    .catch(() => {})
+    // No answer (#250): ask again once the browser is back online, not only on the next page.
+    .catch(() => window.addEventListener("online", load, { once: true }))
     .finally(() => {
       loading = false;
     });

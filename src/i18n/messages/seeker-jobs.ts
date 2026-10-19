@@ -175,6 +175,8 @@ const seekerJobsZh = {
   // ApplyJob.tsx
   apply: {
     apply: "申请",
+    checkFailed: "没取到你的申请情况，可能是网络断了。",
+    checkAgain: "重试后申请",
     applied: "已申请",
     appliedWithStatus: (status: string) => `已申请 · ${status}`,
     label: (title: string) => `申请：${title}`,

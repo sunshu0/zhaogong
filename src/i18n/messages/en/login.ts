@@ -10,6 +10,7 @@ export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
     "Sign in or sign up with a code sent to your email — no password. One account can look for work and set up hiring too.",
   loading: "Loading",
   checkingAccount: "Checking your account…",
+  accountWhat: "your account's details",
   noScript: "Signing in needs JavaScript turned on. You can see the job list and job pages without signing in.",
   networkError: "Couldn't reach 找工. Try again in a moment.",
   roles: {

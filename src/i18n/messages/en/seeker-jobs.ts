@@ -165,6 +165,8 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
   },
   apply: {
     apply: "Apply",
+    checkFailed: "Couldn't check whether you've applied. The connection may have dropped.",
+    checkAgain: "Try again to apply",
     applied: "Applied",
     appliedWithStatus: (status) => `Applied · ${status}`,
     label: (title) => `Apply: ${title}`,

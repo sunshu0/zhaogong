@@ -9,6 +9,7 @@ const loginZh = {
   intro: "用邮箱验证码注册或登录，不用设密码。同一个账号可以找工作，也可以开通雇主身份招人。",
   loading: "正在加载",
   checkingAccount: "正在核对你的账号…",
+  accountWhat: "账号的情况",
   noScript: "登录需要浏览器开启 JavaScript。职位列表和职位详情不用登录也能看。",
   networkError: "网络有问题，请稍后再试",
   roles: {

@@ -178,6 +178,7 @@ export const seekerProfileEn: Messages<(typeof seekerProfileMessages)["zh"]> = {
     shareHint:
       "Off unless you turn it on. Then anyone with the link can see this CV without signing in (without your email), such as an employer who isn't on 找工. You can turn it off any time.",
     shareLoading: "Checking the share link…",
+    shareWhat: "the share link",
     shareOn: "On: ",
     copyLink: "Copy link",
     shareStale: "You've changed your details, but the link still shows what you last shared. Tap Update the shared CV.",
@@ -197,6 +198,7 @@ export const seekerProfileEn: Messages<(typeof seekerProfileMessages)["zh"]> = {
     unavailable: "This profile can't be viewed right now",
     unavailableHint: "This job seeker hasn't made their profile public, or has turned it off.",
     page: "Job seeker profile",
+    profileWhat: "this job seeker's profile",
     demo: " · Demo profile",
     noHeadline: "No headline yet",
     noRegion: "No area yet",

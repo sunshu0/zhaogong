@@ -11,6 +11,7 @@ import { useChat } from "@/components/seeker/chat-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { AvatarImage } from "@/components/seeker/ProfileAvatar";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Group, Section } from "@/components/ui/Section";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { Pay } from "@/components/ui/Pay";
@@ -38,7 +39,7 @@ export function CandidatePublicPage() {
   const jobParam = useSearchParams().get("job");
   const hydrated = useHydrated();
   const session = useSession();
-  const { candidates, loaded } = useCandidateDirectory();
+  const { candidates, loaded, failed, reload } = useCandidateDirectory();
   const { conversations } = useChat();
   const candidate = candidates.find((item) => item.id === id && item.resume.discoverable);
   const isEmployer = session?.activeRole === "employer";
@@ -48,6 +49,7 @@ export function CandidatePublicPage() {
     ? `/messages?conversation=${encodeURIComponent(context.conversationId)}`
     : "/messages";
 
+  if (hydrated && !candidate && failed) return <LoadFailed what={c.profileWhat} onRetry={reload} />;
   if (!hydrated || (!candidate && !loaded)) return <SkeletonList count={2} label={t.pages.loadingProfileEllipsis} />;
   if (!candidate)
     return (
@@ -137,9 +139,11 @@ function useOwnJob(jobId: string | null, email: string | undefined): Job | null 
   useEffect(() => {
     if (!jobId || !email) return;
     let live = true;
-    getMyJob(jobId).then((job) => {
-      if (live) setLoaded({ key, job });
-    });
+    // No answer: no job bar, only 回到聊天, as for a job that is not theirs.
+    getMyJob(jobId).then(
+      (job) => live && setLoaded({ key, job }),
+      () => live && setLoaded({ key, job: null }),
+    );
     return () => {
       live = false;
     };
