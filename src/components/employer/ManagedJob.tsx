@@ -32,6 +32,7 @@ import { useLang, useMessages } from "@/i18n/client";
 import { contentLang, type Lang } from "@/i18n/lang";
 import { pick, type Messages } from "@/i18n/messages";
 import { employerJobsMessages } from "@/i18n/messages/employer-jobs";
+import { uiMessages } from "@/i18n/messages/ui";
 
 type Words = Messages<typeof employerJobsMessages.zh>;
 
@@ -41,8 +42,11 @@ function regionName(job: Job, lang: Lang): string | undefined {
   return region && (lang === "en" ? region.nameEn : region.nameZh);
 }
 
+/** A change that got no answer (#247): said in the notice, and the list is not asked for again. */
+export type NoAnswer = { ok: false; error_zh: string; noAnswer: true };
+
 /** Tells the list what happened, with the text to show when it worked. */
-export type JobChangeDone = (result: ChangeResult, okText: string) => void;
+export type JobChangeDone = (result: ChangeResult | NoAnswer, okText: string) => void;
 
 /**
  * One of the employer's jobs, as a row between thin lines (Round 13): what it is, where it stands, and what can be
@@ -83,9 +87,13 @@ export function ManagedJob({
   const phase = jobPhase(job, now);
   const staleContact = staleContactNote(contactFrom, phase, lang);
 
+  const noAnswer = useMessages(uiMessages).load.noAnswer;
+  // #247: with no answer the page stays (no error page) and so does the open question, with what was chosen in it.
   const run: Run = (action, okText) =>
     startTransition(async () => {
-      onDone(await action(), okText);
+      const result = await action().catch(() => null);
+      if (!result) return onDone({ ok: false, error_zh: noAnswer, noAnswer: true }, okText);
+      onDone(result, okText);
       setAsking(undefined);
     });
 

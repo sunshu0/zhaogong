@@ -20,6 +20,7 @@ import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
+import { uiMessages } from "@/i18n/messages/ui";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { contentLang } from "@/i18n/lang";
@@ -106,15 +107,17 @@ function RepublishForm({
   // #202: 放弃改动 takes itself away, so the heading above the form takes the focus.
   const formHeading = useFocusOnChange<HTMLHeadingElement>(restored);
   const [error, setError] = useState<string>();
+  const noAnswer = useMessages(uiMessages).load.noAnswer;
 
   function publish() {
     setError(undefined);
     startTransition(async () => {
-      const result = await publishJob(state.draft);
-      if (result.ok) {
+      // #247: with no answer the form stays as it is and says so.
+      const result = await publishJob(state.draft).catch(() => null);
+      if (result?.ok) {
         finish();
         setPublished(result.job);
-      } else setError(publishError(result.reason, lang));
+      } else setError(result ? publishError(result.reason, lang) : noAnswer);
       window.scrollTo({ top: 0 });
     });
   }

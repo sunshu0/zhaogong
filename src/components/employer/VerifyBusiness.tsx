@@ -16,6 +16,7 @@ import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
+import { uiMessages } from "@/i18n/messages/ui";
 import { BACK_LINK, noticeClass } from "@/components/employer/app-style";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang, type Lang } from "@/i18n/lang";
@@ -212,18 +213,27 @@ function ApplyForm({
   const [website, setWebsite] = useState(again?.website ?? "");
   const [pending, startTransition] = useTransition();
   const detailsHeading = useFocusOnChange<HTMLHeadingElement>(chosen?.nzbn);
+  const noAnswer = useMessages(uiMessages).load.noAnswer;
 
   function search(e: FormEvent) {
     e.preventDefault();
     setChosen(undefined);
-    startTransition(async () => setFound(await lookupBusiness(query)));
+    // #247: with no answer the form says so where results would be, and keeps the search.
+    startTransition(async () =>
+      setFound(await lookupBusiness(query).catch(() => ({ results: [], error_zh: noAnswer }))),
+    );
   }
 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!chosen) return;
+    // #247: with no answer the page says so and the form stays as filled in.
     startTransition(async () =>
-      onDone(await requestVerification({ nzbn: chosen.nzbn, kind, contactName, contactRole, companyPhone, website })),
+      onDone(
+        await requestVerification({ nzbn: chosen.nzbn, kind, contactName, contactRole, companyPhone, website }).catch(
+          () => ({ ok: false as const, error_zh: noAnswer }),
+        ),
+      ),
     );
   }
 

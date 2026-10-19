@@ -5,7 +5,7 @@ import type { Employer, Job } from "@/lib/types";
 import type { ChangeResult } from "@/app/[lang]/employer/actions";
 import { jobPhase, type Phase } from "@/components/employer/job-status";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
-import { ManagedJob, type JobChangeDone } from "@/components/employer/ManagedJob";
+import { ManagedJob, type JobChangeDone, type NoAnswer } from "@/components/employer/ManagedJob";
 import { posterLabel } from "@/components/employer/job-poster";
 import { PILL_TABS, TabList, TabPanel, pillTab } from "@/components/employer/Tabs";
 import { useEmployerProfile } from "@/components/employer/use-employer";
@@ -71,7 +71,8 @@ function Manage({ me }: { me: EmployerIdentity }) {
 
   const done: JobChangeDone = (result, okText) => {
     setNotice(noticeFor(result, okText));
-    reload();
+    // #247: the list would get no answer either, and would take the place of the card that is still open.
+    if (!("noAnswer" in result)) reload();
   };
 
   return (
@@ -110,7 +111,7 @@ function Manage({ me }: { me: EmployerIdentity }) {
   );
 }
 
-function noticeFor(result: ChangeResult, okText: string): Notice {
+function noticeFor(result: ChangeResult | NoAnswer, okText: string): Notice {
   // An error comes from the Server Function already worded (actions.ts): it is shown as it is.
   return result.ok ? { ok: true, title: result.job.titleZh, text: okText } : { ok: false, text: result.error_zh };
 }

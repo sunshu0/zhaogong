@@ -129,7 +129,16 @@ function Team({ me }: { me: EmployerIdentity }) {
         <Invite
           team={team}
           disabled={pending}
-          onInvite={(email, role) => run(() => inviteTeammate(email, role), t.invited(email))}
+          onInvite={(email, role, sent) =>
+            run(
+              () => inviteTeammate(email, role),
+              t.invited(email),
+              () => {
+                sent();
+                reload();
+              },
+            )
+          }
           onCancel={(id) => run(() => cancelTeamInvite(id), t.inviteCancelled)}
         />
       )}
@@ -255,7 +264,8 @@ function Invite({
 }: {
   team: MyTeam;
   disabled: boolean;
-  onInvite: (email: string, role: TeamMember["role"]) => void;
+  /** `sent` once the invitation went out (#247): the email stays when it did not, to try again. */
+  onInvite: (email: string, role: TeamMember["role"], sent: () => void) => void;
   onCancel: (id: string) => void;
 }) {
   const words = useMessages(employerTeamMessages);
@@ -265,8 +275,7 @@ function Invite({
   const [role, setRole] = useState<TeamMember["role"]>("member");
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onInvite(email.trim(), role);
-    setEmail("");
+    onInvite(email.trim(), role, () => setEmail(""));
   };
   return (
     <section aria-labelledby="team-invite" className="space-y-3">

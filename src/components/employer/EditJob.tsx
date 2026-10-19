@@ -16,6 +16,7 @@ import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
+import { uiMessages } from "@/i18n/messages/ui";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
@@ -64,17 +65,19 @@ function EditForm({ job, email, country }: { job: Job; email: string; country: C
   // #202: 放弃改动 takes itself away, so the heading above the form takes the focus.
   const formHeading = useFocusOnChange<HTMLHeadingElement>(restored);
   const [error, setError] = useState<string>();
+  const noAnswer = useMessages(uiMessages).load.noAnswer;
   const live = job.status === "active";
   const willReview = live && state.decision.status === "pending_review";
 
   function save() {
     setError(undefined);
     startTransition(async () => {
-      const result = await editMyJob(job.id, state.draft);
-      if (result.ok) {
+      // #247: with no answer the form stays as it is and says so.
+      const result = await editMyJob(job.id, state.draft).catch(() => null);
+      if (result?.ok) {
         finish();
         setSaved(result.job);
-      } else setError(result.error_zh);
+      } else setError(result ? result.error_zh : noAnswer);
       window.scrollTo({ top: 0 });
     });
   }

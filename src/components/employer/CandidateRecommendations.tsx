@@ -290,7 +290,7 @@ function CandidateRow({ match, job }: { match: CandidateMatch; job: Job }) {
             loading={opening}
             onClick={async () => {
               setOpening(true);
-              const id = await openCandidateChat(candidate, job);
+              const id = await openCandidateChat(candidate, job).catch(() => null);
               if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
               else setOpening(false);
             }}

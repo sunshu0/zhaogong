@@ -21,6 +21,7 @@ import { useLang } from "@/i18n/client";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
+import { uiMessages } from "@/i18n/messages/ui";
 
 export type Step = "chat" | "paste" | "form" | "preview" | "done";
 export type Mode = "chat" | "form";
@@ -153,7 +154,9 @@ export type Posting = ReturnType<typeof usePosting>;
 function parsePasted(state: PostingState) {
   state.setError(undefined);
   state.startTransition(async () => {
-    const result = await parseDraft(state.text);
+    // #247: with no answer the pasted message stays on its step, and the step says so.
+    const result = await parseDraft(state.text).catch(() => null);
+    if (!result) return state.setError(pick(uiMessages, state.lang).load.noAnswer);
     state.form.reset(formFromDraft(result.draft));
     state.setNotes(result.notes);
     state.setStep("form");
@@ -200,12 +203,13 @@ function toPreview(state: PostingState) {
 function publish(state: PostingState) {
   state.setError(undefined);
   state.startTransition(async () => {
-    const result = await publishJob(state.form.draft);
-    if (result.ok) {
+    // #247: with no answer the preview stays, and says so.
+    const result = await publishJob(state.form.draft).catch(() => null);
+    if (result?.ok) {
       state.setPublished(result.job);
       state.setStep("done");
     } else {
-      state.setError(publishError(result.reason, state.lang));
+      state.setError(result ? publishError(result.reason, state.lang) : pick(uiMessages, state.lang).load.noAnswer);
     }
     window.scrollTo({ top: 0 });
   });

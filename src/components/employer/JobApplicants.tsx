@@ -280,7 +280,7 @@ function ApplicantCard({
           onClick={async () => {
             // The conversation is the one the job seeker has too (#110); its id comes from the server.
             setOpening(true);
-            const id = await openApplicantChat({ id: a.id }, job);
+            const id = await openApplicantChat({ id: a.id }, job).catch(() => null);
             if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
             else setOpening(false);
           }}
