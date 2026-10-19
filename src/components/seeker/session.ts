@@ -40,8 +40,19 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/**
+ * A sign-in code as typed or pasted, cleaned (#290): full-width digits (a Chinese input method's １２３) become ASCII,
+ * and the spaces, dashes and dots a mail or text message may put in it ("123 456", "123-456") go. The browser and
+ * the server both clean it before checking, so what is checked is what is verified.
+ */
+export function normalizeCode(code: string): string {
+  return code
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0))
+    .replace(/[\s\-.·－]/g, "");
+}
+
 export function isValidCode(code: string): boolean {
-  return /^[0-9]{6}$/.test(code.trim());
+  return /^[0-9]{6}$/.test(normalizeCode(code));
 }
 
 /** Where to go after signing in: a path on this site, never another origin or the login page itself; `fallback` otherwise. */

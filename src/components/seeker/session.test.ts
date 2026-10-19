@@ -36,7 +36,14 @@ describe("sign-in input", () => {
   it("accepts any six digits as the demo code", () => {
     expect(isValidCode("123456")).toBe(true);
     expect(isValidCode(" 000000 ")).toBe(true);
-    for (const bad of ["", "12345", "1234567", "12345a", "１２３４５６"]) expect(isValidCode(bad)).toBe(false);
+    // #290: what a mail, a text message or a Chinese input method gives.
+    expect(isValidCode("123 456")).toBe(true);
+    expect(isValidCode("123-456")).toBe(true);
+    expect(isValidCode("１２３４５６")).toBe(true);
+    expect(isValidCode("12345")).toBe(false);
+    expect(isValidCode("12a456")).toBe(false);
+    // Full-width digits used to be refused here; they are cleaned to ASCII now (#290), so they moved up.
+    for (const bad of ["", "12345", "1234567", "12345a", "１２３４５"]) expect(isValidCode(bad)).toBe(false);
   });
 });
 

@@ -19,7 +19,14 @@ import { businessChoice, defaultBusinessChoice, reconcileIdentity } from "@/comp
 import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
 import { emailTypoFix } from "@/components/seeker/email-typos";
 import { placeName } from "@/components/seeker/format";
-import { isValidCode, isValidEmail, normalizeEmail, safeNext, type ActiveRole } from "@/components/seeker/session";
+import {
+  isValidCode,
+  isValidEmail,
+  normalizeCode,
+  normalizeEmail,
+  safeNext,
+  type ActiveRole,
+} from "@/components/seeker/session";
 import { setIdentity, signOut, startSession, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
 import { LoadFailed } from "@/components/ui/LoadFailed";
@@ -243,7 +250,7 @@ export function LoginForm({
 
   function submitCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const code = String(new FormData(e.currentTarget).get("code") ?? "");
+    const code = normalizeCode(String(new FormData(e.currentTarget).get("code") ?? ""));
     if (!isValidCode(code)) return setError(t.code.invalid);
     setError(null);
     startTransition(async () => {
@@ -368,7 +375,13 @@ export function LoginForm({
           name="code"
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={6}
+          // #290: room for a pasted "123 456" or full-width digits, cleaned to the six digits as they come in (a
+          // maxLength of 6 cut the paste before it could be cleaned).
+          maxLength={16}
+          onChange={(event) => {
+            const clean = normalizeCode(event.currentTarget.value).slice(0, 6);
+            if (clean !== event.currentTarget.value) event.currentTarget.value = clean;
+          }}
           placeholder={t.code.placeholder}
           autoFocus
           aria-invalid={error ? true : undefined}

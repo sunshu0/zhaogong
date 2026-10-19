@@ -20,7 +20,7 @@ import { pick } from "@/i18n/messages";
 import { loginMessages } from "@/i18n/messages/login";
 import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
-import { isValidCode, isValidEmail, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
+import { isValidCode, isValidEmail, normalizeCode, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
 
 /**
  * What the server knows about this browser's session. The real session is the httpOnly cookie (src/lib/auth); the
@@ -77,8 +77,10 @@ export async function signInAccount(
   const t = pick(loginMessages, browserLang);
   const address = validEmail(email);
   if (!address) return { ok: false, error: t.email.invalid };
-  if (typeof code !== "string" || !isValidCode(code)) return { ok: false, error: t.code.invalid };
-  const result = await verifyCode(address, code);
+  // Cleaned before both the check and the verification (#290): " 123 456" passed the check and then failed here.
+  const clean = typeof code === "string" ? normalizeCode(code) : "";
+  if (!isValidCode(clean)) return { ok: false, error: t.code.invalid };
+  const result = await verifyCode(address, clean);
   if (!result.ok) {
     switch (result.reason) {
       case "no_code":
