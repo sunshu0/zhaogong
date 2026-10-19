@@ -81,11 +81,30 @@ PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
 2. 设密钥（第 2 节）：`npx wrangler secret put DATABASE_AUTH_TOKEN`、`AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`DATABASE_URL`、`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
 3. 对线上库迁移（第 3 节）。
-4. 本机预检：`npm run check`，再 `npm run cf:dry-run`（构建加上传前的检查，不上传）。
+4. 本机预检：`npm run check`，再 `npm run cf:dry-run`（构建加上传前的检查，不上传）。**这一步现在过不了，先看第 4a 节。**
 5. 部署：`npm run cf:deploy`。
 6. 验收：首页、职位列表和筛选、职位页、登录（要有邮件服务）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
 
 以后改用 Workers Builds 自动部署的话：构建命令 `npm run check && npm run cf:build`，部署命令 `npx opennextjs-cloudflare deploy`。构建变量要有 `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`，以及 `NEXT_PUBLIC_CLARITY_ID`（构建时用）（[说明](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)）。
+
+## 4a. 上线前必须过 cf:build（#332）
+
+**部署前，`npm run cf:build` 和 `npx wrangler deploy --dry-run` 在本机都要过。** 现在（2026-10-20，`@opennextjs/cloudflare` 1.20.10）过不了，报错见第 6 节「本机构建结果」，原因是 OpenNext 的已知问题 [#1400](https://github.com/opennextjs/opennextjs-cloudflare/issues/1400)。导师 10-20 03:1x 定的做法：
+
+1. **先等 OpenNext 发布修复**（[PR #1430](https://github.com/opennextjs/opennextjs-cloudflare/pull/1430)、[PR #1445](https://github.com/opennextjs/opennextjs-cloudflare/pull/1445)），把 `@opennextjs/cloudflare` 升到那个版本，在本机重新构建、预览一遍（第 6 节）。
+2. **上线前还没修好的话，打补丁：**
+   - 要改的文件：`node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/bundle-node-middleware.js`（1.20.10 里在第 167 行）。
+   - 原来这一行检查的是 app 构建输出里有没有 `@opentelemetry/api` 这个目录：
+     ```js
+     const hasOpentelemetry = existsSync(path.join(options.appBuildOutputPath, "node_modules", "@opentelemetry", "api"));
+     ```
+   - 改成检查拷给中间件的 node_modules 里有没有它的 ESM 版（照 #1400 里报告人的写法；没有的话就换成 Next 自带的那一份）：
+     ```js
+     const hasOpentelemetry = existsSync(path.join(middlewareDir, "node_modules", "@opentelemetry", "api", "build", "esm", "index.js"));
+     ```
+     `middlewareDir` 在同一个函数前面（第 141 行）已经定义好了。
+   - 让 `npm ci` 以后也带着这个补丁：加开发依赖 `patch-package`，`package.json` 加 `"postinstall": "patch-package"`。改好文件后跑 `npx patch-package @opennextjs/cloudflare`，生成 `patches/@opennextjs+cloudflare+1.20.10.patch` 并提交。补丁里写死了版本号，**升级 OpenNext 时要删掉补丁，重新确认还要不要**。
+   - 补丁验证结果见第 6 节。
 
 ## 5. 回滚
 
