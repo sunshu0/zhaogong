@@ -61,6 +61,13 @@
 
 求职者这边（`src/components/seeker/`）：职位卡 `JobCard.tsx`（`look="app"` 是 Round 19 的卡，`action` 放卡片底部那一行的额外按钮，要点、状态、标签在 `job-card-parts.ts`）；「我的」几页的框架 `WorkHub.tsx` 的 `WorkHubFrame look="app"`；找不到和出错的卡 `StatusCard.tsx`（`src/app/[lang]/not-found.tsx`、`error.tsx`、`global-error.tsx` 用它）。雇主后台补充的样式在 `src/components/employer/app-style.ts`。
 
+## 职位页的举报和申请
+
+| 功能 | 主要文件 | 职责 |
+| --- | --- | --- |
+| 举报职位 | `src/components/seeker/ReportJob.tsx`、`ReportEvidence.tsx` | 原因和补充说明；登录后可以附上自己和这家店的聊天消息、最多 3 张截图（ADR 0027）。截图去元数据在 `src/lib/image-metadata.ts`，存放在 `src/db/evidence-store.ts`，举报和证据的读写在 `src/db/report-evidence.ts` |
+| 我的申请 | `src/components/seeker/MyApplications.tsx` | 只读（#352：用户 10-20 定删掉职位页和职位块上的「申请」）：以前的申请照旧能看，面试邀请照旧能回。申请本身的服务器代码在 `src/lib/applications-server.ts`，只给单测和浏览器测试的 `POST /api/dev/apply` 用 |
+
 ## 雇主发帖与管理
 
 这些文件位于 `src/components/employer/`：

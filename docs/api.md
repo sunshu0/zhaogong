@@ -26,7 +26,7 @@
 | `signInAccount(email, code, role?)` | 邮箱；6 位数字验证码；想要的身份，默认 `seeker`，账号有企业时才能是 `employer` | `{ ok: true, account: AccountStatus, reload? }`，首次使用时创建账号，并设置会话 cookie（30 天）。账号存过界面语言、又和这个浏览器的不一样时，改写 cookie `zg_lang` 并带 `reload: true`（登录页整页跳转进去）；账号没存过时记下这个浏览器的语言（第 20 轮，ADR 0023） | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」「请先获取验证码」「验证码已过期，请重新获取」「验证码不对，还可以再试 N 次」「错误次数太多，请重新获取验证码」（错 5 次作废） |
 | `accountStatus(email?)` | 可选：浏览器副本里的邮箱 | 当前会话的 `AccountStatus`；浏览器每次加载页面用它校正本机副本 | 没有会话、或会话属于另一个邮箱时 `null` |
 | `switchIdentity(role)` | `"seeker"` 或 `"employer"` | 切换后的 `AccountStatus`；账号没有企业时留在求职者身份 | 没有会话时 `null` |
-| `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }` 或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
+| `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }`（只在打开演示数据时，`demoDataWanted()`；否则服务器拒绝，回「请选择一家店」，登录页也不列演示店，#348）或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
 | `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
 
 ## 界面语言 — `src/i18n/actions.ts`、`src/proxy.ts`（第 20 轮，ADR 0023）

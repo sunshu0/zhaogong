@@ -27,7 +27,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 两层：服务器上的数据库是准的，浏览器只做缓存和还没上服务器的部分。
 
-**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位 `jobs`、企业 `employers`、账号 `accounts`（含和企业的绑定）、举报 `reports`、审核日志 `moderation_log`、联系方式查看记录 `contact_views`（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上数据库用 Cloudflare D1（#15，ADR 0029），要先把交互式事务改写（ADR 0031），还没建库。
+**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位 `jobs`、企业 `employers`、账号 `accounts`（含和企业的绑定）、举报 `reports`、审核日志 `moderation_log`、联系方式查看记录 `contact_views`（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。职位举报附的截图（ADR 0027）不进数据库：线上放在 R2 桶 `EVIDENCE_BUCKET`，本机放在 `data/uploads/report-evidence`（`src/db/evidence-store.ts`），只经 `/api/report-evidence/[id]` 交给审核员。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上数据库用 Cloudflare D1（#15，ADR 0029），要先把交互式事务改写（ADR 0031），还没建库。
 
 后来加的表（都在 `src/db/schema.ts`，读写在 `src/db/` 下对应的模块里，如 `team.ts`、`job-applications.ts`、`external-jobs.ts`）：
 
@@ -73,6 +73,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 - **登录：** 邮箱验证码，注册和登录是同一步；成功后服务器发一个 httpOnly 的会话 cookie，库里存它的哈希、账号和当前身份，30 天过期（ADR 0007，`src/lib/auth/`）。生产环境要等接上邮件服务（#16）才能发验证码。
 - **读身份：** Server Functions 用 `getCurrentSession()` / `requireSession()` / `requireEmployer()` 从 cookie 读账号和当前身份，不收邮箱参数（雇主和审核接口在 #19 改完）；企业每次用 `getAccountEmployer` 从账号查，不信任浏览器传来的企业编号。
+- **开通雇主身份：** 正式环境只能新建企业（未验证）。认领现成的演示店只在打开演示数据时可以（`demoDataWanted()`，#348）：没有演示数据时 `e1` 这类编号是真实的企业，团队的人都删号以后也不能被别人认领，只能由审核员处理或由它的团队邀请。加入别人的企业只能由它的管理员邀请（ADR 0012）。
 - **切换身份：** `switchIdentity` 在服务器上改会话的当前身份，只有账号有企业时才能切到雇主。
 - `/admin` 只有设置 `ADMIN_ENABLED=1` 时开放（B24），打开时还要求登录并且是审核员（`requireModerator()`，#50，ADR 0007 补充）。第一位审核员用 `npm run admin:grant <邮箱>` 添加，之后在 /admin 的「审核员」一页里增删。
 
@@ -94,7 +95,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/employer/page-actions.ts` | 企业主页 |
 | `src/app/[lang]/employer/team-actions.ts` | 团队 |
 | `src/app/[lang]/jobs/[id]/actions.ts` | 职位（求职者） |
-| `src/app/[lang]/jobs/[id]/apply-actions.ts` | 申请职位 |
+| `src/app/[lang]/jobs/[id]/apply-actions.ts` | 申请职位：求职者这边只剩读（#352，用户 10-20 定删掉「申请」） |
 | `src/app/[lang]/jobs/pay-reference-actions.ts` | 时薪参考 |
 | `src/app/[lang]/login/actions.ts` | 登录与身份 |
 | `src/app/[lang]/me/alerts/actions.ts` | 职位提醒 |
