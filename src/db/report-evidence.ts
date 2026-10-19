@@ -2,7 +2,7 @@
 // business when they report, and (second PR) screenshots. Only moderators see them. Kept EVIDENCE_KEEP_DAYS after the
 // report is handled; no scheduled job (ADR 0008): the first report of a New Zealand day deletes what is too old.
 // Server only.
-import { and, asc, desc, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { nzDay } from "@/db/job-stats";
@@ -102,6 +102,29 @@ export async function listReportEvidence(reportId: string): Promise<ReportEviden
       ];
     return [];
   });
+}
+
+/**
+ * How many messages and screenshots each of these reports carries, for the queue (#353): counts only, so loading the
+ * queue hands no moderator anyone's words; the evidence itself comes when they open it (getReportEvidence).
+ */
+export async function countReportEvidence(
+  reportIds: readonly string[],
+): Promise<Record<string, { messages: number; images: number }>> {
+  const counts: Record<string, { messages: number; images: number }> = {};
+  if (!reportIds.length) return counts;
+  const db = await database();
+  const rows = await db
+    .select({ reportId: t.reportEvidence.reportId, kind: t.reportEvidence.kind, n: count() })
+    .from(t.reportEvidence)
+    .where(inArray(t.reportEvidence.reportId, [...reportIds]))
+    .groupBy(t.reportEvidence.reportId, t.reportEvidence.kind);
+  for (const row of rows) {
+    const c = (counts[row.reportId] ??= { messages: 0, images: 0 });
+    if (row.kind === "message") c.messages = row.n;
+    else c.images = row.n;
+  }
+  return counts;
 }
 
 /** One screenshot's row, for /api/report-evidence/[id]: its report, where the file is, its type. */

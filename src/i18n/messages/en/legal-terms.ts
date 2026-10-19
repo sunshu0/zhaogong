@@ -98,7 +98,7 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
       id: "report",
       heading: "6. Reporting and taking things down",
       body: [
-        'Every job page has a "Report this job" button, and you don\'t need to sign in to use it. For problems in chats, or anything else you want us to deal with, write to [Contact email].',
+        'Every job page has a "Report this job" button, and you don\'t need to sign in to use it. If you are signed in, you can attach messages from your own chats with that business, and screenshots, as evidence; please attach only what bears on the report, and no one else\'s private details. Only moderators see the evidence, and it is deleted 180 days after the report is handled (Privacy, sections 2, 5 and 9). For problems in chats, or anything else you want us to deal with, write to [Contact email].',
         "Moderators deal with reports. We may take down content that breaks these terms or the law; for serious or repeated breaches we may suspend the account or ban the business. We will tell you why, and you can write to us to ask for a review.",
         "Complaints about harmful content online are handled under section 24 of New Zealand's Harmful Digital Communications Act 2015: within 48 hours of a valid complaint we tell the person who posted it, who has 48 hours to respond, and we then keep or remove it as the law sets out. You can also contact Netsafe, the agency appointed under that Act.",
         { links: [{ label: "Netsafe (netsafe.org.nz)", href: "https://netsafe.org.nz/" }] },

@@ -3,6 +3,7 @@
 // then the moderator role (requireModerator, #50); anyone else is refused.
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { matchJobAlerts } from "@/db/job-alerts";
+import { countReportEvidence } from "@/db/report-evidence";
 import { grantModerator, listModerators, revokeModerator, type Moderator } from "@/db/moderators";
 import { checkJob, type Finding } from "@/lib/compliance";
 import {
@@ -36,9 +37,12 @@ export interface QueueItem {
   findings: Finding[];
 }
 
+/** A report as the queue lists it: with how much evidence it carries (#353), never the evidence itself. */
+export type ReportInQueue = Report & { evidence?: { messages: number; images: number } };
+
 export interface ModerationQueue {
   flagged: QueueItem[];
-  reported: (QueueItem & { reports: Report[] })[];
+  reported: (QueueItem & { reports: ReportInQueue[] })[];
   log: (ModerationLogEntry & { text: string })[];
 }
 
@@ -61,11 +65,13 @@ export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
   const jobs = await listAllJobs(DEFAULT_COUNTRY);
   const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map((j) => item(j, lang)));
   const groups = groupOpenReports(await listReports());
+  const evidence = await countReportEvidence(groups.flatMap((g) => g.reports.map((r) => r.id)));
   const reported = (
     await Promise.all(
       groups.map(async (g) => {
         const job = await getJob(g.jobId);
-        return job ? { ...(await item(job, lang)), reports: g.reports } : undefined;
+        const reports = g.reports.map((r) => (evidence[r.id] ? { ...r, evidence: evidence[r.id] } : r));
+        return job ? { ...(await item(job, lang)), reports } : undefined;
       }),
     )
   ).filter((r) => r != null);

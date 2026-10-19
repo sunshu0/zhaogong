@@ -7,7 +7,6 @@ import { contentLang } from "@/i18n/lang";
 import { formatDate } from "@/i18n/format";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { adminMessages } from "@/i18n/messages/admin";
-import type { Report } from "@/lib/types";
 import {
   approveJob,
   banJobEmployer,
@@ -17,6 +16,7 @@ import {
   type AdminResult,
   type ModerationQueue as Queue,
   type QueueItem,
+  type ReportInQueue,
   type Refused,
 } from "@/app/[lang]/admin/actions";
 import { isFailed, ready, settle } from "@/app/[lang]/admin/load-state";
@@ -29,6 +29,7 @@ import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
 import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
+import { ReportEvidenceView } from "@/app/[lang]/admin/_components/ReportEvidenceView";
 import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { useVerificationQueue, VerificationQueue } from "@/app/[lang]/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/[lang]/admin/_components/ExternalReview";
@@ -206,7 +207,7 @@ function QueueList({
   empty,
   onDone,
 }: {
-  items: (QueueItem & { reports?: Report[] })[];
+  items: (QueueItem & { reports?: ReportInQueue[] })[];
   empty: string;
   onDone: (r: AdminResult) => void;
 }) {
@@ -228,7 +229,7 @@ function QueueCard({
   onDone,
 }: {
   item: QueueItem;
-  reports?: Report[];
+  reports?: ReportInQueue[];
   onDone: (r: AdminResult) => void;
 }) {
   const lang = useLang();
@@ -307,6 +308,7 @@ function QueueCard({
                   </span>
                 )}
                 <span className="ml-1 text-meta">{formatDate(r.createdAt, lang, TIME)}</span>
+                {r.evidence && <ReportEvidenceView reportId={r.id} counts={r.evidence} />}
               </li>
             ))}
           </ul>

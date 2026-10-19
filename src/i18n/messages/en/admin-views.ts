@@ -25,4 +25,22 @@ export const adminViewsEn: Messages<(typeof adminViewsMessages)["zh"]> = {
   caption: (count: number) => `${count} ${count === 1 ? "line" : "lines"}, newest first`,
   empty: "Nothing in this period.",
   more: (limit: number) => `Only the newest ${limit} are shown. Pick a shorter period or one moderator.`,
+  evidence: {
+    open: (messages: number, images: number) =>
+      `See the evidence: ${[
+        messages ? `${messages} chat ${messages === 1 ? "message" : "messages"}` : "",
+        images ? `${images} ${images === 1 ? "screenshot" : "screenshots"}` : "",
+      ]
+        .filter(Boolean)
+        .join(", ")}`,
+    close: "Hide the evidence",
+    note: "Picked by the reporter from their own chat with this business, as it read when they reported. Opening it is recorded in the access log.",
+    messagesLabel: "Chat messages sent with the report",
+    reporter: "Reporter",
+    employer: (name: string | null) => (name ? `Employer (${name})` : "Employer"),
+    screenshot: (n: number) => `Screenshot ${n}`,
+    openImage: (n: number) => `Screenshot ${n} (opens the full image in a new window)`,
+    none: "This report's evidence has been deleted (180 days after it was handled).",
+    name: "the evidence",
+  },
 };
