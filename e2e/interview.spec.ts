@@ -114,6 +114,7 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
   await expect(invitation).toContainText("邀请你面试，时间电话联系后再定");
   await invitation.getByRole("button", { name: "说说我方便的时间" }).click();
   await invitation.getByLabel("我方便的时间").fill("周四下午、周末都可以");
+  await expect(invitation.getByText("10 / 200")).toBeVisible(); // #341: counted against REPLY_MAX
   await invitation.getByRole("button", { name: "发给雇主" }).click();
   await expect(invitation).toContainText("你回了方便的时间，等雇主回复");
 

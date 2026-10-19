@@ -133,6 +133,10 @@ export function InterviewAnswer({
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-body focus:border-brand"
             />
           </label>
+          {/* #341: the reply's length against its limit, as the reports' and the application's notes show it. */}
+          <p className="text-right text-meta text-muted">
+            {reply.length} / {REPLY_MAX}
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={mode === "counter" && !reply.trim()} loading={pending}>
               {mode === "counter" ? t.answer.send : t.answer.confirmDecline}
