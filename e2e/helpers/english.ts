@@ -18,7 +18,7 @@ import { expect, type Page } from "@playwright/test";
 export const LANG_COOKIE = "zg_lang";
 
 /**
- * Chinese an English page shows on purpose: the product name (not translated until #18), the language switch's
+ * Chinese an English page shows on purpose: the product name (#18: 找工, 找工 Zhaogong in the header), the language switch's
  * 中文, and the 招 stamp of the home page's shop-window notices.
  */
 export const ALLOWED_CHINESE: readonly string[] = ["找工", "中文", "招"];

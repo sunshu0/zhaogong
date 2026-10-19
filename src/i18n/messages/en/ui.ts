@@ -58,6 +58,8 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     wholeAuckland: "All of Auckland",
   },
   site: {
+    // #340 (导师 10-20, 待用户): 找工 Zhaogong, as the manifest names the app.
+    name: "找工 Zhaogong",
     title: "Chinese-speaking jobs in New Zealand",
     description:
       "Jobs in Auckland for Chinese speakers: pay per hour, area and visas accepted at a glance, with verified employers.",

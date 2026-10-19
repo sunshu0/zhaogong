@@ -57,4 +57,4 @@ export const REPORT_REASON_LABELS: Record<ReportReason, { zh: string; en: string
   other: { zh: "其他", en: "Other" },
 };
 
-export const PRODUCT_NAME = "找工"; // working name, pending a decision
+export const PRODUCT_NAME = "找工"; // #18: the user kept 找工 (10-20); English pages' header says 找工 Zhaogong (#340)

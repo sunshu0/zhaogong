@@ -11,6 +11,8 @@ test("signed out: the home page, the job list with filters, and a job page", asy
   await useEnglish(page, baseURL);
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Chinese-speaking jobs in New Zealand");
+  // #340: the header names the site 找工 Zhaogong, as the manifest does.
+  await expect(page.getByRole("banner").getByRole("link", { name: "找工 Zhaogong", exact: true })).toBeVisible();
   await expectEnglishPage(page, "/");
 
   await page.goto("/jobs?industry=hospitality&meals=1");

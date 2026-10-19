@@ -64,6 +64,8 @@ const uiZh = {
   },
   // app/layout.tsx: the default title, the description and the footer.
   site: {
+    // #340: the name by the header's mark.
+    name: "找工",
     title: "奥克兰中文工作",
     description: "奥克兰的中文工作信息：时薪、地区、签证要求一目了然，雇主经过验证。",
     city: "奥克兰",

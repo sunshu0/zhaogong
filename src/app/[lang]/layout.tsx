@@ -75,7 +75,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
                 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-lg font-semibold text-brand"
               >
                 <BrandMark />
-                {PRODUCT_NAME}
+                {site.name}
               </Link>
               <span className="hidden text-body text-muted md:inline">{site.city}</span>
               <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-body md:gap-4">
