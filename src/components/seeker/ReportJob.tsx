@@ -40,6 +40,8 @@ function ClosedReport({ disabled = false, onOpen }: { disabled?: boolean; onOpen
 function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: string; owner: DemoSession | null }) {
   const [state, setState] = useState<"closed" | "open" | "sent">("closed");
   const [error, setError] = useState<string | null>(null);
+  // #303: the note's length against NOTE_MAX, as the application's note shows it; the box stops at the limit.
+  const [noteLength, setNoteLength] = useState(0);
   const [pending, startTransition] = useTransition();
   const lang = useLang();
   const t = useMessages(seekerJobsMessages).report;
@@ -115,9 +117,13 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
           rows={3}
           maxLength={NOTE_MAX}
           placeholder={t.notePlaceholder}
+          onChange={(event) => setNoteLength([...event.currentTarget.value].length)}
           className={inputClass({ multiline: true })}
         />
       </label>
+      <p className="mt-1 text-right text-meta text-muted">
+        {noteLength} / {NOTE_MAX}
+      </p>
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">
