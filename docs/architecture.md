@@ -1,10 +1,10 @@
 # 架构
 
-> 描述 2026-10-16 的代码：数据库（#8、#11）、登录和服务器会话（#9）、聊天存服务器（#10）已合并。决定记录在 `docs/adr/`，页面和组件的阅读入口在 `docs/frontend-code-map.md`。
+> 描述 2026-10-19 的代码（Round 20 中英切换、#240 之后）。决定记录在 `docs/adr/`，页面和组件的阅读入口在 `docs/frontend-code-map.md`，Server Function 的完整列表在 `docs/api.md`。
 
 ## 一句话
 
-Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面在服务器渲染；职位、企业、账号等服务器数据都经过 `src/lib/data.ts`，存在 libSQL 数据库（Drizzle，ADR 0005）；写操作走 Server Functions（`"use server"` 的 `actions.ts`），身份取自服务器会话（ADR 0007）。聊天、交换和通知已读按身份存在数据库里，浏览器 `localStorage` 只做缓存；主页资料、浏览和举报记录目前仍只在浏览器。部署目标是 Cloudflare Workers（OpenNext）。
+Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面在服务器渲染；职位、企业、账号等服务器数据都经过 `src/lib/data.ts`，存在 libSQL 数据库（Drizzle，ADR 0005）；写操作走 Server Functions（`"use server"` 的 `actions.ts`），身份取自服务器会话（ADR 0007）。聊天、交换、通知已读、求职者主页（ADR 0017）和企业主页（ADR 0022）都在数据库里，浏览器 `localStorage` 只做缓存和还没送到的改动；只在浏览器的还有浏览和举报记录、企业主页的私密交换资料。部署目标是 Cloudflare Workers（OpenNext）。
 
 ## 目录
 
@@ -15,7 +15,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/components/employer/` | 雇主发帖、职位管理、推荐人才、企业验证 | |
 | `src/components/account/` | 「我的」、待办、资料完成度、候选人条件这类跨身份的逻辑 | 纯函数都有单测 |
 | `src/components/ui/` | 共用组件和导航：`Button`、`Tag`、`Pay`、`Section`、`MoreMenu`、`VerificationBadge`、`BottomNav` | 视觉规则见 `docs/design-system.md`，设计稿在 `docs/design/` |
-| `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts`；登录和会话 `auth/`；服务器上的聊天存储 `chat-server/` | 不依赖 React；`auth/`、`chat-server/` 只在服务器用 |
+| `src/lib/` | 领域逻辑：合规检查 `compliance/`、AI 发帖 `ai-post/`、交换规则 `chat-consent.ts`、候选人匹配、数据访问 `data.ts`、类型 `types.ts`；登录和会话 `auth/`；服务器上的聊天存储 `chat-server/`；外部职位 `external-jobs/`（见「外部职位」） | 不依赖 React；`auth/`、`chat-server/` 只在服务器用 |
 | `src/db/` | 数据库：表结构 `schema.ts`、连接和第一次使用时的迁移与演示数据 `ready.ts`、同一进程内排队 `one-at-a-time.ts`、登录用的 `auth-store.ts`、聊天用的 `chat-store.ts` | 迁移文件在 `drizzle/` |
 | `src/config/` | 国家配置（地区、最低工资） | |
 | `src/i18n/` | 中英切换（ADR 0023）：语言和 cookie、字典机制、日期和金额格式、两种语言的名称表 `labels.ts`。字典的中文在 `messages/<模块>.ts`，英文在 `messages/en/<模块>.ts`，浏览器只在英文页面加载英文（#240） | 阅读入口见 `docs/frontend-code-map.md` 的「中英切换」 |
@@ -27,6 +27,26 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 两层：服务器上的数据库是准的，浏览器只做缓存和还没上服务器的部分。
 
 **数据库（`src/db/`）：** `src/lib/data.ts` 读写职位、企业、账号与企业绑定、举报、审核日志、联系方式查看记录（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上用哪种数据库待用户决定（#15，ADR 0006）。
+
+后来加的表（都在 `src/db/schema.ts`，读写在 `src/db/` 下对应的模块里，如 `team.ts`、`job-applications.ts`、`external-jobs.ts`）：
+
+| 表 | 内容 | 决定 |
+| --- | --- | --- |
+| `accounts` 的 `lang` | 账号选的界面语言，空就是没选过 | ADR 0023 |
+| `conversations`、`messages`、`exchanges` | 求职者和企业共用的一条对话，企业整个团队一起读写 | ADR 0015 |
+| `team_invites`、`team_chats` | 企业的团队和邀请；雇主一侧的聊天按企业存一份 | ADR 0012 |
+| `moderators` | 审核员名单（`npm run admin:grant` 加第一位） | ADR 0007 补充 |
+| `verification_requests` | 企业验证的申请和审核员的核对、驳回理由 | ADR 0011 |
+| `saved_jobs` | 收藏和进度，只有账号自己读 | |
+| `job_renewals` | 雇主每次延长截止日期的记录 | |
+| `job_applications` | 申请，带申请时的主页快照；录用存在申请上 | ADR 0019 |
+| `interviews` | 约面试：雇主给的时间、求职者的回复 | |
+| `resume_shares` | 中英文简历的分享链接，每个账号最多一个 | |
+| `seeker_profiles` | 求职者主页，存在账号上 | ADR 0017 |
+| `employer_profiles` | 企业主页公开的部分，属于企业 | ADR 0022 |
+| `ai_usage` | AI 发帖每次调用的用量，用来限额和算审核数据 | ADR 0018 |
+| `external_jobs`、`external_company_blocks` | 外部职位（只存事实）和公司的停用、删除请求，见下面「外部职位」 | ADR 0014 |
+| `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
 
@@ -68,6 +88,18 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 1. 雇主粘贴或对话输入 → `parseDraft` / `chatTurn`（`src/lib/ai-post/`，确定性规则，接口按以后接模型设计）。
 2. 表单校验 → `checkJob`（`src/lib/compliance/`）：低于最低工资、收费、卖签证、按种族或国籍招人直接拦截；高风险行业进人工审核。
 3. `publishJob` 在服务器上再查一次身份和合规，写进 `data.ts`；需要审核的职位状态是 `pending_review`，在 `/admin` 处理。
+
+## 外部职位
+
+实习和专业职位两个分区（`/internships`、`/professional`，#113）里的职位不是雇主在找工发的，而是从公司招聘系统的公开接口导入的（ADR 0014）。代码在 `src/lib/external-jobs/`。
+
+1. **名单和条款：** 公司名单在 `src/config/external-companies.ts`，每家写明条款审核的结论。导入前先查条款（ADR 0014），读取一律经过 `polite-fetch.ts`。
+2. **导入：** `npm run import:external`（`src/db/cli.ts`）读接口，找出事实（`facts.ts`：城市、领域、类型、截止日期、签证的陈述、需要审核员留意的标记等），只留新西兰的软件和电子电气职位，只把事实写进 `external_jobs`，原文不存。新导入的都是待审。分区页上的筛选在 `filter.ts`。
+3. **审核：** 审核后台的「外部职位」一页通过或不显示，带标记的要先核对原文（`review.ts`）。
+4. **显示：** 读取时判断能不能显示（`visibility.ts`）：审核通过、没有下架、最近 2 天内刷新到过、截止日没过。详情页 `/external/[id]` 不收录（`noindex`），只有「去官网申请」。
+5. **演示库（#244）：** `next dev` 新建演示库时，会在后台导入名单上的真实职位（`demo-import.ts`，一共最多 30 秒，失败只记日志），演示审核员自动通过没有标记的。离线时保留 `demo-` 开头的假职位。测试构建、单测和生产环境都不导入，`EXTERNAL_JOBS=demo|real` 可以手动指定（`src/db/ready.ts`）。
+
+收藏和提醒见 ADR 0020。线上的定时导入还没配。
 
 ## 联系方式
 

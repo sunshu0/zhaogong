@@ -35,7 +35,7 @@
   - **服务器上：** `src/i18n/english.ts` 加载模块时就用 top-level await 把全部英文读进来。
   - **浏览器里：** 中文那一份跟着组件进 JS。英文是单独的一块，只在英文页面加载：`LangProvider` 先 `use(loadEnglish())`，再渲染子组件。
   - 所以除了 `english.ts`，别的文件不要直接 import `messages/en/` 下的文件，不然英文会进中文页面的 JS。
-- 旧字典如果还把 `en` 写在中文文件里，用 `node scripts/i18n-split-en.mjs <文件…>` 搬进 `en/`，再跑 prettier 和 tsc。
+- `Dictionary` 只允许 `{ key, zh }`（#251 之后）：把英文写进中文文件，`tsc` 就会报错。当初搬英文用的脚本 `scripts/i18n-split-en.mjs` 还在仓库里。
 - 服务器端 `src/i18n/server.ts`（`messages()`、`serverLang()` 读根参数，`requestLang()` 读 cookie）；客户端 `src/i18n/client.tsx`（`LangProvider`、`useLang()`、`useMessages()`、`useSitePathname()`——看路径一律用它，服务器上的路径带 `/zh`，浏览器里没有）。
 - `src/i18n/format.ts`：日期、时间、数字、金额。切换按钮 `src/components/ui/LangSwitch.tsx`，Server Function `src/i18n/actions.ts`，cookie 设置 `src/i18n/cookie.ts`，账号语言 `src/db/account-lang.ts`。
 - 单测里 `next/root-params` 指到 `src/i18n/testing/root-params.ts`（`vitest.config.mts`）；英文页面的 e2e 检查 `e2e/helpers/english.ts`。
