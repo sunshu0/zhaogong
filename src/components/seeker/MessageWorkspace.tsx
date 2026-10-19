@@ -27,6 +27,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   // #281: each conversation keeps its own draft in this tab, through a switch and a reload (chat-drafts.ts).
   const [draft, setDraft] = useChatDraft(identityScope(session), selected?.id ?? null);
   useChatRefresh();
+  useUnreadInTitle(totalUnread);
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
 
   function select(id: string) {
@@ -196,4 +197,30 @@ function NoConversationSelected({ totalUnread }: { totalUnread: number }) {
       <p className="text-body text-muted">{totalUnread ? t.pickerUnread(totalUnread) : t.pickerNoUnread}</p>
     </section>
   );
+}
+
+/** The "(N) " before a page title that counts unread messages. */
+const UNREAD_PREFIX = /^\(\d+\) /;
+
+/**
+ * #291: with unread messages the tab's title starts with their count, "(2) 消息 · 找工", so a chat left in a
+ * background tab shows that something came; reading them takes it away, and leaving the page restores the title (the
+ * next page's own title replaces it anyway). Next sets the page's title from its metadata after this page has
+ * mounted (gate25: the count was gone), so the title is watched and the count put back whenever it is replaced.
+ */
+function useUnreadInTitle(count: number) {
+  useEffect(() => {
+    const apply = () => {
+      const title = document.title.replace(UNREAD_PREFIX, "");
+      const wanted = count > 0 ? `(${count}) ${title}` : title;
+      if (document.title !== wanted) document.title = wanted;
+    };
+    apply();
+    const watcher = new MutationObserver(apply);
+    watcher.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => {
+      watcher.disconnect();
+      document.title = document.title.replace(UNREAD_PREFIX, "");
+    };
+  }, [count]);
 }

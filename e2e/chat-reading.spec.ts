@@ -1,8 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { freshEmail, signIn } from "./helpers";
 
-// Reading and writing in the chat: each conversation keeps its own draft through a switch and a reload (#281), and
-// someone reading older messages is not pulled to the bottom by a reply (#282).
+// Reading and writing in the chat: each conversation keeps its own draft through a switch and a reload (#281),
+// someone reading older messages is not pulled to the bottom by a reply (#282), and the tab's title counts the
+// unread messages (#291).
 
 const box = (page: Page) => page.getByLabel("输入消息");
 
@@ -68,4 +69,15 @@ test("reading older messages, a reply does not pull the log to the bottom; near 
   });
   await refreshWith("在底部时来的回复");
   await expect.poll(() => log.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(10);
+});
+
+test("the tab's title counts the unread messages and drops the count once they are read (#291)", async ({ page }) => {
+  await signIn(page, "/messages", freshEmail("demo.title"));
+  // The demo account starts with 3 unread (chat.spec.ts).
+  await expect(page).toHaveTitle(/^\(3\) /);
+  await page.goto("/messages?conversation=north-tea");
+  await expect(page.getByRole("log")).toBeVisible();
+  await expect(page).not.toHaveTitle(/^\(3\) /);
+  await page.goto("/jobs");
+  await expect(page).not.toHaveTitle(/^\(\d+\) /);
 });
