@@ -9,7 +9,7 @@ const daysWord = (n: number) => (n === 1 ? "1 day" : `${n} days`);
 
 export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
   list: {
-    title: "Chinese-speaking jobs in Auckland",
+    title: "Chinese-speaking jobs in New Zealand",
     heading: "Jobs",
     sections: "Jobs from company sites",
     internships: "Internships",

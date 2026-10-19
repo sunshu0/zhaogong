@@ -10,7 +10,7 @@ import { freshEmail, signIn } from "./helpers";
 test("signed out: the home page, the job list with filters, and a job page", async ({ page, baseURL }) => {
   await useEnglish(page, baseURL);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Chinese-speaking jobs in Auckland");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Chinese-speaking jobs in New Zealand");
   await expectEnglishPage(page, "/");
 
   await page.goto("/jobs?industry=hospitality&meals=1");

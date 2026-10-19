@@ -58,7 +58,7 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     wholeAuckland: "All of Auckland",
   },
   site: {
-    title: "Chinese-speaking jobs in Auckland",
+    title: "Chinese-speaking jobs in New Zealand",
     description:
       "Jobs in Auckland for Chinese speakers: pay per hour, area and visas accepted at a glance, with verified employers.",
     city: "Auckland",

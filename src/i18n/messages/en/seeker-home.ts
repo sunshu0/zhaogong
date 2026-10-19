@@ -5,13 +5,14 @@ import type { Messages } from "@/i18n/messages";
 import type { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 
 export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
-  title: "Chinese-speaking jobs in Auckland",
+  // #18 (the user, 10-20): the name stays 找工 Zhaogong; the line no longer ties it to Auckland.
+  title: "Zhaogong — Chinese-speaking jobs in New Zealand",
   description:
     "Pay, area and visas at a glance. Employers are verified, and every job is checked for the minimum wage and illegal fees before it's posted. Contact details go only to signed-in job seekers, or are swapped in chat once both sides agree.",
   hero: {
-    line1: "Chinese-speaking jobs in Auckland,",
+    line1: "Chinese-speaking jobs in New Zealand,",
     line2: "with the pay up front.",
-    lead: "Hospitality, retail, cleaning, renovation. Every job is checked against the minimum wage before it's posted, and it says clearly whether the employer is verified and which visas they accept.",
+    lead: "Auckland first, more cities soon. Hospitality, retail, cleaning, renovation. Every job is checked against the minimum wage before it's posted, and it says clearly whether the employer is verified and which visas they accept.",
     searchPlaceholder: "Waiter, chef, Mt Eden…",
     search: "Search jobs",
     submit: "Find jobs",
