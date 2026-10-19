@@ -10,8 +10,9 @@ const TOPIC_WORDS: [Topic, RegExp][] = [
   ["visa", /签证|工签|学签|打工度假/],
   ["perks", /包餐|包住|包吃|吃住|福利/],
   ["contact", /联系|电话|微信|邮箱/],
-  ["title", /职位|标题|岗位|名称/],
+  // Before title (#258): 「改一下职位描述」 names the job too, and means the description.
   ["rewrite", /描述|介绍/],
+  ["title", /职位|标题|岗位|名称/],
 ];
 
 export const CHANGE_PROMPTS: Record<Topic, string> = {

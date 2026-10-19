@@ -278,6 +278,16 @@ describe("changing an answer, and answers it cannot read", () => {
     expect(s.asking).toBe("hours");
   });
 
+  it("asks for a new description on 改一下职位描述, and for a new title on 改一下职位名称 (#258)", async () => {
+    const s = await say(startChat("NZ"), "招洗碗工", "25", "不固定");
+    const rewrite = await say(s, "改一下职位描述");
+    expect(rewrite.asking).toBe("rewrite");
+    expect(last(rewrite).text).toContain("重新描述一下这份工作");
+    const title = await say(s, "改一下职位名称");
+    expect(title.asking).toBe("title");
+    expect(last(title).text).toContain("职位名称改成什么");
+  });
+
   it("applies 时薪改成 27 at once", async () => {
     let s = await say(startChat("NZ"), "招洗碗工", "25", "不固定");
     s = await say(s, "时薪改成 27");
