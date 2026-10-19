@@ -23,6 +23,7 @@ import { InterviewInvite } from "@/components/employer/InterviewInvite";
 import type { InterviewView } from "@/components/seeker/interviews";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
+import { TrackView } from "@/components/ui/TrackView";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { PILL_TABS, TabList, TabPanel, pillTab, tabIds } from "@/components/employer/Tabs";
 import {
@@ -163,6 +164,8 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
 
   return (
     <div className="space-y-section">
+      {/* #316 (ADR 0025): the employer looked at a job's applicants. */}
+      <TrackView event={{ name: "applicants_view", path: "/employer/jobs/[id]/applicants", jobId: job.id }} />
       <div>
         <Link href="/employer/jobs" className={BACK_LINK}>
           {t.back}

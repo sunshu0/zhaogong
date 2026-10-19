@@ -609,6 +609,26 @@ describe("getMyLiveJobsTitled (#196)", () => {
   });
 });
 
+describe("the posting funnel's last step (#316, ADR 0025)", () => {
+  it("records post_publish for each job published, live or waiting for review, and nothing for a refusal", async () => {
+    const { database } = await import("@/db/ready");
+    const t = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await database();
+    const live = await as(E.e6, async () => publishJob((await parseDraft(MESSAGE)).draft));
+    const review = await as(E.e6, async () => publishJob((await parseDraft(`${MESSAGE}，KTV 包间`)).draft));
+    cookies.clear(); // signed out
+    const refused = await publishJob((await parseDraft(MESSAGE)).draft);
+    if (!live.ok || !review.ok) throw new Error("not published");
+    expect(refused.ok).toBe(false);
+    const rows = await db.select().from(t.events).where(eq(t.events.name, "post_publish"));
+    const mine = (jobId: string) => rows.filter((r) => r.jobId === jobId).map((r) => [r.path, r.detail]);
+    expect(mine(live.job.id)).toEqual([["/employer/post", "live"]]);
+    expect(mine(review.job.id)).toEqual([["/employer/post", "pending_review"]]);
+    expect(rows.every((r) => r.role === "employer")).toBe(true);
+  });
+});
+
 describe("复制为新职位 (#190)", () => {
   it("publishes a new job with the content only: no applicants, renewals or numbers, posted by whoever copied", async () => {
     const original = await as(E.e6, async () => publishJob((await parseDraft(MESSAGE)).draft));

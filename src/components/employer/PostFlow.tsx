@@ -16,6 +16,7 @@ import { RetryBoundary } from "@/components/seeker/RetryBoundary";
 import { useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { crashForTests } from "@/lib/test-crash";
+import { TrackView } from "@/components/ui/TrackView";
 
 /** /employer/post: the employer identity first, then the chat or the form. */
 export function PostFlow({ country }: { country: CountryCode }) {
@@ -53,6 +54,8 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
 
   return (
     <div className="space-y-4 pb-24">
+      {/* #316 (ADR 0025): the posting funnel's first step. */}
+      <TrackView event={{ name: "post_view", path: "/employer/post" }} />
       <StepList mode={posting.mode} step={posting.step} />
       {choosingMode && <ModeSwitch mode={posting.mode} onSwitch={posting.switchMode} />}
       {posting.error && (

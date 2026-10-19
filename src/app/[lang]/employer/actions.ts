@@ -2,6 +2,7 @@
 // Server Functions for the employer pages, so reads and writes hit the same data the job seekers'
 // pages read. The account comes from the session cookie and the business from that account on the
 // server (getAccountEmployer); nothing the browser sends says who is acting.
+import { recordRequestEvent } from "@/lib/events/record";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { cookies } from "next/headers";
@@ -266,6 +267,13 @@ export async function publishJob(input: unknown): Promise<PublishResult> {
   // Who posts it is the session's account (#182), never what the browser says.
   const created = await createJob(job, (await getCurrentSession())?.email);
   await matchJobAlerts(created); // live at once: tell job seekers whose alerts it matches (#53)
+  // #316 (ADR 0025): the posting funnel's last step; 重新发布 and 复制 publish through here and count too.
+  await recordRequestEvent({
+    name: "post_publish",
+    path: "/employer/post",
+    jobId: created.id,
+    detail: created.status === "pending_review" ? "pending_review" : "live",
+  });
   return { ok: true, job: created };
 }
 

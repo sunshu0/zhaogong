@@ -4,6 +4,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   useTransition,
   type Dispatch,
@@ -14,6 +15,7 @@ import { resumeChat, startChat, type ChatState } from "@/lib/ai-post";
 import { isParseNote, type ParseNote } from "@/lib/ai-post/parse";
 import type { CountryCode, Job } from "@/lib/types";
 import { parseDraft, publishJob } from "@/app/[lang]/employer/actions";
+import { track } from "@/lib/events/track";
 import { emptyForm, formFromDraft } from "@/components/employer/post-form";
 import { useDraftForm, type DraftFormState } from "@/components/employer/use-draft-form";
 import { useEmployerProfile } from "@/components/employer/use-employer";
@@ -96,6 +98,26 @@ function usePostingState(country: CountryCode, email: string): PostingState {
     goToStep(next);
   }, []);
   const [pending, startTransition] = useTransition();
+
+  // #316 (ADR 0025 §4): the posting funnel's middle steps, once each per page load. post_mode is the employer's first
+  // real choice: the page opens on the chat, so it is the first move to another way of posting (粘贴 or 直接填表, or
+  // back to the chat), or the first message sent in the chat. post_preview is reaching 核对.
+  const opened = useRef({ step, messages: chat.messages.length });
+  const sent = useRef({ mode: false, preview: false });
+  useEffect(() => {
+    if (!sent.current.mode) {
+      const moved = step !== opened.current.step && (step === "chat" || step === "paste" || step === "form");
+      const chatted = step === "chat" && chat.messages.length > opened.current.messages;
+      if (moved || chatted) {
+        sent.current.mode = true;
+        track({ name: "post_mode", path: "/employer/post", detail: step });
+      }
+    }
+    if (step === "preview" && !sent.current.preview) {
+      sent.current.preview = true;
+      track({ name: "post_preview", path: "/employer/post" });
+    }
+  }, [step, chat.messages.length]);
 
   // Keep the draft in this tab as it changes; a published job (step "done") is no longer a draft.
   useEffect(() => {
