@@ -5,6 +5,8 @@ import { MessageSquare } from "lucide-react";
 import { useChat, useChatRefresh, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
+import { useChatDraft } from "@/components/seeker/chat-drafts";
+import { identityScope } from "@/components/seeker/identity-scope";
 import { RetryBoundary } from "@/components/seeker/RetryBoundary";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { useSession } from "@/components/seeker/session-client";
@@ -21,15 +23,15 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const demoAccount = isDemoAccount(session?.email);
-  const [draft, setDraft] = useState("");
   const selected = conversations.find((item) => item.id === selectedId);
+  // #281: each conversation keeps its own draft in this tab, through a switch and a reload (chat-drafts.ts).
+  const [draft, setDraft] = useChatDraft(identityScope(session), selected?.id ?? null);
   useChatRefresh();
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
 
   function select(id: string) {
     setSelectedId(id);
     markRead(id);
-    setDraft("");
   }
 
   return (
