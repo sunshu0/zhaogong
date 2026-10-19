@@ -1,6 +1,6 @@
 # 前端代码阅读入口
 
-先看页面组件，再按需要查看状态和数据规则。以下组件均沿用现有演示数据与本机存储。
+先看页面组件，再按需要查看状态和数据规则。数据在服务器的数据库里，经 Server Functions 读写，浏览器只做缓存和还没送到的改动（见 `docs/architecture.md` 的「数据放在哪里」）。
 
 ## 工作台
 
@@ -71,6 +71,43 @@
 | 职位管理 | `ManageJobs.tsx` | `ManagedJob.tsx` 展示单条职位；`ManagedJobActions.tsx` 展示刷新、结束招聘等操作 |
 
 发帖表单状态仍在 `use-draft-form.ts`，表单与职位转换在 `post-form.ts`。对话生成规则在 `src/lib/ai-post/`，发布前检查在 `src/lib/compliance/`，演示数据操作通过 `src/app/[lang]/employer/actions.ts` 调用。
+
+## 登录和「我的」
+
+| 功能 | 主要文件 | 职责 |
+| --- | --- | --- |
+| 登录 | `src/app/[lang]/login/page.tsx`、`src/components/seeker/LoginForm.tsx` | 邮箱验证码，注册和登录是同一步；Server Functions 在 `login/actions.ts`（ADR 0007） |
+| 「我的」 | `src/components/account/AccountHome.tsx` | 两种身份共用的入口页；待办 `todos.ts`、资料完成度 `profile-checklist.ts` |
+| 切换身份 | `src/components/account/identity-switch.ts` | 账号菜单和「我的」里切换求职者 / 雇主，都落到工作台；`RedirectEmployer.tsx` 把雇主身份从求职者的页面送走 |
+| 数据与账号 | `src/app/[lang]/account/data/page.tsx`、`src/components/account/MyDataPanel.tsx` | 下载全部数据、删除账号（ADR 0009）；只在浏览器的那部分在 `my-data.ts` |
+| 审核后台入口 | `src/components/account/moderator-entry.ts` | 账号是审核员时，账号菜单和「我的」里才出现入口（`admin/entry-actions.ts`） |
+
+通知页在上面「工作台」的表里（`NotificationWorkspace.tsx`）。
+
+## 审核后台
+
+只有 `ADMIN_ENABLED=1` 时打开（`src/app/[lang]/admin/enabled.ts`），每个 Server Function 先 `requireModerator()`（`admin/moderator.ts`）。页面 `admin/page.tsx` 只放 `ModerationQueue`，各标签页在 `src/app/[lang]/admin/_components/`：
+
+| 标签页 | 组件 | Server Functions |
+| --- | --- | --- |
+| 发布时被标记、被举报、处理记录 | `ModerationQueue.tsx`（也负责标签页本身） | `admin/actions.ts`；分组和处理记录的说法在 `moderation.ts` |
+| 企业验证 | `VerificationQueue.tsx` | `verification-actions.ts`（ADR 0011） |
+| 外部职位 | `ExternalReview.tsx` | `external-actions.ts`（ADR 0014，见下一节） |
+| 审核数据 | `ModerationStats.tsx` | `stats-actions.ts`，数字在 `moderation-stats.ts` 算（ADR 0010） |
+| 审核员 | `ModeratorList.tsx` | `admin/actions.ts` 的 `getModerators` 等 |
+
+读取用 `use-admin-load.ts`（规则在 `admin/load-state.ts`），没回答时在原处显示 `Failed.tsx` 的「没取到」和「重试」，操作没回答时卡片里显示「没成功，请重试」（ADR 0024）。`Cancel.tsx`、`Empty.tsx` 是确认步骤的「取消」和空列表的一行字。
+
+## 实习和专业职位（外部职位）
+
+外部职位怎么导入、审核、什么时候显示，见 `docs/architecture.md` 的「外部职位」。页面这边：
+
+| 功能 | 主要文件 | 职责 |
+| --- | --- | --- |
+| 两个分区 | `src/app/[lang]/internships/page.tsx`、`professional/page.tsx` → `src/components/external/ExternalSectionPage.tsx` | 已通过的外部职位列表和筛选；筛选规则在 `src/lib/external-jobs/filter.ts` |
+| 职位页 | `src/app/[lang]/external/[id]/page.tsx` | 事实、来源和取到的日期、「去官网申请」；不收录。演示职位的「去官网申请」是 `DemoApply.tsx`，页底「公司要求删除」是 `TakedownNote.tsx` |
+| 说法 | `src/lib/external-jobs/labels.ts` | 事实的中英说法，审核后台和分区页共用；原文没写的一律「原文未说明」 |
+| 收藏和提醒 | `src/components/seeker/SaveJobButton.tsx`（键用 `saved-jobs.ts` 的 `externalSaveKey`）、`src/lib/external-jobs/alerts.ts` | 外部职位也能收藏、在分区上订提醒（ADR 0020） |
 
 ## 读取失败和断网（ADR 0024）
 
