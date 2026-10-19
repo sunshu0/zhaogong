@@ -116,9 +116,24 @@ PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_MET
 - `src/db/client.ts` 引入了 `node:fs` 的 `mkdirSync`，只有在 `file:` 库时才调用；线上不会走到。
 - 迁移见第 3 节：只在本机对线上库跑（#329）。
 
-### 本机构建结果
+### 本机构建结果（2026-10-20 03:02，`a/deploy-prep` `87b4cea`，Windows，拿着 e2e 锁跑）
 
-（2026-10-20：等 GPU 锁空出来就照上面的条件跑一次，结果写在这里。）
+**没过。** `next build` 本身成功了（编译 3.6 秒，106 个页面），OpenNext 打包 `proxy.ts`（Node.js 中间件）这一步报错：
+
+```
+.open-next/middleware/node_modules/next/dist/server/lib/trace/tracer.js:55:18: ERROR: Could not resolve "@opentelemetry/api"
+```
+
+- **原因：** 是 OpenNext 已知的问题 [opennextjs-cloudflare#1400](https://github.com/opennextjs/opennextjs-cloudflare/issues/1400)。项目的 `node_modules` 顶层装了 `@opentelemetry/api`（我们这里是 1.9.1，由 `@anthropic-ai/sdk`、`drizzle-orm`、`next` 带进来）时，OpenNext 打包中间件就不会把它换成 Next 自带的那一份，可是拷给中间件的 node_modules 里又只有它的 CJS 版，esbuild 找的是 ESM 版，于是找不到。
+- **为什么 10-14 能构建：** `src/proxy.ts` 是 10-16 才加的（#79），10-14 那次没有 Node 中间件。
+- **修复还没发布：** [PR #1430](https://github.com/opennextjs/opennextjs-cloudflare/pull/1430)（改成先照常解析，找不到再退回 Next 自带的那份）、[PR #1445](https://github.com/opennextjs/opennextjs-cloudflare/pull/1445)，查的时候都还没合并。构建日志里还有一句「Node.js middleware support is experimental in cloudflare」。
+- **可选的路（要导师定）：**
+  1. 等 OpenNext 发布带这个修复的版本，再升级（升级前照第 6 节先在本机构建、预览一遍）。
+  2. 先用 patch-package 给 `@opennextjs/cloudflare` 打上 #1400 里那个补丁：要多加一个开发依赖，每次升级 OpenNext 都要重新看一遍补丁还对不对。
+  3. 看 `proxy.ts` 能不能不当成 Node 中间件跑：要先查它用到了哪些 Node API、Next 16 还支不支持 edge 运行时，改动最大。
+- `wrangler deploy --dry-run` 和打包里用的是不是 libsql 的 web 版，要等构建过了才能查，这次没跑到。
+
+日志在仓库外：`D:/dev/zg-scratch/a-d26/cfbuild/run.log`、`build.log`。
 
 ## 7. 参考
 
