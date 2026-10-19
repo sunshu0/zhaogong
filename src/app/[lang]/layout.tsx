@@ -9,6 +9,7 @@ import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
 import { StickyHeader } from "@/components/ui/StickyHeader";
 import { LangSwitch } from "@/components/ui/LangSwitch";
+import { BrandMark } from "@/components/ui/BrandMark";
 import { Analytics } from "@/components/analytics/Analytics";
 import { ConsentSettingsButton } from "@/components/analytics/ConsentSettingsButton";
 import { Toaster } from "@/components/ui/Toast";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
         <meta name="apple-mobile-web-app-title" content={PRODUCT_NAME} />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
       </head>
@@ -68,7 +70,11 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
         <LangProvider lang={lang}>
           <StickyHeader>
             <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
-              <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-semibold text-brand">
+              <Link
+                href="/"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-lg font-semibold text-brand"
+              >
+                <BrandMark />
                 {PRODUCT_NAME}
               </Link>
               <span className="hidden text-body text-muted md:inline">{site.city}</span>

@@ -10,7 +10,7 @@ test("Chrome parses the web app manifest: name, standalone, start URL, theme col
   const { url, errors, manifest } = await cdp.send("Page.getAppManifest");
   expect(errors).toEqual([]);
   expect(url).toMatch(/\/manifest\.webmanifest$/);
-  expect(manifest?.name).toBe("找工 · 奥克兰中文工作");
+  expect(manifest?.name).toBe("找工 Zhaogong"); // #328, the name the user chose 10-20
   expect(manifest?.display).toBe("kStandalone");
   expect(manifest?.startUrl).toBe(new URL("/jobs", page.url()).href); // the installed app opens on the list; any E2E_PORT
   expect(manifest?.themeColor).toBe("rgba(15,118,110,1)");
