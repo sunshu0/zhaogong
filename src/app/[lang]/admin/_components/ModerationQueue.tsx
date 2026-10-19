@@ -26,6 +26,7 @@ import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
+import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
 import { useVerificationQueue, VerificationQueue } from "@/app/[lang]/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/[lang]/admin/_components/ExternalReview";
@@ -145,6 +146,7 @@ export function ModerationQueue() {
               <ModerationWeeks stats={statsNow} />
               <ModeratorWeeks stats={statsNow} />
               <AiPostingUsage stats={statsNow} />
+              <Funnels />
             </div>
           ) : isFailed(stats) ? (
             <LoadFailed what={t.queue.statsName} onRetry={reload} />

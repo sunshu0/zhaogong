@@ -69,3 +69,35 @@ test("审核数据: a report waits in the summary, and taking the job down count
   await admin.screenshot({ path: testInfo.outputPath("moderation-stats.png"), fullPage: true });
   await admin.context().close();
 });
+
+test("审核数据's 漏斗 shows the four flows' steps, for 7 or 30 days, split by language or identity (#316)", async ({
+  page,
+  browser,
+}, testInfo) => {
+  // An employer opens the posting page: post_view is recorded for this visitor and day.
+  await signUpEmployer(page, testInfo);
+  await page.goto("/employer/post");
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+
+  const admin = await moderatorPage(browser, testInfo);
+  await admin.goto("/admin");
+  await admin.getByRole("tab", { name: /审核数据/ }).click();
+  const post = admin.getByRole("region", { name: "雇主：发布职位" });
+  await expect(post.getByRole("rowheader", { name: "打开发布页" })).toBeVisible();
+  for (const flow of ["求职：从职位到联系雇主", "求职：外部职位", "登录"]) {
+    await expect(admin.getByRole("region", { name: flow })).toBeVisible();
+  }
+  // Counts only: a step with visitors reads a number of 5 or more, or 少于 5.
+  await expect(post.getByRole("row", { name: /^打开发布页/ })).toContainText(/少于 5|\d/);
+
+  await admin.getByRole("radio", { name: "最近 30 天" }).check();
+  await admin.getByRole("radio", { name: "按身份" }).check();
+  await expect(post.getByRole("columnheader", { name: "雇主" })).toBeVisible();
+  await expect(post.getByRole("columnheader", { name: "未登录" })).toBeVisible();
+  await admin.getByRole("radio", { name: "按语言" }).check();
+  await expect(post.getByRole("columnheader", { name: "中文页面" })).toBeVisible();
+
+  const { violations } = await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+  expect(violations).toEqual([]);
+  await admin.context().close();
+});

@@ -56,6 +56,36 @@ const adminStatsZh = {
     today: "今天",
     total: (days: number) => `${days} 天合计`,
   },
+  // Funnels.tsx (#316, ADR 0025 §5): the anonymous events' flows.
+  funnels: {
+    title: "漏斗",
+    description:
+      "按新西兰日期：同一位访客同一天走到的步骤串起来，跨天不串。人数是访客数，一天算一次。少于 5 的格子显示「少于 5」；转化率是占第一步的比例，两边都不少于 5 才显示。数据只在自己的库里，不含账号和邮箱。",
+    name: "漏斗数据",
+    period: "时间",
+    lastDays: (n: number) => `最近 ${n} 天`,
+    breakdown: "分开看",
+    breakdowns: { all: "全部", lang: "按语言", role: "按身份" },
+    groups: { all: "访客", zh: "中文页面", en: "英文页面", out: "未登录", seeker: "求职者", employer: "雇主" },
+    step: "步骤",
+    few: "少于 5",
+    rate: (n: number) => `${n}%`,
+    caption: (flow: string, days: number) => `${flow}：最近 ${days} 天每一步的访客数`,
+    flows: {
+      seek: "求职：从职位到联系雇主",
+      external: "求职：外部职位",
+      post: "雇主：发布职位",
+      signin: "登录",
+    },
+    steps: {
+      seek: ["首页或职位列表", "打开职位", "发起聊天或打开申请", "提交申请"],
+      external: ["实习或专业职位列表", "外部职位页", "去官网申请"],
+      post: ["打开发布页", "选了发布方式", "走到核对", "发布成功"],
+      signin: ["打开登录页", "发了验证码", "登录成功"],
+    },
+    singlesTitle: "单独看",
+    singles: { jobs_search: "用了职位筛选", applicants_view: "雇主看了申请人" },
+  },
   // moderation-stats.ts: a wait, rounded down.
   wait: {
     underAMinute: "不到 1 分钟",

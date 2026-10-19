@@ -10,6 +10,11 @@ import { listExternalJobs } from "@/db/external-jobs";
 import { listAiUsageSince } from "@/db/ai-usage";
 import { refusedText, requireModerator } from "@/app/[lang]/admin/moderator";
 import type { Refused } from "@/app/[lang]/admin/actions";
+import { asc, gte } from "drizzle-orm";
+import { database } from "@/db/ready";
+import * as t from "@/db/schema";
+import { lastDays } from "@/db/job-stats";
+import { FUNNEL_DAYS, funnelReport, type FunnelDays, type FunnelReport } from "@/app/[lang]/admin/funnels";
 
 export async function getModerationStats(): Promise<ModerationStats | Refused> {
   const me = await requireModerator();
@@ -36,4 +41,27 @@ export async function getModerationStats(): Promise<ModerationStats | Refused> {
     },
     now,
   );
+}
+
+/**
+ * 审核数据's 漏斗 (#316, ADR 0025 §5): the last 7 or 30 New Zealand days of the anonymous events, as counts per step,
+ * for a moderator only. Only the counts leave the server (funnels.ts), never a visitor or a row.
+ */
+export async function getFunnels(days: unknown): Promise<FunnelReport | Refused> {
+  const me = await requireModerator();
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
+  const period: FunnelDays = FUNNEL_DAYS.find((d) => d === days) ?? 7;
+  const db = await database();
+  const rows = await db
+    .select({
+      visitor: t.events.visitor,
+      day: t.events.day,
+      name: t.events.name,
+      lang: t.events.lang,
+      role: t.events.role,
+    })
+    .from(t.events)
+    .where(gte(t.events.day, lastDays(new Date(), period)[0]))
+    .orderBy(asc(t.events.at), asc(t.events.id));
+  return funnelReport(rows, period);
 }
