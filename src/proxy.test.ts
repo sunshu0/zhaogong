@@ -9,7 +9,7 @@ const request = (path: string, cookie?: string, method = "GET") =>
 const page = (cookie?: string) => request("/jobs/j2", cookie);
 const rewrittenTo = (response: Response) => response.headers.get("x-middleware-rewrite");
 
-describe("proxy: the visitor id comes with the job page (#79)", () => {
+describe("proxy: the visitor id comes with the page (#79, #312)", () => {
   it("gives a browser without one a random httpOnly id for a year", () => {
     const set = proxy(page()).cookies.get("zg_visitor");
     expect(set?.value).toMatch(/^[A-Za-z0-9_-]{22}$/);
@@ -22,10 +22,12 @@ describe("proxy: the visitor id comes with the job page (#79)", () => {
     expect(proxy(page("zg_visitor=../../etc")).cookies.get("zg_visitor")?.value).toMatch(/^[A-Za-z0-9_-]{22}$/);
   });
 
-  it("only on a job page, and only with the page itself (GET)", () => {
-    expect(proxy(request("/jobs")).cookies.get("zg_visitor")).toBeUndefined();
-    expect(proxy(request("/jobs/j2/x")).cookies.get("zg_visitor")).toBeUndefined();
+  it("on every page since the funnel events (#312), and only with the page itself (GET)", () => {
+    for (const path of ["/", "/jobs", "/internships", "/login", "/employer/post"])
+      expect(proxy(request(path)).cookies.get("zg_visitor")?.value).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    // A Server Function's answer never sets it: Next would refresh the page and drop its #hash (#90).
     expect(proxy(request("/jobs/j2", undefined, "POST")).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(request("/messages", undefined, "POST")).cookies.get("zg_visitor")).toBeUndefined();
   });
 });
 

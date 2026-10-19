@@ -35,7 +35,7 @@
 | --- | --- | --- | --- |
 | `setLang(lang)` | `"zh"` 或 `"en"`，别的值当 `zh` | 返回设好的语言：写 cookie `zg_lang`（一年，`Path=/`，`SameSite=Lax`，httpOnly，正式环境加 Secure）；已登录时同时存进 `accounts.lang`。调用后页面整页刷新（`location.reload()`） | — |
 
-- **proxy（每个页面请求都经过，排除 `_next/`、`api/` 和带扩展名的文件）：** 读 cookie `zg_lang`（不是 `en` 就当中文），内部改写到 `/zh/…` 或 `/en/…`，浏览器的地址不变；地址本身带 `/zh`、`/en` 的 308 跳回不带的。Server Functions 的 POST 也经过它，所以返回的出错信息是 cookie 的语言（`requestLang()`）。职位页 `/jobs/:id` 照旧顺带发访客 id（#79、#90）。
+- **proxy（每个页面请求都经过，排除 `_next/`、`api/` 和带扩展名的文件）：** 读 cookie `zg_lang`（不是 `en` 就当中文），内部改写到 `/zh/…` 或 `/en/…`，浏览器的地址不变；地址本身带 `/zh`、`/en` 的 308 跳回不带的。Server Functions 的 POST 也经过它，所以返回的出错信息是 cookie 的语言（`requestLang()`）。页面的 GET 顺带发访客 id：职位页从 #79 起，#312 起每个页面都发（自建漏斗要把同一访客的几步串起来，ADR 0025）；Server Function 的 POST 从不发（#90）。
 - **出错信息：** 写操作返回的 `error` / `error_zh` 按请求的语言给（字段名照旧），读数据的接口返回的文字（通知、申请状态、提醒条件）也一样。
 
 ## 数据与账号 — `src/app/[lang]/account/actions.ts`
@@ -105,7 +105,7 @@
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `countJobView(jobId)` | 职位编号；职位页每次加载调用一次 | 用浏览器的随机编号（httpOnly cookie `zg_visitor`，一年；职位页的响应由 `src/proxy.ts` 先发给没有编号的浏览器，#79；这里从不设 cookie，缺失时用一次性的编号计数，#90），存它的 SHA-256；同一浏览器同一职位同一新西兰日只记一次。不存 IP，不关联账号。企业看自己的职位不算 | 职位不存在、待审核或已下架时什么都不做 |
+| `countJobView(jobId)` | 职位编号；职位页每次加载调用一次 | 用浏览器的随机编号（httpOnly cookie `zg_visitor`，一年；页面的响应由 `src/proxy.ts` 先发给没有编号的浏览器，#79，#312 起每个页面都发；这里从不设 cookie，缺失时用一次性的编号计数，#90），存它的 SHA-256；同一浏览器同一职位同一新西兰日只记一次。不存 IP，不关联账号。企业看自己的职位不算 | 职位不存在、待审核或已下架时什么都不做 |
 
 ## 聊天、交换和通知 — `src/app/[lang]/messages/actions.ts`
 
@@ -263,6 +263,17 @@
 | --- | --- | --- |
 | `{ conversationId, reply?, readMine? }`：`reply` 最多 2000 字；`readMine: true` 把我发的消息标为对方已读 | 200，改动后的 `ChatRecord` | 401 `{ error: "请先登录" }`；400 `{ error: "没有这个对话" }` |
 
+## 点击统计的事件 — `POST /api/events`（#312，ADR 0025）
+
+浏览器的 `track(event)`（`src/lib/events/track.ts`）用 `navigator.sendBeacon` 发一条事件，不等回答。正文是 JSON：`{ name, path, jobId?, detail? }`。
+
+- `name` 和 `detail` 只收 `src/lib/events/catalog.ts` 清单里的（ADR 0025 第 4 节）；跟职位有关的事件必须带 `jobId`，别的不能带。`path` 是路由模板（`/jobs/[id]`），不带查询串。
+- 不管收没收下都回 204，不说原因。
+- 访客、语言和身份由服务器从请求里取：`visitor` 是 `zg_visitor` 和新西兰日期的 HMAC（`ZG_EVENTS_SECRET`）；语言看 `zg_lang`；身份看会话（没登录是 `out`）。
+- 不记：User-Agent 像爬虫的、带 `Next-Router-Prefetch` 或 `Purpose` / `Sec-Purpose: prefetch` 的、生产环境没设 `ZG_EVENTS_SECRET` 时的。同一访客同一天同一种事件最多 30 条。
+- Server Functions 成功以后用 `recordRequestEvent(event)`（`src/lib/events/record.ts`）在服务器上记，规则一样；它从不抛错。
+- 表 `events`（迁移 0026）只留 180 天：每天第一条写入时删掉更早的。
+
 ## 外部职位导入 — `npm run import:external`
 
 #111（PRD R-39，ADR 0014）。没有 Server Function：本机命令（`src/db/cli.ts import:external`）读公司名单（`src/config/external-companies.ts`），对 `terms` 核对过且允许展示的公司请求它的公开接口，把事实存进 `external_jobs`（迁移 0016）。
@@ -355,6 +366,7 @@
 | `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
+| `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
 | `/sitemap.xml` | 首页、职位列表、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；每次请求时生成 | — |
 | `/robots.txt` | 允许收录，但不收录 `/admin`、`/account`、`/workspace`、`/profile`、`/me`、`/messages`、`/notifications`、`/login`、`/employer/`、`/candidates/`、`/resume/`、`/api/`；指向 sitemap | — |

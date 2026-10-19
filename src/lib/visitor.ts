@@ -1,6 +1,8 @@
-// The anonymous browser id behind job view counts (#55): a random value in an httpOnly cookie, stored only hashed.
-// No IP and no account. Handed out with the job page itself (src/proxy.ts, #79), so it is in the browser before
-// the page counts the view. The view count never sets it (#90): a browser without it counts under a throw-away id.
+// The anonymous browser id behind job view counts (#55) and the funnel events (#312, ADR 0025): a random value in an
+// httpOnly cookie, stored only hashed (SHA-256 for views, an HMAC with the day for events). No IP and no account.
+// Handed out with every page itself (src/proxy.ts; job pages since #79, all pages since #312), so it is in the
+// browser before the page records anything. Server Functions never set it (#90): without it a browser counts
+// under a throw-away id.
 
 export const VISITOR_COOKIE = "zg_visitor";
 const YEAR_SECONDS = 365 * 24 * 3600;

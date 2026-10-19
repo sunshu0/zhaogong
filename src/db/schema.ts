@@ -716,3 +716,35 @@ export const aiUsage = sqliteTable(
   },
   (table) => [index("ai_usage_email_at_idx").on(table.email, table.at), index("ai_usage_at_idx").on(table.at)],
 );
+
+// ---- 点击统计：自建漏斗 (#312) ----
+
+/**
+ * One row per funnel event (#312, ADR 0025 §3): what happened, on which page, in which language and identity, and
+ * an anonymous visitor that joins up within one New Zealand day only (an HMAC of the zg_visitor cookie and the day,
+ * keyed by ZG_EVENTS_SECRET). No email, account, business, IP or user agent; `job_id` only for an event about a job
+ * (a job or an external job, both public). `name` and `detail` come from src/lib/events/catalog.ts. Rows older than
+ * 180 days are deleted as new ones come in (src/db/events.ts).
+ */
+export const events = sqliteTable(
+  "events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    /** ISO time, to the second. */
+    at: text("at").notNull(),
+    /** The New Zealand day, YYYY-MM-DD: the reports group by it. */
+    day: text("day").notNull(),
+    visitor: text("visitor").notNull(),
+    /** The route template, without its query: /jobs/[id]. */
+    path: text("path").notNull(),
+    lang: text("lang").$type<Lang>().notNull(),
+    role: text("role").$type<"out" | "seeker" | "employer">().notNull(),
+    jobId: text("job_id"),
+    detail: text("detail"),
+  },
+  (table) => [
+    index("events_day_name_idx").on(table.day, table.name),
+    index("events_visitor_day_idx").on(table.visitor, table.day, table.name),
+  ],
+);
