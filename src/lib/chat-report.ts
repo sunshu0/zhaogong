@@ -1,6 +1,9 @@
 import type { Message } from "@/components/seeker/chat-client";
 import { chatMessages } from "@/i18n/messages/chat";
 
+/** The longest note a chat report keeps; the report dialog's box stops there and counts against it. */
+export const CHAT_REPORT_NOTE_MAX = 1000;
+
 /** Why someone reports a chat, in Chinese; a reader's own language comes from the chat dictionary. */
 export const CHAT_REPORT_REASONS = chatMessages.zh.reportReasons;
 export type ChatReportReason = keyof typeof CHAT_REPORT_REASONS;
@@ -25,7 +28,7 @@ export function parseChatReport(value: unknown): ChatReport | undefined {
     ) ||
     !Object.hasOwn(CHAT_REPORT_REASONS, input.reason) ||
     !["employer", "seeker"].includes(input.targetRole) ||
-    input.note.length > 1000 ||
+    input.note.length > CHAT_REPORT_NOTE_MAX ||
     (input.reason === "other" && !input.note.trim()) ||
     !Array.isArray(input.evidence) ||
     input.evidence.length > 100 ||

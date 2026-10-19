@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Flag } from "lucide-react";
 import { useChat, type Conversation } from "@/components/seeker/chat-client";
 import { useSession } from "@/components/seeker/session-client";
-import type { ChatReportReason } from "@/lib/chat-report";
+import { CHAT_REPORT_NOTE_MAX, type ChatReportReason } from "@/lib/chat-report";
 import { useLang, useMessages } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { contentLang } from "@/i18n/lang";
@@ -146,12 +146,16 @@ export function ChatReportDialog({
             <span className="block text-meta text-muted">{reason === "other" ? t.noteRequired : t.noteOptional}</span>
             <textarea
               rows={3}
-              maxLength={1000}
+              maxLength={CHAT_REPORT_NOTE_MAX}
               value={note}
               onChange={(event) => setNote(event.target.value)}
               className="w-full resize-y rounded-control border border-border bg-surface px-3 py-2 text-base focus:border-brand"
             />
           </label>
+          {/* The note's length against its limit, as the job report's and the application's notes show it. */}
+          <p className="text-right text-meta text-muted">
+            {note.length} / {CHAT_REPORT_NOTE_MAX}
+          </p>
           <p className="text-meta text-muted">{t.evidenceNote}</p>
           {error && (
             <p role="alert" className="text-body text-danger">

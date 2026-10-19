@@ -26,6 +26,8 @@ test("a received message asking for a deposit gets a reminder and a report link;
   const dialog = page.getByRole("dialog");
   await expect(selectTrigger(dialog, "举报原因")).toHaveAccessibleName("举报原因 收取押金、介绍费或其他费用");
   await expect(dialog).toContainText("入职前要先交 200 元押金");
+  // The note counts against its 1000 characters, as the job report's does.
+  await expect(dialog.getByText("0 / 1000")).toBeVisible();
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog).toContainText("举报已记录");
   await dialog.getByRole("button", { name: "关闭", exact: true }).click();
