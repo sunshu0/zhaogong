@@ -1,6 +1,7 @@
 // #343: the engineering docs fall behind the code without anyone noticing — #336's views-actions.ts reached main
 // without a line in docs/api.md or docs/architecture.md, and two tables were missing from the table list. These
-// checks name what a change has to add to the docs, in seconds: each Server Function file, each ADR and each table.
+// checks name what a change has to add to the docs, in seconds: each Server Function file, each ADR and each table;
+// #355: each environment variable the code reads, and each page.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -36,6 +37,32 @@ function migratedTables() {
   return [...new Set(created)].filter((name) => !dropped.has(name)).sort();
 }
 
+/** The environment variables the code reads (process.env.X), NODE_ENV aside: Next and Node set it. */
+function environmentVariables() {
+  const sources = [...files("src"), "next.config.ts"].filter(
+    (path) => /\.(ts|tsx|mjs)$/.test(path) && !/\.test\./.test(path),
+  );
+  const names = sources.flatMap((path) =>
+    [...read(path).matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map((m) => m[1]),
+  );
+  return [...new Set(names)].filter((name) => name !== "NODE_ENV").sort();
+}
+
+/** The site's pages, as addresses: src/app/[lang]/jobs/[id]/page.tsx is /jobs/[id]; the catch-all 404 aside. */
+function pageRoutes() {
+  return files("src/app")
+    .map((path) => path.replaceAll("\\", "/"))
+    .filter((path) => path.endsWith("/page.tsx") && !path.includes("[...missing]"))
+    .map(
+      (path) =>
+        path
+          .replace(/^src\/app/, "")
+          .replace("/[lang]", "")
+          .replace(/\/page\.tsx$/, "") || "/",
+    )
+    .sort();
+}
+
 describe("docs follow the code", () => {
   it("finds the Server Function files and the tables at all", () => {
     expect(serverFunctionFiles()).toContain("src/app/[lang]/login/actions.ts");
@@ -60,6 +87,18 @@ describe("docs follow the code", () => {
     const linked = [...index.matchAll(/\]\((\d{4}-[^)]+\.md)\)/g)].map((m) => m[1]);
     expect(adrs.filter((name) => !linked.includes(name))).toEqual([]);
     expect(linked.filter((name) => !adrs.includes(name))).toEqual([]);
+  });
+
+  it("lists every environment variable the code reads in the deployment checklist (#355)", () => {
+    expect(environmentVariables()).toContain("DATABASE_URL");
+    const checklist = read("docs/cloudflare-deployment.md");
+    expect(environmentVariables().filter((name) => !checklist.includes(`\`${name}\``))).toEqual([]);
+  });
+
+  it("lists every page in docs/api.md's 页面路由 (#355)", () => {
+    expect(pageRoutes()).toContain("/jobs/[id]");
+    const routes = read("docs/api.md").split("## 页面路由")[1] ?? "";
+    expect(pageRoutes().filter((route) => !routes.includes(`\`${route}\``))).toEqual([]);
   });
 
   it("names every table the migrations leave in docs/architecture.md", () => {
