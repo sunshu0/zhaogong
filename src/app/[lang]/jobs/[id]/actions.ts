@@ -9,8 +9,17 @@ import { parseReport } from "@/components/seeker/report";
 import { pick } from "@/i18n/messages";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { requestLang } from "@/i18n/server";
-import { findOwnMessages, listPickableMessages, purgeExpiredEvidence } from "@/db/report-evidence";
-import { parseEvidenceIds, type PickableMessage } from "@/lib/report-evidence";
+import { randomUUID } from "node:crypto";
+import { evidenceStore } from "@/db/evidence-store";
+import { findOwnMessages, listPickableMessages, purgeExpiredEvidence, removeImages } from "@/db/report-evidence";
+import { sniffImage, stripMetadata } from "@/lib/image-metadata";
+import {
+  EVIDENCE_IMAGE_BYTES_MAX,
+  EVIDENCE_IMAGES_MAX,
+  parseEvidenceIds,
+  type EvidenceImage,
+  type PickableMessage,
+} from "@/lib/report-evidence";
 
 /** The job page fetches contact details on every visit, so one person counts once per job in this window. */
 const RECORD_AGAIN_AFTER_MS = 30 * 60 * 1000;
@@ -39,15 +48,17 @@ export async function revealContact(jobId: string): Promise<Job["contact"] | nul
 export type ReportResult = { ok: true; reportId: string } | { ok: false; error: string };
 
 /**
- * Sends a report on a job seekers can see. Anyone can report; signing in is not needed, except to attach chat
- * messages (ADR 0027): `messageIds` must be messages of this browser's account's own chats with the job's business,
- * at most EVIDENCE_MESSAGES_MAX; they are copied into the report as they are now.
+ * Sends a report on a job seekers can see. Anyone can report; signing in is not needed, except to attach evidence
+ * (ADR 0027): `messageIds` must be messages of this browser's account's own chats with the job's business, at most
+ * EVIDENCE_MESSAGES_MAX, copied into the report as they are now; `images` holds up to EVIDENCE_IMAGES_MAX files
+ * under "image", JPEG, PNG or WebP by their bytes, each at most EVIDENCE_IMAGE_BYTES_MAX, kept without their metadata.
  */
 export async function reportJob(
   jobId: string,
   reason: string,
   note?: string,
   messageIds?: number[],
+  images?: FormData,
 ): Promise<ReportResult> {
   const lang = await requestLang();
   const t = pick(seekerJobsMessages, lang).report;
@@ -57,15 +68,41 @@ export async function reportJob(
   if (!ids) return { ok: false, error: t.evidence.notYours };
   const job = typeof jobId === "string" ? await getJob(jobId) : undefined;
   if (!job || !isPublic(job)) return { ok: false, error: t.jobGone };
+  const files = images instanceof FormData ? images.getAll("image") : [];
+  if (files.length > EVIDENCE_IMAGES_MAX || !files.every((file) => file instanceof File))
+    return { ok: false, error: t.evidence.tooManyImages(EVIDENCE_IMAGES_MAX) };
   let evidence: Parameters<typeof submitReport>[3];
-  if (ids.length) {
+  let stored: EvidenceImage[] = [];
+  if (ids.length || files.length) {
     const session = await getCurrentSession();
     if (!session) return { ok: false, error: t.evidence.signedOut };
     const messages = await findOwnMessages(session.email, job.employerId, ids);
     if (messages.length !== ids.length) return { ok: false, error: t.evidence.notYours };
-    evidence = { reporterEmail: session.email, messages };
+    const cleaned: { bytes: Uint8Array; type: EvidenceImage["type"] }[] = [];
+    for (const file of files as File[]) {
+      if (file.size > EVIDENCE_IMAGE_BYTES_MAX)
+        return { ok: false, error: t.evidence.imageTooBig(EVIDENCE_IMAGE_BYTES_MAX / 1024 / 1024) };
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const type = sniffImage(bytes);
+      const clean = type && stripMetadata(bytes, type);
+      if (!type || !clean) return { ok: false, error: t.evidence.notImage };
+      cleaned.push({ bytes: clean, type });
+    }
+    const store = evidenceStore();
+    stored = cleaned.map(({ bytes, type }) => ({ key: randomUUID(), type, bytes: bytes.length }));
+    await Promise.all(stored.map((image, i) => store.put(image.key, cleaned[i].bytes, image.type))).catch(
+      async (error: unknown) => {
+        await removeImages(stored.map((image) => image.key));
+        throw error;
+      },
+    );
+    evidence = { reporterEmail: session.email, messages, images: stored };
   }
-  const report = await submitReport(job.id, parsed.reason, parsed.note, evidence);
+  const report = await submitReport(job.id, parsed.reason, parsed.note, evidence).catch(async (error: unknown) => {
+    // The files have no row to point at them: take them back.
+    await removeImages(stored.map((image) => image.key));
+    throw error;
+  });
   // The report is in; clearing old evidence failing is for the next report of the day to try.
   await purgeExpiredEvidence().catch(() => 0);
   return { ok: true, reportId: report.id };

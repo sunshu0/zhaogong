@@ -184,6 +184,14 @@ const seekerJobsZh = {
       count: (n: number, max: number) => `已选 ${n} / ${max} 条`,
       signedOut: "登录已经失效，请重新登录后再附上聊天记录",
       notYours: "选中的聊天记录有变化，请重新选择",
+      imagesLegend: "附上截图（选填）",
+      imagesHint: (max: number, mb: number) =>
+        `最多 ${max} 张，JPG、PNG 或 WebP，每张不超过 ${mb} MB。上传时会去掉图片里的拍摄地点等信息，只有审核员能看到。`,
+      chooseImages: "选择截图",
+      removeImage: (name: string) => `移除 ${name}`,
+      tooManyImages: (max: number) => `截图最多 ${max} 张`,
+      imageTooBig: (mb: number) => `每张截图不能超过 ${mb} MB`,
+      notImage: "只能上传 JPG、PNG 或 WebP 格式的图片",
     },
   },
   // ApplyJob.tsx

@@ -11,7 +11,7 @@ import * as t from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import { isOpenJob } from "@/lib/job-expiry";
 import { jobRoles } from "@/lib/job-roles";
-import type { EvidenceMessage } from "@/lib/report-evidence";
+import type { EvidenceImage, EvidenceMessage } from "@/lib/report-evidence";
 import type {
   Account,
   ContactView,
@@ -117,14 +117,15 @@ export async function createJob(job: Omit<Job, "id">, postedBy?: string): Promis
 }
 
 /**
- * Saves a report, with the chat messages it carries as evidence (ADR 0027) in the same transaction. The caller has
- * checked the messages are the reporter's own (findOwnMessages); the reporter's email is kept with them only.
+ * Saves a report, with the chat messages and screenshots it carries as evidence (ADR 0027) in the same transaction.
+ * The caller has checked the messages are the reporter's own (findOwnMessages) and put the screenshots in the evidence
+ * store; the reporter's email is kept with them only.
  */
 export async function submitReport(
   jobId: string,
   reason: ReportReason,
   note?: string,
-  evidence?: { reporterEmail: string; messages: readonly EvidenceMessage[] },
+  evidence?: { reporterEmail: string; messages: readonly EvidenceMessage[]; images?: readonly EvidenceImage[] },
 ): Promise<Report> {
   const db = await database();
   return db.transaction(async (tx) => {
@@ -137,20 +138,27 @@ export async function submitReport(
       status: "open",
     };
     await tx.insert(t.reports).values({ ...report, note: note ?? null });
-    if (evidence?.messages.length)
-      await tx.insert(t.reportEvidence).values(
-        evidence.messages.map((m) => ({
-          reportId: report.id,
-          reporterEmail: normalizeEmail(evidence.reporterEmail),
-          kind: "message" as const,
-          messageId: m.messageId,
-          messageFrom: m.from,
-          messageByName: m.byName,
-          messageText: m.text,
-          messageSentAt: m.sentAt,
-          createdAt: report.createdAt,
-        })),
-      );
+    const reporterEmail = evidence && normalizeEmail(evidence.reporterEmail);
+    const rows = [
+      ...(evidence?.messages ?? []).map((m) => ({
+        kind: "message" as const,
+        messageId: m.messageId,
+        messageFrom: m.from,
+        messageByName: m.byName,
+        messageText: m.text,
+        messageSentAt: m.sentAt,
+      })),
+      ...(evidence?.images ?? []).map((image) => ({
+        kind: "image" as const,
+        imageKey: image.key,
+        imageType: image.type,
+        imageBytes: image.bytes,
+      })),
+    ];
+    if (reporterEmail && rows.length)
+      await tx
+        .insert(t.reportEvidence)
+        .values(rows.map((row) => ({ ...row, reportId: report.id, reporterEmail, createdAt: report.createdAt })));
     return report;
   });
 }

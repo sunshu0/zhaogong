@@ -14,7 +14,7 @@ import { DELETED_ACCOUNT } from "@/lib/deleted-account";
 import type { SharedConversation } from "@/lib/chat-server/shared-view";
 import type { EmployerPage } from "@/components/employer/employer-page";
 import { listJobContactsBy, listJobsPostedBy } from "@/db/job-posters";
-import { listEvidenceOf } from "@/db/report-evidence";
+import { imageKeysOf, listEvidenceOf, removeImages } from "@/db/report-evidence";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -349,7 +349,9 @@ export type DeleteAccountResult = "deleted" | "no_account" | "last_moderator" | 
 export async function deleteAccount(email: string): Promise<DeleteAccountResult> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
+  // Report screenshots' files go once their rows have (ADR 0027): a failed transaction leaves both.
+  const images = await imageKeysOf(address);
+  const result = await db.transaction(async (tx): Promise<DeleteAccountResult> => {
     const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
     if (!account) return "no_account";
     const teammates = account.employerId
@@ -475,4 +477,6 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.accounts).where(eq(t.accounts.email, address));
     return "deleted";
   });
+  if (result === "deleted") await removeImages(images);
+  return result;
 }

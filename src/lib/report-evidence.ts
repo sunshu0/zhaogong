@@ -5,6 +5,10 @@ import type { AccountRole } from "@/lib/types";
 export const EVIDENCE_MESSAGES_MAX = 20;
 /** How many of the newest messages the form lists to choose from. */
 export const PICKABLE_MESSAGES_MAX = 200;
+/** The most screenshots one report carries, how big each may be, and which kinds (judged by their bytes). */
+export const EVIDENCE_IMAGES_MAX = 3;
+export const EVIDENCE_IMAGE_BYTES_MAX = 5 * 1024 * 1024;
+export const EVIDENCE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 /** Evidence goes this many days after its report is handled; the report stays. */
 export const EVIDENCE_KEEP_DAYS = 180;
 
@@ -28,6 +32,13 @@ export interface EvidenceMessage {
   byName: string | null;
   text: string;
   sentAt: string;
+}
+
+/** A screenshot as a report keeps it: its key in the evidence store, its type and size after the metadata went. */
+export interface EvidenceImage {
+  key: string;
+  type: (typeof EVIDENCE_IMAGE_TYPES)[number];
+  bytes: number;
 }
 
 /** The message ids a report sends: up to EVIDENCE_MESSAGES_MAX different whole numbers, or undefined. */

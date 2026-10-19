@@ -6,6 +6,7 @@ import { and, asc, desc, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { nzDay } from "@/db/job-stats";
+import { evidenceStore } from "@/db/evidence-store";
 import { normalizeEmail } from "@/components/seeker/session";
 import {
   EVIDENCE_KEEP_DAYS,
@@ -17,7 +18,7 @@ import {
 /** One piece of a report's evidence, as /admin shows it. */
 export type ReportEvidence =
   | ({ kind: "message"; createdAt: string } & EvidenceMessage)
-  | { kind: "image"; key: string; type: string; bytes: number; createdAt: string };
+  | { kind: "image"; id: number; url: string; type: string; bytes: number; createdAt: string };
 
 /** The job seeker's chats with this business (about any of its jobs). */
 const theirChats = (seekerEmail: string, employerId: string) =>
@@ -90,10 +91,31 @@ export async function listReportEvidence(reportId: string): Promise<ReportEviden
       ];
     if (row.kind === "image" && row.imageKey && row.imageType)
       return [
-        { kind: "image", key: row.imageKey, type: row.imageType, bytes: row.imageBytes ?? 0, createdAt: row.createdAt },
+        {
+          kind: "image",
+          id: row.id,
+          url: `/api/report-evidence/${row.id}`,
+          type: row.imageType,
+          bytes: row.imageBytes ?? 0,
+          createdAt: row.createdAt,
+        },
       ];
     return [];
   });
+}
+
+/** One screenshot's row, for /api/report-evidence/[id]: its report, where the file is, its type. */
+export async function findEvidenceImage(
+  id: number,
+): Promise<{ reportId: string; key: string; type: string } | undefined> {
+  const db = await database();
+  const [row] = await db
+    .select()
+    .from(t.reportEvidence)
+    .where(and(eq(t.reportEvidence.id, id), eq(t.reportEvidence.kind, "image")));
+  return row?.imageKey && row.imageType
+    ? { reportId: row.reportId, key: row.imageKey, type: row.imageType }
+    : undefined;
 }
 
 /** The evidence this account sent, for its export: which report, and the messages (screenshots by format and size). */
@@ -114,11 +136,33 @@ export async function listEvidenceOf(email: string) {
   }));
 }
 
+/**
+ * Removes screenshots' files once their rows are gone. A file left behind (the store did not answer) has no row
+ * pointing at it, so nobody can be shown it; it is reported in the server log.
+ */
+export async function removeImages(keys: readonly (string | null)[]): Promise<void> {
+  const files = keys.filter((key): key is string => !!key);
+  if (!files.length) return;
+  await evidenceStore()
+    .remove(files)
+    .catch((error: unknown) => console.error("report evidence: files not removed", files, error));
+}
+
+/** The keys of the screenshots this account attached, for removing their files with the account. */
+export async function imageKeysOf(email: string): Promise<string[]> {
+  const db = await database();
+  const rows = await db
+    .select({ key: t.reportEvidence.imageKey })
+    .from(t.reportEvidence)
+    .where(and(eq(t.reportEvidence.reporterEmail, normalizeEmail(email)), eq(t.reportEvidence.kind, "image")));
+  return rows.flatMap((row) => (row.key ? [row.key] : []));
+}
+
 let cleanedDay: string | undefined;
 
 /**
- * Deletes the evidence of reports handled more than EVIDENCE_KEEP_DAYS ago, once per New Zealand day (the first
- * report of the day calls it). Returns how many pieces went.
+ * Deletes the evidence of reports handled more than EVIDENCE_KEEP_DAYS ago, screenshots' files too, once per New
+ * Zealand day (the first report of the day calls it). Returns how many pieces went.
  */
 export async function purgeExpiredEvidence(now = new Date()): Promise<number> {
   const day = nzDay(now);
@@ -133,7 +177,8 @@ export async function purgeExpiredEvidence(now = new Date()): Promise<number> {
   const gone = await db
     .delete(t.reportEvidence)
     .where(inArray(t.reportEvidence.reportId, handled))
-    .returning({ id: t.reportEvidence.id });
+    .returning({ key: t.reportEvidence.imageKey });
+  await removeImages(gone.map((row) => row.key));
   return gone.length;
 }
 

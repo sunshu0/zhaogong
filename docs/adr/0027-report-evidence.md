@@ -21,10 +21,13 @@
 
 ### 2. 截图（第二个 PR）
 
-- 最多 3 张，只收 JPG / PNG / WebP，每张 ≤5 MB，按文件内容判断格式，不信扩展名和浏览器给的类型。
-- 服务器去掉元数据（EXIF，含拍摄位置）后再存；存在 `report_evidence` 同一张表（`kind = "image"`，存储里的键、格式、大小）。
-- **存储做成可换的接口：** 开发环境放本机 `data/uploads/`（`.gitignore` 里），生产环境用 Cloudflare R2（以公司名义开，`docs/cloudflare-deployment.md` 加一项）。图片不公开，只能通过审核后台带权限的地址看。
-- 细节（去元数据和重新编码的做法、地址的权限）在第二个 PR 里补进本节。
+- 最多 3 张（`EVIDENCE_IMAGES_MAX`），只收 JPG / PNG / WebP，每张 ≤5 MB。浏览器选的时候先按类型和大小挡一次；服务器再按文件开头的字节判断格式（`sniffImage`），不信文件名和浏览器给的类型。也要登录：截图跟着举报人的账号删。
+- **去掉元数据再存**（`stripMetadata`，`src/lib/image-metadata.ts`）：JPEG 去掉 APP1–APP15（EXIF、XMP，含拍摄地点）和注释，留下 JFIF、色彩配置（ICC）和 Adobe 色彩变换；PNG 去掉 tEXt、zTXt、iTXt、eXIf、tIME；WebP 去掉 EXIF、XMP 块并清掉 VP8X 里对应的标记。画面本身原样复制。文件不完整就拒收。
+- **没有重新编码**（导师 10:4x 说的是「去 EXIF、重新编码」）：重新编码在 Worker 里要加 WASM 编码库（几百 KB），截图还会变糊。重新编码主要防的是图片里藏可执行内容；这里图片只给审核员看，地址的回答固定成图片本身：`Content-Type` 是服务器判断出的格式、`X-Content-Type-Options: nosniff`、`Content-Security-Policy: default-src 'none'; sandbox`、不缓存，所以不重新编码风险很小。代价：手机照片的旋转方向在 EXIF 里，去掉后竖拍的照片可能横着显示（截图不受影响）。导师要重新编码的话另开一项。
+- **存储做成可换的接口**（`src/db/evidence-store.ts`）：Cloudflare 上用绑定成 `EVIDENCE_BUCKET` 的 R2 桶（以公司名义开，部署清单第 4 节第 2a 步），没绑就拒收；本机放 `data/uploads/report-evidence/`（`data/` 不进 git，`ZG_EVIDENCE_DIR` 可改）。文件名是服务器生成的随机编号，表里只存这个编号、格式和大小。
+- **只能通过 `/api/report-evidence/[id]` 看**：只有审核员能取到，其他人一律 404；每交出一次先按 ADR 0026 记一条（`chat`，编号是举报编号）。
+- 一个举报最多约 15 MB，所以 Server Function 和 proxy 的请求体上限调到 16 MB（`next.config.ts`）；别的 Server Function 各自检查大小，不受影响。
+- 先存文件再写库：写库失败就把刚存的文件删掉；删证据（到期、删号）是先删行再删文件，删文件失败只会留下没有行指向的文件，谁也看不到，日志里记一条。
 
 ### 3. 谁能看
 

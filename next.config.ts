@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
   // The frontend uses local icons and browser-generated avatars; serve them without an image service.
   images: { unoptimized: true },
   cacheComponents: true,
+  // A job report carries up to three 5 MB screenshots (ADR 0027): its Server Function and the proxy in front of the
+  // page take a body that size. Every other Server Function checks its own sizes.
+  experimental: { serverActions: { bodySizeLimit: "16mb" }, proxyClientMaxBodySize: "16mb" },
   htmlLimitedBots: HTML_LIMITED_BOTS,
   partialPrefetching: true,
   turbopack: {

@@ -36,3 +36,32 @@ test("signed out, a report has no chat messages to attach", async ({ page }) => 
   await expect(page.getByRole("group", { name: "举报这个职位" })).toBeVisible();
   await expect(page.getByText("附上聊天记录（选填）")).toHaveCount(0);
 });
+
+test("report a job with a screenshot; only JPG, PNG and WebP; nobody but a moderator can open it", async ({
+  page,
+  request,
+}) => {
+  await signIn(page, "/jobs/j3", freshEmail("e2e.report.image"));
+  await page.getByRole("button", { name: "举报这个职位" }).click();
+  const images = page.getByRole("group", { name: "附上截图（选填）" });
+  await expect(images).toContainText("最多 3 张");
+  const choose = images.getByLabel("选择截图");
+
+  await choose.setInputFiles({ name: "chat.gif", mimeType: "image/gif", buffer: Buffer.from("GIF89a") });
+  await expect(page.getByRole("main").getByRole("alert")).toHaveText("只能上传 JPG、PNG 或 WebP 格式的图片");
+
+  const shot = await page.screenshot({ clip: { x: 0, y: 0, width: 200, height: 120 } });
+  await choose.setInputFiles({ name: "聊天截图.png", mimeType: "image/png", buffer: shot });
+  await expect(images.getByText("聊天截图.png", { exact: true })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+  await images.getByRole("button", { name: "移除 聊天截图.png" }).click();
+  await expect(images.getByText("聊天截图.png", { exact: true })).toHaveCount(0);
+  await choose.setInputFiles({ name: "聊天截图.png", mimeType: "image/png", buffer: shot });
+
+  await page.getByLabel("收押金 / 介绍费").check();
+  await page.getByRole("button", { name: "提交举报" }).click();
+  await expect(page.getByRole("main").getByRole("status")).toContainText("谢谢你的举报");
+
+  // The screenshots' address answers moderators only (/admin's 举报 shows them, line B).
+  expect((await request.get("/api/report-evidence/1")).status()).toBe(404);
+});

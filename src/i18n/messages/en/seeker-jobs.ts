@@ -174,6 +174,14 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
       count: (n, max) => `${n} of ${max} chosen`,
       signedOut: "You're no longer signed in. Sign in again to attach chat messages",
       notYours: "The messages you chose have changed. Choose them again",
+      imagesLegend: "Attach screenshots (optional)",
+      imagesHint: (max, mb) =>
+        `Up to ${max}, as JPG, PNG or WebP, each up to ${mb} MB. Details such as where a photo was taken are removed when you upload, and only moderators see them.`,
+      chooseImages: "Choose screenshots",
+      removeImage: (name) => `Remove ${name}`,
+      tooManyImages: (max) => `You can attach up to ${max} screenshots`,
+      imageTooBig: (mb) => `Each screenshot must be ${mb} MB or smaller`,
+      notImage: "Only JPG, PNG or WebP images can be uploaded",
     },
   },
   apply: {

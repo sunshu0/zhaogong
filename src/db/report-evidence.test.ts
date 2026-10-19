@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { deleteAccount, exportAccountData } from "@/db/account-data";
 import { addSharedMessage, openSharedConversation } from "@/db/conversations";
+import { memoryStore, setEvidenceStoreForTests } from "@/db/evidence-store";
 import { database } from "@/db/ready";
 import {
   findOwnMessages,
@@ -106,5 +108,44 @@ describe("report evidence: chat messages (ADR 0027)", () => {
     const db = await database();
     const reports = await db.select({ id: t.reports.id }).from(t.reports);
     expect(reports.map((r) => r.id)).toContain(report.id);
+  });
+});
+
+describe("report evidence: screenshots (ADR 0027 §2)", () => {
+  it("keeps the files' keys with the report and removes the files when the evidence goes", async () => {
+    const store = memoryStore();
+    setEvidenceStoreForTests(store);
+    try {
+      const email = "evidence.images@example.com";
+      await ensureAccount(email);
+      const keys = [randomUUID(), randomUUID()];
+      for (const key of keys) await store.put(key, new Uint8Array([1, 2, 3]), "image/png");
+      const images = keys.map((key) => ({ key, type: "image/png" as const, bytes: 3 }));
+      const first = await submitReport("j1", "charges_fee", undefined, { reporterEmail: email, messages: [], images });
+      const [shown] = await listReportEvidence(first.id);
+      expect(shown).toMatchObject({ kind: "image", type: "image/png", bytes: 3 });
+      expect(shown.kind === "image" && shown.url).toMatch(/^\/api\/report-evidence\/\d+$/);
+      expect((await exportAccountData(email))?.reportEvidence).toMatchObject([
+        { kind: "image", imageType: "image/png", imageBytes: 3 },
+        { kind: "image", imageType: "image/png", imageBytes: 3 },
+      ]);
+
+      const handled = new Date("2026-01-01T00:00:00.000Z");
+      await updateReport(first.id, "actioned", handled);
+      expect(await purgeExpiredEvidence(new Date(handled.getTime() + (EVIDENCE_KEEP_DAYS + 1) * 86_400_000))).toBe(2);
+      expect(store.keys()).toEqual([]);
+
+      const again = randomUUID();
+      await store.put(again, new Uint8Array([4]), "image/png");
+      await submitReport("j1", "charges_fee", undefined, {
+        reporterEmail: email,
+        messages: [],
+        images: [{ key: again, type: "image/png", bytes: 1 }],
+      });
+      expect(await deleteAccount(email)).toBe("deleted");
+      expect(store.keys()).toEqual([]);
+    } finally {
+      setEvidenceStoreForTests(undefined);
+    }
   });
 });

@@ -8,7 +8,7 @@ import { rememberReport, useSentReports } from "@/components/seeker/activity-cli
 import { NOTE_MAX, parseReport, REPORT_REASONS } from "@/components/seeker/report";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
-import { ReportEvidence } from "@/components/seeker/ReportEvidence";
+import { ReportEvidence, ReportImages } from "@/components/seeker/ReportEvidence";
 import type { DemoSession } from "@/components/seeker/session";
 import { Button } from "@/components/ui/Button";
 import { cardClass } from "@/components/ui/Card";
@@ -44,6 +44,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   // #303: the note's length against NOTE_MAX, as the application's note shows it; the box stops at the limit.
   const [noteLength, setNoteLength] = useState(0);
   const [picked, setPicked] = useState<number[]>([]);
+  const [images, setImages] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
   const lang = useLang();
   const t = useMessages(seekerJobsMessages).report;
@@ -63,7 +64,12 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     if (!parsed.ok) return setError(parsed.error);
     setError(null);
     startTransition(async () => {
-      const result = await reportJob(jobId, parsed.reason, parsed.note, picked).catch(() => null);
+      let files: FormData | undefined;
+      if (images.length) {
+        files = new FormData();
+        for (const image of images) files.append("image", image);
+      }
+      const result = await reportJob(jobId, parsed.reason, parsed.note, picked, files).catch(() => null);
       if (!result) return setError(t.networkError);
       if (!result.ok) return setError(result.error);
       rememberReport(
@@ -128,6 +134,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
       </p>
 
       {owner && <ReportEvidence jobId={jobId} account={owner.email} picked={picked} onChange={setPicked} />}
+      {owner && <ReportImages files={images} onChange={setImages} onError={setError} />}
 
       {error && (
         <p role="alert" className="mt-2 text-sm text-danger">
