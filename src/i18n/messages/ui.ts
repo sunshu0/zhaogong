@@ -100,6 +100,9 @@ const uiZh = {
     decline: "不用了",
     privacy: "隐私说明",
     settings: "统计设置",
+    // #313: under the prompt when 统计设置 opens it again, what is set now.
+    on: "现在：已同意。",
+    off: "现在：没有开启。",
   },
 };
 

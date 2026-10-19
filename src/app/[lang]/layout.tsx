@@ -9,6 +9,8 @@ import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
 import { StickyHeader } from "@/components/ui/StickyHeader";
 import { LangSwitch } from "@/components/ui/LangSwitch";
+import { Analytics } from "@/components/analytics/Analytics";
+import { ConsentSettingsButton } from "@/components/analytics/ConsentSettingsButton";
 import { Toaster } from "@/components/ui/Toast";
 import { LangProvider } from "@/i18n/client";
 import { PRODUCT_NAME } from "@/i18n/labels";
@@ -82,11 +84,16 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
             <p>{site.lawNote}</p>
             <LangSwitch look="footer" />
+            <ConsentSettingsButton />
           </footer>
           <Suspense fallback={<BottomNavShell />}>
             <BottomNav />
           </Suspense>
           <Toaster />
+          {/* Clarity behind consent (#313, ADR 0025): reads the path, so inside a Suspense like the navs. */}
+          <Suspense fallback={null}>
+            <Analytics />
+          </Suspense>
         </LangProvider>
       </body>
     </html>

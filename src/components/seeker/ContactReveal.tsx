@@ -43,7 +43,12 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
   const current = session && loaded?.jobId === jobId && loaded.email === session.email ? loaded : null;
 
   return (
-    <section aria-labelledby="contact-heading" className="rounded-card bg-surface p-4 shadow-card lg:p-5">
+    // data-clarity-mask: contact details are never recorded, even masked (#313, ADR 0025 §6).
+    <section
+      aria-labelledby="contact-heading"
+      data-clarity-mask="true"
+      className="rounded-card bg-surface p-4 shadow-card lg:p-5"
+    >
       <h2 id="contact-heading" className="font-medium">
         {t.contact.title}
       </h2>

@@ -205,7 +205,9 @@ function ApplyDialog({
   }
 
   return (
+    // data-clarity-mask: the application form is never recorded (#313, ADR 0025 §6).
     <div
+      data-clarity-mask="true"
       className="fixed inset-0 z-40 flex items-end justify-center bg-foreground/40 md:items-center"
       onClick={onClose}
     >

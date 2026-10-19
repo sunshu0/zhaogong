@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { DemoApply } from "@/components/external/DemoApply";
 import { ExternalApplyLink } from "@/components/external/ExternalApplyLink";
 import { TrackView } from "@/components/ui/TrackView";
+import { NoClarity } from "@/components/analytics/NoClarity";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { requestTime } from "@/components/seeker/request-time";
@@ -68,6 +69,8 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
   return (
     <article aria-labelledby="external-title" className="space-y-3 pb-24 md:pb-0 lg:max-w-3xl">
       <TrackView event={{ name: "external_view", path: "/external/[id]", jobId: job.id }} />
+      {/* The internship section is not recorded (ADR 0025 §6, 待用户 ①); its path does not say so. */}
+      {section === "internship" && <NoClarity />}
       <p className="text-meta">
         <Link
           href={SECTION_PATHS[section]}

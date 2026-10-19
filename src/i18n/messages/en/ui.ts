@@ -90,5 +90,7 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     decline: "No thanks",
     privacy: "Privacy",
     settings: "Analytics settings",
+    on: "Now: agreed.",
+    off: "Now: off.",
   },
 };
