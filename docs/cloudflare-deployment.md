@@ -104,7 +104,7 @@ PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'
      ```
      `middlewareDir` 在同一个函数前面（第 141 行）已经定义好了。
    - 让 `npm ci` 以后也带着这个补丁：加开发依赖 `patch-package`，`package.json` 加 `"postinstall": "patch-package"`。改好文件后跑 `npx patch-package @opennextjs/cloudflare`，生成 `patches/@opennextjs+cloudflare+1.20.10.patch` 并提交。补丁里写死了版本号，**升级 OpenNext 时要删掉补丁，重新确认还要不要**。
-   - 补丁验证结果见第 6 节。
+   - **试过（2026-10-20 03:10，见第 6 节）：打上补丁后，中间件那一步过了。** 接着在 Windows 上卡在建符号链接，要在 Linux 上构建。
 
 ## 5. 回滚
 
@@ -153,6 +153,14 @@ PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_MET
 - `wrangler deploy --dry-run` 和打包里用的是不是 libsql 的 web 版，要等构建过了才能查，这次没跑到。
 
 日志在仓库外：`D:/dev/zg-scratch/a-d26/cfbuild/run.log`、`build.log`。
+
+**第二次（2026-10-20 03:09，`e88ee35`，补丁只在这一次打上，跑完就恢复了原文件，没有提交）：**
+
+- `npm run check` 过了（单测 1249 条）。
+- 打上第 4a 节的补丁后，`Bundling Node.js middleware...` **过了**，补丁管用。
+- 接着在 `Bundling cache assets...` 后面报 `EPERM: operation not permitted, symlink`：OpenNext 要在 `.open-next/server-functions/default/.next/node_modules/` 下面给 `@libsql/client` 建一个符号链接。Windows 默认不让普通用户建符号链接（要开发者模式或者管理员权限，这是系统设置，没去改）。10-14 那次在 Windows 上能构建，是因为那时还没有 `@libsql/client` 这个外部包。
+- **结论：** 上线用的构建要放在 **Linux** 上：Cloudflare 的 Workers Builds，或者 WSL / Linux 机器，在那边重新 `npm ci`，别拷 Windows 的 node_modules。到时（升级了 OpenNext，或者打了补丁）照第 4a 节在 Linux 上跑 `cf:build` 和 dry-run，再确认包里用的是 libsql 的 web 版（`grep -rl "lib-esm/web" .open-next/server-functions`）。
+- 日志：`D:/dev/zg-scratch/a-d26/deploygate/run.log`、`check.log`、`build.log`。
 
 ## 7. 参考
 
