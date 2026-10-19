@@ -143,6 +143,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
                 className="text-brand underline"
               >
                 {request.website}
+                {t.newWindow}
               </a>
             ) : (
               t.applicant.notGiven
@@ -242,6 +243,7 @@ function CheckRow({
               className="text-brand underline"
             >
               {link.label}
+              {t.newWindow}
             </a>
           ))}
         </p>

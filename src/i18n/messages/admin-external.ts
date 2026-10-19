@@ -25,7 +25,7 @@ const adminExternalZh = {
     byDepartmentNote: "职位名没说是软件还是电子电气，领域是按部门判断的，请在原文里核对。",
     checkOriginal: "需要核对原文：",
     flagsChecked: "我看过原文：这是岗位依法需要的要求（如出口管制），不是按国籍或种族挑人",
-    original: "看官网原文",
+    original: "看官网原文（新窗口）",
     // In the place of 看官网原文 on a made-up company's job (#283).
     noOriginal: "这是演示用的假职位，没有官网原文。",
     hideLegend: "不显示的理由",

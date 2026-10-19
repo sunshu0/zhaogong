@@ -13,6 +13,8 @@ const adminVerificationZh = {
   cardLabel: (tradingName: string) => `企业验证：${tradingName}`,
   applyingFor: (badge: string) => `申请${badge}`,
   banned: "已封禁",
+  // After a link that opens in a new window: the register, the directors, the map, the business's site (#293).
+  newWindow: "（新窗口）",
   submitted: (when: string) => `提交于 ${when}`,
   register: {
     heading: "企业登记（示例登记）",

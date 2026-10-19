@@ -12,6 +12,7 @@ export const adminVerificationEn: Messages<(typeof adminVerificationMessages)["z
   cardLabel: (tradingName) => `Business verification: ${tradingName}`,
   applyingFor: (badge) => `Applying for ${badge}`,
   banned: "Banned",
+  newWindow: " (new window)",
   submitted: (when) => `Submitted ${when}`,
   register: {
     heading: "Business register (sample register)",

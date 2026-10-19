@@ -48,6 +48,8 @@ test("a rejection that gets no answer says 没成功，请重试 in its card and
   await admin.goto("/admin");
   await admin.getByRole("tab", { name: /^企业验证/ }).click();
   const card = admin.getByRole("article", { name: `企业验证：${shop}` });
+  // The checklist's links open a new window and say so (#293).
+  await expect(card.getByRole("link", { name: "去查 NZBN 登记（新窗口）" })).toHaveAttribute("target", "_blank");
   await card.getByRole("checkbox", { name: "企业登记" }).check();
   await card.getByRole("button", { name: "驳回", exact: true }).click();
   const reason = card.getByRole("radio", { name: "电话核实不到人" });
