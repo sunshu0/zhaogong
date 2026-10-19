@@ -48,6 +48,21 @@ beforeEach(() => {
 });
 
 describe("applying for a job (#84)", () => {
+  it("records apply_submit with the job once the application is stored, and nothing when it is refused (#319)", async () => {
+    const { database } = await import("@/db/ready");
+    const t = await import("@/db/schema");
+    const db = await database();
+    await db.delete(t.events);
+    await signedIn("apply.funnel@example.com");
+    expect(await applyForJob("j5", "", PAGE)).toMatchObject({ ok: true });
+    expect(await applyForJob("j5", "", PAGE)).toMatchObject({ ok: false, reason: "already" });
+    const rows = await db.select().from(t.events);
+    expect(rows.map((r) => [r.name, r.path, r.jobId, r.role])).toEqual([
+      ["apply_submit", "/jobs/[id]", "j5", "seeker"],
+    ]);
+    expect(JSON.stringify(rows)).not.toContain("apply.funnel");
+  });
+
   it("records one application per job with the note and the page, which the job seeker can withdraw", async () => {
     await signedIn("apply.one@example.com");
     expect(await myJobApplication("j3")).toBeNull();

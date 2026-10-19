@@ -18,6 +18,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { messages, serverLang } from "@/i18n/server";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { TrackView } from "@/components/ui/TrackView";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await messages(seekerJobsMessages)).list.title };
@@ -68,6 +69,8 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
   return (
     <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
       <RememberListQuery query={query} />
+      {/* The search funnel's first step (#319, ADR 0025): once per arrival at the list. */}
+      <TrackView event={{ name: "jobs_list_view", path: "/jobs", detail: filtered ? "filtered" : "all" }} />
       <FilterForm filter={filter} />
       <section aria-label={t.listLabel} className="lg:col-start-2">
         <ActiveFilters filter={filter} lang={lang} />

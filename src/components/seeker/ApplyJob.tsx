@@ -27,6 +27,7 @@ import { contentLang } from "@/i18n/lang";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { candidateFacts } from "@/lib/candidate-matching";
+import { track } from "@/lib/events/track";
 
 /**
  * 申请 on a job page (#84): the job seeker sends their page (as employers see it, no contact details) and a note of
@@ -56,6 +57,11 @@ export function ApplyJob({
   const [failed, setFailed] = useState(false);
   const [lookup, setLookup] = useState(0);
   const [open, setOpen] = useState(false);
+  // The funnel (#319, ADR 0025): the application form opened, by 申请 or back from sign-in.
+  const openForm = () => {
+    track({ name: "apply_open", path: "/jobs/[id]", jobId });
+    setOpen(true);
+  };
   const opener = useRef<HTMLButtonElement>(null);
   const seeker = Boolean(session && session.activeRole === "seeker" && session.employerId !== employerId);
 
@@ -71,7 +77,9 @@ export function ApplyJob({
         if (!url.searchParams.has(APPLY_PARAM)) return;
         url.searchParams.delete(APPLY_PARAM);
         router.replace(`${url.pathname}${url.search}`, { scroll: false });
-        if (!answer) setOpen(true);
+        if (answer) return;
+        track({ name: "apply_open", path: "/jobs/[id]", jobId });
+        setOpen(true);
       })
       .catch(() => current && setFailed(true));
     return () => {
@@ -115,7 +123,7 @@ export function ApplyJob({
         ref={opener}
         type="button"
         disabled={mine === undefined}
-        onClick={() => setOpen(true)}
+        onClick={openForm}
         aria-haspopup="dialog"
         className={applyButton}
       >

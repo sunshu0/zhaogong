@@ -5,6 +5,7 @@
 // saved one.
 import { regionById } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
+import { recordRequestEvent } from "@/lib/events/record";
 import { getEmployer, getJob } from "@/lib/data";
 import type { CountryCode, PayRange } from "@/lib/types";
 import { addApplication, myApplication, myApplications, withdrawApplication } from "@/db/job-applications";
@@ -115,6 +116,8 @@ export async function applyForJob(jobId: string, note: unknown, profile: unknown
     profile: page,
   });
   if (row === "already") return await refuse("already");
+  // The funnel's last step (#319, ADR 0025), recorded here so a blocker in the browser does not hide it.
+  await recordRequestEvent({ name: "apply_submit", path: "/jobs/[id]", jobId: job.id });
   return { ok: true, application: view(row, false, await requestLang()) };
 }
 

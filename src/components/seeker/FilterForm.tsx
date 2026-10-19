@@ -19,11 +19,13 @@ import {
   filterChips,
   filterGroupSummary,
   filterToQuery,
+  usedFilterNames,
   jobsHref,
   parseFilter,
   toParams,
   type FilterGroup,
 } from "@/components/seeker/filter-query";
+import { track } from "@/lib/events/track";
 
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
 /** Where the panel becomes the page's left column (Tailwind's lg). */
@@ -100,7 +102,10 @@ function Form({
     e.preventDefault();
     const sent = parseFilter(toParams(new FormData(e.currentTarget)), filter.country);
     // On a phone with the sheet closed the form holds only the keyword: keep the filters the URL already has.
-    const query = filterToQuery(!desktop && !open ? { ...filter, query: sent.query } : sent);
+    const searched = !desktop && !open ? { ...filter, query: sent.query } : sent;
+    const query = filterToQuery(searched);
+    // The search funnel (#319, ADR 0025): which filters were used, by name only.
+    track({ name: "jobs_search", path: "/jobs", detail: usedFilterNames(searched) || undefined });
     startTransition(() => router.push(jobsHref(query)));
   }
 

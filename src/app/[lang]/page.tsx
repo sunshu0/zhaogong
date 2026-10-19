@@ -27,6 +27,7 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { contentLang } from "@/i18n/lang";
 import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 import { messages, serverLang } from "@/i18n/server";
+import { TrackView } from "@/components/ui/TrackView";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await messages(seekerHomeMessages);
@@ -66,6 +67,8 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
         <Suspense fallback={null}>
           <LegacyListLink searchParams={searchParams} />
         </Suspense>
+        {/* The search funnel's first step from the home page (#319, ADR 0025). */}
+        <TrackView event={{ name: "home_view", path: "/" }} />
         <NoScriptLanding />
         {/* Without JavaScript nothing replaces the skeletons below (#167): hide them; NoScriptLanding has the data. */}
         <noscript>

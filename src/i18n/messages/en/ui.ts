@@ -84,4 +84,11 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     retry: "Try again",
     noAnswer: "Network problem. Try again shortly.",
   },
+  consent: {
+    body: "We'd like to use Microsoft Clarity to record clicks and scrolling on our pages, to make 找工 better. All text on the page and anything you type is masked, and chats, CVs and contact details are never recorded. It only starts if you agree, and the site works the same if you don't.",
+    agree: "Agree",
+    decline: "No thanks",
+    privacy: "Privacy",
+    settings: "Analytics settings",
+  },
 };

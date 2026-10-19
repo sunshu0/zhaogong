@@ -30,6 +30,7 @@ import { jobPostingJsonLd, jsonLdText } from "@/lib/job-posting";
 import { siteOrigin } from "@/lib/site";
 import type { Employer, Job as JobRecord } from "@/lib/types";
 import { PageTransition } from "@/components/ui/PageTransition";
+import { TrackView } from "@/components/ui/TrackView";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/jobs/[id]">): Promise<Metadata> {
   const lang = await serverLang();
@@ -90,6 +91,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
 
   return (
     <>
+      {/* The funnel's job step (#319, ADR 0025). */}
+      <TrackView event={{ name: "job_view", path: "/jobs/[id]", jobId: job.id }} />
       {employer && !employer.bannedAt && !isExpired(job, now) && <JobPostingData job={job} employer={employer} />}
       <JobDetail
         job={job}

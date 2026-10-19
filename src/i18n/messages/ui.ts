@@ -92,6 +92,15 @@ const uiZh = {
     retry: "重试",
     noAnswer: "网络有问题，请稍后再试。",
   },
+  // ADR 0025 §7 (#319): the analytics consent prompt at the bottom of the page and its settings entry (the footer, 我的),
+  // worded as the ADR has them. The prompt itself is line C's (the shared layout).
+  consent: {
+    body: "我们想用 Microsoft Clarity 记录页面上的点击和滚动，用来改进找工。页面文字和你输入的内容都会遮盖，不录聊天、简历和联系方式。同意后才开启，不同意也能照常使用。",
+    agree: "同意",
+    decline: "不用了",
+    privacy: "隐私说明",
+    settings: "统计设置",
+  },
 };
 
 export const uiMessages: Dictionary<typeof uiZh> = { key: "ui", zh: uiZh };

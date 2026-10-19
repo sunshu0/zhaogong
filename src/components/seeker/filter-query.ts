@@ -92,6 +92,15 @@ export function filterToQuery(filter: JobFilter): string {
   return parts.join("&");
 }
 
+/**
+ * The names of the filters a search used, comma-separated in the query's order ("region,meals,q"): jobs_search's
+ * detail (#319, ADR 0025). Names only, never their values or the words searched; the names are catalog.ts's
+ * FILTER_NAMES, as the query's keys are.
+ */
+export function usedFilterNames(filter: JobFilter): string {
+  return [...new URLSearchParams(filterToQuery(filter)).keys()].join(",");
+}
+
 /** The job list's URL for a query from filterToQuery. */
 export function jobsHref(query: string): string {
   return query ? `/jobs?${query}` : "/jobs";

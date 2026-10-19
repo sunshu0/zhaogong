@@ -10,6 +10,7 @@ import type { Employer, Job } from "@/lib/types";
 import { buttonClass, type ButtonSize } from "@/components/ui/Button";
 import { useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { track } from "@/lib/events/track";
 
 export type ChatJob = Pick<Job, "id" | "employerId" | "titleZh" | "status" | "expiresAt">;
 /**
@@ -43,7 +44,12 @@ export function StartEmployerChat({
     );
   if (!hydrated || !session)
     return (
-      <Link href={`/login?role=seeker&next=${encodeURIComponent(`/jobs/${job.id}`)}`} className={chatButton}>
+      <Link
+        href={`/login?role=seeker&next=${encodeURIComponent(`/jobs/${job.id}`)}`}
+        // The funnel (#319, ADR 0025): 立即沟通 pressed while signed out goes to sign in first.
+        onClick={() => track({ name: "chat_start", path: "/jobs/[id]", jobId: job.id, detail: "signed_out" })}
+        className={chatButton}
+      >
         <MessageSquare aria-hidden="true" className="size-4" />
         {t.start}
       </Link>
@@ -70,6 +76,7 @@ export function StartEmployerChat({
         type="button"
         onClick={() => {
           const id = openEmployerChat(employer, job);
+          if (id) track({ name: "chat_start", path: "/jobs/[id]", jobId: job.id });
           if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
           else setError(t.stopped);
         }}

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { checkEvent } from "@/lib/events/catalog";
 import {
   filterChips,
   filterGroupSummary,
   filterToQuery,
+  usedFilterNames,
   isFiltered,
   jobsHref,
   parseFilter,
@@ -170,5 +172,29 @@ describe("with listJobs", () => {
   it("finds the jobs a shared link describes", async () => {
     const jobs = await listJobs(parse("industry=hospitality&visa=student&minPay=25"), Date.now());
     expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: a demo job added in #88
+  });
+});
+
+describe("usedFilterNames (#319, ADR 0025)", () => {
+  it("gives the names of the filters used, never their values or the words searched", () => {
+    const names = usedFilterNames({
+      country: "NZ",
+      regionIds: ["akl-cbd"],
+      mealsIncluded: true,
+      minPay: 25,
+      query: "点心 师傅",
+    });
+    expect(names).toBe("region,minPay,meals,q");
+    expect(names).not.toMatch(/akl|25|点心/);
+    expect(usedFilterNames({ country: "NZ" })).toBe("");
+  });
+
+  it("is what jobs_search may carry", () => {
+    const detail = usedFilterNames({ country: "NZ", industries: ["hospitality"], visa: "open_work", query: "x" });
+    expect(checkEvent({ name: "jobs_search", path: "/jobs", detail })).toEqual({
+      name: "jobs_search",
+      path: "/jobs",
+      detail: "industry,visa,q",
+    });
   });
 });
