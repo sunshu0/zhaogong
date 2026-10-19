@@ -12,7 +12,10 @@ import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
 import { shownTime } from "@/components/seeker/chat-store";
 
-/** The messages of one conversation, then its exchange requests; keeps the newest in view. */
+/** How close to the bottom counts as reading the newest (#282): about two lines of messages. */
+const NEAR_BOTTOM_PX = 80;
+
+/** The messages of one conversation, then its exchange requests; keeps the newest in view while it is being read. */
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
   const t = useMessages(chatMessages).log;
   const { exchanges, conversations } = useChat();
@@ -22,14 +25,26 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
   const mineAt = (thread ?? []).flatMap((message, index) => (message.from === "me" ? [index] : []));
   const unsentFrom = unsent ? (mineAt[mineAt.length - unsent] ?? 0) : Infinity;
   const log = useRef<HTMLDivElement>(null);
+  // #282: follow new messages only from near the bottom, or for one this person just sent; someone reading older
+  // messages is not pulled down by the 10-second read or the other side's reply. A new conversation mounts this
+  // log afresh (ChatThread is keyed by it), so it opens at the bottom.
+  const nearBottom = useRef(true);
+  const shown = useRef(0);
   useEffect(() => {
     const element = log.current;
-    if (element) element.scrollTop = element.scrollHeight;
+    const count = thread?.length ?? 0;
+    const sentNow = count > shown.current && thread?.[count - 1]?.from === "me";
+    shown.current = count;
+    if (element && (nearBottom.current || sentNow)) element.scrollTop = element.scrollHeight;
   }, [thread, exchanges]);
 
   return (
     <div
       ref={log}
+      onScroll={(event) => {
+        const element = event.currentTarget;
+        nearBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM_PX;
+      }}
       role="log"
       aria-label={t.label}
       tabIndex={0}
