@@ -6,6 +6,12 @@ import type { Dictionary } from "@/i18n/messages";
 
 const loginZh = {
   title: "注册或登录",
+  // The demo site (#332): no mail service, so no code can be sent; say so before anyone types an email.
+  noMailer: {
+    title: "这个演示站暂时不能登录",
+    body: "验证码要用邮件发，演示站还没有接邮件服务。职位、企业主页和外部职位都可以直接看。",
+    browse: "去看职位",
+  },
   intro: "用邮箱验证码注册或登录，不用设密码。同一个账号可以找工作，也可以开通雇主身份招人。",
   loading: "正在加载",
   checkingAccount: "正在核对你的账号…",

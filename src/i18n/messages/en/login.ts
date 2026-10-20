@@ -6,6 +6,11 @@ import type { loginMessages } from "@/i18n/messages/login";
 
 export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
   title: "Sign in or sign up",
+  noMailer: {
+    title: "You can't sign in on this demo site yet",
+    body: "Sign-in codes are sent by email, and the demo site has no email service yet. You can still browse jobs, business pages and external jobs.",
+    browse: "Browse jobs",
+  },
   intro:
     "Sign in or sign up with a code sent to your email — no password. One account can look for work and set up hiring too.",
   loading: "Loading",

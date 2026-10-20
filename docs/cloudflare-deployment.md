@@ -90,6 +90,43 @@ PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'
 
 以后改用 Workers Builds 自动部署的话：构建命令 `npm run check && npm run cf:build`，部署命令 `npx opennextjs-cloudflare deploy`。构建变量要有 `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`，以及 `NEXT_PUBLIC_CLARITY_ID`（构建时用）（[说明](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)）。
 
+## 3a. 演示站（用户 10-20 23:1x 定：先更新这个，不正式上线）
+
+`zhaogong-demo.zhaogong.workers.dev`：完整版代码，灌演示数据。**账号还没开**（本机 wrangler 没登录），所以下面写到「用户开完账号照着跑」为止。演示站和正式站一样用 Cloudflare D1（用户 10-20 23:4x 定，ADR 0029），**要等 ADR 0031（驱动换成 D1）的代码合并后才能部署**：在那之前代码只连 libSQL，Worker 里没有库可连。下面标「0031」的步骤，命令和名字以 0031 合并后的第 3 节为准。
+
+**设置：**
+
+| 名字 | 值 | 为什么 |
+| --- | --- | --- |
+| `DEMO_DATA` | `true` | 页面显示演示数据；首页数字旁标「演示数据」 |
+| `DB`（D1 绑定） | 库 `zhaogong-demo`（第 3 节，`--location=oc`） | 演示站也用正式的库结构，只是数据是演示的；和正式库分开 |
+| `AUTH_SECRET` | 随机 32 字节以上 | 生产环境必须有，不然启动就报错 |
+| `ZG_EVENTS_SECRET` | 随机 32 字节以上 | 漏斗统计；不设就不记 |
+| `EVIDENCE_BUCKET` | R2 桶（第 4 节第 2a 步） | 举报截图；不绑的话登录不了也用不上，但代码在 Worker 里会拒收截图 |
+| `DATABASE_URL`、`DATABASE_AUTH_TOKEN` | **不设** | 线上用 D1 绑定，不用 libSQL 地址和令牌 |
+| `ADMIN_ENABLED` | **不设** | 演示站不开审核后台 |
+| `ANTHROPIC_API_KEY` | **不设** | 对话发布显示「现在用不了」 |
+| `EXTERNAL_JOBS` | **不设** | 不去公司网站导入真实职位 |
+| `NEXT_PUBLIC_CLARITY_ID` | **不设** | 演示站不录 Clarity |
+
+**只能浏览、不能登录：** 没有邮件服务（#16），验证码发不出去。登录页在发不出验证码的环境里（`canSendCodes()` 为假）不显示表单，直接说「这个演示站暂时不能登录」并给「去看职位」的链接（#332）。
+
+**用户开完账号、0031 合并后照着跑（一步一行，在仓库根目录，PowerShell 或 Git Bash）：**
+
+1. `npx wrangler login`（浏览器里用公司的 Cloudflare 账号授权）
+2. `npx wrangler d1 create zhaogong-demo --location=oc`（记下打印出来的 `database_id`）
+3. `wrangler.jsonc` 的 `d1_databases` 加绑定 `DB` → `zhaogong-demo`、上一步的 `database_id`（写法见第 3 节，0031）
+4. 在 Cloudflare 后台建 R2 桶 `zhaogong-report-evidence`（不开公开访问），`wrangler.jsonc` 加 `r2_buckets` 绑定（第 4 节第 2a 步）
+5. `wrangler.jsonc` 的 `vars` 加 `"DEMO_DATA": "true"`
+6. `npx wrangler secret put AUTH_SECRET`（粘贴 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` 的结果）
+7. `npx wrangler secret put ZG_EVENTS_SECRET`（同上，另生成一个）
+8. 对库迁移：`npx wrangler d1 migrations apply zhaogong-demo --remote`（第 3 节「迁移」，0031）
+9. 灌演示数据：用 0031 定的导入命令（导师 10-20 23:5x：线上的演示数据在部署时用命令导入）
+10. `npm run cf:deploy`（Windows 上构建要用 4a 节的两个补丁，`npm install` 会自动打上）
+11. 打开 `https://zhaogong-demo.zhaogong.workers.dev`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页、`/admin` 是 404
+
+**部署前在本机先过一遍（0031 合并后）：** `npm run cf:build`，量 `.open-next/worker.js` 打包压缩后的大小（Workers 免费方案上限 3 MiB），再 `npm run cf:preview` 用本地 D1 打开第 11 步那几页。
+
 ## 4a. 上线前必须过 cf:build（#332）
 
 **部署前，`npm run cf:build` 和 `npx wrangler deploy --dry-run` 在本机都要过。** 现在（2026-10-20，`@opennextjs/cloudflare` 1.20.10）过不了，报错见第 6 节「本机构建结果」，原因是 OpenNext 的已知问题 [#1400](https://github.com/opennextjs/opennextjs-cloudflare/issues/1400)。导师 10-20 03:1x 定的做法：
@@ -108,6 +145,10 @@ PowerShell：先 `$env:DATABASE_URL = '…'`、`$env:DATABASE_AUTH_TOKEN = '…'
      `middlewareDir` 在同一个函数前面（第 141 行）已经定义好了。
    - 让 `npm ci` 以后也带着这个补丁：加开发依赖 `patch-package`，`package.json` 加 `"postinstall": "patch-package"`。改好文件后跑 `npx patch-package @opennextjs/cloudflare`，生成 `patches/@opennextjs+cloudflare+1.20.10.patch` 并提交。补丁里写死了版本号，**升级 OpenNext 时要删掉补丁，重新确认还要不要**。
    - **试过（2026-10-20 03:10，见第 6 节）：打上补丁后，中间件那一步过了。** 接着在 Windows 上卡在建符号链接，要在 Linux 上构建。
+3. **10-20 23:2x 起走第 2 条（上游还没修：1.20.12 是最新版，#1400、PR #1430、#1445 都还开着）。** 补丁在仓库里，`npm install` / `npm ci` 时 `postinstall` 自动打上：
+   - `patches/@opennextjs+cloudflare+1.20.10.patch`：上面那一行。
+   - `patches/@opennextjs+aws+4.1.9.patch`：`copyTracedFiles.js` 建符号链接遇到 `EPERM`（Windows 没开开发者模式）时，改成把链接指向的内容拷过去。Linux 上（Workers Builds）不会走到这里。这样 Windows 本机也能构建和预览，不用改系统设置。
+   - 升级 `@opennextjs/cloudflare` 或 `@opennextjs/aws` 时，先删掉对应的补丁，重新确认还要不要。
 
 ## 5. 回滚
 

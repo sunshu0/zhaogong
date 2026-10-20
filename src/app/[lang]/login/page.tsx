@@ -3,7 +3,8 @@ import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { getCurrentSession } from "@/lib/auth";
+import Link from "next/link";
+import { canSendCodes, getCurrentSession } from "@/lib/auth";
 import { regionById } from "@/config/countries";
 import { placeName } from "@/components/seeker/format";
 import { listClaimedEmployerIds, listEmployers } from "@/lib/data";
@@ -42,6 +43,19 @@ async function Login({ searchParams }: Pick<PageProps<"/[lang]/login">, "searchP
   if (onward) redirect(onward);
   const next = Array.isArray(params.next) ? params.next[0] : params.next;
   const role = parseRole(params.role);
+  // No mail service here (the demo site, #332): no code could reach anyone, so no form to get stuck in.
+  if (!canSendCodes()) {
+    const t = (await messages(loginMessages)).noMailer;
+    return (
+      <section role="status" className="rounded-card bg-surface p-5 shadow-card">
+        <h2 className="text-subtitle font-semibold">{t.title}</h2>
+        <p className="mt-2 text-body text-muted">{t.body}</p>
+        <Link href="/jobs" className="mt-3 inline-flex min-h-11 items-center font-medium text-brand underline">
+          {t.browse}
+        </Link>
+      </section>
+    );
+  }
   // A different ?role= or ?next= is a different sign-in: start the form over.
   return (
     <>

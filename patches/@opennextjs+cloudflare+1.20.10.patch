@@ -1,0 +1,14 @@
+diff --git a/node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/bundle-node-middleware.js b/node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/bundle-node-middleware.js
+index 6cc1cb1..57abc79 100644
+--- a/node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/bundle-node-middleware.js
++++ b/node_modules/@opennextjs/cloudflare/dist/cli/build/open-next/bundle-node-middleware.js
+@@ -164,7 +164,8 @@ export async function bundleNodeMiddleware(options) {
+     // dependency that most apps do not install. On the edge runtime Next.js does not fall
+     // back to its compiled copy when the require throws, so alias to that copy - but only
+     // when the app has not installed the real package, otherwise the real one is used.
+-    const hasOpentelemetry = existsSync(path.join(options.appBuildOutputPath, "node_modules", "@opentelemetry", "api"));
++    // zhaogong #332: OpenNext #1400 (PR #1430 / #1445 not released yet) — look where the middleware's copy is.
++    const hasOpentelemetry = existsSync(path.join(middlewareDir, "node_modules", "@opentelemetry", "api", "build", "esm", "index.js"));
+     const updater = new ContentUpdater(options);
+     await build({
+         entryPoints: [path.join(options.openNextDistDir, "adapters", "middleware.js")],
