@@ -37,13 +37,16 @@ function migratedTables() {
   return [...new Set(created)].filter((name) => !dropped.has(name)).sort();
 }
 
-/** The environment variables the code reads (process.env.X), NODE_ENV aside: Next and Node set it. */
+/**
+ * The environment variables and Worker bindings the code reads (process.env.X, env.X, a Cloudflare context's
+ * env?.X), NODE_ENV aside: Next and Node set it.
+ */
 function environmentVariables() {
   const sources = [...files("src"), "next.config.ts"].filter(
     (path) => /\.(ts|tsx|mjs)$/.test(path) && !/\.test\./.test(path),
   );
   const names = sources.flatMap((path) =>
-    [...read(path).matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)].map((m) => m[1]),
+    [...read(path).matchAll(/(?:process\.env|\benv\??)\.([A-Z][A-Z0-9_]*)/g)].map((m) => m[1]),
   );
   return [...new Set(names)].filter((name) => name !== "NODE_ENV").sort();
 }
