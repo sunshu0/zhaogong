@@ -38,7 +38,8 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     conversationCount: (n) => (n === 1 ? "1 chat" : `${n} chats`),
     /** Followed on the same line by emptyEmployer or emptySeeker, so it ends with the space between them. */
     empty: "No chats yet. ",
-    emptyEmployer: 'Tap "Start a chat" in the applicants list or suggested candidates and it will show here.',
+    emptyEmployer:
+      'When a job seeker messages you about a job, or you tap "Start a chat" in suggested candidates, it will show here.',
     emptySeeker: 'Tap "Chat now" on a job and it will show here.',
     previewEmpty: "No messages yet",
     pickerLabel: "Choose a chat",

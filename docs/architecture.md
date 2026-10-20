@@ -40,7 +40,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `verification_requests` | 企业验证的申请和审核员的核对、驳回理由 | ADR 0011 |
 | `saved_jobs` | 收藏和进度，只有账号自己读 | |
 | `job_renewals` | 雇主每次延长截止日期的记录 | |
-| `job_applications` | 申请，带申请时的主页快照；录用存在申请上 | ADR 0019 |
+| `job_applications` | 候选人：这个职位聊过的人（`source` 是 `chat`，没有主页和附言）和以前的申请（`apply`，带申请时的主页快照）；合适 / 不合适 / 录用存在这一行上 | ADR 0019、0030 |
 | `interviews` | 约面试：雇主给的时间、求职者的回复 | |
 | `resume_shares` | 中英文简历的分享链接，每个账号最多一个 | |
 | `seeker_profiles` | 求职者主页，存在账号上 | ADR 0017 |
@@ -84,7 +84,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
 | `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |
 | `src/app/[lang]/employer/actions.ts` | 雇主 |
-| `src/app/[lang]/employer/applicant-actions.ts` | 申请职位 |
+| `src/app/[lang]/employer/applicant-actions.ts` | 候选人：聊过这个职位的人和以前的申请（ADR 0030） |
 | `src/app/[lang]/employer/count-view.ts` | 职位浏览计数 |
 | `src/app/[lang]/employer/interview-actions.ts` | 约面试 |
 | `src/app/[lang]/employer/page-actions.ts` | 企业主页 |

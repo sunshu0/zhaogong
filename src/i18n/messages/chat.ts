@@ -43,7 +43,7 @@ const chatZh = {
     conversationCount: (n: number) => `${n} 个会话`,
     /** Read with emptyEmployer or emptySeeker after it on the same line (the English ends with a space). */
     empty: "还没有聊天。",
-    emptyEmployer: "在申请人列表或推荐人才里点「发起聊天」，就会出现在这里。",
+    emptyEmployer: "求职者在你的职位上找你聊，或者你在推荐人才里点「发起聊天」，就会出现在这里。",
     emptySeeker: "在职位详情里点「立即沟通」，就会出现在这里。",
     previewEmpty: "尚未发送消息",
     pickerLabel: "选择会话",

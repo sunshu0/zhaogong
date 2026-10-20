@@ -97,6 +97,6 @@ test("an account that is not a demo one starts with no demo notifications or cha
   await expect(list).toContainText("还没有通知。");
   await expect(list).not.toContainText("林晓");
   await page.goto("/messages");
-  await expect(contacts).toContainText("还没有聊天。在申请人列表或推荐人才里点「发起聊天」");
+  await expect(contacts).toContainText("还没有聊天。求职者在你的职位上找你聊，或者你在推荐人才里点「发起聊天」");
   await expect(contacts.getByRole("button")).toHaveCount(0);
 });
