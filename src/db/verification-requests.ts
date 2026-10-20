@@ -1,8 +1,10 @@
 // 企业验证 applications (#78, PRD R-16, ADR 0011): submitted by an employer, decided by a moderator. Only the
 // employer's and the moderators' Server Functions call this. Server only.
-import { and, asc, desc, eq, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
+import { insertIf, nextIdSql } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { Checklist, Rejection, VerifyApplication } from "@/components/employer/verification";
 import type { Employer } from "@/lib/types";
@@ -17,7 +19,7 @@ export type SubmitResult =
 
 /**
  * Records an application as pending. One pending application per business and per NZBN at a time, and not for an
- * NZBN another business already carries; checked in the same transaction as the insert.
+ * NZBN another business already carries; checked in the statement that inserts it.
  */
 export async function submitVerification(
   employer: Pick<Employer, "id" | "name">,
@@ -26,22 +28,13 @@ export async function submitVerification(
   now = new Date(),
 ): Promise<SubmitResult> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const pending = await tx
-      .select({ employerId: t.verificationRequests.employerId, nzbn: t.verificationRequests.nzbn })
-      .from(t.verificationRequests)
-      .where(eq(t.verificationRequests.status, "pending"));
-    if (pending.some((r) => r.employerId === employer.id)) return { status: "pending" };
-    if (pending.some((r) => r.nzbn === application.nzbn)) return { status: "nzbn_pending" };
-    const [taken] = await tx
-      .select({ id: t.employers.id })
-      .from(t.employers)
-      .where(and(eq(t.employers.businessNumber, application.nzbn), ne(t.employers.id, employer.id)));
-    if (taken) return { status: "nzbn_taken" };
-
-    const [{ n }] = await tx.select({ n: sql<number>`count(*)` }).from(t.verificationRequests);
-    const request: VerificationRequest = {
-      id: `v${Number(n) + 1}`,
+  const v = t.verificationRequests;
+  // One statement takes the next id and checks all three rules at the moment it writes (ADR 0031).
+  const [request] = await insertIf(
+    db,
+    v,
+    {
+      id: nextIdSql(v, v.id, "v"),
       employerId: employer.id,
       kind: application.kind,
       nzbn: application.nzbn,
@@ -59,10 +52,15 @@ export async function submitVerification(
       checklist: null,
       rejectReason: null,
       rejectNote: null,
-    };
-    await tx.insert(t.verificationRequests).values(request);
-    return { status: "submitted", request };
-  });
+    },
+    sql`not exists (select 1 from ${v} where ${v.status} = 'pending' and (${v.employerId} = ${employer.id} or ${v.nzbn} = ${application.nzbn})) and not exists (select 1 from ${t.employers} where ${t.employers.businessNumber} = ${application.nzbn} and ${t.employers.id} <> ${employer.id})`,
+  ).returning();
+  if (request) return { status: "submitted", request };
+  // Only to say why not.
+  const pending = await db.select({ employerId: v.employerId, nzbn: v.nzbn }).from(v).where(eq(v.status, "pending"));
+  if (pending.some((r) => r.employerId === employer.id)) return { status: "pending" };
+  if (pending.some((r) => r.nzbn === application.nzbn)) return { status: "nzbn_pending" };
+  return { status: "nzbn_taken" };
 }
 
 /** The business's latest application, whatever its status. */
@@ -111,27 +109,44 @@ export async function decideVerification(
   now = new Date(),
 ): Promise<VerificationRequest | undefined> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [request] = await tx.select().from(t.verificationRequests).where(eq(t.verificationRequests.id, id));
-    if (!request || request.status !== "pending") return undefined;
-    const decided: VerificationRequest = {
-      ...request,
-      status: decision.approve ? "approved" : "rejected",
-      decidedAt: now.toISOString(),
-      decidedByEmail: normalizeEmail(moderator),
+  const v = t.verificationRequests;
+  const decidedAt = now.toISOString();
+  const decidedByEmail = normalizeEmail(moderator);
+  const status = decision.approve ? "approved" : "rejected";
+  const decide = db
+    .update(v)
+    .set({
+      status,
+      decidedAt,
+      decidedByEmail,
       checklist,
       rejectReason: decision.approve ? null : decision.rejection.reason,
       rejectNote: decision.approve ? null : decision.rejection.note,
-    };
-    await tx.update(t.verificationRequests).set(decided).where(eq(t.verificationRequests.id, id));
-    if (decision.approve) {
-      const [employer] = await tx.select().from(t.employers).where(eq(t.employers.id, request.employerId));
-      const verification = employer?.verification === "accredited_employer" ? "accredited_employer" : request.kind;
-      await tx
-        .update(t.employers)
-        .set({ verification, legalName: request.legalName, businessNumber: request.nzbn })
-        .where(eq(t.employers.id, request.employerId));
-    }
+    })
+    .where(and(eq(v.id, id), eq(v.status, "pending")))
+    .returning();
+  if (!decision.approve) {
+    const [decided] = await decide;
     return decided;
-  });
+  }
+  // One batch (ADR 0031): the business takes the approved facts only if this decision is the one just written, so a
+  // second moderator deciding at the same moment changes nothing. An 认可雇主 badge stays.
+  const field = (column: SQLiteColumn) => sql`(select ${column} from ${v} where ${v.id} = ${id})`;
+  const [[decided]] = await db.batch([
+    decide,
+    db
+      .update(t.employers)
+      .set({
+        verification: sql`case when ${t.employers.verification} = 'accredited_employer' then 'accredited_employer' else ${field(v.kind)} end`,
+        legalName: field(v.legalName),
+        businessNumber: field(v.nzbn),
+      })
+      .where(
+        and(
+          eq(t.employers.id, field(v.employerId)),
+          sql`exists (select 1 from ${v} where ${v.id} = ${id} and ${v.status} = ${status} and ${v.decidedAt} = ${decidedAt} and ${v.decidedByEmail} = ${decidedByEmail})`,
+        ),
+      ),
+  ]);
+  return decided;
 }

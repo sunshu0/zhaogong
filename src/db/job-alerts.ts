@@ -1,9 +1,10 @@
 // 职位提醒 (#53, PRD R-29): each account's saved searches, and the new jobs they found. Matching runs on the server
 // when a job goes live (published without review, or approved by a moderator). Server only.
 import { randomUUID } from "node:crypto";
-import { and, asc, count, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, jobAlertHits, jobAlerts } from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { matchesFilter } from "@/lib/data";
 import { isOpenJob } from "@/lib/job-expiry";
 import type { CountryCode, Job } from "@/lib/types";
@@ -42,35 +43,37 @@ export async function createJobAlert(
 ): Promise<CreateAlertResult> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
-    if (!account) return { status: "no_account" };
-    const section = alert.section ?? null;
-    const mine = and(
-      eq(jobAlerts.email, address),
-      eq(jobAlerts.country, alert.country),
-      section ? eq(jobAlerts.section, section) : isNull(jobAlerts.section),
-    );
-    const [same] = await tx
-      .select()
-      .from(jobAlerts)
-      .where(and(mine, eq(jobAlerts.query, alert.query)));
-    if (same) return { status: "exists", alert: same };
-    const [{ n }] = await tx.select({ n: count() }).from(jobAlerts).where(eq(jobAlerts.email, address));
-    if (n >= ALERT_LIMIT) return { status: "limit" };
-    const row: JobAlert = {
-      id: randomUUID(),
-      email: address,
-      name: alert.name,
-      country: alert.country,
-      query: alert.query,
-      section,
-      paused: false,
-      createdAt: now.toISOString(),
-    };
-    await tx.insert(jobAlerts).values(row);
-    return { status: "created", alert: row };
-  });
+  const section = alert.section ?? null;
+  const same = and(
+    eq(jobAlerts.email, address),
+    eq(jobAlerts.country, alert.country),
+    section ? eq(jobAlerts.section, section) : isNull(jobAlerts.section),
+    eq(jobAlerts.query, alert.query),
+  );
+  const row: JobAlert = {
+    id: randomUUID(),
+    email: address,
+    name: alert.name,
+    country: alert.country,
+    query: alert.query,
+    section,
+    paused: false,
+    createdAt: now.toISOString(),
+  };
+  // One statement: the account exists, the same search is not saved yet, and the account is under the limit when the
+  // row goes in, so two saves at once cannot pass the limit or save the search twice (ADR 0031).
+  const created = await insertIf(
+    db,
+    jobAlerts,
+    row,
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address}) and not exists (select 1 from ${jobAlerts} where ${same}) and (select count(*) from ${jobAlerts} where ${jobAlerts.email} = ${address}) < ${ALERT_LIMIT}`,
+  ).returning({ id: jobAlerts.id });
+  if (created.length) return { status: "created", alert: row };
+  // Only to say why not.
+  const [account] = await db.select({ email: accounts.email }).from(accounts).where(eq(accounts.email, address));
+  if (!account) return { status: "no_account" };
+  const [existing] = await db.select().from(jobAlerts).where(same);
+  return existing ? { status: "exists", alert: existing } : { status: "limit" };
 }
 
 /** Renames, pauses or resumes one of the account's alerts. False when the account has no alert with that id. */

@@ -1,7 +1,8 @@
 // 收藏和进度 (#52): one row per account and saved job. Only the account's own Server Functions read it. Server only.
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, jobs, savedJobs } from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
 
@@ -25,16 +26,19 @@ export async function saveJob(
 ): Promise<"saved" | "already" | "no_job" | "no_account"> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
-    if (!account) return "no_account";
-    const [job] = await tx.select({ id: jobs.id }).from(jobs).where(eq(jobs.id, jobId));
-    if (!job) return "no_job";
-    const [row] = await tx.select().from(savedJobs).where(mine(address, jobId));
-    if (row) return "already";
-    await tx.insert(savedJobs).values({ email: address, jobId, savedAt: now.toISOString() });
-    return "saved";
-  });
+  // One statement: the account and the job must exist, and the job must not be saved yet, when the row goes in.
+  const saved = await insertIf(
+    db,
+    savedJobs,
+    { email: address, jobId, savedAt: now.toISOString() },
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address}) and exists (select 1 from ${jobs} where ${jobs.id} = ${jobId}) and not exists (select 1 from ${savedJobs} where ${mine(address, jobId)})`,
+  ).returning({ jobId: savedJobs.jobId });
+  if (saved.length) return "saved";
+  // Only to say why not.
+  const [account] = await db.select({ email: accounts.email }).from(accounts).where(eq(accounts.email, address));
+  if (!account) return "no_account";
+  const [job] = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.id, jobId));
+  return job ? "already" : "no_job";
 }
 
 /** Removes a saved job, stage and all. */

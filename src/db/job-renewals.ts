@@ -1,9 +1,11 @@
 // 续期 (#69, PRD R-33): pushing a job's closing date back, and the record of each time it was done. Only the
 // employer's own Server Functions call this. Server only.
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { jobPatch } from "@/db/rows";
+import { inList } from "@/db/in-list";
 import * as t from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { getJob } from "@/lib/data";
 import type { Job } from "@/lib/types";
 
@@ -14,7 +16,7 @@ export type RenewalCounts = Record<string, { count: number; lastAt: string }>;
 
 /**
  * Moves the job's closing date to `expiresAt` (and its status, when an ended job reopens or goes to review) and
- * records the renewal, in one transaction.
+ * records the renewal, in one batch.
  */
 export async function renewJob(
   jobId: string,
@@ -22,22 +24,27 @@ export async function renewJob(
   now = new Date(),
 ): Promise<Job | undefined> {
   const db = await database();
-  const renewed = await db.transaction(async (tx) => {
-    const [row] = await tx.select({ expiresAt: t.jobs.expiresAt }).from(t.jobs).where(eq(t.jobs.id, jobId));
-    if (!row) return false;
-    await tx
+  // One batch: the record keeps the closing date from before the change, then the job moves; nothing when the job is
+  // not there (ADR 0031).
+  const [recorded] = await db.batch([
+    insertIf(
+      db,
+      t.jobRenewals,
+      {
+        jobId,
+        renewedAt: now.toISOString(),
+        days: change.days,
+        expiresBefore: sql`(select ${t.jobs.expiresAt} from ${t.jobs} where ${t.jobs.id} = ${jobId})`,
+        expiresAfter: change.expiresAt,
+      },
+      sql`exists (select 1 from ${t.jobs} where ${t.jobs.id} = ${jobId})`,
+    ).returning({ id: t.jobRenewals.id }),
+    db
       .update(t.jobs)
       .set(jobPatch({ expiresAt: change.expiresAt, status: change.status }))
-      .where(eq(t.jobs.id, jobId));
-    await tx.insert(t.jobRenewals).values({
-      jobId,
-      renewedAt: now.toISOString(),
-      days: change.days,
-      expiresBefore: row.expiresAt,
-      expiresAfter: change.expiresAt,
-    });
-    return true;
-  });
+      .where(eq(t.jobs.id, jobId)),
+  ]);
+  const renewed = recorded.length > 0;
   return renewed ? getJob(jobId) : undefined;
 }
 
@@ -49,7 +56,7 @@ export async function listRenewals(jobIds: string[]): Promise<JobRenewal[]> {
   return db
     .select({ jobId, renewedAt, days, expiresBefore, expiresAfter })
     .from(t.jobRenewals)
-    .where(inArray(jobId, jobIds))
+    .where(inList(jobId, jobIds))
     .orderBy(asc(renewedAt), asc(t.jobRenewals.id));
 }
 

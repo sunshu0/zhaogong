@@ -2,9 +2,11 @@
 // row says who, when, which kind and which record, never the information. The same moderator seeing the same record
 // again within SAME_VIEW_MINUTES (the list loads again after each decision) is the same view. Kept KEEP_DAYS; no
 // scheduled job (ADR 0008): the first record of a New Zealand day deletes the rows that are too old. Server only.
-import { and, asc, desc, eq, gte, inArray, lt, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, type SQL } from "drizzle-orm";
 import { database } from "@/db/ready";
+import { inList } from "@/db/in-list";
 import * as t from "@/db/schema";
+import { insertsInChunks } from "@/db/write-if";
 import { lastDays, nzDay } from "@/db/job-stats";
 import { LIST_LIMIT, type PersonalInfoKind } from "@/lib/personal-info-views";
 
@@ -51,16 +53,20 @@ export async function recordViews(
       and(
         eq(t.personalInfoViews.moderator, moderator),
         eq(t.personalInfoViews.kind, kind),
-        inArray(t.personalInfoViews.subjectId, ids),
+        inList(t.personalInfoViews.subjectId, ids),
         gte(t.personalInfoViews.at, second(new Date(now.getTime() - SAME_VIEW_MINUTES * 60_000))),
       ),
     );
   const seen = new Set(recent.map((r) => r.subjectId));
   const fresh = ids.filter((id) => !seen.has(id));
-  if (fresh.length)
-    await db
-      .insert(t.personalInfoViews)
-      .values(fresh.map((subjectId) => ({ at: second(now), day, moderator, kind, subjectId })));
+  if (fresh.length) {
+    const [first, ...rest] = insertsInChunks(
+      db,
+      t.personalInfoViews,
+      fresh.map((subjectId) => ({ at: second(now), day, moderator, kind, subjectId })),
+    );
+    await db.batch([first, ...rest]);
+  }
   return fresh.length;
 }
 

@@ -3,6 +3,7 @@
 import { desc, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, seekerProfiles } from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { Profile } from "@/components/seeker/hub-state";
 
@@ -26,16 +27,16 @@ export async function saveSeekerProfile(
   const address = normalizeEmail(email);
   const updatedAt = now.toISOString();
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
-    if (!account) return "no_account";
-    const [row] = await tx
-      .insert(seekerProfiles)
-      .values({ email: address, profile, updatedAt })
-      .onConflictDoUpdate({ target: seekerProfiles.email, set: { profile, updatedAt } })
-      .returning();
-    return row;
-  });
+  // One statement: the account must exist (ADR 0031).
+  const [row] = await insertIf(
+    db,
+    seekerProfiles,
+    { email: address, profile, updatedAt },
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address})`,
+  )
+    .onConflictDoUpdate({ target: seekerProfiles.email, set: { profile, updatedAt } })
+    .returning();
+  return row ?? "no_account";
 }
 
 /** Pages whose owner allowed 推荐人才 (`resume.discoverable`); what an employer may see of them is decided later. */

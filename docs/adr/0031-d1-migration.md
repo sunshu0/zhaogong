@@ -1,6 +1,6 @@
 # 0031 迁移到 D1 的做法：每次写入只交一条语句或一个 batch，本机照旧用 libSQL 但照 D1 的规矩跑
 
-- 状态：已采纳（导师 10-20 采纳；D1 迁移会话 local_1010a53c 起草）
+- 状态：已采纳（导师 10-20 23:5x；D1 迁移会话 local_1010a53c 起草）
 - 日期：2026-10-20。接 ADR 0029（线上数据库用 Cloudflare D1，用户 10-20 23:4x 定的）。编号由执行 C 10-20 23:4x 登记。
 
 ## 情况
@@ -36,7 +36,7 @@ D1 跟这些有关的事实（Cloudflare 文档，2026-10-20 查的）：
 | 改法 | 做法 | 用在哪里 |
 | --- | --- | --- |
 | **A 只写不判断** | 直接 `db.batch([...])` | `conversations.addSharedMessage`、`addSharedExchange`；`seed.seedDemoData`（按 100 个参数切块）；`job-renewals.renewJob`（先 `INSERT INTO job_renewals … SELECT … expires_at FROM jobs WHERE id = ?` 记下旧的到期日，再 `UPDATE jobs`，同一个 batch；职位不在时两条都是 0 行，返回 `undefined`）；`job-applications.withdrawApplication`（`DELETE interviews WHERE application_id IN (SELECT id FROM job_applications WHERE …)`，再删申请） |
-| **B 没有才写** | 一条 `INSERT … SELECT … WHERE EXISTS (账号) AND NOT EXISTS (同一条) RETURNING`，或 `ON CONFLICT DO NOTHING / DO UPDATE … RETURNING` | `job-applications.addApplication`、`job-stats.recordChatStart`、`moderators.grantModerator`、`saved-jobs.saveJob`（职位存在也写进条件）、`saved-external-jobs.saveExternalJob`（「还在展示」那几个条件照 `isShown` 写成 SQL）、`resume-shares.saveResumeShare`、`seeker-profiles.saveSeekerProfile`、`employer-profiles.saveEmployerPage`（条件里查这个账号属于这家企业、是管理员）、`data.openEmployerIdentity`（`UPDATE accounts … WHERE email = ? AND employer_id IS NULL AND NOT EXISTS (SELECT 1 FROM accounts WHERE employer_id = ?)`）、`team.cancelInvite`（`UPDATE … WHERE status = 'pending' AND EXISTS (操作人是这家的管理员)`） |
+| **B 没有才写** | 一条 `INSERT … SELECT … WHERE EXISTS (账号) AND NOT EXISTS (同一条) RETURNING`，或 `ON CONFLICT DO NOTHING / DO UPDATE … RETURNING` | `job-applications.addApplication`、`job-stats.recordChatStart`、`moderators.grantModerator`、`saved-jobs.saveJob`（职位存在也写进条件）、`saved-external-jobs.saveExternalJob`（`isShown` 里跟时间有关的几条在代码里判断，只会随时间变；审核员和导入会改的「已批准、没下架」写进条件）、`resume-shares.saveResumeShare`、`seeker-profiles.saveSeekerProfile`、`employer-profiles.saveEmployerPage`（角色规则 `canEditPage` 在代码里判断，写的条件是「账号还在这家企业、角色还是刚才读到的」；落空就重读，3 次都落空就报错，不加「忙」这个结果：要连着三次在读和写之间被改角色才会出现）、`data.openEmployerIdentity`（`UPDATE accounts … WHERE email = ? AND employer_id IS NULL AND NOT EXISTS (SELECT 1 FROM accounts WHERE employer_id = ?)`）、`team.cancelInvite`（`UPDATE … WHERE status = 'pending' AND EXISTS (操作人是这家的管理员)`） |
 | **C 有上限、不能是最后一个** | 数量写进同一条语句的条件：`… WHERE (SELECT count(*) …) < N` | `job-alerts.createJobAlert`（重复和 `ALERT_LIMIT`）、`moderators.revokeModerator`（`DELETE … WHERE email = ? AND (SELECT count(*) FROM moderators) > 1 RETURNING`） |
 | **D 取编号再写** | 取号和插入合成一条：`INSERT INTO jobs (id, …) SELECT 'j' \|\| (coalesce(max(cast(substr(id, 2) as integer)), 0) + 1), … FROM jobs WHERE id GLOB 'j[0-9]*' RETURNING id` | `data.createJob`、`submitReport`、`addModerationLog`、`createEmployer`；`team.inviteToTeam` 的 `ti`、`verification-requests.submitVerification` 的 `v` 也改成取最大值加一（现在用 `count(*) + 1`，删号会删掉邀请，之后再发邀请会撞上已有的编号；顺手修掉，补单测） |
 | **E 好几步、要么全做要么全不做，前提可能被别人改** | 见下面「守卫行」和「接力条件」 | 其余各处，见下 |
@@ -60,11 +60,11 @@ D1 跟这些有关的事实（Cloudflare 文档，2026-10-20 查的）：
 | `team.answerInvite` | E1。前提：邀请待答、没过期、企业没被封；账号没有企业；队员 < `TEAM_MAX`。然后改账号、改邀请。拒绝是一条带条件的 `UPDATE`（B 类）。 |
 | `team.changeTeam` | E1 + 乐观并发。`checkTeamChange` 是 JS 里的规则（不能去掉最后一个管理员等），前提写「队员和角色跟读到的一样」。 |
 | `verification-requests.decideVerification` | E2。先 `UPDATE verification_requests … WHERE id = ? AND status = 'pending' RETURNING *`，再改企业：`… WHERE id = ? AND EXISTS (SELECT 1 FROM verification_requests WHERE id = ? AND status = 'approved' AND decided_at = ? AND decided_by_email = ?)`；「已是认可雇主就保留」写成 `CASE`。 |
-| `verification-requests.submitVerification` | E1 + D。前提：这家没有待审的；NZBN 没有待审的、没被别家用。 |
+| `verification-requests.submitVerification` | D，一条语句：取号 + 「这家没有待审的；NZBN 没有待审的、没被别家用」都在同一条 `INSERT … SELECT … WHERE` 里，不用守卫行。 |
 | `conversations.answerSharedExchange` | E2（现在就是带条件的 `UPDATE … RETURNING`，第二条以 `responded_at` 接力）。 |
 | `data.banEmployer` | E2。`UPDATE employers SET banned_at = :at WHERE id = ? RETURNING`，再 `UPDATE jobs … WHERE employer_id = ? AND status IN (…) AND EXISTS (… banned_at = :at) RETURNING id`，返回的编号在 JS 里按原来的顺序排。 |
-| `external-jobs.blockCompany` | E1。前提：没有「下架」记录，且这次不是对已有记录再「停止」。upsert 记录 + 下架职位。 |
-| `external-jobs.unblockCompany` | E1。前提：有记录；删记录 + 职位回到待审。 |
+| `external-jobs.blockCompany` | E2。第一条写记录（「停止」只在没有记录时写；「下架」在没有「下架」记录时写，可以替换「停止」），第二条下架职位，条件是记录正是这次写的（同一个种类、时间、说明）。 |
+| `external-jobs.unblockCompany` | 调换顺序，不用守卫行：先在「记录还在」的条件下让职位回到待审，再删记录（`RETURNING` 看删没删到），同一个 batch。 |
 | `external-jobs.saveCompanyFeed` | 把判断搬进 SQL：新的和已有的都用 `INSERT … ON CONFLICT (id) DO UPDATE`，「改了标题、链接或标记的已批准职位回到待审」写成 `review = CASE WHEN review = 'approved' AND (title IS NOT excluded.title OR …) THEN 'pending' ELSE review END`；这次没出现的写成一条 `UPDATE … WHERE company_id = ? AND removed_at IS NULL AND id NOT IN (SELECT value FROM json_each(?))`（编号列表当一个 JSON 参数，不会超过 100 个）。整批一个 batch。返回的几个数按读到的算，只用来打印日志。 |
 
 还没合并的分支里的几处（举报证据、邀请链接、聊过的人）照同样的五种改法，等它们合并后再改，见第 7 节。
@@ -89,7 +89,7 @@ D1 跟这些有关的事实（Cloudflare 文档，2026-10-20 查的）：
 3. **数据库层的单测在本机 D1 上再跑一遍。** 加一个 vitest 配置 `vitest.d1.config.ts`：用 node_modules 里已有的 miniflare（随 `@opennextjs/cloudflare` / wrangler 装进来的，不用另外下载）起本机 D1，照 wrangler 的方式把 `drizzle/*.sql` 逐个执行，然后跑 `src/db/**/*.test.ts` 和 `data.test.ts` 同一批测试文件（`database()` 看测试变量选驱动）。命令 `npm run test:d1`，同时只开 1–2 个工作进程。**门槛加上这一步**（空闲 ≥3 GB 时跑）。
 4. **最后验收在 D1 上走一遍：** `opennextjs-cloudflare preview` 用本机 D1（wrangler 的本机状态），注册、登录（开发验证码）、发职位、聊天、删号。
 
-**驱动怎么选（`src/db/client.ts`）：** 设了 `DATABASE_URL`（`file:`、`:memory:`）→ libSQL，跟现在一样；没设、并且 `getCloudflareContext({ async: true }).env.DB` 存在 → D1（`drizzle-orm/d1`），每个请求用当时的绑定建一次 drizzle（很便宜）；两样都没有 → 本机文件库，跟现在一样。线上不设 `DATABASE_URL`、`DATABASE_AUTH_TOKEN`。`@libsql/client` 只在 libSQL 那一支里动态导入，Worker 里用不上就不打包。
+**驱动怎么选（`src/db/client.ts`）：** 设了 `DATABASE_URL`（`file:`、`:memory:`）→ libSQL，跟现在一样；没设、并且 OpenNext 放在 `globalThis[Symbol.for("__cloudflare-context__")]` 里的 `env.DB` 存在 → D1（`drizzle-orm/d1`），每个绑定建一次 drizzle（直接读这个符号，不导入 `@opennextjs/cloudflare`：它是开发依赖，Node 版的 Docker 镜像里没有；它的 `getCloudflareContext({ async: true })` 在 Node 里还会起 wrangler）；两样都没有 → 本机文件库，跟现在一样。线上不设 `DATABASE_URL`、`DATABASE_AUTH_TOKEN`。`@libsql/client` 还是静态导入；构建后量 Worker 大小，超了再改成只在 libSQL 那一支里动态导入。
 
 **单测怎么测原子性和并发**（每处改写都要有）：
 
@@ -112,13 +112,13 @@ D1 跟这些有关的事实（Cloudflare 文档，2026-10-20 查的）：
   {
     "binding": "DB",
     "database_name": "zhaogong",
-    "database_id": "建库后填（本机预览先用占位值）",
+    "database_id": "00000000-0000-0000-0000-000000000000", // 建库后换成真的
     "migrations_dir": "drizzle",
   },
 ],
 ```
 
-- 位置提示不写在这里，写在建库命令里：`wrangler d1 create zhaogong --location=oc`（用户开账号以后做，ADR 0029）。本机预览和 `migrations apply --local` 不连账号，`database_id` 先用占位值；实现时先验证占位值本机能用。
+- 位置提示不写在这里，写在建库命令里：`wrangler d1 create zhaogong --location=oc`（用户开账号以后做，ADR 0029）。本机预览和 `migrations apply --local` 不连账号，`database_id` 先用全零的占位值（10-21 实测：`wrangler d1 migrations apply zhaogong --local` 用占位值把 0000–0027 全部跑完，D1 检查外键也没报错）。
 - `cloudflare-env.d.ts` 用 `npm run cf:typegen` 重新生成（多出 `DB: D1Database`）。
 - **演示数据：** 线上不再「第一次访问时导入」（一次要上百条语句，超过每次请求的限额），改成部署时跑命令导入。命令行工具（`migrate`、`seed`、`admin:grant`、`import:external`）加一个选项走 wrangler 的 `getPlatformProxy` 拿 D1 绑定：本机 D1 现在就能做通；远程那一步要用户 `wrangler login` 以后才能跑，写进部署清单。
 - 部署清单（`docs/cloudflare-deployment.md`，C 的 ADR 0029 分支正在改第 2、3、5 节）在代码合并时补上：建库、`migrations apply --remote`、导入演示数据、授审核员，写到「只差 Cloudflare 账号」。
@@ -127,8 +127,8 @@ D1 跟这些有关的事实（Cloudflare 文档，2026-10-20 查的）：
 
 几条线有没合并的分支在改 `src/db`：A 的举报证据（`account-data.ts`、`data.ts`、`schema.ts`、0028）、C 的 #349（`team.ts`、`account-data.ts`、`schema.ts`）、B 的 #358（`conversations.ts`、`job-applications.ts`、`account-data.ts`、`schema.ts`、0030）。所以：
 
-1. **先做没人碰的：** 驱动和规矩层（`client.ts`、`ready.ts`、`migrate.ts`、`one-at-a-time.ts`）、`guarded-batch.ts`、`drizzle.config.ts`、`wrangler.jsonc`、`vitest.d1.config.ts`、迁移的新单测；然后改 `employer-profiles`、`external-jobs`、`job-alerts`、`job-renewals`、`job-stats`、`moderators`、`resume-shares`、`saved-external-jobs`、`saved-jobs`、`seed`、`seeker-profiles`、`verification-requests` 这 12 个文件的 18 处。`schema.ts` 和迁移 0031 等别线的迁移合并后再加（避免 `_journal.json` 冲突），在那之前 `write_guards` 先只用在测试里建。
-2. **它们合并以后** rebase，再改 `account-data`、`conversations`、`job-applications`、`team`、`data.ts` 的 14 处，加上分支带进来的几处。
+1. **先做没人碰的：** 驱动和规矩层（`client.ts`、`ready.ts`、`migrate.ts`、`one-at-a-time.ts`）、写入工具（`write-if.ts`、`in-list.ts`、`optimistic.ts`）、`wrangler.jsonc`、`vitest.d1.config.mts`、迁移的新单测；然后改 `employer-profiles`、`external-jobs`、`job-alerts`、`job-renewals`、`job-stats`、`moderators`、`resume-shares`、`saved-external-jobs`、`saved-jobs`、`seed`、`seeker-profiles`、`verification-requests` 这 12 个文件的 16 处，读的地方 `inArray` 换成 `inList`。这 16 处都用不着守卫行。
+2. **它们合并以后** rebase，再改 `account-data`、`conversations`、`job-applications`、`team`、`data.ts` 的 16 处，加上分支带进来的几处；这时再加 `schema.ts` 的 `write_guards`、迁移 0031、`guarded-batch.ts`，`drizzle.config.ts` 改 `sqlite` 方言（都等别线的迁移 0028–0030 合并，免得 `_journal.json` 冲突、别线生成迁移时换了方言）。最后去掉 `Db` 的 `transaction`、加 eslint 规则。
 3. 每一步一个 PR，照常门槛（check、build、e2e 照现有的跑），加 `test:d1`；最后一个 PR 合并后在 opennext preview 上做第 4 节的验收。
 
 ## 后果

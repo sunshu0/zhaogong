@@ -1,9 +1,11 @@
 // The numbers an employer sees for each job (#55, R-31): page views (a browser once a day), people who started a
 // chat, and contact views (contact_views, #11). Recorded here, read only through the employer's own Server
 // Functions. Server only.
-import { and, count, eq, gte, inArray } from "drizzle-orm";
+import { and, count, eq, gte, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
+import { inList } from "@/db/in-list";
 import * as t from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 
 export interface JobNumbers {
@@ -45,15 +47,14 @@ export async function recordJobView(jobId: string, visitor: string, now = new Da
 export async function recordChatStart(jobId: string, email: string, now = new Date()): Promise<"counted" | "already"> {
   const seekerEmail = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [row] = await tx
-      .select({ id: t.jobChatStarts.id })
-      .from(t.jobChatStarts)
-      .where(and(eq(t.jobChatStarts.jobId, jobId), eq(t.jobChatStarts.seekerEmail, seekerEmail)));
-    if (row) return "already";
-    await tx.insert(t.jobChatStarts).values({ jobId, seekerEmail, startedAt: now.toISOString() });
-    return "counted";
-  });
+  // One statement, so the same person opening two chats at once is counted once (ADR 0031).
+  const counted = await insertIf(
+    db,
+    t.jobChatStarts,
+    { jobId, seekerEmail, startedAt: now.toISOString() },
+    sql`not exists (select 1 from ${t.jobChatStarts} where ${t.jobChatStarts.jobId} = ${jobId} and ${t.jobChatStarts.seekerEmail} = ${seekerEmail})`,
+  ).returning({ id: t.jobChatStarts.id });
+  return counted.length ? "counted" : "already";
 }
 
 /** The job of a chat a job seeker opened from a job page (`employer:<business>:<job>`, see messages/actions.ts). */
@@ -82,7 +83,7 @@ export async function jobNumbers(jobIds: string[]): Promise<Record<string, JobNu
     db
       .select({ jobId: t.jobViews.jobId, n: count() })
       .from(t.jobViews)
-      .where(inArray(t.jobViews.jobId, jobIds))
+      .where(inList(t.jobViews.jobId, jobIds))
       .groupBy(t.jobViews.jobId),
   );
   await tally(
@@ -90,7 +91,7 @@ export async function jobNumbers(jobIds: string[]): Promise<Record<string, JobNu
     db
       .select({ jobId: t.jobChatStarts.jobId, n: count() })
       .from(t.jobChatStarts)
-      .where(inArray(t.jobChatStarts.jobId, jobIds))
+      .where(inList(t.jobChatStarts.jobId, jobIds))
       .groupBy(t.jobChatStarts.jobId),
   );
   await tally(
@@ -98,7 +99,7 @@ export async function jobNumbers(jobIds: string[]): Promise<Record<string, JobNu
     db
       .select({ jobId: t.contactViews.jobId, n: count() })
       .from(t.contactViews)
-      .where(inArray(t.contactViews.jobId, jobIds))
+      .where(inList(t.contactViews.jobId, jobIds))
       .groupBy(t.contactViews.jobId),
   );
   return result;

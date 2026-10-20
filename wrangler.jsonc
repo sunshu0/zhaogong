@@ -15,6 +15,16 @@
       "service": "zhaogong-demo",
     },
   ],
+  // The database (ADR 0029, ADR 0031). Created once with `wrangler d1 create zhaogong --location=oc` (Oceania); put the
+  // id it prints here. Local previews and `wrangler d1 migrations apply zhaogong --local` work without it.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zhaogong",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "drizzle",
+    },
+  ],
   "vars": {
     "NEXTJS_ENV": "production",
   },

@@ -1,7 +1,7 @@
 // The database as data.ts uses it: migrated once per server instance (and per test file), and loaded
 // with the demo data when it is empty and DEMO_DATA asks for it. Doing this on first use, rather than in
 // a start-up hook, also covers file::memory:, where every module instance has its own database.
-import { databaseUrl, getDb, resetDbForTests, type Db } from "@/db/client";
+import { d1Binding, databaseUrl, freshenD1ForTests, getDb, resetDbForTests, type Db } from "@/db/client";
 import { migrateDb } from "@/db/migrate";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
 
@@ -46,8 +46,20 @@ export function migratesOnFirstUse(url = databaseUrl()): boolean {
   return url.startsWith("file:");
 }
 
+/**
+ * Whether an empty database takes the demo data on first use. Not on D1 (ADR 0031): the demo data is a few hundred
+ * statements, more than one Worker request may run, so a D1 deployment loads it with a command before it opens
+ * (docs/cloudflare-deployment.md). The D1 tests still load it on first use, as on libSQL.
+ */
+export function seedsOnFirstUse(onD1 = d1Binding() !== undefined): boolean {
+  return demoDataWanted() && (!onD1 || process.env.NODE_ENV === "test");
+}
+
 async function prepare(): Promise<Db> {
-  if (migratesOnFirstUse()) {
+  const onD1 = d1Binding() !== undefined;
+  // D1 is migrated with wrangler before a deploy (docs/cloudflare-deployment.md); the tests' D1 here.
+  if (onD1) await freshenD1ForTests();
+  else if (migratesOnFirstUse()) {
     try {
       await migrateDb();
     } catch {
@@ -56,7 +68,7 @@ async function prepare(): Promise<Db> {
       await migrateDb();
     }
   }
-  if (demoDataWanted() && (await isDatabaseEmpty())) {
+  if (seedsOnFirstUse(onD1) && (await isDatabaseEmpty())) {
     let loaded = false;
     try {
       await seedDemoData();
@@ -72,12 +84,14 @@ async function prepare(): Promise<Db> {
 let ready: Promise<Db> | undefined;
 
 /** The database, ready to read and write. */
-export function database(): Promise<Db> {
+export async function database(): Promise<Db> {
   ready ??= prepare().catch((error) => {
     ready = undefined;
     throw error;
   });
-  return ready;
+  const db = await ready;
+  // On Cloudflare, the binding of the request at hand (getDb() keeps one drizzle instance per binding).
+  return d1Binding() ? getDb() : db;
 }
 
 /** Tests only: start again from an empty, freshly migrated database on the next database() call. */

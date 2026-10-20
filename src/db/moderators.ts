@@ -1,8 +1,9 @@
 // Who may use /admin (#50): a row in moderators per account. Granted from the command line (npm run
 // admin:grant) or by another moderator in /admin; the last one cannot be removed. Server only.
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, moderators } from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 
 export type Moderator = typeof moderators.$inferSelect;
@@ -30,26 +31,28 @@ export async function grantModerator(
 ): Promise<"granted" | "already" | "no_account"> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
-    if (!account) return "no_account";
-    const [row] = await tx.select().from(moderators).where(eq(moderators.email, address));
-    if (row) return "already";
-    await tx.insert(moderators).values({ email: address, grantedAt: now.toISOString(), grantedBy });
-    return "granted";
-  });
+  // One statement: the account must exist and must not be a moderator yet when the row goes in (ADR 0031).
+  const granted = await insertIf(
+    db,
+    moderators,
+    { email: address, grantedAt: now.toISOString(), grantedBy },
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address}) and not exists (select 1 from ${moderators} where ${moderators.email} = ${address})`,
+  ).returning({ email: moderators.email });
+  if (granted.length) return "granted";
+  const [account] = await db.select({ email: accounts.email }).from(accounts).where(eq(accounts.email, address));
+  return account ? "already" : "no_account";
 }
 
 /** Takes the role away, unless the account is the only moderator left (then nobody could moderate). */
 export async function revokeModerator(email: string): Promise<"revoked" | "not_moderator" | "last"> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [row] = await tx.select().from(moderators).where(eq(moderators.email, address));
-    if (!row) return "not_moderator";
-    const [{ n }] = await tx.select({ n: count() }).from(moderators);
-    if (n <= 1) return "last";
-    await tx.delete(moderators).where(eq(moderators.email, address));
-    return "revoked";
-  });
+  // One statement, so two moderators removing each other at once cannot leave nobody (ADR 0031).
+  const revoked = await db
+    .delete(moderators)
+    .where(and(eq(moderators.email, address), sql`(select count(*) from ${moderators}) > 1`))
+    .returning({ email: moderators.email });
+  if (revoked.length) return "revoked";
+  const [row] = await db.select({ email: moderators.email }).from(moderators).where(eq(moderators.email, address));
+  return row ? "last" : "not_moderator";
 }

@@ -1,9 +1,10 @@
 // 中英文简历的分享链接 (#86, R-37): one per account. Only the account's own Server Functions write it; the share
 // page reads it by the link's id. Server only.
 import { randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, resumeShares } from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
 
@@ -30,24 +31,16 @@ export async function saveResumeShare(
   const address = normalizeEmail(email);
   const at = now.toISOString();
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(accounts).where(eq(accounts.email, address));
-    if (!account) return "no_account";
-    const [existing] = await tx.select().from(resumeShares).where(eq(resumeShares.email, address));
-    if (existing) {
-      const [row] = await tx
-        .update(resumeShares)
-        .set({ resume, updatedAt: at })
-        .where(eq(resumeShares.email, address))
-        .returning();
-      return row;
-    }
-    const [row] = await tx
-      .insert(resumeShares)
-      .values({ email: address, id: randomBytes(18).toString("base64url"), resume, createdAt: at, updatedAt: at })
-      .returning();
-    return row;
-  });
+  // One statement: the account must exist; a second save keeps the link's id (ADR 0031).
+  const [row] = await insertIf(
+    db,
+    resumeShares,
+    { email: address, id: randomBytes(18).toString("base64url"), resume, createdAt: at, updatedAt: at },
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address})`,
+  )
+    .onConflictDoUpdate({ target: resumeShares.email, set: { resume, updatedAt: at } })
+    .returning();
+  return row ?? "no_account";
 }
 
 /** Closes the link: it shows nothing from now on. Sharing again makes a new link. */

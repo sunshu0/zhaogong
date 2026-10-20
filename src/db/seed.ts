@@ -6,6 +6,7 @@ import { DEMO_SEEKER, demoShowcase } from "@/db/demo-showcase";
 import { DEMO_MODERATOR } from "@/lib/demo-accounts";
 import { fromEmployer, fromJob } from "@/db/rows";
 import * as schema from "@/db/schema";
+import { insertsInChunks } from "@/db/write-if";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import { suggestJobRoles } from "@/lib/job-roles";
 import { MOCK_CONTACT_VIEWS, MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
@@ -34,9 +35,13 @@ export async function seedDemoData(
   now = Date.now(),
 ): Promise<{ employers: number; jobs: number; contactViews: number }> {
   const showcase = demoShowcase(now);
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.employers).values(MOCK_EMPLOYERS.map(fromEmployer));
-    await tx.insert(schema.jobs).values(
+  const at = new Date(now).toISOString();
+  // One batch, each statement under D1's 100 parameters (ADR 0031): all of the demo data goes in, or none of it.
+  const [first, ...rest] = [
+    ...insertsInChunks(db, schema.employers, MOCK_EMPLOYERS.map(fromEmployer)),
+    ...insertsInChunks(
+      db,
+      schema.jobs,
       [...MOCK_JOBS, ...showcase.jobs].map((job) =>
         fromJob({
           ...job,
@@ -45,22 +50,29 @@ export async function seedDemoData(
           contactPublic: !!job.contactPublic,
         }),
       ),
-    );
-    if (MOCK_CONTACT_VIEWS.length)
-      await tx.insert(schema.contactViews).values(MOCK_CONTACT_VIEWS.map((v) => ({ ...v })));
-    const at = new Date(now).toISOString();
-    await tx.insert(schema.accounts).values([
+    ),
+    ...insertsInChunks(
+      db,
+      schema.contactViews,
+      MOCK_CONTACT_VIEWS.map((v) => ({ ...v })),
+    ),
+    ...insertsInChunks(db, schema.accounts, [
       { email: DEMO_MODERATOR, createdAt: at, lastRole: "seeker" },
       { email: DEMO_SEEKER, createdAt: showcase.alert.createdAt, lastRole: "seeker" },
-    ]);
-    await tx.insert(schema.moderators).values({ email: DEMO_MODERATOR, grantedAt: at, grantedBy: null });
-    await tx.insert(schema.reports).values(showcase.reports.map((r) => ({ ...r, note: r.note ?? null })));
-    await tx.insert(schema.savedJobs).values(showcase.savedJobs);
-    await tx.insert(schema.jobAlerts).values(showcase.alert);
-    await tx.insert(schema.jobAlertHits).values(showcase.alertHit);
-    await tx.insert(schema.verificationRequests).values(showcase.verifications);
-    await tx.insert(schema.externalJobs).values(demoExternalJobs(now)); // #112, #113
-  });
+    ]),
+    db.insert(schema.moderators).values({ email: DEMO_MODERATOR, grantedAt: at, grantedBy: null }),
+    ...insertsInChunks(
+      db,
+      schema.reports,
+      showcase.reports.map((r) => ({ ...r, note: r.note ?? null })),
+    ),
+    ...insertsInChunks(db, schema.savedJobs, showcase.savedJobs),
+    db.insert(schema.jobAlerts).values(showcase.alert),
+    db.insert(schema.jobAlertHits).values(showcase.alertHit),
+    ...insertsInChunks(db, schema.verificationRequests, showcase.verifications),
+    ...insertsInChunks(db, schema.externalJobs, demoExternalJobs(now)), // #112, #113
+  ];
+  await db.batch([first, ...rest]);
   return {
     employers: MOCK_EMPLOYERS.length,
     jobs: MOCK_JOBS.length + showcase.jobs.length,

@@ -1,8 +1,11 @@
 // 企业主页 on the server (ADR 0022): one per business. Everyone in the team and every visitor reads it; only an admin
-// of the business writes it, checked again inside the transaction that writes. Server only.
-import { and, eq, inArray, isNull } from "drizzle-orm";
+// of the business writes it, checked again in the statement that writes. Server only.
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
+import { inList } from "@/db/in-list";
+import { CHANGED, keptChanging, untilSettled } from "@/db/optimistic";
 import * as t from "@/db/schema";
+import { insertIf } from "@/db/write-if";
 import { normalizeEmail } from "@/components/seeker/session";
 import { canEditPage, type EmployerPage } from "@/components/employer/employer-page";
 
@@ -28,7 +31,7 @@ export async function listPublicEmployerPages(
     })
     .from(t.employerProfiles)
     .innerJoin(t.employers, eq(t.employers.id, t.employerProfiles.employerId))
-    .where(and(inArray(t.employerProfiles.employerId, [...employerIds]), isNull(t.employers.bannedAt)));
+    .where(and(inList(t.employerProfiles.employerId, employerIds), isNull(t.employers.bannedAt)));
 }
 
 /**
@@ -43,18 +46,26 @@ export async function saveEmployerPage(
   const address = normalizeEmail(email);
   const updatedAt = now.toISOString();
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
-    if (!account?.employerId) return "no_business";
-    if (!canEditPage(account.teamRole ?? "admin")) return "not_admin";
-    const [row] = await tx
-      .insert(t.employerProfiles)
-      .values({ employerId: account.employerId, page, updatedAt, updatedByEmail: address })
-      .onConflictDoUpdate({
-        target: t.employerProfiles.employerId,
-        set: { page, updatedAt, updatedByEmail: address },
-      })
-      .returning();
-    return row;
-  });
+  return untilSettled(
+    async () => {
+      const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
+      if (!account?.employerId) return "no_business";
+      const role = account.teamRole ?? "admin";
+      if (!canEditPage(role)) return "not_admin";
+      // Written only if the account is still in this business with the role just checked (ADR 0031).
+      const [row] = await insertIf(
+        db,
+        t.employerProfiles,
+        { employerId: account.employerId, page, updatedAt, updatedByEmail: address },
+        sql`exists (select 1 from ${t.accounts} where ${t.accounts.email} = ${address} and ${t.accounts.employerId} = ${account.employerId} and coalesce(${t.accounts.teamRole}, 'admin') = ${role})`,
+      )
+        .onConflictDoUpdate({
+          target: t.employerProfiles.employerId,
+          set: { page, updatedAt, updatedByEmail: address },
+        })
+        .returning();
+      return row ?? CHANGED;
+    },
+    () => keptChanging("saveEmployerPage"),
+  );
 }

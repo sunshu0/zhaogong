@@ -2,8 +2,9 @@
 // application; the job seeker through their own application. Who may do what is checked by the Server Functions,
 // what an answer may be by parseResponse. Server only.
 import { randomBytes } from "node:crypto";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { database } from "@/db/ready";
+import { inList } from "@/db/in-list";
 import { interviews, jobApplications } from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { InterviewInvite, InterviewResponse, InterviewView } from "@/components/seeker/interviews";
@@ -28,7 +29,7 @@ export function interviewView(row: InterviewRow): InterviewView {
 export async function interviewsFor(applicationIds: string[]): Promise<Map<string, InterviewRow>> {
   if (!applicationIds.length) return new Map();
   const db = await database();
-  const rows = await db.select().from(interviews).where(inArray(interviews.applicationId, applicationIds));
+  const rows = await db.select().from(interviews).where(inList(interviews.applicationId, applicationIds));
   return new Map(rows.map((row) => [row.applicationId, row]));
 }
 
