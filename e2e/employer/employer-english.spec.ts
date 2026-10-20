@@ -43,7 +43,7 @@ test("the employer's pages in English: home, 职位管理, applicants, 推荐人
   await expectEnglishPage(page, "/employer/jobs");
 
   await page.goto(`/employer/jobs/${jobId}/applicants`);
-  await expect(page.getByRole("heading", { level: 1, name: "Applicants" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "People who chatted about this job" })).toBeVisible();
   await expectEnglishPage(page, "applicants (none yet)");
 
   await page.goto(`/employer/jobs/${jobId}/stats`);

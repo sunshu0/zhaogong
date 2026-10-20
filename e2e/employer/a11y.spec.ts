@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
   CLEAN_MESSAGE,
+  candidateCard,
   openTheForm,
   publishJob,
   signUpEmployer,
@@ -11,7 +12,7 @@ import {
   moderatorPage,
   setJobClosing,
 } from "./helpers";
-import { applyForTest, freshEmail, signIn } from "../helpers";
+import { chatAboutJob, freshEmail, signIn } from "../helpers";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -151,10 +152,10 @@ test("before the first job, then a job's own pages: edit, applicants and the int
   await expectNoViolations(page, "/employer/jobs before the first job");
 
   const jobId = (await publishJob(page, uniqueTitle("前厅服务员", testInfo)))!;
-  // A demo job seeker (林晓's page, #125) applies, so 申请人 has someone.
+  // A job seeker writes about the job, so 聊过的人 has someone (ADR 0030).
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
-  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.a11y"));
-  await applyForTest(seeker, jobId);
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("e2e.a11y"));
+  await chatAboutJob(seeker, jobId);
   await seeker.context().close();
 
   await page.goto(`/employer/jobs/${jobId}`);
@@ -162,18 +163,16 @@ test("before the first job, then a job's own pages: edit, applicants and the int
   await expect(page.getByLabel("职位名称（中文）")).toBeVisible();
   await expectNoViolations(page, "/employer/jobs/[id] edit");
 
-  await page.goto(`/employer/jobs/${jobId}/applicants`);
-  const applicant = page.getByRole("article", { name: "申请人 林晓" });
-  await expect(applicant).toBeVisible();
+  const applicant = await candidateCard(page, jobId);
   await expectNoViolations(page, "/employer/jobs/[id]/applicants");
   await applicant.getByRole("button", { name: "约面试" }).click();
-  await expect(applicant.getByRole("form", { name: "约林晓面试" })).toBeVisible();
+  await expect(applicant.getByRole("form", { name: "约求职者面试" })).toBeVisible();
   // #248: the form took the place of the pressed button, and its focus.
-  await expect(applicant.getByRole("form", { name: "约林晓面试" }).locator(":focus")).toHaveCount(1);
+  await expect(applicant.getByRole("form", { name: "约求职者面试" }).locator(":focus")).toHaveCount(1);
   await expectNoZoomOnFocus(page, "main", "the interview form");
   await expectNoViolations(page, "/employer/jobs/[id]/applicants with the interview form");
   // #304: the two ways to give the time are one group, so the arrow key moves the choice.
-  const times = applicant.getByRole("form", { name: "约林晓面试" }).getByRole("radio");
+  const times = applicant.getByRole("form", { name: "约求职者面试" }).getByRole("radio");
   await times.first().focus();
   await page.keyboard.press("ArrowRight");
   await expect(times.nth(1)).toBeChecked();

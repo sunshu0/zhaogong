@@ -1,9 +1,10 @@
-// 一键申请 (#84, R-35): job seekers' applications, read by the job seeker (by email) and by the job's employer
-// (by business and application id, never by email). Who may do what is checked by the Server Functions. Server only.
+// A job's candidates (ADR 0030): job seekers who applied (一键申请, #84, R-35, until 10-20) or who wrote or were
+// written to about the job, read by the job seeker (by email) and by the job's employer (by business and application
+// id, never by email). Who may do what is checked by the Server Functions. Server only.
 import { randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { database } from "@/db/ready";
-import { interviews, jobApplications } from "@/db/schema";
+import { conversations, interviews, jobApplications } from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
 
@@ -58,18 +59,48 @@ export async function addApplication(input: {
   });
 }
 
-/** Withdraws the account's application for a job (the employer no longer sees it, nor its interview, #103). */
-export async function withdrawApplication(email: string, jobId: string): Promise<void> {
+/**
+ * The job's candidate row for a shared conversation (ADR 0030), made when the first message is sent or the business
+ * marks them, in the same transaction. A chat row has no note and no page, and counts as seen: the business saw the
+ * conversation. An application already there stays as it is.
+ */
+export async function addChatCandidate(
+  db: Pick<Awaited<ReturnType<typeof database>>, "insert">,
+  conversation: { seekerEmail: string; employerId: string; jobId: string | null },
+  at: string,
+): Promise<void> {
+  if (!conversation.jobId) return;
+  await db
+    .insert(jobApplications)
+    .values({
+      id: randomBytes(9).toString("base64url"),
+      seekerEmail: conversation.seekerEmail,
+      jobId: conversation.jobId,
+      employerId: conversation.employerId,
+      source: "chat",
+      note: null,
+      profile: null,
+      appliedAt: at,
+      seenAt: at,
+    })
+    .onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] });
+}
+
+/**
+ * The candidate row of one of the business's shared conversations; undefined when there is none yet (nothing said)
+ * or it is not theirs. `make`: add it if missing, for a mark made before anything was said.
+ */
+export async function chatCandidate(
+  employerId: string,
+  conversationId: string,
+  make = false,
+): Promise<ApplicationRow | undefined> {
   const db = await database();
-  await db.transaction(async (tx) => {
-    const [row] = await tx
-      .select()
-      .from(jobApplications)
-      .where(mine(normalizeEmail(email), jobId));
-    if (!row) return;
-    await tx.delete(interviews).where(eq(interviews.applicationId, row.id));
-    await tx.delete(jobApplications).where(eq(jobApplications.id, row.id));
-  });
+  const [conversation] = await db.select().from(conversations).where(eq(conversations.id, conversationId));
+  if (!conversation?.jobId || conversation.employerId !== employerId) return undefined;
+  if (make) await addChatCandidate(db, conversation, new Date().toISOString());
+  const [row] = await db.select().from(jobApplications).where(mine(conversation.seekerEmail, conversation.jobId));
+  return row?.employerId === employerId ? row : undefined;
 }
 
 /** A job's applications for its business, oldest first. */
@@ -124,7 +155,10 @@ export async function applicationOf(employerId: string, id: string): Promise<App
 
 export type ApplicationCount = { total: number; unseen: number };
 
-/** For each of the business's jobs that has applications: how many, and how many it has not looked at yet. */
+/**
+ * For each of the business's jobs that has candidates: how many, and how many it has not looked at yet (only
+ * applications: a chat row is seen when made).
+ */
 export async function applicationCounts(
   employerId: string,
   jobIds?: string[],
@@ -157,13 +191,13 @@ export async function unseenApplications(employerId: string): Promise<Applicatio
     .orderBy(desc(jobApplications.appliedAt));
 }
 
-/** The business's latest applications, newest first: for 通知. */
+/** The business's latest applications, newest first: for 通知. Not chat rows: the conversation says it already. */
 export async function applicationsOfBusiness(employerId: string, limit = 30): Promise<ApplicationRow[]> {
   const db = await database();
   return db
     .select()
     .from(jobApplications)
-    .where(eq(jobApplications.employerId, employerId))
+    .where(and(eq(jobApplications.employerId, employerId), eq(jobApplications.source, "apply")))
     .orderBy(desc(jobApplications.appliedAt), desc(jobApplications.id))
     .limit(limit);
 }
@@ -171,8 +205,8 @@ export async function applicationsOfBusiness(employerId: string, limit = 30): Pr
 export type ApplicationFunnel = { applied: number; interviewed: number; hired: number };
 
 /**
- * For 职位数据 (#105, R-31): how many applied for one of the business's jobs, how many of them were invited to an
- * interview that was not cancelled, and how many were hired.
+ * For 职位数据 (#105, R-31): how many are the job's candidates (applied or chatted, ADR 0030), how many of them were
+ * invited to an interview that was not cancelled, and how many were hired.
  */
 export async function applicationFunnel(employerId: string, jobId: string): Promise<ApplicationFunnel> {
   const rows = await jobApplicationsFor(employerId, jobId);

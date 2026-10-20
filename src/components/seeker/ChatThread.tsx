@@ -9,6 +9,7 @@ import { ChatActivity } from "@/components/seeker/ChatActivity";
 import { ChatExchangeMenu } from "@/components/seeker/ChatInteractions";
 import { ChatReportDialog } from "@/components/seeker/ChatReportButton";
 import { ConversationJob } from "@/components/seeker/ConversationJob";
+import { ChatCandidateMarks } from "@/components/employer/ChatCandidateMarks";
 import { MoreMenu, type MoreMenuItem } from "@/components/ui/MoreMenu";
 import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
@@ -47,6 +48,10 @@ export function ChatThread({
     <section className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
       {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
+      {/* ADR 0030: the business marks the job seeker here too. */}
+      {isEmployer && conversation.job && conversation.id.startsWith("chat:") && (
+        <ChatCandidateMarks conversationId={conversation.id} jobId={conversation.job} />
+      )}
       <DeliveryNote conversationId={conversation.id} />
 
       <ChatActivity

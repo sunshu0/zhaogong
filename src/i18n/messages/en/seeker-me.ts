@@ -39,6 +39,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     groupLabel: (group) => `${group} applications`,
     gone: "Taken down",
     appliedOn: (date) => `Applied ${date}`,
+    chattedOn: (date) => `Chat started ${date}`,
     note: (note) => `Your message: ${note}`,
     loadFailed: "Network problem: your applications can't be opened right now.",
     noteTooLong: (max) => `Keep your message to ${max} characters or fewer`,
@@ -48,6 +49,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
       fit: "The employer thinks you're a good fit",
       seen: "Seen by the employer",
       waiting: "Applied, waiting for the employer",
+      chatted: "Chatted",
     },
     decision: {
       fit: "Good fit",
@@ -201,6 +203,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
   },
   notices: {
     job: "a job",
+    someone: "A job seeker",
     thisJob: "This job",
     whoJob: (business, job) => (business ? `${business}, “${job}”` : `“${job}”`),
     hired: (business) => `${business} hired you`,

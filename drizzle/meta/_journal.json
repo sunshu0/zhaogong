@@ -211,6 +211,13 @@
       "when": 1792618104623,
       "tag": "0029_team_invite_links",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1792618227959,
+      "tag": "0030_chat_candidates",
+      "breakpoints": true
     }
   ]
 }

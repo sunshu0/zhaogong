@@ -4,7 +4,9 @@ import { setAuthStoreForTests } from "@/lib/auth/store";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { notificationHref } from "@/components/seeker/hub-state";
 import { cancelInterview, inviteToInterview } from "@/db/interviews";
-import { addModerationLog, banEmployer, ensureAccount, openEmployerIdentity, updateJob } from "@/lib/data";
+import { addModerationLog, ensureAccount, getJob, openEmployerIdentity, updateJob } from "@/lib/data";
+import { addApplication } from "@/db/job-applications";
+import { parseApplicationProfile } from "@/components/seeker/applications";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -16,12 +18,10 @@ const jar: CookieJar = {
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { myAppliedJobIds, myApplicationViews } = await import("@/app/[lang]/jobs/[id]/apply-actions");
-const { applyForJob, myJobApplication, withdrawMyApplication } = await import("@/lib/applications-server");
 const { decideMyApplicant, getMyApplicationCounts, getMyJobApplicants, markMyApplicantsSeen } =
   await import("@/app/[lang]/employer/applicant-actions");
 const { myAlertNotifications } = await import("@/app/[lang]/me/alerts/actions");
 const { markMyNotificationsRead } = await import("@/app/[lang]/messages/actions");
-const { saveMyProfile } = await import("@/app/[lang]/profile/actions");
 const { closeMyJob, getMyJobDays } = await import("@/app/[lang]/employer/actions");
 
 const PAGE = {
@@ -37,8 +37,32 @@ const PAGE = {
 
 async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
   cookies.clear();
+  current = email;
   await ensureAccount(email);
   await createSession(email, role, jar);
+}
+
+/**
+ * An application as one was made before the user took 申请 off the job pages (10-20 11:0x): those stay, and read as
+ * before. The account is the one signed in.
+ */
+let current = "";
+async function applied(jobId: string, note = "") {
+  const job = (await getJob(jobId))!;
+  const row = await addApplication({
+    email: current,
+    jobId,
+    employerId: job.employerId,
+    note,
+    profile: parseApplicationProfile(PAGE)!,
+  });
+  if (row === "already") throw new Error("one application per job");
+  return row;
+}
+
+/** The signed-in job seeker's row for the job in 我的申请. */
+async function mine(jobId: string) {
+  return (await myApplicationViews())!.find((a) => a.jobId === jobId);
 }
 
 beforeEach(() => {
@@ -47,55 +71,28 @@ beforeEach(() => {
   cookies.clear();
 });
 
-describe("applying for a job (#84)", () => {
-  it("records one application per job with the note and the page, which the job seeker can withdraw", async () => {
-    await signedIn("apply.one@example.com");
-    expect(await myJobApplication("j3")).toBeNull();
-    const result = await applyForJob("j3", "  周末可以上班  ", PAGE);
-    expect(result).toMatchObject({
-      ok: true,
-      application: { jobId: "j3", note: "周末可以上班", status: "已申请，等雇主查看" },
-    });
-    expect(await applyForJob("j3", "", PAGE)).toMatchObject({ ok: false, reason: "already" });
-    expect(await myAppliedJobIds()).toEqual(["j3"]);
-    expect((await myApplicationViews())![0]).toMatchObject({ jobId: "j3", titleZh: "点心师傅", gone: false });
-
-    expect(await withdrawMyApplication("j3")).toBe(true);
-    expect(await myJobApplication("j3")).toBeNull();
-    expect(await applyForJob("j3", "", PAGE)).toMatchObject({ ok: true }); // can apply again after withdrawing
-  });
-
-  it("refuses signed out, as an employer, closed jobs, banned businesses, the own business, no name, a long note", async () => {
-    expect(await applyForJob("j1", "", PAGE)).toMatchObject({ ok: false, reason: "signed_out" });
+describe("我的申请 since 申请 went (#84, 10-20 11:0x)", () => {
+  it("still lists an application made before, with its note, and marks its job row", async () => {
     expect(await myAppliedJobIds()).toBeNull();
-
-    await openEmployerIdentity("apply.boss@example.com", "e1");
-    await signedIn("apply.boss@example.com", "employer");
-    expect(await applyForJob("j1", "", PAGE)).toMatchObject({ ok: false, reason: "employer_identity" });
-    await signedIn("apply.boss@example.com", "seeker");
-    expect(await applyForJob("j1", "", PAGE)).toMatchObject({
-      ok: false,
-      reason: "own_job",
-      error: "不能申请自己企业的职位",
+    await signedIn("apply.one@example.com");
+    expect(await myAppliedJobIds()).toEqual([]);
+    await applied("j3", "周末可以上班");
+    expect(await myAppliedJobIds()).toEqual(["j3"]);
+    expect(await mine("j3")).toMatchObject({
+      jobId: "j3",
+      source: "apply",
+      note: "周末可以上班",
+      status: "已申请，等雇主查看",
+      titleZh: "点心师傅",
+      gone: false,
     });
-
-    await signedIn("apply.two@example.com");
-    expect(await applyForJob("j2", "", { ...PAGE, name: " " })).toMatchObject({ ok: false, reason: "no_profile" });
-    expect(await applyForJob("j2", "好".repeat(201), PAGE)).toMatchObject({ ok: false, reason: "note_too_long" });
-    await updateJob("j2", { expiresAt: "2020-01-01T00:00:00.000Z" });
-    expect(await applyForJob("j2", "", PAGE)).toMatchObject({ ok: false, reason: "closed" });
-    await updateJob("j6", { status: "removed" });
-    expect(await applyForJob("j6", "", PAGE)).toMatchObject({ ok: false, reason: "closed" });
-    await banEmployer("e7");
-    expect(await applyForJob("j11", "", PAGE)).toMatchObject({ ok: false, reason: "banned" });
-    expect(await applyForJob("no-such-job", "", PAGE)).toMatchObject({ ok: false, reason: "closed" });
   });
 });
 
 describe("the employer's applicant list (#84)", () => {
   it("counts applications, lists them without contact details, marks them seen when shown, records 合适 / 不合适", async () => {
     await signedIn("apply.three@example.com");
-    await applyForJob("j4", "会做点心", PAGE);
+    await applied("j4", "会做点心");
 
     // Another business sees nothing of it.
     await openEmployerIdentity("apply.other@example.com", "e3");
@@ -116,7 +113,14 @@ describe("the employer's applicant list (#84)", () => {
     const first = await getMyJobApplicants("j4");
     expect(first!.applicants).toHaveLength(1);
     const [applicant] = first!.applicants;
-    expect(applicant).toMatchObject({ note: "会做点心", isNew: true, decision: null, profile: { name: "林晓" } });
+    expect(applicant).toMatchObject({
+      source: "apply",
+      name: "林晓",
+      note: "会做点心",
+      isNew: true,
+      decision: null,
+      profile: { name: "林晓" },
+    });
     expect(applicant.facts.map((f) => f.label)).toEqual(["可上班时间", "地区", "期望时薪", "语言", "经验"]);
     expect(JSON.stringify(first)).not.toMatch(/apply\.three|021 555|linxiao|lin\.private/);
     expect((await getMyApplicationCounts()).j4).toEqual({ total: 1, unseen: 1 }); // reading changes nothing
@@ -129,29 +133,16 @@ describe("the employer's applicant list (#84)", () => {
     expect(await decideMyApplicant(applicant.id, "unfit")).toBe(true);
     expect(await decideMyApplicant(applicant.id, "maybe")).toBe(false);
     await signedIn("apply.three@example.com");
-    expect((await myJobApplication("j4"))!.status).toBe("雇主已看过");
+    expect((await mine("j4"))!.status).toBe("雇主已看过");
 
     await signedIn("apply.e2@example.com", "employer");
     expect(await decideMyApplicant(applicant.id, "fit")).toBe(true);
     await signedIn("apply.three@example.com");
-    expect((await myJobApplication("j4"))!.status).toBe("雇主觉得合适");
+    expect((await mine("j4"))!.status).toBe("雇主觉得合适");
 
     // Not theirs: refused.
     await signedIn("apply.other@example.com", "employer");
     expect(await decideMyApplicant(applicant.id, "unfit")).toBe(false);
-  });
-});
-
-describe("the page an application carries (#104)", () => {
-  it("is the account's own page once it saved one, not what the browser sends", async () => {
-    await signedIn("apply.account@example.com");
-    await saveMyProfile({ name: "账号里的王芳", availability: "只有周末" });
-    expect(await applyForJob("j4", "", PAGE)).toMatchObject({ ok: true });
-
-    await openEmployerIdentity("apply.e2@example.com", "e2");
-    await signedIn("apply.e2@example.com", "employer");
-    const applicant = (await getMyJobApplicants("j4"))!.applicants.find((a) => a.profile.name === "账号里的王芳");
-    expect(applicant?.profile).toMatchObject({ name: "账号里的王芳", availability: "只有周末" });
   });
 });
 
@@ -164,7 +155,7 @@ describe("已录用和职位结束 (#105)", () => {
   it("tells the one hired, then everyone else the same words once the job ends, 不合适 included", async () => {
     for (const who of ["hired.one", "fit.two", "unfit.three"]) {
       await signedIn(`${who}@example.com`);
-      expect(await applyForJob("j8", "", PAGE)).toMatchObject({ ok: true });
+      await applied("j8");
     }
     await openEmployerIdentity("boss.e5@example.com", "e5");
     await signedIn("boss.e5@example.com", "employer");
@@ -202,7 +193,6 @@ describe("已录用和职位结束 (#105)", () => {
     for (const who of ["fit.two", "unfit.three"]) {
       await signedIn(`${who}@example.com`);
       expect((await myApplicationViews())![0]).toMatchObject({ status: "职位已结束", stage: "ended" });
-      expect((await myJobApplication("j8"))!.status).toBe("职位已结束");
       const notes = await outcomes();
       expect(notes).toHaveLength(1);
       expect(notes[0]).toMatchObject({ title: "「装修木工」已经招满", time: "今天", unread: true });
@@ -215,7 +205,7 @@ describe("已录用和职位结束 (#105)", () => {
 
   it("says 已结束 for a job taken down, from when it was taken down", async () => {
     await signedIn("taken.down@example.com");
-    expect(await applyForJob("j9", "", PAGE)).toMatchObject({ ok: true });
+    await applied("j9");
     expect(await outcomes()).toEqual([]);
     await updateJob("j9", { status: "removed" });
     await addModerationLog({ action: "take_down", jobId: "j9", moderator: "mod@example.com" });

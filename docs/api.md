@@ -154,27 +154,29 @@
 
 未登录点「收藏」会去 `/login?next=<原页面>?save=<职位编号>`，登录后回到原页面，由页面完成收藏并去掉 `save` 参数。
 
-## 申请职位 — `src/app/[lang]/jobs/[id]/apply-actions.ts`、`src/app/[lang]/employer/applicant-actions.ts`
+## 申请职位和聊过的人 — `src/app/[lang]/jobs/[id]/apply-actions.ts`、`src/app/[lang]/employer/applicant-actions.ts`
 
-**2026-10-20 用户定删掉职位页和职位块上的「申请」**：求职者这边只剩读（`myAppliedJobIds`、`myApplicationViews`）。申请和撤回（`applyForJob`、`withdrawMyApplication`、`myJobApplication`）挪到 `src/lib/applications-server.ts`，不再是 Server Function，只给浏览器测试的 `POST /api/dev/apply` 和单测用，等 B 把候选人列表改成「这个职位聊过的人」。
+**2026-10-20 用户定删掉职位页和职位块上的「申请」**：求职者这边只剩读（`myAppliedJobIds`、`myApplicationViews`）。**候选人改成「这个职位聊过的人」（ADR 0030，迁移 0030）**：`job_applications` 加 `source`（`apply` / `chat`），双方共享的对话里第一条消息发出时插一行 `chat`（`note`、`profile` 都是 `null`，建的时候就算看过）；申请和撤回的函数、`POST /api/dev/apply` 都删了。
 
 #84（PRD R-35）。存在 `job_applications`（迁移 0010）：账号 + 职位唯一，附言最多 200 字，`profile` 是申请时求职者主页的一份（`ApplicationProfile`：名字、一句话介绍、所在地、语言、可上班时间、介绍和简历要点，不含头像和联系方式；服务器用 `parseApplicationProfile` 重新检查）。账号取自会话；雇主只通过申请的随机编号操作，看不到求职者的邮箱。撤回就是删除。
 
-求职者（`MyApplication`：`{ jobId, appliedAt, note, status }`，`status` 是「已申请，等雇主查看」「雇主已看过」「雇主觉得合适」之一，「不合适」也显示「雇主已看过」）：
+求职者（`MyApplication`：`{ jobId, source, appliedAt, note, status }`，`status` 是「已申请，等雇主查看」「雇主已看过」「雇主觉得合适」之一，「不合适」也显示「雇主已看过」；`chat` 行没有附言，`status` 是「聊过」，标了合适是「雇主觉得合适」）：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `myAppliedJobIds()` | | 申请过的职位编号（职位块的「已申请」） | 未登录时 `null` |
+| `myAppliedJobIds()` | | 申请过的职位编号（职位块的「已申请」，不含只聊过的） | 未登录时 `null` |
 | `myApplicationViews()` | | `MyApplication` 加职位名、时薪、地区、企业名、`gone` 和 `stage`（#105：`open` 进行中，`ended` 已录用或职位已结束），新的在前（「收藏和进度」的「我的申请」）。职位结束后，没被录用的申请 `status` 是「职位已结束」，标没标「不合适」都一样 | 未登录时 `null` |
 
 雇主（只看自己企业的职位）：
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
-| `getMyApplicationCounts()` | | `{ [jobId]: { total, unseen } }`，没人申请的职位不列 | 没有雇主身份时 `{}` |
-| `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先申请的在前；每人 `{ id, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18），`isNew` 是还没看过的。只读，不改动 | 不是自己企业的职位时 `null` |
+| `getMyApplicationCounts()` | | `{ [jobId]: { total, unseen } }`，`total` 是聊过和申请的人，`unseen` 只数申请；没有候选人的职位不列 | 没有雇主身份时 `{}` |
+| `getMyJobApplicants(jobId)` | 职位编号 | `{ job, applicants }`，先来的在前；每人 `{ id, source, name, appliedAt, note, profile, facts, isNew, decision }`，`facts` 是雇主先看的五项（R-18），`isNew` 是还没看过的；`chat` 行的 `note`、`profile` 是 `null`、`facts` 是空的，`name` 是聊天里看到的名字（不知道时是空字符串）。只读，不改动 | 不是自己企业的职位时 `null` |
 | `markMyApplicantsSeen(jobId)` | 职位编号 | 列表显示出来后调用：这个职位的申请都标为看过，求职者看到「雇主已看过」 | 不是自己企业的职位时不改动 |
 | `decideMyApplicant(applicationId, decision)` | 申请编号；`"fit"`、`"unfit"`、`"hired"`（已录用，#105）或 `null`（取消） | `true` | 不是自己企业的申请或值不对时 `false` |
+| `getMyChatCandidate(conversationId)` | 雇主一侧的对话编号 `chat:<id>` | `{ decision }`（没标或还没人说话时 `null`），聊天职位条下的「合适」「已录用」用 | 不是自己企业的共享对话时 `undefined` |
+| `decideMyChatCandidate(conversationId, decision)` | 同上；值同 `decideMyApplicant` | `true`；还没有候选人行时先插一行 `chat` | 不是自己企业的共享对话或值不对时 `false` |
 
 雇主的「通知」（`myAlertNotifications`）每个申请一条（编号 `apply:<申请编号>`，雇主看过列表后算已读，也可以用 `markMyNotificationsRead` 标已读），点开到申请人列表；工作台「待办」按职位列出「N 个新申请」。雇主点「发起聊天」时 `changeMyChat` 收到 `{ type: "open", conversation: { kind: "applicant", jobId, applicationId } }`，服务器核对这份申请属于这个职位和这家企业后，打开和这位求职者共用的对话（#110 之前是企业自己记录里的 `apply:<申请编号>`），回答里的 `opened` 是 `chat:<对话编号>`。
 
@@ -262,7 +264,6 @@
 
 `POST /api/dev/job-closing`（`src/app/api/dev/job-closing/route.ts`，#88）：把已登录雇主自己的一个职位的截止时间改到 `daysFromNow` 天后（负数是多少天前），用来在开发和浏览器测试里看「将截止」、续期和重新发布。生产环境返回 404。请求体 `{ jobId, daysFromNow }`（±365 天内）；成功 200，返回改后的职位；401 `{ error: "需要雇主身份" }`；400 `{ error: "找不到这个职位" }`（包括别家的职位）或 `{ error: "天数不对" }`。
 
-`POST /api/dev/apply`（`src/app/api/dev/apply/route.ts`）：职位页没有「申请」以后，浏览器测试用它以已登录的求职者给职位造一份申请（演示账号带林晓的主页），请求体 `{ jobId, note? }`，回答 `applyForJob` 的结果。生产环境返回 404。
 `POST /api/dev/team-link-age`（`src/app/api/dev/team-link-age/route.ts`，#349）：把已登录雇主自己企业的一条邀请链接的生成时间往前挪 `days` 天，用来在浏览器测试里看过期的链接。生产环境返回 404。请求体 `{ token, days }`（1–365 的整数）；成功 200 `{ ok: true }`；401 `{ error: "需要雇主身份" }`；400 `{ error: "天数不对" }` 或 `{ error: "找不到这条链接" }`（包括别家的链接）。
 
 `POST /api/dev/chat-reply`（`src/app/api/dev/chat-reply/route.ts`）：演示对话里的对方不是真实账号，开发和浏览器测试用它让对方「已读」或「回复」。生产环境返回 404。
@@ -372,9 +373,8 @@
 | `/employer/jobs/[id]/copy` | 复制为新职位：用在招或已结束职位的内容新建一条，同一个表单，走 `publishJob`（#190） | 雇主身份 |
 | `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87）、邀请链接（#349） | 雇主身份 |
 | `/employer/team/join/[token]` | 打开邀请链接：哪家店邀请；没登录时「登录后加入」，登录后填称呼加入为成员；不能用时说明原因（#349，ADR 0028）；不收录、不带 Referer | — |
-| `/employer/jobs/[id]/applicants` | 申请人列表：资料要点、附言、合适 / 不合适、发起聊天（#84） | 雇主身份 |
+| `/employer/jobs/[id]/applicants` | 聊过这个职位的人（ADR 0030）：申请过的带资料要点和附言；合适 / 不合适 / 已录用、聊天、约面试（#84） | 雇主身份 |
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
-| `POST /api/dev/apply` | 浏览器测试造一份申请（见上） | 只在开发环境；登录 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
 | `GET /api/report-evidence/[id]` | 职位举报附的一张截图（ADR 0027）：图片本身，`nosniff`、`sandbox`、不缓存；每次交出先记进查看记录（ADR 0026）。不是审核员、编号不是截图都回 404 | `ADMIN_ENABLED=1`，审核员 |

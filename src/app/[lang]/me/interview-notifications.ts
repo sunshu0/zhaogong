@@ -3,6 +3,7 @@
 // (messages/server-notifications.ts, me/interview-actions.ts). Server only.
 import { getAccountEmployer, getEmployer, getJob } from "@/lib/data";
 import { interviewsOfBusiness, interviewsOfSeeker, interviewView } from "@/db/interviews";
+import { seekerJobKey, seekerNamesOfBusiness } from "@/db/conversations";
 import { postedAgo } from "@/components/seeker/format";
 import {
   formatSlot,
@@ -40,16 +41,21 @@ async function seekerItems(email: string, lang: Lang): Promise<Item[]> {
   );
 }
 
-/** The business's interviews; `who` is the applicant's name. */
+/** The business's interviews; `who` is the candidate's name (from the chat for one who did not apply, ADR 0030). */
 async function employerItems(email: string, lang: Lang): Promise<Item[]> {
   const employer = await getAccountEmployer(email);
   if (!employer) return [];
+  const rows = await interviewsOfBusiness(employer.id);
+  const names = rows.some((r) => !r.application.profile) ? await seekerNamesOfBusiness(employer.id) : undefined;
   return Promise.all(
-    (await interviewsOfBusiness(employer.id)).map(async ({ interview, application }) => ({
+    rows.map(async ({ interview, application }) => ({
       interview: interviewView(interview),
       id: interview.id,
       jobId: application.jobId,
-      who: application.profile.name,
+      who:
+        application.profile?.name ??
+        (names?.get(seekerJobKey(application.seekerEmail, application.jobId)) ||
+          pick(seekerMeMessages, lang).notices.someone),
       job: (await getJob(application.jobId))?.titleZh ?? pick(seekerMeMessages, lang).notices.job,
     })),
   );

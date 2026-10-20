@@ -4,6 +4,8 @@ import { setAuthStoreForTests } from "@/lib/auth/store";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { notificationHref } from "@/components/seeker/hub-state";
 import { ensureAccount, openEmployerIdentity } from "@/lib/data";
+import { addApplication } from "@/db/job-applications";
+import { parseApplicationProfile } from "@/components/seeker/applications";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -15,7 +17,6 @@ const jar: CookieJar = {
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
 const { myApplicationViews } = await import("@/app/[lang]/jobs/[id]/apply-actions");
-const { applyForJob, withdrawMyApplication } = await import("@/lib/applications-server");
 const { getMyJobApplicants } = await import("@/app/[lang]/employer/applicant-actions");
 const { cancelMyApplicantInterview, inviteMyApplicant } = await import("@/app/[lang]/employer/interview-actions");
 const { answerMyInterview, myInterviewTodos } = await import("@/app/[lang]/me/interview-actions");
@@ -43,15 +44,25 @@ async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
   await createSession(email, role, jar);
 }
 
-/** A job seeker applies for j1 (川味小馆, e1); returns the application id as the business sees it. */
+/**
+ * A job seeker applied for j1 (川味小馆, e1), as before 申请 went (10-20); returns the application id as the business
+ * sees it.
+ */
 async function applied(seeker: string, boss = BOSS) {
   await signedIn(seeker);
-  expect(await applyForJob("j1", "", PAGE)).toMatchObject({ ok: true });
+  const row = await addApplication({
+    email: seeker,
+    jobId: "j1",
+    employerId: "e1",
+    note: "",
+    profile: parseApplicationProfile(PAGE)!,
+  });
+  expect(row).not.toBe("already");
   await ensureAccount(boss);
   await openEmployerIdentity(boss, "e1");
   await signedIn(boss, "employer");
   const list = await getMyJobApplicants("j1");
-  return list!.applicants.find((a) => a.profile.name === "林晓" && !a.interview)!.id;
+  return list!.applicants.find((a) => a.name === "林晓" && !a.interview)!.id;
 }
 
 beforeEach(() => {
@@ -143,10 +154,5 @@ describe("约面试 (#103)", () => {
       ok: false,
       error: "找不到这个面试邀约",
     });
-    await signedIn("interview.other@example.com");
-    expect(await withdrawMyApplication("j1")).toBe(true);
-    expect(await answerMyInterview("j1", { kind: "confirm", slot: SOON })).toMatchObject({ ok: false });
-    await signedIn(BOSS, "employer");
-    expect((await getMyJobApplicants("j1"))!.applicants.map((a) => a.id)).not.toContain(id);
   });
 });

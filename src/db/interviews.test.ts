@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addApplication, withdrawApplication } from "@/db/job-applications";
+import { addApplication } from "@/db/job-applications";
 import { answerInterview, cancelInterview, interviewsFor, inviteToInterview } from "@/db/interviews";
 import { ensureAccount } from "@/lib/data";
 import type { ApplicationProfile } from "@/components/seeker/applications";
@@ -69,7 +69,7 @@ describe("interviews (#103)", () => {
     expect((await interviewsFor([app.id])).get(app.id)?.status).toBe("confirmed");
   });
 
-  it("the business cancels; the job seeker's withdrawal takes the interview with the application", async () => {
+  it("the business cancels", async () => {
     const app = await application("interview.cancel@example.com");
     await inviteToInterview("e1", app.id, INVITE, t0);
     expect(await cancelInterview("e2", app.id, later(1))).toBeUndefined();
@@ -77,7 +77,5 @@ describe("interviews (#103)", () => {
       status: "cancelled",
       invitedAt: later(1).toISOString(),
     });
-    await withdrawApplication("interview.cancel@example.com", "j1");
-    expect((await interviewsFor([app.id])).size).toBe(0);
   });
 });

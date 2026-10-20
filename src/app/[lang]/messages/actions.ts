@@ -348,12 +348,13 @@ async function openFor(
     return { record, opened: sharedConversationId({ ...row, jobId: job.id }, "employer") };
   };
 
-  // #84: someone who applied for one of the business's jobs; their name is the one on the page they applied with.
+  // #84: one of the job's candidates (ADR 0030); the name is the one on the page they applied with, if they did (a
+  // candidate from a chat has their conversation already, with its name).
   if (target.kind === "applicant") {
     if (typeof target.applicationId !== "string") return { record };
     const application = await applicationOf(job.employerId, target.applicationId);
     if (!application || application.jobId !== job.id) return { record };
-    return withAccount(application.seekerEmail, application.profile.name);
+    return withAccount(application.seekerEmail, application.profile?.name ?? "");
   }
 
   if (target.kind === "candidate") {

@@ -17,7 +17,7 @@ import { seekerMeMessages } from "@/i18n/messages/seeker-me";
 import { contentLang } from "@/i18n/lang";
 
 /**
- * 我的申请 on 收藏和进度 (#84): the jobs the account applied for, newest first, with how far each got (已申请, 雇主已看过,
+ * 我的申请 on 收藏和进度 (#84): the jobs the account applied for or chatted about (ADR 0030), newest first, with how far each got (已申请, 雇主已看过,
  * 雇主觉得合适), and the employer's interview invitation to answer (#103). In two groups (#105): 进行中, and 已结束 once
  * hired or once the job ended. Nothing while there are none. Read only since the user took 申请 off the job pages
  * (10-20 11:0x): the records stay to look at, and an interview invitation can still be answered.
@@ -134,7 +134,7 @@ function ApplicationCard({
             <span lang={contentLang(a.employerName)}>{a.employerName}</span> ·{" "}
           </>
         )}
-        {t.appliedOn(formatJobDate(a.appliedAt, a.country, lang))}
+        {(a.source === "chat" ? t.chattedOn : t.appliedOn)(formatJobDate(a.appliedAt, a.country, lang))}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <span

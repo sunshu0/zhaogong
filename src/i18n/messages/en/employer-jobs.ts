@@ -81,9 +81,10 @@ export const employerJobsEn: Messages<(typeof employerJobsMessages)["zh"]> = {
     noChats: "Nobody has chatted yet",
     contactViews: (n) => (n === 1 ? "Contact details shown once" : `Contact details shown ${n} times`),
     contactPrivate: "Not public · swapped in chat",
-    noApplicants: "0 applicants",
-    applicants: (n) => (n === 1 ? "1 application" : `${n} applications`),
-    applicantsWithNew: (total, unseen) => `${total === 1 ? "1 application" : `${total} applications`} · ${unseen} new`,
+    noApplicants: "People who chatted: 0",
+    applicants: (n) => `People who chatted: ${n}`,
+    applicantsWithNew: (total, unseen) =>
+      `People who chatted: ${total} · ${unseen} new ${unseen === 1 ? "application" : "applications"}`,
   },
 
   status: {
@@ -159,10 +160,10 @@ export const employerJobsEn: Messages<(typeof employerJobsMessages)["zh"]> = {
     notFound: "This job doesn't exist, or it doesn't belong to the business you're signed in as.",
     backToManage: "Back to my jobs",
     totals: { views: "Views", chats: "Chats started", contactViews: "Contact details shown" },
-    funnelTitle: "From application to hire",
+    funnelTitle: "From chat to hire",
     funnelDescription:
-      "Since the job was posted. Interviews don't count cancelled ones; hires are the applicants you marked as hired.",
-    funnel: { applied: "Applied", interviewed: "Interviews", hired: "Hired" },
+      "Since the job was posted. Chatted includes those who applied before; interviews don't count cancelled ones; hires are the people you marked as hired.",
+    funnel: { applied: "Chatted", interviewed: "Interviews", hired: "Hired" },
     byDayTitle: "Day by day",
     byDayDescription:
       "Views: one browser counts once a day. Chats started: a job seeker's first message about this job.",

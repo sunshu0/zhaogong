@@ -79,7 +79,7 @@ export function cardActions(
   return { main: seekersCanOpen ? { label: t.view, href: `/jobs/${job.id}` } : edit, more };
 }
 
-/** 「3 个申请 · 1 个新」 on a job card; 「申请人 0」 before anyone applied. */
+/** 「聊过的人 3 · 1 个新申请」 on a job card (ADR 0030); 「聊过的人 0」 before anyone chatted or applied. */
 export function applicantsLabelZh(count?: ApplicationCount, lang: Lang = DEFAULT_LANG): string {
   const t = pick(employerJobsMessages, lang).numbers;
   if (!count?.total) return t.noApplicants;

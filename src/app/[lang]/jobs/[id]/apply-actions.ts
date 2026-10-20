@@ -1,8 +1,9 @@
 "use server";
 
 // 我的申请, the job seeker's side (#84, PRD R-35): read only since the user took 申请 off the job pages (10-20
-// 11:0x); chatting is how a job seeker gets in touch now. The account is the one in this browser's session cookie.
-// Applying and withdrawing stay in src/lib/applications-server.ts for the browser tests' setup (/api/dev/apply).
+// 11:0x); chatting is how a job seeker gets in touch now, and a job they chatted about is listed too (ADR 0030), so
+// its interview can be answered and its notices lead somewhere. The account is the one in this browser's session
+// cookie.
 import { regionById } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { getEmployer, getJob } from "@/lib/data";
@@ -17,14 +18,14 @@ import { view, type MyApplicationView } from "@/lib/applications-server";
 
 export type { MyApplication, MyApplicationView } from "@/lib/applications-server";
 
-/** Ids of the jobs the account applied for, for the job rows; null when signed out. */
+/** Ids of the jobs the account applied for, for the job rows (not those it only chatted about); null when signed out. */
 export async function myAppliedJobIds(): Promise<string[] | null> {
   const session = await getCurrentSession();
   if (!session) return null;
-  return (await myApplications(session.email)).map((row) => row.jobId);
+  return (await myApplications(session.email)).filter((row) => row.source === "apply").map((row) => row.jobId);
 }
 
-/** The account's applications with their jobs, newest first; null when signed out. */
+/** The account's applications and the jobs it chatted about, with their jobs, newest first; null when signed out. */
 export async function myApplicationViews(): Promise<MyApplicationView[] | null> {
   const session = await getCurrentSession();
   if (!session) return null;

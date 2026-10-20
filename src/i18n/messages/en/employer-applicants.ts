@@ -6,29 +6,38 @@ import type { employerApplicantsMessages } from "@/i18n/messages/employer-applic
 
 export const employerApplicantsEn: Messages<(typeof employerApplicantsMessages)["zh"]> = {
   applicantsPage: {
-    metaTitle: "Applicants",
+    metaTitle: "People who chatted",
   },
 
   jobApplicants: {
     notFound: "We can't find this job, or it doesn't belong to the business you're signed in as.",
     backToJobs: "Back to my jobs",
     back: "← My jobs",
-    title: "Applicants",
-    jobSummaryCount: (n) => ` · ${n === 1 ? "1 application" : `${n} applications`}`,
+    title: "People who chatted about this job",
+    jobSummaryCount: (n) => ` · ${n === 1 ? "1 person" : `${n} people`}`,
     privacyNote:
-      "An application has no contact details. If you mark someone “Not a fit”, all they see is “Seen by the employer”. If you mark someone “Hired”, they are told. When the job ends, everyone you did not hire sees “This job has ended”.",
+      "No contact details here: ask for them in the chat. If you mark someone “Not a fit”, all they see is “Seen by the employer”. If you mark someone “Hired”, they are told. When the job ends, everyone you did not hire sees “This job has ended”.",
     saveFailed: "That didn't save. Try again.",
     marked: (decision) => `Marked “${decision}”`,
     markCleared: "Mark removed",
-    empty: "Nobody has applied for this job yet.",
+    empty: "Nobody has chatted about this job yet. Once you or a job seeker write in a chat about it, they show here.",
     emptyInFilter: "Nobody in this group yet.",
-    listLabel: "List of applicants",
-    cardLabel: (name) => `Applicant ${name}`,
+    listLabel: "People who chatted",
+    cardLabel: (name) => `Candidate ${name}`,
+    someone: "Job seeker",
     isNew: "New",
     appliedAt: (when) => `Applied ${when}`,
+    chattedAt: (when) => `Chat started ${when}`,
+    fromChat: "No profile sent: ask in the chat",
     noteLabel: "Their message: ",
     startChat: "Start a chat",
+    openChat: "Open the chat",
     markGroupLabel: (name) => `Mark ${name}`,
+  },
+
+  chatMarks: {
+    label: "Mark this job seeker",
+    all: "Everyone who chatted about this job",
   },
 
   applicantFilter: {

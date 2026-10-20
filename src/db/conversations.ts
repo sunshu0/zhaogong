@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
+import { addChatCandidate } from "@/db/job-applications";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { SharedConversation, SharedExchange, Side } from "@/lib/chat-server/shared-view";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
@@ -82,6 +83,29 @@ export async function listSharedConversations(reader: SharedReader): Promise<Sha
     };
   });
 }
+
+/**
+ * The name the business sees for each job seeker it has a conversation with, as listSharedConversations gives it
+ * (their page's now, else the one they were found with), by seekerJobKey; empty when neither is known. For the job's
+ * candidates who came from a chat (ADR 0030), whose row has no page.
+ */
+export async function seekerNamesOfBusiness(employerId: string): Promise<Map<string, string>> {
+  const db = await database();
+  const rows = await db
+    .select({ conversation: t.conversations, page: t.seekerProfiles.profile })
+    .from(t.conversations)
+    .leftJoin(t.seekerProfiles, eq(t.seekerProfiles.email, t.conversations.seekerEmail))
+    .where(eq(t.conversations.employerId, employerId));
+  return new Map(
+    rows.map(({ conversation: c, page }) => [
+      seekerJobKey(c.seekerEmail, c.jobId ?? ""),
+      (page?.name?.trim() || c.seekerName || "").slice(0, NAME_MAX),
+    ]),
+  );
+}
+
+/** An email has no spaces. */
+export const seekerJobKey = (seekerEmail: string, jobId: string) => `${normalizeEmail(seekerEmail)} ${jobId}`;
 
 /** The reader's conversation an id from the browser names (see parseSharedId); undefined when it is not theirs. */
 export async function findSharedConversation(
@@ -167,7 +191,10 @@ export async function markSharedRead(conversationId: string, side: Side, now = n
     .where(eq(t.conversations.id, conversationId));
 }
 
-/** A message from one side; whoever sends has read everything before it. */
+/**
+ * A message from one side; whoever sends has read everything before it. The first one makes the job seeker one of the
+ * job's candidates (ADR 0030).
+ */
 export async function addSharedMessage(
   conversationId: string,
   side: Side,
@@ -179,6 +206,8 @@ export async function addSharedMessage(
   const at = now.toISOString();
   await db.transaction(async (tx) => {
     await tx.insert(t.messages).values({ conversationId, from: side, text, sentAt: at, byName: byName ?? null });
+    const [conversation] = await tx.select().from(t.conversations).where(eq(t.conversations.id, conversationId));
+    if (conversation) await addChatCandidate(tx, conversation, at);
     await tx
       .update(t.conversations)
       .set({ updatedAt: at, [readColumn(side)]: at })

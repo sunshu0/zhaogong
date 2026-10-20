@@ -53,9 +53,10 @@ const appliedAtOptions = (lang: Lang): Intl.DateTimeFormatOptions => ({
 const isMissingFact = (value: string, lang: Lang) => value === pick(candidateMatchingMessages, lang).facts.missing;
 
 /**
- * 申请人 (#84, R-35): who applied for one of the business's jobs, oldest first, each with the five facts, the note
- * and 合适 / 不合适 / 已录用 (#105), a chat with them, and 约面试 (#103). Once shown, everyone in it counts as seen. No
- * contact details: those follow the job's two rules (ADR 0002). Pills above the list show one kind at a time (#192).
+ * 聊过这个职位的人 (ADR 0030; 申请人 before, #84, R-35): who chatted about one of the business's jobs or applied for
+ * it, oldest first, each with 合适 / 不合适 / 已录用 (#105), a chat with them, and 约面试 (#103); those who applied
+ * also with the five facts and the note. Once shown, everyone in it counts as seen. No contact details: those follow
+ * the job's two rules (ADR 0002). Pills above the list show one kind at a time (#192).
  */
 export function JobApplicants({ jobId }: { jobId: string }) {
   return (
@@ -266,36 +267,43 @@ function ApplicantCard({
   const router = useRouter();
   const { openApplicantChat } = useChat();
   const [opening, setOpening] = useState(false);
+  const name = a.name || t.someone;
+  const when = formatDate(a.appliedAt, lang, appliedAtOptions(lang));
   return (
-    <article aria-label={t.cardLabel(a.profile.name)} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
+    <article aria-label={t.cardLabel(name)} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
-            <span lang={contentLang(a.profile.name)}>{a.profile.name}</span>
+            <span lang={contentLang(name)}>{name}</span>
             {a.isNew && <Tag kind="urgent">{t.isNew}</Tag>}
             {a.decision && (
               <Tag kind={a.decision === "unfit" ? "neutral" : "perk"}>{decisionLabel(a.decision, lang)}</Tag>
             )}
           </h2>
-          {a.profile.headline && (
+          {a.profile?.headline && (
             <p lang={contentLang(a.profile.headline)} className="text-body text-muted">
               {a.profile.headline}
             </p>
           )}
         </div>
-        <p className="text-meta text-muted">{t.appliedAt(formatDate(a.appliedAt, lang, appliedAtOptions(lang)))}</p>
+        <p className="text-meta text-muted">{a.source === "chat" ? t.chattedAt(when) : t.appliedAt(when)}</p>
       </div>
 
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-body">
-        {a.facts.map((f) => (
-          <div key={f.label} className="contents">
-            <dt className="text-muted">{f.label}</dt>
-            <dd lang={contentLang(f.value)} className={isMissingFact(f.value, lang) ? "text-muted" : ""}>
-              {f.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
+      {/* ADR 0030: someone from a chat handed over no page here (ADR 0002). */}
+      {a.facts.length ? (
+        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-body">
+          {a.facts.map((f) => (
+            <div key={f.label} className="contents">
+              <dt className="text-muted">{f.label}</dt>
+              <dd lang={contentLang(f.value)} className={isMissingFact(f.value, lang) ? "text-muted" : ""}>
+                {f.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="mt-2 text-body text-muted">{t.fromChat}</p>
+      )}
       {a.note && (
         <p className="mt-3 rounded-control bg-background px-3 py-2 text-body">
           {t.noteLabel}
@@ -316,9 +324,9 @@ function ApplicantCard({
             else setOpening(false);
           }}
         >
-          {t.startChat}
+          {a.source === "chat" ? t.openChat : t.startChat}
         </button>
-        <div role="group" aria-label={t.markGroupLabel(a.profile.name)} className="flex gap-2">
+        <div role="group" aria-label={t.markGroupLabel(name)} className="flex gap-2">
           {(["fit", "unfit", "hired"] as const).map((d, i) => (
             <button
               key={d}
@@ -335,7 +343,7 @@ function ApplicantCard({
           ))}
         </div>
       </div>
-      <InterviewInvite applicationId={a.id} name={a.profile.name} interview={a.interview} onChange={onInterview} />
+      <InterviewInvite applicationId={a.id} name={name} interview={a.interview} onChange={onInterview} />
     </article>
   );
 }

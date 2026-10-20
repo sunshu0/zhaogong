@@ -95,9 +95,9 @@ describe("cardActions", () => {
 
 describe("applicantsLabelZh (#84)", () => {
   it("counts applications and says how many are new", () => {
-    expect(applicantsLabelZh(undefined)).toBe("申请人 0");
-    expect(applicantsLabelZh({ total: 0, unseen: 0 })).toBe("申请人 0");
-    expect(applicantsLabelZh({ total: 3, unseen: 1 })).toBe("3 个申请 · 1 个新");
-    expect(applicantsLabelZh({ total: 2, unseen: 0 })).toBe("2 个申请");
+    expect(applicantsLabelZh(undefined)).toBe("聊过的人 0");
+    expect(applicantsLabelZh({ total: 0, unseen: 0 })).toBe("聊过的人 0");
+    expect(applicantsLabelZh({ total: 3, unseen: 1 })).toBe("聊过的人 3 · 1 个新申请");
+    expect(applicantsLabelZh({ total: 2, unseen: 0 })).toBe("聊过的人 2");
   });
 });

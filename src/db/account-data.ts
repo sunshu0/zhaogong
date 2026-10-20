@@ -64,11 +64,15 @@ export interface ServerAccountData {
   savedJobs: { jobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
   /** Saved external jobs of 实习 and 专业职位 (#131). */
   savedExternalJobs: { externalJobId: string; savedAt: string; stage: string | null; stageSetAt: string | null }[];
-  /** Jobs this account applied for (#84), with the note and the page sent, and what the employer did. */
+  /**
+   * Jobs this account applied for (#84), with the note and the page sent, or chatted about ('chat', no note or page,
+   * ADR 0030), and what the employer did.
+   */
   applications: {
     jobId: string;
+    source: string;
     appliedAt: string;
-    note: string;
+    note: string | null;
     profile: unknown;
     seenAt: string | null;
     decision: string | null;
@@ -298,6 +302,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     })),
     applications: applications.map((a) => ({
       jobId: a.jobId,
+      source: a.source,
       appliedAt: a.appliedAt,
       note: a.note,
       profile: a.profile,
@@ -416,7 +421,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
     await tx.delete(t.savedExternalJobs).where(eq(t.savedExternalJobs.email, address));
     // Applications are the person's page and note: they go, and the employers' lists lose them (#84), with the
-    // interviews on them (#103).
+    // interviews on them (#103); so do the rows of jobs they chatted about (ADR 0030).
     const applicationIds = (
       await tx
         .select({ id: t.jobApplications.id })

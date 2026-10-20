@@ -46,6 +46,8 @@ const seekerMeZh = {
     groupLabel: (group: string) => `${group}的申请`,
     gone: "已下架",
     appliedOn: (date: string) => `${date}申请`,
+    /** A job they chatted about and did not apply for (ADR 0030). */
+    chattedOn: (date: string) => `${date}开始聊`,
     note: (note: string) => `附言：${note}`,
     loadFailed: "网络有问题，申请记录暂时打不开。",
     noteTooLong: (max: number) => `附言最多 ${max} 字`,
@@ -56,6 +58,7 @@ const seekerMeZh = {
       fit: "雇主觉得合适",
       seen: "雇主已看过",
       waiting: "已申请，等雇主查看",
+      chatted: "聊过",
     },
     // What the employer picks (DECISION_LABELS).
     decision: {
@@ -214,6 +217,8 @@ const seekerMeZh = {
   // app/me/*-notifications.ts: the notices the job seeker gets. 「job」 is the job's title as written.
   notices: {
     job: "职位",
+    /** A candidate from a chat whose name the business does not know (ADR 0030). */
+    someone: "求职者",
     thisJob: "这个职位",
     /** The business and the job, as the job seeker's interview notices name them. */
     whoJob: (business: string, job: string) => `${business}「${job}」`,

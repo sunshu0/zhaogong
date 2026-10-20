@@ -161,6 +161,7 @@ describe("exportAccountData (#54)", () => {
     expect(data?.applications).toEqual([
       {
         jobId: "j1",
+        source: "apply",
         appliedAt: expect.any(String),
         note: "周末可以",
         profile: APPLICATION_PAGE,

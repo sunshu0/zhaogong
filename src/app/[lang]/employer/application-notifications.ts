@@ -25,7 +25,7 @@ export async function myApplicationNotifications(
       return {
         id: applicationNotificationId(row.id),
         type: t.type,
-        title: t.applied(row.profile.name, job?.titleZh ?? t.yourJob),
+        title: t.applied(row.profile?.name ?? "", job?.titleZh ?? t.yourJob),
         detail: row.note ? t.note(row.note) : t.noNote,
         time: postedAgo(row.appliedAt, now, lang),
         unread: !row.seenAt,

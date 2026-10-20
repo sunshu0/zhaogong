@@ -167,6 +167,19 @@ export async function cardMenuItem(card: Locator, name: string): Promise<Locator
  * Moves a job's closing date, so a test sees a job close soon or long ago without waiting for it (#69, #88). Goes
  * through the dev server (POST /api/dev/job-closing) as the employer signed in on `page`, whose job it must be.
  */
+/**
+ * One of the job's 聊过的人 (ADR 0030), on its list. The message that put them there may still be on its way to the
+ * server, so the list is read again until the card shows.
+ */
+export async function candidateCard(page: Page, jobId: string, name = "求职者"): Promise<Locator> {
+  const card = page.getByRole("article", { name: `候选人 ${name}` });
+  await expect(async () => {
+    await page.goto(`/employer/jobs/${jobId}/applicants`);
+    await expect(card).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 30_000 });
+  return card;
+}
+
 export async function setJobClosing(page: Page, jobId: string, daysFromNow: number) {
   const response = await page.request.post("/api/dev/job-closing", { data: { jobId, daysFromNow } });
   expect(response.status()).toBe(200);

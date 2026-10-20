@@ -86,6 +86,6 @@ test("复制为新职位 starts a new job from a live one; both are listed (#190
 
   await page.goto("/employer/jobs");
   const copy = page.getByRole("article").filter({ has: page.getByRole("heading", { name: copyTitle }) });
-  await expect(copy).toContainText("申请人 0");
+  await expect(copy).toContainText("聊过的人 0");
   await expect(card).toBeVisible();
 });

@@ -221,7 +221,7 @@ function JobSummary({
         <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
           {t.job.last14Days}
         </Link>
-        {/* #84: who applied; the list marks them seen. */}
+        {/* #84, ADR 0030: who chatted or applied; the list marks them seen. */}
         <Link href={`/employer/jobs/${job.id}/applicants`} className="text-brand underline-offset-4 hover:underline">
           <Figures>{applicantsLabelZh(applications, lang)}</Figures>
         </Link>

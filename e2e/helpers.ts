@@ -16,14 +16,17 @@ export function freshEmail(tag = "e2e.seeker") {
 }
 
 /**
- * An application for the job from the page's signed-in job seeker, through /api/dev/apply: the job pages have no
- * 申请 since the user took it off (10-20 11:0x), but 申请人, interviews and 已录用 still read applications. A demo
- * account applies with 林晓's page (#125).
+ * The page's signed-in job seeker writes to the business from the job's page (立即沟通), which makes them one of the
+ * job's 聊过的人 (ADR 0030; 申请 went 10-20 11:0x). Ends in the conversation. The business sees them as 「求职者」
+ * until they save a page on their account.
  */
-export async function applyForTest(page: Page, jobId: string, note = ""): Promise<void> {
-  const answer = await page.request.post("/api/dev/apply", { data: { jobId, note } });
-  expect(answer.ok()).toBe(true);
-  expect(await answer.json()).toMatchObject({ ok: true });
+export async function chatAboutJob(page: Page, jobId: string, text = "你好，这个职位还招人吗？"): Promise<void> {
+  await page.goto(`/jobs/${jobId}`);
+  await page.getByRole("main").getByRole("button", { name: "立即沟通", exact: true }).click();
+  await expect(page).toHaveURL(/\/messages\?conversation=employer%3A/);
+  await page.getByLabel("输入消息").fill(text);
+  await page.getByRole("button", { name: "发送", exact: true }).click();
+  await expect(page.getByRole("log", { name: "消息记录" })).toContainText(text);
 }
 
 /** Signs in through /login like a user would: an email, then the code it was sent; ends on `next`. */

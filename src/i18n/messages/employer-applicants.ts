@@ -8,7 +8,7 @@ import type { Dictionary } from "@/i18n/messages";
 const employerApplicantsZh = {
   /** src/app/[lang]/employer/jobs/[id]/applicants/page.tsx */
   applicantsPage: {
-    metaTitle: "申请人",
+    metaTitle: "聊过的人",
   },
 
   /** src/components/employer/JobApplicants.tsx */
@@ -16,24 +16,37 @@ const employerApplicantsZh = {
     notFound: "找不到这个职位，或者它不属于你登录的店铺。",
     backToJobs: "回到职位管理",
     back: "← 职位管理",
-    title: "申请人",
+    title: "聊过这个职位的人",
     /** After the job's title, which is marked as the employer's own words. */
-    jobSummaryCount: (n: number) => ` · ${n} 个申请`,
+    jobSummaryCount: (n: number) => ` · ${n} 人`,
     privacyNote:
-      "申请里没有对方的联系方式。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。",
+      "这里没有对方的联系方式，要交换请在聊天里提。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。",
     saveFailed: "没有保存，请再试一次。",
     marked: (decision: string) => `已标记「${decision}」`,
     markCleared: "已取消标记",
-    empty: "还没有人申请这个职位。",
+    empty: "还没有人聊过这个职位。你或求职者在聊天里说了话，对方就会出现在这里。",
     emptyInFilter: "这一类还没有人。",
-    listLabel: "申请人列表",
-    cardLabel: (name: string) => `申请人 ${name}`,
+    listLabel: "聊过的人",
+    cardLabel: (name: string) => `候选人 ${name}`,
+    /** The name of someone from a chat whose name the business does not know. */
+    someone: "求职者",
     isNew: "新",
     appliedAt: (when: string) => `${when} 申请`,
+    /** A candidate from a chat (ADR 0030): when the first message was sent. */
+    chattedAt: (when: string) => `${when} 开始聊`,
+    /** On a candidate from a chat, who has no page or note here. */
+    fromChat: "没有发主页，资料在聊天里问",
     /** Before the applicant's own note, which is marked as theirs. */
     noteLabel: "附言：",
     startChat: "发起聊天",
+    openChat: "打开聊天",
     markGroupLabel: (name: string) => `标记 ${name}`,
+  },
+
+  /** src/components/employer/ChatCandidateMarks.tsx: 合适 and 已录用 in a chat (ADR 0030) */
+  chatMarks: {
+    label: "标记这位求职者",
+    all: "这个职位聊过的人",
   },
 
   /** src/components/employer/applicant-filter.ts (合适 / 不合适 / 已录用 come from DECISION_LABELS) */

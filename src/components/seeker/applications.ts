@@ -1,6 +1,6 @@
 // 一键申请 (#84, PRD R-35): what an application holds and how each side sees its state. Shared by the browser and
 // the server; the server parses everything a browser sends. The job pages have no 申请 since 10-20 (the user):
-// applications made before stay readable, and the browser tests make them through /api/dev/apply.
+// applications made before stay readable, and a job's candidates now come from its chats (ADR 0030).
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
@@ -34,6 +34,9 @@ export type ApplicationProfile = {
  */
 export type ApplicationDecision = "fit" | "unfit" | "hired";
 export const DECISION_LABELS: Record<ApplicationDecision, string> = { fit: "合适", unfit: "不合适", hired: "已录用" };
+
+/** How a job seeker became one of a job's candidates (ADR 0030): they applied, or one side wrote about the job. */
+export type ApplicationSource = "apply" | "chat";
 
 /** The decision's word in the page's language (Round 20); DECISION_LABELS is the Chinese. */
 export function decisionLabel(decision: ApplicationDecision, lang: Lang = DEFAULT_LANG): string {
@@ -93,7 +96,7 @@ export function applicantCandidate(id: string, profile: ApplicationProfile): Can
  * the job has ended (`ended`, #105), everyone not hired sees 「职位已结束」, whatever the employer marked.
  */
 export function seekerStatus(
-  application: { seenAt?: string | null; decision?: ApplicationDecision | null },
+  application: { seenAt?: string | null; decision?: ApplicationDecision | null; source?: ApplicationSource },
   ended = false,
   lang: Lang = DEFAULT_LANG,
 ): string {
@@ -101,6 +104,8 @@ export function seekerStatus(
   if (application.decision === "hired") return t.hired;
   if (ended) return t.ended;
   if (application.decision === "fit") return t.fit;
+  // A job they chatted about (ADR 0030): nothing to wait for.
+  if (application.source === "chat") return t.chatted;
   if (application.seenAt || application.decision === "unfit") return t.seen;
   return t.waiting;
 }

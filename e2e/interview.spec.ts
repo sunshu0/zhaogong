@@ -1,10 +1,10 @@
-// 约面试 (#103): the employer offers any times (or 电话联系后再定) from the applicant list; the job seeker confirms
+// 约面试 (#103): the employer offers any times (or 电话联系后再定) from 聊过这个职位的人 (ADR 0030); the job seeker confirms
 // one, says what suits, or declines, from 我的申请; each side hears of the other in 通知 and 待办; a confirmed time
 // downloads as a calendar file.
 import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { applyForTest, chooseOption, freshEmail, signIn } from "./helpers";
-import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { chatAboutJob, chooseOption, freshEmail, signIn } from "./helpers";
+import { candidateCard, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { instantToAuckland } from "../src/components/seeker/auckland-time";
 
 /** An Auckland wall-clock time `days` from now at hh:mm, as a datetime-local field takes it. */
@@ -13,17 +13,18 @@ function ahead(days: number, hour: number, minute = 0) {
   return { local: `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` };
 }
 
-/** The employer publishes a job and a job seeker, in their own browser, applies for it. */
+/**
+ * The employer publishes a job and a job seeker, in their own browser, writes about it (立即沟通). The business knows
+ * them as 「求职者」: they have no page on their account.
+ */
 async function applied(page: Page, browser: Browser, testInfo: TestInfo) {
   await signUpEmployer(page, testInfo);
   const title = uniqueTitle("面试服务员", testInfo);
   const jobId = await publishJob(page, title);
   const seeker = await (await browser.newContext({ ...testInfo.project.use, acceptDownloads: true })).newPage();
-  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.interview")); // starts with 林晓's demo page (#125)
-  await applyForTest(seeker, jobId);
-  await page.goto(`/employer/jobs/${jobId}/applicants`);
-  const applicant = page.getByRole("article", { name: "申请人 林晓" });
-  await expect(applicant).toBeVisible();
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.interview"));
+  await chatAboutJob(seeker, jobId!);
+  const applicant = await candidateCard(page, jobId!);
   return { title, jobId, seeker, applicant };
 }
 
@@ -39,7 +40,7 @@ test("the employer offers two times; the job seeker confirms one and saves it to
   const second = ahead(4, 15, 15);
 
   await applicant.getByRole("button", { name: "约面试" }).click();
-  const form = applicant.getByRole("form", { name: "约林晓面试" });
+  const form = applicant.getByRole("form", { name: "约求职者面试" });
   await form.getByLabel("时间 1", { exact: true }).fill(first.local);
   await form.getByRole("button", { name: "再加一个时间" }).click();
   await form.getByLabel("时间 2", { exact: true }).fill(second.local);
@@ -48,11 +49,11 @@ test("the employer offers two times; the job seeker confirms one and saves it to
   await form.getByLabel("附言（选填）").fill("带上简历");
   await expect(form).toContainText("邀约里不带你的联系方式");
   await form.getByRole("button", { name: "发出邀约" }).click();
-  const status = applicant.getByRole("status", { name: "和林晓的面试" });
+  const status = applicant.getByRole("status", { name: "和求职者的面试" });
   await expect(status).toContainText("已发邀约，等对方确认");
 
   await page.goto("/workspace");
-  await expect(page.getByRole("link", { name: /待确认的面试：林晓/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /待确认的面试：求职者/ })).toBeVisible();
 
   // The job seeker: 通知, then 我的申请.
   await seeker.goto("/notifications");
@@ -88,7 +89,7 @@ test("the employer offers two times; the job seeker confirms one and saves it to
   await page.goto("/notifications");
   await expect(
     page
-      .getByText(/林晓确认了「.*」的面试/)
+      .getByText(/求职者确认了「.*」的面试/)
       .filter({ visible: true })
       .first(),
   ).toBeVisible();
@@ -101,10 +102,10 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
 }, testInfo) => {
   const { title, jobId, seeker, applicant } = await applied(page, browser, testInfo);
   await applicant.getByRole("button", { name: "约面试" }).click();
-  const form = applicant.getByRole("form", { name: "约林晓面试" });
+  const form = applicant.getByRole("form", { name: "约求职者面试" });
   await form.getByRole("radio", { name: "电话联系后再定" }).check();
   await form.getByRole("button", { name: "发出邀约" }).click();
-  await expect(applicant.getByRole("status", { name: "和林晓的面试" })).toContainText("已发邀约");
+  await expect(applicant.getByRole("status", { name: "和求职者的面试" })).toContainText("已发邀约");
 
   await seeker.goto("/me/saved");
   const invitation = mine(seeker, title).getByRole("region", { name: "面试邀约" });
@@ -116,14 +117,14 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
   await expect(invitation).toContainText("你回了方便的时间，等雇主回复");
 
   await page.goto("/workspace");
-  await expect(page.getByRole("link", { name: /林晓回了方便的时间/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /求职者回了方便的时间/ })).toBeVisible();
   await page.goto(`/employer/jobs/${jobId}/applicants`);
-  const status = applicant.getByRole("status", { name: "和林晓的面试" });
+  const status = applicant.getByRole("status", { name: "和求职者的面试" });
   await expect(status).toContainText("对方说这些时间不行：「周四下午、周末都可以」");
 
   // A time already past cannot be picked (the field's minimum is now; the server refuses one too); then a new time.
   await applicant.getByRole("button", { name: "改时间" }).click();
-  const change = applicant.getByRole("form", { name: "约林晓面试" });
+  const change = applicant.getByRole("form", { name: "约求职者面试" });
   await change.getByRole("radio", { name: "给具体时间" }).check();
   await change.getByLabel("时间 1", { exact: true }).fill(ahead(-2, 9).local);
   await change.getByRole("button", { name: "发出新的邀约" }).click();

@@ -1,6 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { applyForTest, freshEmail, signIn } from "../helpers";
-import { CLEAN_MESSAGE, lastAssistant, publishJob, signUpEmployer, uniqueCjkTitle, uniqueTitle } from "./helpers";
+import { chatAboutJob, freshEmail, signIn } from "../helpers";
+import {
+  CLEAN_MESSAGE,
+  candidateCard,
+  lastAssistant,
+  publishJob,
+  signUpEmployer,
+  uniqueCjkTitle,
+  uniqueTitle,
+} from "./helpers";
 
 // The whole post flow with the keyboard only: every control can be reached with Tab, shows a
 // visible focus indicator, and is not hidden under the sticky header or the sticky bottom bar.
@@ -200,23 +208,23 @@ test("取消 on a job card's question gives the focus back (#248)", async ({ pag
   // The team row's confirm step is in team.spec.ts: since #296 only a team with a second admin offers 退出团队.
 });
 
-test("申请人: a mark shows busy while it is on its way, and one that takes the card out of 未处理 moves the focus on (#256)", async ({
+test("聊过的人: a mark shows busy while it is on its way, and one that takes the card out of 未处理 moves the focus on (#256)", async ({
   page,
   browser,
 }, testInfo) => {
   await signUpEmployer(page, testInfo);
   const jobId = (await publishJob(page, uniqueTitle("前厅服务员", testInfo)))!;
-  // A demo job seeker (林晓's page, #125) applies.
+  // A job seeker writes about the job, so it has someone who chatted (ADR 0030).
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
-  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.keys"));
-  await applyForTest(seeker, jobId);
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("e2e.keys"));
+  await chatAboutJob(seeker, jobId);
   await seeker.context().close();
 
   const path = `/employer/jobs/${jobId}/applicants`;
-  await page.goto(path);
+  await candidateCard(page, jobId);
   const filters = page.getByRole("tablist", { name: "按处理状态" });
   await filters.getByRole("tab", { name: "未处理 1" }).click();
-  const applicant = page.getByRole("article", { name: "申请人 林晓" });
+  const applicant = page.getByRole("article", { name: "候选人 求职者" });
   const fit = applicant.getByRole("button", { name: "合适", exact: true });
   await fit.focus();
   const release = await holdCalls(page, path);

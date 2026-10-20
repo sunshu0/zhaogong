@@ -1,8 +1,8 @@
 // 双方聊天 (#110, ADR 0015): a job seeker and a business, each in their own browser, talk in one conversation that
 // lives on the server. Nothing is scripted: what one sends, the other reads, within the chat page's 10 seconds.
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { applyForTest, freshEmail, signIn } from "./helpers";
-import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { chatAboutJob, freshEmail, signIn } from "./helpers";
+import { candidateCard, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 async function secondBrowser(browser: Browser, testInfo: TestInfo): Promise<Page> {
   return (await browser.newContext({ ...testInfo.project.use })).newPage();
@@ -59,28 +59,28 @@ test("a job seeker writes from the job page, the business answers, each sees the
   await seeker.context().close();
 });
 
-test("the business's 发起聊天 on an applicant reaches the job seeker once it says something", async ({
+test("the business's 打开聊天 on someone who chatted is the same conversation, both ways (ADR 0030)", async ({
   page,
   browser,
 }, testInfo) => {
   test.slow();
   await signUpEmployer(page, testInfo);
-  const title = uniqueTitle("申请人聊天", testInfo);
+  const title = uniqueTitle("聊过的人聊天", testInfo);
   const jobId = await publishJob(page, title);
 
   const seeker = await secondBrowser(browser, testInfo);
-  await signIn(seeker, `/jobs/${jobId}`, freshEmail("demo.two.way.apply")); // 林晓's demo page to apply with
-  await applyForTest(seeker, jobId!);
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("e2e.two.way.chatted"));
+  await chatAboutJob(seeker, jobId!, "还招人吗？");
 
-  await page.goto(`/employer/jobs/${jobId}/applicants`);
-  await page.getByRole("article", { name: "申请人 林晓" }).getByRole("button", { name: "发起聊天" }).click();
+  await (await candidateCard(page, jobId!)).getByRole("button", { name: "打开聊天" }).click();
   await expect(page).toHaveURL(/\/messages\?conversation=chat%3A/);
-  await page.getByLabel("输入消息").fill("看了你的申请，周末能上班吗？");
+  await expect(log(page)).toContainText("还招人吗？");
+  await page.getByLabel("输入消息").fill("还招，周末能上班吗？");
   await page.getByRole("button", { name: "发送", exact: true }).click();
-  await expect(log(page)).toContainText("看了你的申请");
+  await expect(log(page)).toContainText("周末能上班吗");
 
   await seeker.goto("/messages");
-  await chatList(seeker).getByRole("button").filter({ hasText: "看了你的申请" }).click();
-  await expect(log(seeker)).toContainText("看了你的申请，周末能上班吗？");
+  await chatList(seeker).getByRole("button").filter({ hasText: "周末能上班吗" }).click();
+  await expect(log(seeker)).toContainText("还招，周末能上班吗？");
   await seeker.context().close();
 });

@@ -17,7 +17,7 @@ import type {
 } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { SavedStage } from "@/components/seeker/saved-jobs";
-import type { ApplicationDecision, ApplicationProfile } from "@/components/seeker/applications";
+import type { ApplicationDecision, ApplicationProfile, ApplicationSource } from "@/components/seeker/applications";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
 import type { InterviewMode, InterviewStatus } from "@/components/seeker/interviews";
 import type { Profile } from "@/components/seeker/hub-state";
@@ -479,9 +479,9 @@ export const jobRenewals = sqliteTable(
 );
 
 /**
- * 一键申请 (#84, R-35): one row per job seeker and job. The employer reaches it by `id` and never sees the email;
- * `profile` is the job seeker's page as it was when they applied (it lives in their browser). Withdrawing deletes
- * the row.
+ * A job's candidates (ADR 0030): one row per job seeker and job, made when they applied (一键申请, #84, R-35, until
+ * 10-20) or when the first message about the job was sent. The employer reaches it by `id` and never sees the email;
+ * `profile` is the job seeker's page as it was when they applied (it lives in their browser).
  */
 export const jobApplications = sqliteTable(
   "job_applications",
@@ -496,8 +496,12 @@ export const jobApplications = sqliteTable(
     employerId: text("employer_id")
       .notNull()
       .references(() => employers.id),
-    note: text("note").notNull(),
-    profile: text("profile", { mode: "json" }).$type<ApplicationProfile>().notNull(),
+    /** 'apply': the job seeker applied, with a note and their page. 'chat': a message about the job (ADR 0030). */
+    source: text("source").$type<ApplicationSource>().notNull().default("apply"),
+    /** Null on a chat row: the job seeker sent no note and handed over no page (ADR 0002). */
+    note: text("note"),
+    profile: text("profile", { mode: "json" }).$type<ApplicationProfile>(),
+    /** When they applied, or when the first message about the job was sent. */
     appliedAt: text("applied_at").notNull(),
     seenAt: text("seen_at"),
     decision: text("decision").$type<ApplicationDecision>(),

@@ -87,9 +87,10 @@ const employerJobsZh = {
     noChats: "还没有人聊过",
     contactViews: (n: number) => `${n} 次查看联系方式`,
     contactPrivate: "不公开 · 聊天交换",
-    noApplicants: "申请人 0",
-    applicants: (n: number) => `${n} 个申请`,
-    applicantsWithNew: (total: number, unseen: number) => `${total} 个申请 · ${unseen} 个新`,
+    noApplicants: "聊过的人 0",
+    applicants: (n: number) => `聊过的人 ${n}`,
+    /** Only applications count as new (ADR 0030). */
+    applicantsWithNew: (total: number, unseen: number) => `聊过的人 ${total} · ${unseen} 个新申请`,
   },
 
   /** job-status.ts — the status tag, the closing date, and why a job cannot be refreshed or renewed. */
@@ -171,9 +172,9 @@ const employerJobsZh = {
     notFound: "找不到这个职位，或者它不属于你登录的店铺。",
     backToManage: "回到职位管理",
     totals: { views: "浏览", chats: "发起聊天", contactViews: "查看联系方式" },
-    funnelTitle: "申请到录用",
-    funnelDescription: "从发布到现在。约面试不算已取消的；录用是在申请人里标了「已录用」的人。",
-    funnel: { applied: "申请", interviewed: "约面试", hired: "录用" },
+    funnelTitle: "聊过到录用",
+    funnelDescription: "从发布到现在。聊过包括以前申请的人；约面试不算已取消的；录用是标了「已录用」的人。",
+    funnel: { applied: "聊过", interviewed: "约面试", hired: "录用" },
     byDayTitle: "按天",
     byDayDescription: "浏览：同一个浏览器一天只算一次。发起聊天：求职者第一次就这个职位发消息。",
     tableCaption: "最近 14 天每天的浏览、发起聊天和查看联系方式次数",
