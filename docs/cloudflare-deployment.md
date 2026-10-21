@@ -1,6 +1,6 @@
 # Cloudflare 部署清单
 
-用户 10-20 定的：**放在境外，跑在 Cloudflare Workers，数据库用 Cloudflare D1**（23:4x 从 Turso 改过来，理由和代价见 ADR 0029）。**集成分支已支持 D1**：驱动切换、交互式事务改写和本机维护命令已完成（ADR 0031），最终构建和浏览器验收尚未完成，未合并进 main。远程数据初始化工具仍待完成，不是只差账号。这份清单记录上线准备；本轮没有部署或注册账号。 标着「用户做」的步骤要以公司名义注册或付费（落地主体见 Progress「用户决定 10-20 01:2x」），别人不能代做。
+用户 10-20 定的：**放在境外，跑在 Cloudflare Workers，数据库用 Cloudflare D1**（23:4x 从 Turso 改过来，理由和代价见 ADR 0029）。**集成分支已支持 D1**：驱动切换、交互式事务改写和本机维护命令已完成（ADR 0031），最终构建和浏览器验收尚未完成，未合并进 main。演示数据和首位审核员的离线 SQL 工具已实现并通过本机 D1 验证；最终构建、远程环境验证和登录邮件服务仍未完成。这份清单记录上线准备；本轮没有部署或注册账号。 标着「用户做」的步骤要以公司名义注册或付费（落地主体见 Progress「用户决定 10-20 01:2x」），别人不能代做。
 
 10-14 那次发布的是只读模拟数据的前端演示（Worker `zhaogong-demo`，`zhaogong-demo.zhaogong.workers.dev`），那时还没有数据库。下面写的是有数据库以后的做法。
 
@@ -47,7 +47,7 @@
 
 ## 3. 线上数据库：Cloudflare D1
 
-**先完成集成分支的 check、Cloudflare 构建和本地 D1 浏览器验收，再合并部署。** D1 业务改写和本机命令已完成，但远程初始化命令尚未提供。命令用 Wrangler（[D1 说明](https://developers.cloudflare.com/d1/)），由有公司账号权限的人在本机跑。
+**先完成集成分支的 check、Cloudflare 构建和本地 D1 浏览器验收，再合并部署。** D1 业务改写和本机命令已完成，演示数据及第一位审核员均可通过下方离线 SQL 工具准备；本轮只做本机验证，不执行远程操作。命令用 Wrangler（[D1 说明](https://developers.cloudflare.com/d1/)），由有公司账号权限的人在本机跑。
 
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
 2. 建库，位置提示给大洋洲：
@@ -73,8 +73,8 @@ npx wrangler d1 migrations apply zhaogong --remote
 
 ### 演示数据
 
-- **演示站：** 必须在开放站点前用命令灌数据；D1 不会在首次请求时 seed，单设 `DEMO_DATA=true` 不会填库。本机命令见末节，远程导入仍待实现。
-- **正式站：** 不灌演示数据，`DEMO_DATA` 不设。`admin:grant` 已支持本机 D1（`--d1-local`），远程授予工具仍待实现。正式站启用后台前需完成这一步。
+- **演示站：** 必须在开放站点前用命令灌数据；D1 不会在首次请求时 seed，单设 `DEMO_DATA=true` 不会填库。本机命令见末节，远程演示数据通过下一小节的 SQL 文件导入；本轮只验证了本机 D1，未写入远程库。
+- **正式站：** 不灌演示数据，`DEMO_DATA` 不设。`admin:grant` 支持本机 D1（`--d1-local`）；正式站第一位审核员通过 `admin:grant-sql` 生成文件，再由账号持有人用 Wrangler 导入，见末节。正式站启用后台前需完成这一步。
 - **查库：** D1 没有对外的数据库连接。国内同事查数据在 Cloudflare 后台，或者 `npx wrangler d1 execute zhaogong --remote --command "<SQL>"`；照 ADR 0026 的精神，只查需要的。
 
 ## 4. 部署（Cloudflare）
@@ -91,7 +91,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 
 ## 3a. 演示站（用户 10-20 23:1x 定：先更新这个，不正式上线）
 
-`zhaogong-demo.zhaogong.workers.dev`：完整版代码，灌演示数据。下面是待执行的部署方案，本轮未查询或使用公司账号。演示站和正式站一样用 Cloudflare D1（ADR 0029），代码已在集成分支支持；要先完成最终门槛并合并，再补齐远程演示数据导入工具。当前不能直接执行到部署完成。
+`zhaogong-demo.zhaogong.workers.dev`：完整版代码，灌演示数据。下面是待执行的部署方案，本轮未查询或使用公司账号。演示站和正式站一样用 Cloudflare D1（ADR 0029），代码已在集成分支支持；要先完成最终门槛并合并，再按下一小节准备演示 SQL 文件。本轮未进行远程导入或部署。
 
 **设置：**
 
@@ -120,7 +120,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 6. `npx wrangler secret put AUTH_SECRET`（粘贴 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` 的结果）
 7. `npx wrangler secret put ZG_EVENTS_SECRET`（同上，另生成一个）
 8. 对库迁移：`npx wrangler d1 migrations apply zhaogong-demo --remote`（第 3 节「迁移」，0031）
-9. 灌演示数据：**待远程导入工具完成后补命令；目前在此停止，不部署空库**。`DEMO_DATA=true` 只控制页面标识，不会自动填充 D1。
+9. 生成演示 SQL：`npm run db:demo-sql`；审阅后只对全新演示库执行 `npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql`（见下方说明）。`DEMO_DATA=true` 不会自动填充 D1。
 10. `npm run cf:deploy`（Windows 上构建要用 4a 节的两个补丁，`npm install` 会自动打上）
 11. 打开 `https://zhaogong-demo.zhaogong.workers.dev`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页、`/admin` 是 404
 
@@ -225,4 +225,40 @@ npm run admin:grant -- moderator@example.com --d1-local
 
 隔离验收数据时，两条命令都追加 `--persist-to D:/dev/zg-scratch/d1/integration-local`。该目录与预览命令的 `--persist-to` 相同；CLI 会自动处理平台代理多出的 `v3` 子目录。`npm run db:reset` 只重置本机 libSQL 文件，不重置 D1。
 
-本地维护命令还支持 `db:migrate`、`admin:revoke` 和 `import:external` 的 `--d1-local`。这里尚未提供远程数据导入命令，不要把本地命令当成线上已初始化。Worker 配置开启日志和 traces，默认抽样 10%。
+本地维护命令还支持 `db:migrate`、`admin:revoke` 和 `import:external` 的 `--d1-local`。本机命令不操作远程库；演示数据及首位审核员 SQL 文件的远程导入另见后两节。`import:external --d1-remote` 仍不支持。Worker 配置开启日志和 traces，默认抽样 10%。
+
+
+### 离线生成演示数据 SQL（2026-10-22 已在本机 D1 验证）
+
+```powershell
+npm run db:demo-sql
+# 自选输出位置（路径含空格时加引号）
+npm run db:demo-sql -- --output D:/dev/zg-scratch/d1/demo.sql
+```
+
+命令在全新的内存数据库中应用迁移、加载 `src/mock`，只导出数据 INSERT；不读取 `DATABASE_URL`、本机用户库或任何远程库，不联网抓取职位。默认输出 `data/d1-demo.sql`（已忽略），已有文件会拒绝覆盖。SQL 包含演示账号及演示审核员，不包含会话或验证码，只能用于演示库，不能用于正式站初始化。
+
+先迁移到 0031，再审阅 SQL。下面由有公司账号权限的人在部署时执行；本轮未执行远程命令：
+
+```powershell
+npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql
+```
+
+数据库名必须对应配置中的演示绑定，不能指向正式库。SQL 开头检查所有应用表：任一表非空即通过约束错误拒绝导入，避免覆盖已有账号或重复填充；不要删掉这条检查。文件需整体交给 `--file` 导入，不能拆成逐条命令，外键依赖需要同一批次内延迟检查。远程文件导入的失败回滚行为见 [Cloudflare D1 入门](https://developers.cloudflare.com/d1/get-started/#populate-your-d1-database)。
+
+本轮已验证：91 条合成记录在本机 D1 成功导入；重复导入被拒绝，数据和外键保持完整；libSQL 单测逐表核对与原始演示数据一致。正式站第一位审核员使用下一节的独立流程，不能通过导入演示账号来代替。
+
+
+### 正式站第一位审核员的离线 SQL
+
+```powershell
+npm run admin:grant-sql -- moderator@your-company.example
+# 审阅 data/d1-moderator.sql 中的邮箱和语句后，由公司账号持有人执行：
+npx wrangler d1 execute zhaogong --remote --file=data/d1-moderator.sql
+```
+
+将示例邮箱和数据库名替换成真实目标，不要直接照抄。生成文件不需要 Cloudflare 登录，也不会授予权限或联网；默认文件位于被忽略的 `data/`，已有文件拒绝覆盖，可用 `--output <路径>` 另存。SQL 文件包含审核员邮箱，作为运维文件保存，不提交仓库。
+
+导入文件才会创建缺失的账号并授予审核员权限；已有账号的雇主身份、语言、创建时间等资料保留，重复导入保留原授权时间。它不创建会话、不发送验证码，也不打开 `/admin`。正式后台启用前，仍需准备登录邮件服务，并在构建时与运行时设置 `ADMIN_ENABLED=1`，然后检查非审核员无法进入。后续审核员增删继续在受鉴权保护的 `/admin` 里操作。
+
+本轮只在本机 D1 验证了生成、导入、重复执行及外键；远程数据库尚未执行这些命令。

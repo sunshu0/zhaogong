@@ -27,7 +27,9 @@
     "ai:smoke": "tsx scripts/ai-post-smoke.mjs",
     "db:migrate": "tsx src/db/cli.ts migrate",
     "db:seed": "tsx src/db/cli.ts seed",
+    "db:demo-sql": "tsx scripts/d1-demo-export.mts",
     "admin:grant": "tsx src/db/cli.ts admin:grant",
+    "admin:grant-sql": "tsx scripts/d1-moderator-export.mts",
     "admin:revoke": "tsx src/db/cli.ts admin:revoke",
     "import:external": "tsx src/db/cli.ts import:external"
   },
