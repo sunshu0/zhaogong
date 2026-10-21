@@ -22,7 +22,7 @@ describe("migrations for D1 (ADR 0031)", () => {
     const journal = JSON.parse(readFileSync(path.join(folder, "meta", "_journal.json"), "utf8")) as {
       entries: { tag: string }[];
     };
-    expect(migrationFiles().map((f) => f.name)).toEqual(journal.entries.map((e) => `${e.tag}.sql`));
+    expect(migrationFiles().map((f) => f.name)).toEqual(journal.entries.map((e) => `${e.tag}.sql`).sort());
   });
 
   it("has no transaction statements and does not switch foreign keys off (D1 refuses both)", () => {

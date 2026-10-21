@@ -1,7 +1,7 @@
 // The migrations as wrangler applies them to D1 (ADR 0031): every .sql file in drizzle/, in file-name order, each
 // split at drizzle's `--> statement-breakpoint` lines. Local libSQL databases keep drizzle's migrator (src/db/migrate.ts);
 // both read the same files. The D1 tests apply them with this, and migrations.test.ts checks both ways agree.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export interface MigrationFile {
@@ -10,14 +10,9 @@ export interface MigrationFile {
 }
 
 export function migrationFiles(folder = path.join(process.cwd(), "drizzle")): MigrationFile[] {
-  const journalPath = path.join(folder, "meta", "_journal.json");
-  const names = existsSync(journalPath)
-    ? (JSON.parse(readFileSync(journalPath, "utf8")) as { entries: { tag: string }[] }).entries.map(
-        (entry) => `${entry.tag}.sql`,
-      )
-    : readdirSync(folder)
-        .filter((name) => name.endsWith(".sql"))
-        .sort();
+  const names = readdirSync(folder)
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
   return names.map((name) => ({
     name,
     statements: readFileSync(path.join(folder, name), "utf8")
