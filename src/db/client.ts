@@ -46,6 +46,12 @@ const CLOUDFLARE_CONTEXT = Symbol.for("__cloudflare-context__");
 
 let testD1: { binding: D1Binding; freshen: () => Promise<void> } | undefined;
 let testD1Stale = true;
+let commandLineD1: D1Binding | undefined;
+
+/** The local binding held by the database CLI for the lifetime of its platform proxy. */
+export function setCommandLineD1(binding: D1Binding | undefined): void {
+  commandLineD1 = binding;
+}
 
 /**
  * The D1 database, when there is one: the Worker's `DB` binding (unless DATABASE_URL asks for libSQL), or the one the
@@ -53,6 +59,7 @@ let testD1Stale = true;
  */
 export function d1Binding(): D1Binding | undefined {
   if (testD1) return testD1.binding;
+  if (commandLineD1) return commandLineD1;
   if (process.env.DATABASE_URL) return undefined;
   const context = (globalThis as Record<symbol, { env?: { DB?: D1Binding } } | undefined>)[CLOUDFLARE_CONTEXT];
   return context?.env?.DB;

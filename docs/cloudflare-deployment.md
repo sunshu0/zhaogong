@@ -211,3 +211,19 @@ PowerShell 先设 `$env:NEXT_TELEMETRY_DISABLED = '1'`、`$env:WRANGLER_SEND_MET
 - [Cloudflare：Next.js / OpenNext](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)、[Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[process.env](https://developers.cloudflare.com/changelog/post/2025-03-11-process-env-support/)、[限制](https://developers.cloudflare.com/workers/platform/limits/)
 - [OpenNext Cloudflare 入门](https://opennext.js.org/cloudflare/get-started)
 - Turso：[CLI](https://docs.turso.tech/cli/introduction)、[group create](https://docs.turso.tech/cli/group/create)、[db create](https://docs.turso.tech/cli/db/create)、[tokens](https://docs.turso.tech/cli/group/tokens/create)
+
+### 本机 D1 初始化与维护（2026-10-22 已实测）
+
+不用账号即可在本机执行，所有命令只操作 Wrangler 的本机 D1，不会访问远程数据库：
+
+```powershell
+$env:EXTERNAL_JOBS = 'demo'
+npm run db:seed -- --d1-local
+npm run admin:grant -- moderator@example.com --d1-local
+```
+
+`--d1-local` 会先用 Wrangler 应用 `drizzle/` 全部迁移，再打开本地绑定；重复 seed 不覆盖已有数据。验证码登录仍沿用当前演示站设置，本机授予审核员不会开启线上账号。
+
+隔离验收数据时，两条命令都追加 `--persist-to D:/dev/zg-scratch/d1/integration-local`。该目录与预览命令的 `--persist-to` 相同；CLI 会自动处理平台代理多出的 `v3` 子目录。`npm run db:reset` 只重置本机 libSQL 文件，不重置 D1。
+
+本地维护命令还支持 `db:migrate`、`admin:revoke` 和 `import:external` 的 `--d1-local`。这里尚未提供远程数据导入命令，不要把本地命令当成线上已初始化。Worker 配置开启日志和 traces，默认抽样 10%。
