@@ -1,6 +1,6 @@
 # 找工 (working name) — start here
 
-A Chinese-language job board for overseas Chinese communities, starting in Auckland with hospitality and other service jobs. Product brief: `docs/brief.md`. This stage is **frontend only**: every page reads demo data through `src/lib/data.ts`; there is no backend yet.
+A Chinese-language job board for overseas Chinese communities, starting in Auckland with hospitality and other service jobs. Product brief: `docs/brief.md`. The project is now in **full web development**: frontend, server actions, authentication, database persistence, moderation, and deployment are all in scope. The earlier frontend-only stage is historical and no longer limits implementation.
 
 Read `AGENTS.md` too: this is Next.js 16 and differs from older versions. Check `node_modules/next/dist/docs/` before using an API you are unsure of.
 
