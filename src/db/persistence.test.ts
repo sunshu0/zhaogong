@@ -23,11 +23,11 @@ describe("kept across a restart", () => {
   const saved = process.env.DATABASE_URL;
 
   /** What a server restart does to the database: the connection goes, the file stays. */
-  const restart = () => resetDatabaseForTests();
+  const restart = () => resetDatabaseForTests(true);
 
   beforeAll(() => {
     process.env.DATABASE_URL = `file:${path.join(dir, "zhaogong.db")}`;
-    restart();
+    resetDatabaseForTests();
   });
   afterAll(() => {
     restart();

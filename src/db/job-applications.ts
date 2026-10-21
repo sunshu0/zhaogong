@@ -2,7 +2,11 @@
 // written to about the job, read by the job seeker (by email) and by the job's employer (by business and application
 // id, never by email). Who may do what is checked by the Server Functions. Server only.
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
+import { inList } from "@/db/in-list";
+import { insertIf } from "@/db/write-if";
+import type { Db } from "@/db/client";
 import { database } from "@/db/ready";
 import { conversations, interviews, jobApplications } from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -40,23 +44,20 @@ export async function addApplication(input: {
 }): Promise<ApplicationRow | "already"> {
   const email = normalizeEmail(input.email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [existing] = await tx.select().from(jobApplications).where(mine(email, input.jobId));
-    if (existing) return "already";
-    const [row] = await tx
-      .insert(jobApplications)
-      .values({
-        id: randomBytes(9).toString("base64url"),
-        seekerEmail: email,
-        jobId: input.jobId,
-        employerId: input.employerId,
-        note: input.note,
-        profile: input.profile,
-        appliedAt: (input.now ?? new Date()).toISOString(),
-      })
-      .returning();
-    return row;
-  });
+  const [row] = await db
+    .insert(jobApplications)
+    .values({
+      id: randomBytes(9).toString("base64url"),
+      seekerEmail: email,
+      jobId: input.jobId,
+      employerId: input.employerId,
+      note: input.note,
+      profile: input.profile,
+      appliedAt: (input.now ?? new Date()).toISOString(),
+    })
+    .onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] })
+    .returning();
+  return row ?? "already";
 }
 
 /**
@@ -84,6 +85,28 @@ export async function addChatCandidate(
       seenAt: at,
     })
     .onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] });
+}
+
+/** Candidate insertion for a message batch: read the conversation inside the same atomic write. */
+export function chatCandidateInsert(db: Db, conversationId: string, at: string) {
+  const field = (column: SQLiteColumn) =>
+    sql`(select ${column} from ${conversations} where ${conversations.id} = ${conversationId})`;
+  return insertIf(
+    db,
+    jobApplications,
+    {
+      id: randomBytes(9).toString("base64url"),
+      seekerEmail: field(conversations.seekerEmail),
+      employerId: field(conversations.employerId),
+      jobId: field(conversations.jobId),
+      source: "chat",
+      note: null,
+      profile: null,
+      appliedAt: at,
+      seenAt: at,
+    },
+    sql`exists (select 1 from ${conversations} where ${conversations.id} = ${conversationId} and ${conversations.jobId} is not null)`,
+  ).onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] });
 }
 
 /**
@@ -135,12 +158,9 @@ export async function decideApplication(
   const at = now.toISOString();
   const updated = await db
     .update(jobApplications)
-    .set({ decision, decidedAt: decision ? at : null })
+    .set({ decision, decidedAt: decision ? at : null, seenAt: sql`coalesce(${jobApplications.seenAt}, ${at})` })
     .where(and(eq(jobApplications.employerId, employerId), eq(jobApplications.id, id)))
     .returning({ id: jobApplications.id, seenAt: jobApplications.seenAt });
-  // Deciding means the business has seen it.
-  if (updated.length && !updated[0].seenAt)
-    await db.update(jobApplications).set({ seenAt: at }).where(eq(jobApplications.id, id));
   return updated.length > 0;
 }
 
@@ -169,7 +189,7 @@ export async function applicationCounts(
     .from(jobApplications)
     .where(
       jobIds
-        ? and(eq(jobApplications.employerId, employerId), inArray(jobApplications.jobId, jobIds))
+        ? and(eq(jobApplications.employerId, employerId), inList(jobApplications.jobId, jobIds))
         : eq(jobApplications.employerId, employerId),
     );
   const counts: Record<string, ApplicationCount> = {};
@@ -216,7 +236,7 @@ export async function applicationFunnel(employerId: string, jobId: string): Prom
         .select({ status: interviews.status })
         .from(interviews)
         .where(
-          inArray(
+          inList(
             interviews.applicationId,
             rows.map((row) => row.id),
           ),

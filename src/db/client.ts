@@ -12,7 +12,7 @@ import { oneAtATime } from "@/db/one-at-a-time";
 import * as schema from "@/db/schema";
 
 // Both drivers have the same query builder and `batch`; the code is written against libSQL's type.
-export type Db = LibSQLDatabase<typeof schema>;
+export type Db = Omit<LibSQLDatabase<typeof schema>, "transaction">;
 
 /** The D1 binding as the Worker hands it over (a D1Database). */
 export type D1Binding = Parameters<typeof drizzleD1>[0];
@@ -104,8 +104,8 @@ export function getDb(): Db {
 }
 
 /** Tests only: drop the connection so the next getDb() opens a fresh database. */
-export function resetDbForTests(): void {
-  testD1Stale = true;
+export function resetDbForTests(preserveD1 = false): void {
+  if (!preserveD1) testD1Stale = true;
   client?.close();
   client = undefined;
   db = undefined;

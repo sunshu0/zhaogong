@@ -18,6 +18,7 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
     nameNoContact: "Don't put an email address or a phone number in the name.",
     signature: (businessName, teamName) => `${businessName} · ${teamName}`,
     refusal: {
+      busy: "The team just changed. Please try again.",
       not_member: "You're no longer in this business's team.",
       not_admin: "Only an admin can manage the team.",
       no_such_member: "This person is no longer in the team.",
@@ -116,7 +117,8 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
       member: "This person is already in the team.",
       has_business: "This account already belongs to another business, so it can't join.",
       pending: "You've already invited this person. Waiting for their answer.",
-      full: (max) => `A team can have up to ${max} people, counting invitations nobody has answered and links not used yet.`,
+      full: (max) =>
+        `A team can have up to ${max} people, counting invitations nobody has answered and links not used yet.`,
       too_many: (perDay) =>
         `This business has sent ${perDay} invitations in the last 24 hours. Invite someone tomorrow.`,
     },
@@ -148,7 +150,8 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
     state: {
       invalid:
         "This invitation link isn't right: part of it may have been lost when it was copied, or it was changed. Ask whoever sent it to send it again.",
-      expired: (days) => `This invitation link has expired (links work for ${days} days). Ask the business's admin for a new one.`,
+      expired: (days) =>
+        `This invitation link has expired (links work for ${days} days). Ask the business's admin for a new one.`,
       used: "This invitation link has already been used. Each link works once. Ask the business's admin for a new one.",
       revoked: "The business's admin has revoked this invitation link.",
       banned: "This business has been banned, so it can't be joined.",

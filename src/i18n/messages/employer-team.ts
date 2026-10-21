@@ -21,6 +21,7 @@ const employerTeamZh = {
     /** How the business side signs a chat: the shop, then who replied. */
     signature: (businessName: string, teamName: string) => `${businessName} · ${teamName}`,
     refusal: {
+      busy: "团队信息刚有变化，请再试一次。",
       not_member: "你已经不在这家企业的团队里了。",
       not_admin: "只有管理员能管理团队。",
       no_such_member: "这个人已经不在团队里了。",

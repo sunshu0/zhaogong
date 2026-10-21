@@ -108,7 +108,7 @@ export type TeamChange =
   | { type: "remove"; email: string } // by an admin; removing yourself is leaving
   | { type: "leave" };
 
-export type TeamRefusal = "not_member" | "not_admin" | "no_such_member" | "last_admin";
+export type TeamRefusal = "not_member" | "not_admin" | "no_such_member" | "last_admin" | "busy";
 
 /** Whether `actor` may make `change`; undefined when allowed. A team always keeps at least one admin. */
 export function checkTeamChange(members: TeamMember[], actor: string, change: TeamChange): TeamRefusal | undefined {

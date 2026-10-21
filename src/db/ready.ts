@@ -94,8 +94,8 @@ export async function database(): Promise<Db> {
   return d1Binding() ? getDb() : db;
 }
 
-/** Tests only: start again from an empty, freshly migrated database on the next database() call. */
-export function resetDatabaseForTests(): void {
-  resetDbForTests();
+/** Tests only: reconnect; freshen an in-memory/D1 test database unless simulating a persistent server restart. */
+export function resetDatabaseForTests(preserveD1 = false): void {
+  resetDbForTests(preserveD1);
   ready = undefined;
 }

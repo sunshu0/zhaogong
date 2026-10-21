@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { getDb, resetDbForTests } from "@/db/client";
+import { d1Binding, freshenD1ForTests, getDb, resetDbForTests } from "@/db/client";
 import { migrateDb } from "@/db/migrate";
 import { accounts, employers, jobs } from "@/db/schema";
 
@@ -8,7 +8,8 @@ describe("database", () => {
   beforeEach(async () => {
     process.env.DATABASE_URL = "file::memory:";
     resetDbForTests();
-    await migrateDb();
+    if (d1Binding()) await freshenD1ForTests();
+    else await migrateDb();
   });
   afterEach(() => resetDbForTests());
 

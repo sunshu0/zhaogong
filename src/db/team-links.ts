@@ -4,6 +4,10 @@
 // here is an admin's invitation, as answerInvite, not 开通雇主身份 (openEmployerIdentity). Server only.
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
+import { guardedBatch } from "@/db/guarded-batch";
+import { unchangedTeam } from "@/db/team-state";
+import { insertIf } from "@/db/write-if";
+import { CHANGED, untilSettled } from "@/db/optimistic";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { liveLinkCount, membersOf, sentInLastDay } from "@/db/team";
@@ -52,32 +56,41 @@ export type CreateLinkResult =
 /** An admin makes a link; its token is in this answer only. */
 export async function createTeamLink(employerId: string, byEmail: string, now = new Date()): Promise<CreateLinkResult> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const me = await adminOf(tx, employerId, byEmail);
-    if (typeof me === "string") return { status: me };
-    const members = await membersOf(tx, employerId);
-    const invites = await tx
-      .select({ createdAt: t.teamInvites.createdAt })
-      .from(t.teamInvites)
-      .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")));
-    const liveInvites = invites.filter((i) => !inviteExpired(i.createdAt, now.getTime())).length;
-    if (teamFull(members.length, liveInvites + (await liveLinkCount(tx, employerId, now)))) return { status: "full" };
-    if ((await sentInLastDay(tx, employerId, now)) >= INVITES_PER_DAY) return { status: "too_many" };
-    const token = randomBytes(32).toString("base64url");
-    const createdAt = now.toISOString();
-    const id = `tl${randomBytes(9).toString("base64url")}`;
-    await tx.insert(t.teamInviteLinks).values({
-      id,
-      employerId,
-      tokenHash: hashLinkToken(token),
-      createdByEmail: me.email,
-      createdAt,
-      status: "open",
-      usedByEmail: null,
-      usedAt: null,
-    });
-    return { status: "created", id, token, expiresAt: linkExpiresAt(createdAt) };
-  });
+  return untilSettled<CreateLinkResult>(
+    async () => {
+      const unchanged = await unchangedTeam(db, employerId);
+      const me = await adminOf(db, employerId, byEmail);
+      if (typeof me === "string") return { status: me };
+      const members = await membersOf(db, employerId);
+      const invites = await db
+        .select({ createdAt: t.teamInvites.createdAt })
+        .from(t.teamInvites)
+        .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")));
+      const liveInvites = invites.filter((i) => !inviteExpired(i.createdAt, now.getTime())).length;
+      if (teamFull(members.length, liveInvites + (await liveLinkCount(db, employerId, now)))) return { status: "full" };
+      if ((await sentInLastDay(db, employerId, now)) >= INVITES_PER_DAY) return { status: "too_many" };
+      const token = randomBytes(32).toString("base64url");
+      const createdAt = now.toISOString();
+      const id = `tl${randomBytes(9).toString("base64url")}`;
+      const [created] = await insertIf(
+        db,
+        t.teamInviteLinks,
+        {
+          id,
+          employerId,
+          tokenHash: hashLinkToken(token),
+          createdByEmail: me.email,
+          createdAt,
+          status: "open",
+          usedByEmail: null,
+          usedAt: null,
+        },
+        unchanged,
+      ).returning();
+      return created ? { status: "created", id, token, expiresAt: linkExpiresAt(createdAt) } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** The business's links nobody has used or revoked, newest first; `expired` ones are listed until revoked. */
@@ -104,17 +117,25 @@ export async function revokeTeamLink(
   linkId: string,
 ): Promise<{ status: "revoked" | "gone" | TeamRefusal }> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const me = await adminOf(tx, employerId, byEmail);
-    if (typeof me === "string") return { status: me };
-    const [link] = await tx
-      .select()
-      .from(t.teamInviteLinks)
-      .where(and(eq(t.teamInviteLinks.id, linkId), eq(t.teamInviteLinks.employerId, employerId)));
-    if (!link || link.status !== "open") return { status: "gone" };
-    await tx.update(t.teamInviteLinks).set({ status: "revoked" }).where(eq(t.teamInviteLinks.id, linkId));
-    return { status: "revoked" };
-  });
+  return untilSettled<{ status: "revoked" | "gone" | TeamRefusal }>(
+    async () => {
+      const unchanged = await unchangedTeam(db, employerId);
+      const me = await adminOf(db, employerId, byEmail);
+      if (typeof me === "string") return { status: me };
+      const [link] = await db
+        .select()
+        .from(t.teamInviteLinks)
+        .where(and(eq(t.teamInviteLinks.id, linkId), eq(t.teamInviteLinks.employerId, employerId)));
+      if (!link || link.status !== "open") return { status: "gone" };
+      const [revoked] = await db
+        .update(t.teamInviteLinks)
+        .set({ status: "revoked" })
+        .where(and(eq(t.teamInviteLinks.id, linkId), unchanged))
+        .returning();
+      return revoked ? { status: "revoked" } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /**
@@ -125,7 +146,11 @@ export type LinkState =
   | { status: "invalid" }
   | { status: "open" | "expired" | "used" | "revoked" | "banned"; employerId: string; employerName: string };
 
-async function stateOf(db: Parameters<typeof membersOf>[0], token: string, now: Date): Promise<{
+async function stateOf(
+  db: Parameters<typeof membersOf>[0],
+  token: string,
+  now: Date,
+): Promise<{
   state: LinkState;
   link?: TeamLink;
 }> {
@@ -153,6 +178,7 @@ export async function teamLinkState(token: string, now = new Date()): Promise<Li
 }
 
 export type JoinResult =
+  | { status: "busy" }
   | { status: "joined"; employerId: string }
   | { status: "invalid" | "expired" | "used" | "revoked" | "banned" }
   | { status: "member" } // already in this team
@@ -160,30 +186,41 @@ export type JoinResult =
   | { status: "full" };
 
 /** The signed-in account joins the link's team as a member, with the name the team will see. */
-export async function joinTeamByLink(email: string, token: string, name: string, now = new Date()): Promise<JoinResult> {
+export async function joinTeamByLink(
+  email: string,
+  token: string,
+  name: string,
+  now = new Date(),
+): Promise<JoinResult> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const { state, link } = await stateOf(tx, token, now);
-    if (state.status !== "open" || !link) return { status: state.status === "open" ? "invalid" : state.status };
-    const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
-    if (!account) return { status: "invalid" };
-    if (account.employerId === link.employerId) return { status: "member" };
-    if (account.employerId) return { status: "has_business" };
-    if ((await membersOf(tx, link.employerId)).length >= TEAM_MAX) return { status: "full" };
-    const at = now.toISOString();
-    const used = await tx
-      .update(t.teamInviteLinks)
-      .set({ status: "used", usedByEmail: address, usedAt: at })
-      .where(and(eq(t.teamInviteLinks.id, link.id), eq(t.teamInviteLinks.status, "open")))
-      .returning({ id: t.teamInviteLinks.id });
-    if (!used.length) return { status: "used" };
-    await tx
-      .update(t.accounts)
-      .set({ employerId: link.employerId, teamRole: "member", teamName: name, teamJoinedAt: at })
-      .where(eq(t.accounts.email, address));
-    return { status: "joined", employerId: link.employerId };
-  });
+  return untilSettled<JoinResult>(
+    async () => {
+      const located = await stateOf(db, token, now);
+      if (!located.link) return { status: "invalid" };
+      const unchanged = await unchangedTeam(db, located.link.employerId, address);
+      const { state, link } = await stateOf(db, token, now);
+      if (state.status !== "open" || !link) return { status: state.status === "open" ? "invalid" : state.status };
+      const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
+      if (!account) return { status: "invalid" };
+      if (account.employerId === link.employerId) return { status: "member" };
+      if (account.employerId) return { status: "has_business" };
+      if ((await membersOf(db, link.employerId)).length >= TEAM_MAX) return { status: "full" };
+      const at = now.toISOString();
+      const { applied } = await guardedBatch(db, unchanged, (allowed) => [
+        db
+          .update(t.teamInviteLinks)
+          .set({ status: "used", usedByEmail: address, usedAt: at })
+          .where(and(eq(t.teamInviteLinks.id, link.id), allowed)),
+        db
+          .update(t.accounts)
+          .set({ employerId: link.employerId, teamRole: "member", teamName: name, teamJoinedAt: at })
+          .where(and(eq(t.accounts.email, address), allowed)),
+      ]);
+      return applied ? { status: "joined", employerId: link.employerId } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** Development and browser tests only (/api/dev/team-link-age): the business's link, `days` days older. */

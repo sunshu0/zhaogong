@@ -2,10 +2,12 @@
 // with its messages and exchanges. Both sides read and write the same rows; src/lib/chat-server/shared-view.ts turns
 // them into what each side sees. Server only.
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
+import { guardedBatch } from "@/db/guarded-batch";
+import { inList } from "@/db/in-list";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
-import { addChatCandidate } from "@/db/job-applications";
+import { chatCandidateInsert } from "@/db/job-applications";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { SharedConversation, SharedExchange, Side } from "@/lib/chat-server/shared-view";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
@@ -41,12 +43,12 @@ export async function listSharedConversations(reader: SharedReader): Promise<Sha
   const messages = await db
     .select()
     .from(t.messages)
-    .where(inArray(t.messages.conversationId, ids))
+    .where(inList(t.messages.conversationId, ids))
     .orderBy(asc(t.messages.id));
   const exchanges = await db
     .select()
     .from(t.exchanges)
-    .where(inArray(t.exchanges.conversationId, ids))
+    .where(inList(t.exchanges.conversationId, ids))
     .orderBy(asc(t.exchanges.createdAt));
   return rows.map(({ conversation: c, employerName, jobTitle, page }) => {
     // The business sees the name on the job seeker's page as it is now; the one they applied or were found with
@@ -204,15 +206,14 @@ export async function addSharedMessage(
 ): Promise<void> {
   const db = await database();
   const at = now.toISOString();
-  await db.transaction(async (tx) => {
-    await tx.insert(t.messages).values({ conversationId, from: side, text, sentAt: at, byName: byName ?? null });
-    const [conversation] = await tx.select().from(t.conversations).where(eq(t.conversations.id, conversationId));
-    if (conversation) await addChatCandidate(tx, conversation, at);
-    await tx
+  await db.batch([
+    db.insert(t.messages).values({ conversationId, from: side, text, sentAt: at, byName: byName ?? null }),
+    chatCandidateInsert(db, conversationId, at),
+    db
       .update(t.conversations)
       .set({ updatedAt: at, [readColumn(side)]: at })
-      .where(eq(t.conversations.id, conversationId));
-  });
+      .where(eq(t.conversations.id, conversationId)),
+  ]);
 }
 
 export async function addSharedExchange(
@@ -220,10 +221,10 @@ export async function addSharedExchange(
   item: { id: string; kind: ExchangeKind; requestedBy: Side; offered: ExchangePayload; createdAt: string },
 ): Promise<void> {
   const db = await database();
-  await db.transaction(async (tx) => {
-    await tx.insert(t.exchanges).values({ ...item, conversationId, status: "pending" });
-    await tx.update(t.conversations).set({ updatedAt: item.createdAt }).where(eq(t.conversations.id, conversationId));
-  });
+  await db.batch([
+    db.insert(t.exchanges).values({ ...item, conversationId, status: "pending" }),
+    db.update(t.conversations).set({ updatedAt: item.createdAt }).where(eq(t.conversations.id, conversationId)),
+  ]);
 }
 
 /** Writes an answer only to an exchange still pending, so two answers at once cannot both count. */
@@ -233,22 +234,21 @@ export async function answerSharedExchange(
   answer: { status: SharedExchange["status"]; response?: ExchangePayload; respondedAt: string },
 ): Promise<void> {
   const db = await database();
-  await db.transaction(async (tx) => {
-    const answered = await tx
-      .update(t.exchanges)
-      .set({ status: answer.status, response: answer.response ?? null, respondedAt: answer.respondedAt })
-      .where(
-        and(
-          eq(t.exchanges.id, exchangeId),
-          eq(t.exchanges.conversationId, conversationId),
-          eq(t.exchanges.status, "pending"),
-        ),
-      )
-      .returning({ id: t.exchanges.id });
-    if (!answered.length) return;
-    await tx
-      .update(t.conversations)
-      .set({ updatedAt: answer.respondedAt })
-      .where(eq(t.conversations.id, conversationId));
-  });
+  await guardedBatch(
+    db,
+    sql`exists (
+    select 1 from ${t.exchanges} where ${t.exchanges.id} = ${exchangeId}
+    and ${t.exchanges.conversationId} = ${conversationId} and ${t.exchanges.status} = 'pending'
+  )`,
+    (allowed) => [
+      db
+        .update(t.exchanges)
+        .set({ status: answer.status, response: answer.response ?? null, respondedAt: answer.respondedAt })
+        .where(and(eq(t.exchanges.id, exchangeId), allowed)),
+      db
+        .update(t.conversations)
+        .set({ updatedAt: answer.respondedAt })
+        .where(and(eq(t.conversations.id, conversationId), allowed)),
+    ],
+  );
 }

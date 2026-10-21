@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { migrate } from "drizzle-orm/libsql/migrator";
+import { migrateLocalDb as migrate } from "@/db/migrate";
 import { getDb, projectRoot, resetDbForTests } from "@/db/client";
 import { demoShowcase } from "@/db/demo-showcase";
 import { suggestJobRoles } from "@/lib/job-roles";

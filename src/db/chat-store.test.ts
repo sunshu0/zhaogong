@@ -76,11 +76,11 @@ describe("chat records in the database (#42)", () => {
 describe("kept across a restart (#42)", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "zhaogong-chat-"));
   const saved = process.env.DATABASE_URL;
-  const restart = () => resetDatabaseForTests();
+  const restart = () => resetDatabaseForTests(true);
 
   beforeAll(() => {
     process.env.DATABASE_URL = `file:${path.join(dir, "zhaogong.db")}`;
-    restart();
+    resetDatabaseForTests();
   });
   afterAll(() => {
     restart();

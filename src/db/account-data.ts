@@ -2,10 +2,14 @@
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
 import type { Lang } from "@/i18n/lang";
-import { and, asc, count, eq, inArray, ne, or } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { listAiUsageOf, type AiUsageRow } from "@/db/ai-usage";
 import { listSharedConversations } from "@/db/conversations";
 import { listRenewals, type JobRenewal } from "@/db/job-renewals";
+import { guardedBatch } from "@/db/guarded-batch";
+import { inList } from "@/db/in-list";
+import { unchangedMembership } from "@/db/team-state";
+import { CHANGED, keptChanging, untilSettled } from "@/db/optimistic";
 import { database } from "@/db/ready";
 import { toEmployer, toJob } from "@/db/rows";
 import * as t from "@/db/schema";
@@ -181,7 +185,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
         .select()
         .from(t.interviews)
         .where(
-          inArray(
+          inList(
             t.interviews.applicationId,
             applications.map((a) => a.id),
           ),
@@ -373,145 +377,157 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
   const db = await database();
   // Report screenshots' files go once their rows have (ADR 0027): a failed transaction leaves both.
   const images = await imageKeysOf(address);
-  const result = await db.transaction(async (tx): Promise<DeleteAccountResult> => {
-    const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
-    if (!account) return "no_account";
-    const teammates = account.employerId
-      ? await tx
-          .select({ role: t.accounts.teamRole })
-          .from(t.accounts)
-          .where(and(eq(t.accounts.employerId, account.employerId), ne(t.accounts.email, address)))
-      : [];
-    if (account.teamRole !== "member" && teammates.length && !teammates.some((m) => m.role === "admin"))
-      return "last_team_admin";
-    const [moderator] = await tx.select().from(t.moderators).where(eq(t.moderators.email, address));
-    if (moderator) {
-      const [{ n }] = await tx.select({ n: count() }).from(t.moderators);
-      if (n <= 1) return "last_moderator";
-      await tx.delete(t.moderators).where(eq(t.moderators.email, address));
-    }
-    await tx.update(t.moderators).set({ grantedBy: DELETED_ACCOUNT }).where(eq(t.moderators.grantedBy, address));
-    // The decisions stay in the log (#60), without the moderator's email.
-    await tx.update(t.moderationLog).set({ moderator: DELETED_ACCOUNT }).where(eq(t.moderationLog.moderator, address));
-    // So do the records of whose personal information it was shown (#336, ADR 0026): they are for the people shown.
-    await tx
-      .update(t.personalInfoViews)
-      .set({ moderator: DELETED_ACCOUNT })
-      .where(eq(t.personalInfoViews.moderator, address));
-    // 企业验证 (#78): a decision is why a business carries its badge, so the application stays, without the person's
-    // email or name; one still waiting is withdrawn. Applications this account decided as a moderator lose its email.
-    await tx
-      .update(t.verificationRequests)
-      .set({ status: "withdrawn" })
-      .where(and(eq(t.verificationRequests.submittedByEmail, address), eq(t.verificationRequests.status, "pending")));
-    await tx
-      .update(t.verificationRequests)
-      .set({ submittedByEmail: DELETED_ACCOUNT, contactName: DELETED_CONTACT })
-      .where(eq(t.verificationRequests.submittedByEmail, address));
-    await tx
-      .update(t.verificationRequests)
-      .set({ decidedByEmail: DELETED_ACCOUNT })
-      .where(eq(t.verificationRequests.decidedByEmail, address));
-
-    // The evidence this account attached to job reports goes; the reports stay, with nothing of the person (ADR 0027).
-    await tx.delete(t.reportEvidence).where(eq(t.reportEvidence.reporterEmail, address));
-    await tx.delete(t.sessions).where(eq(t.sessions.email, address));
-    await tx.delete(t.signInCodes).where(eq(t.signInCodes.email, address));
-    await tx.delete(t.chatRecords).where(eq(t.chatRecords.email, address));
-    await tx.delete(t.savedJobs).where(eq(t.savedJobs.email, address));
-    await tx.delete(t.savedExternalJobs).where(eq(t.savedExternalJobs.email, address));
-    // Applications are the person's page and note: they go, and the employers' lists lose them (#84), with the
-    // interviews on them (#103); so do the rows of jobs they chatted about (ADR 0030).
-    const applicationIds = (
-      await tx
+  const result = await untilSettled<DeleteAccountResult>(
+    async () => {
+      const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
+      if (!account) return "no_account";
+      const membership = account.employerId ? await unchangedMembership(db, account.employerId) : sql`true`;
+      const teammates = account.employerId
+        ? await db
+            .select({ role: t.accounts.teamRole })
+            .from(t.accounts)
+            .where(and(eq(t.accounts.employerId, account.employerId), ne(t.accounts.email, address)))
+        : [];
+      if (account.teamRole !== "member" && teammates.length && !teammates.some((m) => m.role === "admin"))
+        return "last_team_admin";
+      const [moderator] = await db.select().from(t.moderators).where(eq(t.moderators.email, address));
+      if (moderator) {
+        const [{ n }] = await db.select({ n: count() }).from(t.moderators);
+        if (n <= 1) return "last_moderator";
+      }
+      const condition = sql`${membership} and exists (
+      select 1 from ${t.accounts} where ${t.accounts.email} = ${address}
+      and ${t.accounts.employerId} is ${account.employerId} and ${t.accounts.teamRole} is ${account.teamRole}
+    ) and (not exists (select 1 from ${t.moderators} where ${t.moderators.email} = ${address})
+      or (select count(*) from ${t.moderators}) > 1)`;
+      const ownChats =
+        account.employerId && !teammates.length
+          ? or(eq(t.conversations.seekerEmail, address), eq(t.conversations.employerId, account.employerId))!
+          : eq(t.conversations.seekerEmail, address);
+      const chats = db.select({ id: t.conversations.id }).from(t.conversations).where(ownChats);
+      const applications = db
         .select({ id: t.jobApplications.id })
         .from(t.jobApplications)
-        .where(eq(t.jobApplications.seekerEmail, address))
-    ).map((row) => row.id);
-    if (applicationIds.length) await tx.delete(t.interviews).where(inArray(t.interviews.applicationId, applicationIds));
-    await tx.delete(t.jobApplications).where(eq(t.jobApplications.seekerEmail, address));
-    // The share link closes with the account (#86).
-    await tx.delete(t.resumeShares).where(eq(t.resumeShares.email, address));
-    await tx.delete(t.seekerProfiles).where(eq(t.seekerProfiles.email, address));
-    await tx.delete(t.jobAlerts).where(eq(t.jobAlerts.email, address));
-    await tx.delete(t.jobAlertHits).where(eq(t.jobAlertHits.email, address));
-    await tx.delete(t.externalJobAlertHits).where(eq(t.externalJobAlertHits.email, address));
-    // Invitations to this account go with it; ones it sent stay as the team's record, without its email (#87).
-    await tx.delete(t.teamInvites).where(eq(t.teamInvites.email, address));
-    await tx
-      .update(t.teamInvites)
-      .set({ invitedByEmail: DELETED_ACCOUNT })
-      .where(eq(t.teamInvites.invitedByEmail, address));
-    // Invitation links stay as the team's record too, without the email of whoever made or used them (#349).
-    await tx
-      .update(t.teamInviteLinks)
-      .set({ createdByEmail: DELETED_ACCOUNT })
-      .where(eq(t.teamInviteLinks.createdByEmail, address));
-    await tx
-      .update(t.teamInviteLinks)
-      .set({ usedByEmail: DELETED_ACCOUNT })
-      .where(eq(t.teamInviteLinks.usedByEmail, address));
-    await tx
-      .update(t.contactViews)
-      .set({ viewerEmail: DELETED_ACCOUNT })
-      .where(eq(t.contactViews.viewerEmail, address));
-    // Jobs the person posted stay the business's, without the email (#182).
-    await tx.update(t.jobs).set({ postedBy: DELETED_ACCOUNT }).where(eq(t.jobs.postedBy, address));
-    await tx.update(t.jobs).set({ contactBy: DELETED_ACCOUNT }).where(eq(t.jobs.contactBy, address));
-    // The business's page stays the team's; it no longer says who saved it last (ADR 0022).
-    await tx
-      .update(t.employerProfiles)
-      .set({ updatedByEmail: DELETED_ACCOUNT })
-      .where(eq(t.employerProfiles.updatedByEmail, address));
-    // The calls to the AI 发帖 model stay in 审核数据's totals, without the email (#102).
-    await tx.update(t.aiUsage).set({ email: DELETED_ACCOUNT }).where(eq(t.aiUsage.email, address));
-    await tx
-      .update(t.jobChatStarts)
-      .set({ seekerEmail: DELETED_ACCOUNT })
-      .where(eq(t.jobChatStarts.seekerEmail, address));
-
-    // The job seeker's chats with businesses (#110) go with their messages and exchanges, both sides'. So do the
-    // business's, below, when nobody in its team carries on.
-    const conversations = await tx
-      .select({ id: t.conversations.id })
-      .from(t.conversations)
-      .where(
-        account.employerId && !teammates.length
-          ? or(eq(t.conversations.seekerEmail, address), eq(t.conversations.employerId, account.employerId))
-          : eq(t.conversations.seekerEmail, address),
-      );
-    if (conversations.length) {
-      const ids = conversations.map((c) => c.id);
-      await tx.delete(t.messages).where(inArray(t.messages.conversationId, ids));
-      await tx.delete(t.exchanges).where(inArray(t.exchanges.conversationId, ids));
-      await tx.delete(t.conversations).where(inArray(t.conversations.id, ids));
-    }
-
-    // The business stays (reports and the moderation log name it, and a ban must outlive the account). When nobody
-    // else in its team carries on, nobody posts for it any more: its jobs come down and the contact details on them,
-    // the person's own, are cleared, invitations nobody answered are cancelled (#87) and open links revoked (#349).
-    if (account.employerId && !teammates.length) {
-      // The business's shared chats (#87) were only ever this person's side of the conversations. Its page goes too:
-      // nobody is left to keep it (ADR 0022); the public page shows the business's name only.
-      await tx.delete(t.teamChats).where(eq(t.teamChats.employerId, account.employerId));
-      await tx.delete(t.employerProfiles).where(eq(t.employerProfiles.employerId, account.employerId));
-      await tx
-        .update(t.teamInvites)
-        .set({ status: "cancelled" })
-        .where(and(eq(t.teamInvites.employerId, account.employerId), eq(t.teamInvites.status, "pending")));
-      await tx
-        .update(t.teamInviteLinks)
-        .set({ status: "revoked" })
-        .where(and(eq(t.teamInviteLinks.employerId, account.employerId), eq(t.teamInviteLinks.status, "open")));
-      await tx
-        .update(t.jobs)
-        .set({ status: "removed", contact: {}, contactPublic: false })
-        .where(eq(t.jobs.employerId, account.employerId));
-    }
-
-    await tx.delete(t.accounts).where(eq(t.accounts.email, address));
-    return "deleted";
-  });
+        .where(eq(t.jobApplications.seekerEmail, address));
+      const { applied } = await guardedBatch(db, condition, (allowed) => [
+        db.delete(t.moderators).where(and(eq(t.moderators.email, address), allowed)),
+        db
+          .update(t.moderators)
+          .set({ grantedBy: DELETED_ACCOUNT })
+          .where(and(eq(t.moderators.grantedBy, address), allowed)),
+        db
+          .update(t.moderationLog)
+          .set({ moderator: DELETED_ACCOUNT })
+          .where(and(eq(t.moderationLog.moderator, address), allowed)),
+        db
+          .update(t.personalInfoViews)
+          .set({ moderator: DELETED_ACCOUNT })
+          .where(and(eq(t.personalInfoViews.moderator, address), allowed)),
+        db
+          .update(t.verificationRequests)
+          .set({ status: "withdrawn" })
+          .where(
+            and(
+              eq(t.verificationRequests.submittedByEmail, address),
+              eq(t.verificationRequests.status, "pending"),
+              allowed,
+            ),
+          ),
+        db
+          .update(t.verificationRequests)
+          .set({ submittedByEmail: DELETED_ACCOUNT, contactName: DELETED_CONTACT })
+          .where(and(eq(t.verificationRequests.submittedByEmail, address), allowed)),
+        db
+          .update(t.verificationRequests)
+          .set({ decidedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.verificationRequests.decidedByEmail, address), allowed)),
+        // Delete children by subquery: newly opened chats/applications are included and large accounts need no ID list.
+        db.delete(t.reportEvidence).where(and(eq(t.reportEvidence.reporterEmail, address), allowed)),
+        db.delete(t.sessions).where(and(eq(t.sessions.email, address), allowed)),
+        db.delete(t.signInCodes).where(and(eq(t.signInCodes.email, address), allowed)),
+        db.delete(t.chatRecords).where(and(eq(t.chatRecords.email, address), allowed)),
+        db.delete(t.savedJobs).where(and(eq(t.savedJobs.email, address), allowed)),
+        db.delete(t.savedExternalJobs).where(and(eq(t.savedExternalJobs.email, address), allowed)),
+        db.delete(t.interviews).where(and(inArray(t.interviews.applicationId, applications), allowed)),
+        db.delete(t.jobApplications).where(and(eq(t.jobApplications.seekerEmail, address), allowed)),
+        db.delete(t.resumeShares).where(and(eq(t.resumeShares.email, address), allowed)),
+        db.delete(t.seekerProfiles).where(and(eq(t.seekerProfiles.email, address), allowed)),
+        db.delete(t.jobAlerts).where(and(eq(t.jobAlerts.email, address), allowed)),
+        db.delete(t.jobAlertHits).where(and(eq(t.jobAlertHits.email, address), allowed)),
+        db.delete(t.externalJobAlertHits).where(and(eq(t.externalJobAlertHits.email, address), allowed)),
+        db.delete(t.teamInvites).where(and(eq(t.teamInvites.email, address), allowed)),
+        db
+          .update(t.teamInvites)
+          .set({ invitedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.teamInvites.invitedByEmail, address), allowed)),
+        db
+          .update(t.teamInviteLinks)
+          .set({ createdByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.teamInviteLinks.createdByEmail, address), allowed)),
+        db
+          .update(t.teamInviteLinks)
+          .set({ usedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.teamInviteLinks.usedByEmail, address), allowed)),
+        db
+          .update(t.contactViews)
+          .set({ viewerEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.contactViews.viewerEmail, address), allowed)),
+        db
+          .update(t.jobs)
+          .set({ postedBy: DELETED_ACCOUNT })
+          .where(and(eq(t.jobs.postedBy, address), allowed)),
+        db
+          .update(t.jobs)
+          .set({ contactBy: DELETED_ACCOUNT })
+          .where(and(eq(t.jobs.contactBy, address), allowed)),
+        db
+          .update(t.employerProfiles)
+          .set({ updatedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.employerProfiles.updatedByEmail, address), allowed)),
+        db
+          .update(t.aiUsage)
+          .set({ email: DELETED_ACCOUNT })
+          .where(and(eq(t.aiUsage.email, address), allowed)),
+        db
+          .update(t.jobChatStarts)
+          .set({ seekerEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.jobChatStarts.seekerEmail, address), allowed)),
+        db.delete(t.messages).where(and(inArray(t.messages.conversationId, chats), allowed)),
+        db.delete(t.exchanges).where(and(inArray(t.exchanges.conversationId, chats), allowed)),
+        db.delete(t.conversations).where(and(ownChats, allowed)),
+        // When this was the last teammate, remove public information and revoke unused invitations atomically.
+        ...(account.employerId && !teammates.length
+          ? [
+              db.delete(t.teamChats).where(and(eq(t.teamChats.employerId, account.employerId), allowed)),
+              db.delete(t.employerProfiles).where(and(eq(t.employerProfiles.employerId, account.employerId), allowed)),
+              db
+                .update(t.teamInvites)
+                .set({ status: "cancelled" })
+                .where(
+                  and(eq(t.teamInvites.employerId, account.employerId), eq(t.teamInvites.status, "pending"), allowed),
+                ),
+              db
+                .update(t.teamInviteLinks)
+                .set({ status: "revoked" })
+                .where(
+                  and(
+                    eq(t.teamInviteLinks.employerId, account.employerId),
+                    eq(t.teamInviteLinks.status, "open"),
+                    allowed,
+                  ),
+                ),
+              db
+                .update(t.jobs)
+                .set({ status: "removed", contact: {}, contactPublic: false })
+                .where(and(eq(t.jobs.employerId, account.employerId), allowed)),
+            ]
+          : []),
+        db.delete(t.accounts).where(and(eq(t.accounts.email, address), allowed)),
+      ]);
+      return applied ? "deleted" : CHANGED;
+    },
+    () => keptChanging("deleteAccount"),
+  );
   if (result === "deleted") await removeImages(images);
   return result;
 }

@@ -3,6 +3,7 @@
 // report is handled; no scheduled job (ADR 0008): the first report of a New Zealand day deletes what is too old.
 // Server only.
 import { and, asc, count, desc, eq, inArray, isNotNull, lt, ne } from "drizzle-orm";
+import { inList } from "@/db/in-list";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { nzDay } from "@/db/job-stats";
@@ -57,7 +58,7 @@ export async function findOwnMessages(
     .select({ message: t.messages })
     .from(t.messages)
     .innerJoin(t.conversations, eq(t.conversations.id, t.messages.conversationId))
-    .where(and(theirChats(seekerEmail, employerId), inArray(t.messages.id, [...ids])))
+    .where(and(theirChats(seekerEmail, employerId), inList(t.messages.id, [...ids])))
     .orderBy(asc(t.messages.id));
   return rows.map(({ message: m }) => ({
     messageId: m.id,
@@ -117,7 +118,7 @@ export async function countReportEvidence(
   const rows = await db
     .select({ reportId: t.reportEvidence.reportId, kind: t.reportEvidence.kind, n: count() })
     .from(t.reportEvidence)
-    .where(inArray(t.reportEvidence.reportId, [...reportIds]))
+    .where(inList(t.reportEvidence.reportId, [...reportIds]))
     .groupBy(t.reportEvidence.reportId, t.reportEvidence.kind);
   for (const row of rows) {
     const c = (counts[row.reportId] ??= { messages: 0, images: 0 });

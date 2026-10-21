@@ -1,6 +1,10 @@
 // 雇主多人管理 (#87, PRD R-38, ADR 0012): a business's team and its invitations. Every change is checked with the
 // rules in src/components/employer/team.ts inside the transaction that writes it. Server only.
 import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { guardedBatch } from "@/db/guarded-batch";
+import { unchangedMembership, unchangedTeam } from "@/db/team-state";
+import { insertIf, nextIdSql } from "@/db/write-if";
+import { CHANGED, untilSettled } from "@/db/optimistic";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -18,8 +22,7 @@ import {
   type TeamRole,
 } from "@/components/employer/team";
 
-export type Tx = Parameters<Parameters<Awaited<ReturnType<typeof database>>["transaction"]>[0]>[0];
-export type Reader = Awaited<ReturnType<typeof database>> | Tx;
+export type Reader = Awaited<ReturnType<typeof database>>;
 
 export type TeamInvite = typeof t.teamInvites.$inferSelect;
 
@@ -84,45 +87,60 @@ export async function inviteToTeam(
 ): Promise<InviteResult> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const members = await membersOf(tx, employerId);
-    const me = members.find((m) => m.email === normalizeEmail(byEmail));
-    if (!me) return { status: "not_member" };
-    if (me.role !== "admin") return { status: "not_admin" };
-    if (members.some((m) => m.email === address)) return { status: "member" };
-    const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
-    if (!account) return { status: "no_account" };
-    if (account.employerId) return { status: "has_business" };
-    const waiting = await tx
-      .select({ id: t.teamInvites.id, email: t.teamInvites.email, createdAt: t.teamInvites.createdAt })
-      .from(t.teamInvites)
-      .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")));
-    // Expired invitations (#194) hold no place; one to the same person is replaced by the new one.
-    const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
-    if (pending.some((p) => p.email === address)) return { status: "pending" };
-    if (teamFull(members.length, pending.length + (await liveLinkCount(tx, employerId, now))))
-      return { status: "full" };
-    if ((await sentInLastDay(tx, employerId, now)) >= INVITES_PER_DAY) return { status: "too_many" };
-    for (const old of waiting.filter((p) => p.email === address))
-      await tx
-        .update(t.teamInvites)
-        .set({ status: "cancelled", answeredAt: now.toISOString() })
-        .where(eq(t.teamInvites.id, old.id));
-
-    const [{ n }] = await tx.select({ n: sql<number>`count(*)` }).from(t.teamInvites);
-    const invite: TeamInvite = {
-      id: `ti${Number(n) + 1}`,
-      employerId,
-      email: address,
-      role,
-      invitedByEmail: me.email,
-      createdAt: now.toISOString(),
-      status: "pending",
-      answeredAt: null,
-    };
-    await tx.insert(t.teamInvites).values(invite);
-    return { status: "invited", invite };
-  });
+  return untilSettled<InviteResult>(
+    async () => {
+      const unchanged = await unchangedTeam(db, employerId, address);
+      const members = await membersOf(db, employerId);
+      const me = members.find((m) => m.email === normalizeEmail(byEmail));
+      if (!me) return { status: "not_member" };
+      if (me.role !== "admin") return { status: "not_admin" };
+      if (members.some((m) => m.email === address)) return { status: "member" };
+      const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
+      if (!account) return { status: "no_account" };
+      if (account.employerId) return { status: "has_business" };
+      const waiting = await db
+        .select({ id: t.teamInvites.id, email: t.teamInvites.email, createdAt: t.teamInvites.createdAt })
+        .from(t.teamInvites)
+        .where(and(eq(t.teamInvites.employerId, employerId), eq(t.teamInvites.status, "pending")));
+      // Expired invitations (#194) hold no place; one to the same person is replaced by the new one.
+      const pending = waiting.filter((p) => !inviteExpired(p.createdAt, now.getTime()));
+      if (pending.some((p) => p.email === address)) return { status: "pending" };
+      if (teamFull(members.length, pending.length + (await liveLinkCount(db, employerId, now))))
+        return { status: "full" };
+      if ((await sentInLastDay(db, employerId, now)) >= INVITES_PER_DAY) return { status: "too_many" };
+      const createdAt = now.toISOString();
+      const { applied, results } = await guardedBatch(db, unchanged, (allowed) => [
+        db
+          .update(t.teamInvites)
+          .set({ status: "cancelled", answeredAt: createdAt })
+          .where(
+            and(
+              eq(t.teamInvites.employerId, employerId),
+              eq(t.teamInvites.email, address),
+              eq(t.teamInvites.status, "pending"),
+              allowed,
+            ),
+          ),
+        insertIf(
+          db,
+          t.teamInvites,
+          {
+            id: nextIdSql(t.teamInvites, t.teamInvites.id, "ti"),
+            employerId,
+            email: address,
+            role,
+            invitedByEmail: me.email,
+            createdAt,
+            status: "pending",
+            answeredAt: null,
+          },
+          allowed,
+        ).returning(),
+      ]);
+      return applied ? { status: "invited", invite: results[1][0] } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** The business's invitations nobody has answered yet, newest first; `expired` after 14 days (#194). */
@@ -165,6 +183,7 @@ export async function invitesFor(email: string, now = new Date()): Promise<Invit
 }
 
 export type AnswerResult =
+  | { status: "busy" }
   | { status: "accepted"; employerId: string }
   | { status: "declined" }
   | { status: "gone" } // not pending any more (cancelled, answered) or not this account's
@@ -183,30 +202,48 @@ export async function answerInvite(
 ): Promise<AnswerResult> {
   const address = normalizeEmail(email);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [invite] = await tx
-      .select({ invite: t.teamInvites, bannedAt: t.employers.bannedAt })
-      .from(t.teamInvites)
-      .innerJoin(t.employers, eq(t.employers.id, t.teamInvites.employerId))
-      .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.email, address)));
-    if (!invite || invite.invite.status !== "pending" || invite.bannedAt) return { status: "gone" };
-    if (inviteExpired(invite.invite.createdAt, now.getTime())) return { status: "gone" };
-    const answeredAt = now.toISOString();
-    if (!answer.accept) {
-      await tx.update(t.teamInvites).set({ status: "declined", answeredAt }).where(eq(t.teamInvites.id, inviteId));
-      return { status: "declined" };
-    }
-    const [account] = await tx.select().from(t.accounts).where(eq(t.accounts.email, address));
-    if (!account || account.employerId) return { status: "has_business" };
-    const { employerId, role } = invite.invite;
-    if ((await membersOf(tx, employerId)).length >= TEAM_MAX) return { status: "full" };
-    await tx
-      .update(t.accounts)
-      .set({ employerId, teamRole: role, teamName: answer.name, teamJoinedAt: answeredAt })
-      .where(eq(t.accounts.email, address));
-    await tx.update(t.teamInvites).set({ status: "accepted", answeredAt }).where(eq(t.teamInvites.id, inviteId));
-    return { status: "accepted", employerId };
-  });
+  return untilSettled<AnswerResult>(
+    async () => {
+      const [locator] = await db
+        .select({ employerId: t.teamInvites.employerId })
+        .from(t.teamInvites)
+        .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.email, address)));
+      if (!locator) return { status: "gone" };
+      const unchanged = await unchangedTeam(db, locator.employerId, address);
+      const [invite] = await db
+        .select({ invite: t.teamInvites, bannedAt: t.employers.bannedAt })
+        .from(t.teamInvites)
+        .innerJoin(t.employers, eq(t.employers.id, t.teamInvites.employerId))
+        .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.email, address)));
+      if (!invite || invite.invite.status !== "pending" || invite.bannedAt) return { status: "gone" };
+      if (inviteExpired(invite.invite.createdAt, now.getTime())) return { status: "gone" };
+      const answeredAt = now.toISOString();
+      if (!answer.accept) {
+        const [declined] = await db
+          .update(t.teamInvites)
+          .set({ status: "declined", answeredAt })
+          .where(and(eq(t.teamInvites.id, inviteId), unchanged))
+          .returning();
+        return declined ? { status: "declined" } : CHANGED;
+      }
+      const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
+      if (!account || account.employerId) return { status: "has_business" };
+      const { employerId, role } = invite.invite;
+      if ((await membersOf(db, employerId)).length >= TEAM_MAX) return { status: "full" };
+      const { applied } = await guardedBatch(db, unchanged, (allowed) => [
+        db
+          .update(t.accounts)
+          .set({ employerId, teamRole: role, teamName: answer.name, teamJoinedAt: answeredAt })
+          .where(and(eq(t.accounts.email, address), allowed)),
+        db
+          .update(t.teamInvites)
+          .set({ status: "accepted", answeredAt })
+          .where(and(eq(t.teamInvites.id, inviteId), allowed)),
+      ]);
+      return applied ? { status: "accepted", employerId } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** An admin takes back an invitation that has not been answered. */
@@ -217,21 +254,26 @@ export async function cancelInvite(
   now = new Date(),
 ): Promise<{ status: "cancelled" | "gone" | TeamRefusal }> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const me = (await membersOf(tx, employerId)).find((m) => m.email === normalizeEmail(byEmail));
-    if (!me) return { status: "not_member" };
-    if (me.role !== "admin") return { status: "not_admin" };
-    const [invite] = await tx
-      .select()
-      .from(t.teamInvites)
-      .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.employerId, employerId)));
-    if (!invite || invite.status !== "pending") return { status: "gone" };
-    await tx
-      .update(t.teamInvites)
-      .set({ status: "cancelled", answeredAt: now.toISOString() })
-      .where(eq(t.teamInvites.id, inviteId));
-    return { status: "cancelled" };
-  });
+  return untilSettled<{ status: "cancelled" | "gone" | TeamRefusal }>(
+    async () => {
+      const unchanged = await unchangedTeam(db, employerId);
+      const me = (await membersOf(db, employerId)).find((m) => m.email === normalizeEmail(byEmail));
+      if (!me) return { status: "not_member" };
+      if (me.role !== "admin") return { status: "not_admin" };
+      const [invite] = await db
+        .select()
+        .from(t.teamInvites)
+        .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.employerId, employerId)));
+      if (!invite || invite.status !== "pending") return { status: "gone" };
+      const [cancelled] = await db
+        .update(t.teamInvites)
+        .set({ status: "cancelled", answeredAt: now.toISOString() })
+        .where(and(eq(t.teamInvites.id, inviteId), unchanged))
+        .returning();
+      return cancelled ? { status: "cancelled" } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** Changes a role, removes someone, or lets the signed-in person leave; a team always keeps an admin. */
@@ -242,18 +284,22 @@ export async function changeTeam(
 ): Promise<{ status: "done" } | { status: TeamRefusal }> {
   const actor = normalizeEmail(byEmail);
   const db = await database();
-  return db.transaction(async (tx) => {
-    const members = await membersOf(tx, employerId);
-    const normalized: TeamChange =
-      change.type === "leave" ? change : { ...change, email: normalizeEmail(change.email) };
-    const refusal = checkTeamChange(members, actor, normalized);
-    if (refusal) return { status: refusal };
-    const target = normalized.type === "leave" ? actor : normalized.email;
-    const where = and(eq(t.accounts.email, target), eq(t.accounts.employerId, employerId));
-    if (normalized.type === "role") await tx.update(t.accounts).set({ teamRole: normalized.role }).where(where);
-    else await tx.update(t.accounts).set(LEFT_TEAM).where(where);
-    return { status: "done" };
-  });
+  return untilSettled<{ status: "done" | TeamRefusal }>(
+    async () => {
+      const unchanged = await unchangedMembership(db, employerId);
+      const members = await membersOf(db, employerId);
+      const normalized: TeamChange =
+        change.type === "leave" ? change : { ...change, email: normalizeEmail(change.email) };
+      const refusal = checkTeamChange(members, actor, normalized);
+      if (refusal) return { status: refusal };
+      const target = normalized.type === "leave" ? actor : normalized.email;
+      const where = and(eq(t.accounts.email, target), eq(t.accounts.employerId, employerId), unchanged);
+      const set = normalized.type === "role" ? { teamRole: normalized.role } : LEFT_TEAM;
+      const [changed] = await db.update(t.accounts).set(set).where(where).returning({ email: t.accounts.email });
+      return changed ? { status: "done" } : CHANGED;
+    },
+    () => ({ status: "busy" }),
+  );
 }
 
 /** What an account's row looks like once it no longer works for a business. */

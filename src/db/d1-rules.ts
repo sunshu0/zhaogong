@@ -38,6 +38,11 @@ export function d1Rules(client: Client): Client {
   }
   return new Proxy(client, {
     get(target, prop) {
+      if (prop === "transaction") {
+        return async () => {
+          throw new Error("D1 has no interactive transactions; use db.batch() (ADR 0031).");
+        };
+      }
       if (prop === "execute") {
         return async (statement: InStatement, args?: InArgs) => {
           checkD1Statement(args === undefined ? statement : [statement as string, args]);

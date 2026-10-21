@@ -20,6 +20,10 @@ describe("libSQL under D1's rules (ADR 0031)", () => {
     expect(() => checkD1Statement("CREATE TRIGGER t BEFORE INSERT ON x BEGIN SELECT 1; END")).not.toThrow();
   });
 
+  it("also refuses the client's interactive transaction API", async () => {
+    await expect(Reflect.get(db, "transaction").call(db)).rejects.toThrow(/no interactive transactions/);
+  });
+
   it("finds foreign keys switched on, as D1 always has them", async () => {
     await db.execute("create table parent (id text primary key)");
     await db.execute("create table child (parent text references parent(id))");

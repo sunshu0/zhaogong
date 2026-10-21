@@ -807,6 +807,10 @@ export const personalInfoViews = sqliteTable(
  * copied as they were when reported (`kind` "message"), and screenshots (`kind` "image", the second PR). Only
  * moderators see it; it goes EVIDENCE_KEEP_DAYS after the report is handled, and with the reporter's account.
  */
+export const writeGuards = sqliteTable("write_guards", {
+  token: text("token").primaryKey(),
+});
+
 export const reportEvidence = sqliteTable(
   "report_evidence",
   {

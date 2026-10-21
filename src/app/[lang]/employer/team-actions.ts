@@ -143,7 +143,8 @@ export async function createTeamInviteLink(): Promise<{ ok: true; path: string; 
   const mine = await myBusiness();
   if (!mine) return noTeam();
   const result = await createTeamLink(mine.employer.id, mine.email);
-  if (result.status === "created") return { ok: true, path: `${JOIN_PATH}${result.token}`, expiresAt: result.expiresAt };
+  if (result.status === "created")
+    return { ok: true, path: `${JOIN_PATH}${result.token}`, expiresAt: result.expiresAt };
   const errors = await inviteErrors();
   return { ok: false, error_zh: errors[result.status] };
 }
@@ -175,11 +176,13 @@ export async function joinTeamWithLink(
   if (result.status !== "joined") {
     const state = t.teamJoin.state;
     const error_zh =
-      result.status === "expired"
-        ? state.expired(LINK_DAYS)
-        : result.status === "full"
-          ? state.full(TEAM_MAX)
-          : state[result.status];
+      result.status === "busy"
+        ? teamRefusalText(lang).busy
+        : result.status === "expired"
+          ? state.expired(LINK_DAYS)
+          : result.status === "full"
+            ? state.full(TEAM_MAX)
+            : state[result.status];
     return { ok: false, error_zh };
   }
   const switched = await switchRole("employer");
@@ -253,13 +256,16 @@ export async function answerTeamInvite(
   const id = String(inviteId ?? "");
   if (accept !== true) {
     const declined = await answerInvite(session.email, id, { accept: false });
-    return declined.status === "declined" ? { ok: true } : { ok: false, error_zh: t.inviteGone };
+    return declined.status === "declined"
+      ? { ok: true }
+      : { ok: false, error_zh: declined.status === "busy" ? teamRefusalText(lang).busy : t.inviteGone };
   }
   const checked = checkTeamName(String(name ?? ""), lang);
   if (!checked.ok) return { ok: false, error_zh: checked.error };
   const result = await answerInvite(session.email, id, { accept: true, name: checked.name });
   if (result.status !== "accepted") {
     const error_zh = {
+      busy: teamRefusalText(lang).busy,
       gone: t.answer.gone,
       has_business: t.answer.has_business,
       full: t.answer.full(TEAM_MAX),

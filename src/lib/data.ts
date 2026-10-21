@@ -2,9 +2,9 @@
 // these functions; their signatures and behaviour are the same as when the data lived in memory. Pay is
 // stored in cents and returned in dollars (src/db/rows.ts). New records get the next id of their kind
 // (j20, e9, r1 …), as the demo data has.
-import { and, count, desc, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
-import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
-import type { Db } from "@/db/client";
+import { and, count, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { inList } from "@/db/in-list";
+import { insertIf, nextIdSql } from "@/db/write-if";
 import { database } from "@/db/ready";
 import { fromJob, jobPatch, toAccount, toContactView, toEmployer, toJob, toLogEntry, toReport } from "@/db/rows";
 import * as t from "@/db/schema";
@@ -28,18 +28,6 @@ import type {
 
 /** Insertion order, which the in-memory lists had; ties in other orderings fall back to it too. */
 const inserted = sql`rowid`;
-
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
-
-/** The next id of a kind: the prefix and one more than the highest number used (j19 → j20). */
-async function nextId(db: Db | Tx, table: SQLiteTable, column: SQLiteColumn, prefix: string): Promise<string> {
-  const number = sql<number | null>`max(cast(substr(${column}, ${prefix.length + 1}) as integer))`;
-  const [row] = await db
-    .select({ n: number })
-    .from(table)
-    .where(sql`${column} glob ${`${prefix}[0-9]*`}`);
-  return `${prefix}${(row?.n ?? 0) + 1}`;
-}
 
 /**
  * Every write goes through here, so stored jobs always have one shape: employment types as a clean
@@ -109,11 +97,15 @@ export async function listJobsByEmployer(employerId: string): Promise<Job[]> {
 /** `postedBy`: the account that posts it (#182); demo and test jobs have none. */
 export async function createJob(job: Omit<Job, "id">, postedBy?: string): Promise<Job> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const created = { ...normalizeJob({ ...job }), id: await nextId(tx, t.jobs, t.jobs.id, "j") };
-    await tx.insert(t.jobs).values({ ...fromJob(created), postedBy: postedBy ? normalizeEmail(postedBy) : null });
-    return created;
-  });
+  const [row] = await db
+    .insert(t.jobs)
+    .values({
+      ...fromJob({ ...normalizeJob({ ...job }), id: "" }),
+      id: nextIdSql(t.jobs, t.jobs.id, "j"),
+      postedBy: postedBy ? normalizeEmail(postedBy) : null,
+    })
+    .returning();
+  return toJob(row);
 }
 
 /**
@@ -128,39 +120,45 @@ export async function submitReport(
   evidence?: { reporterEmail: string; messages: readonly EvidenceMessage[]; images?: readonly EvidenceImage[] },
 ): Promise<Report> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const report: Report = {
-      id: await nextId(tx, t.reports, t.reports.id, "r"),
+  const createdAt = new Date().toISOString();
+  const report = db
+    .insert(t.reports)
+    .values({
+      id: nextIdSql(t.reports, t.reports.id, "r"),
       jobId,
       reason,
-      note,
-      createdAt: new Date().toISOString(),
+      note: note ?? null,
+      createdAt,
       status: "open",
-    };
-    await tx.insert(t.reports).values({ ...report, note: note ?? null });
-    const reporterEmail = evidence && normalizeEmail(evidence.reporterEmail);
-    const rows = [
-      ...(evidence?.messages ?? []).map((m) => ({
-        kind: "message" as const,
-        messageId: m.messageId,
-        messageFrom: m.from,
-        messageByName: m.byName,
-        messageText: m.text,
-        messageSentAt: m.sentAt,
-      })),
-      ...(evidence?.images ?? []).map((image) => ({
-        kind: "image" as const,
-        imageKey: image.key,
-        imageType: image.type,
-        imageBytes: image.bytes,
-      })),
-    ];
-    if (reporterEmail && rows.length)
-      await tx
-        .insert(t.reportEvidence)
-        .values(rows.map((row) => ({ ...row, reportId: report.id, reporterEmail, createdAt: report.createdAt })));
-    return report;
-  });
+    })
+    .returning();
+  const reporterEmail = evidence && normalizeEmail(evidence.reporterEmail);
+  // No other write can run between these statements: the first row is this batch's newly inserted report.
+  const reportId = sql`(select id from ${t.reports} order by rowid desc limit 1)`;
+  const rows = [
+    ...(evidence?.messages ?? []).map((m) => ({
+      kind: "message" as const,
+      messageId: m.messageId,
+      messageFrom: m.from,
+      messageByName: m.byName,
+      messageText: m.text,
+      messageSentAt: m.sentAt,
+    })),
+    ...(evidence?.images ?? []).map((image) => ({
+      kind: "image" as const,
+      imageKey: image.key,
+      imageType: image.type,
+      imageBytes: image.bytes,
+    })),
+  ];
+  // One small statement per attachment keeps each below D1's parameter limit.
+  const [reports] = await db.batch([
+    report,
+    ...rows.flatMap((row) =>
+      reporterEmail ? [insertIf(db, t.reportEvidence, { ...row, reportId, reporterEmail, createdAt }, sql`true`)] : [],
+    ),
+  ]);
+  return toReport(reports[0]);
 }
 
 export async function listReports(): Promise<Report[]> {
@@ -225,20 +223,22 @@ export async function setEmployerVerification(
 /** Ban an employer and take down their live jobs (active or pending review). Returns the ids taken down. */
 export async function banEmployer(id: string): Promise<string[]> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const [employer] = await tx.select({ id: t.employers.id }).from(t.employers).where(eq(t.employers.id, id));
-    if (!employer) return [];
-    await tx.update(t.employers).set({ bannedAt: new Date().toISOString() }).where(eq(t.employers.id, id));
-    // Only jobs that are public or waiting to be: closed jobs are not shown, so there is nothing to take down.
-    const live = await tx
-      .select({ id: t.jobs.id })
-      .from(t.jobs)
-      .where(and(eq(t.jobs.employerId, id), inArray(t.jobs.status, ["active", "pending_review"])))
-      .orderBy(inserted);
-    const ids = live.map((j) => j.id);
-    if (ids.length) await tx.update(t.jobs).set({ status: "removed" }).where(inArray(t.jobs.id, ids));
-    return ids;
-  });
+  const at = new Date().toISOString();
+  const [, removed] = await db.batch([
+    db.update(t.employers).set({ bannedAt: at }).where(eq(t.employers.id, id)),
+    db
+      .update(t.jobs)
+      .set({ status: "removed" })
+      .where(
+        and(
+          eq(t.jobs.employerId, id),
+          inList(t.jobs.status, ["active", "pending_review"]),
+          sql`exists (select 1 from ${t.employers} where ${t.employers.id} = ${id} and ${t.employers.bannedAt} = ${at})`,
+        ),
+      )
+      .returning({ id: t.jobs.id, position: sql<number>`rowid` }),
+  ]);
+  return removed.sort((a, b) => a.position - b.position).map((row) => row.id);
 }
 
 /** Record that a signed-in job seeker revealed a job's contact details. */
@@ -265,15 +265,15 @@ export async function addModerationLog(
   entry: Omit<ModerationLogEntry, "id" | "at" | "moderator"> & { moderator: string },
 ): Promise<ModerationLogEntry> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const full: ModerationLogEntry = {
+  const [row] = await db
+    .insert(t.moderationLog)
+    .values({
       ...entry,
-      id: await nextId(tx, t.moderationLog, t.moderationLog.id, "a"),
+      id: nextIdSql(t.moderationLog, t.moderationLog.id, "a"),
       at: new Date().toISOString(),
-    };
-    await tx.insert(t.moderationLog).values(full);
-    return full;
-  });
+    })
+    .returning();
+  return toLogEntry(row);
 }
 
 /** Moderation decisions, newest first. */
@@ -294,7 +294,7 @@ export async function getPlatformStats(country: CountryCode): Promise<PlatformSt
   );
   const ids = posted.map((j) => j.id);
   const [views] = ids.length
-    ? await db.select({ n: count() }).from(t.contactViews).where(inArray(t.contactViews.jobId, ids))
+    ? await db.select({ n: count() }).from(t.contactViews).where(inList(t.contactViews.jobId, ids))
     : [{ n: 0 }];
   return {
     employersPosting: new Set(posted.map((j) => j.employerId)).size,
@@ -345,17 +345,20 @@ export async function ensureAccount(email: string): Promise<Account> {
 /** A new business an employer signs up with. Starts unverified. */
 export async function createEmployer(details: { name: string; regionId: string }): Promise<Employer> {
   const db = await database();
-  return db.transaction(async (tx) => {
-    const employer: Employer = {
-      id: await nextId(tx, t.employers, t.employers.id, "e"),
+  const [row] = await db
+    .insert(t.employers)
+    .values({
+      id: nextIdSql(t.employers, t.employers.id, "e"),
       name: details.name.trim(),
       verification: "unverified",
       regionId: details.regionId,
       createdAt: new Date().toISOString().slice(0, 10),
-    };
-    await tx.insert(t.employers).values({ ...employer, legalName: null, businessNumber: null, bannedAt: null });
-    return employer;
-  });
+      legalName: null,
+      businessNumber: null,
+      bannedAt: null,
+    })
+    .returning();
+  return toEmployer(row);
 }
 
 export type OpenEmployerResult =
@@ -375,17 +378,25 @@ export async function openEmployerIdentity(email: string, employerId: string): P
   if (account.employerId && account.employerId !== employerId) return { ok: false, reason: "already_employer" };
   if (account.employerId === employerId) return { ok: true, account, employer };
   const db = await database();
-  const claimed = await db.transaction(async (tx) => {
-    const [owner] = await tx.select().from(t.accounts).where(eq(t.accounts.employerId, employerId)).limit(1);
-    if (owner) return false;
-    await tx
-      .update(t.accounts)
-      .set({ employerId, teamRole: "admin", teamJoinedAt: new Date().toISOString() })
-      .where(and(eq(t.accounts.email, account.email), isNull(t.accounts.employerId)));
-    return true;
-  });
-  if (!claimed) return { ok: false, reason: "taken" };
-  return { ok: true, account: { ...account, employerId, teamRole: "admin" }, employer };
+  const [claimed] = await db
+    .update(t.accounts)
+    .set({ employerId, teamRole: "admin", teamJoinedAt: new Date().toISOString() })
+    .where(
+      and(
+        eq(t.accounts.email, account.email),
+        isNull(t.accounts.employerId),
+        sql`not exists (select 1 from ${t.accounts} where ${t.accounts.employerId} = ${employerId})`,
+        sql`exists (select 1 from ${t.employers} where ${t.employers.id} = ${employerId} and ${t.employers.bannedAt} is null)`,
+      ),
+    )
+    .returning();
+  if (claimed) return { ok: true, account: toAccount(claimed), employer };
+  // Distinguish a competing identity change from someone else taking this business.
+  const current = await getAccount(email);
+  if (current?.employerId === employerId) return { ok: true, account: current, employer };
+  if (current?.employerId) return { ok: false, reason: "already_employer" };
+  if ((await getEmployer(employerId))?.bannedAt) return { ok: false, reason: "banned" };
+  return { ok: false, reason: "taken" };
 }
 
 /** The businesses some account has bound (banned ones included: they stay linked to their account). */
