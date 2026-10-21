@@ -27,7 +27,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 
 两层：服务器上的数据库是准的，浏览器只做缓存和还没上服务器的部分。
 
-**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位 `jobs`、企业 `employers`、账号 `accounts`（含和企业的绑定）、举报 `reports`、审核日志 `moderation_log`、联系方式查看记录 `contact_views`（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。职位举报附的截图（ADR 0027）不进数据库：线上放在 R2 桶 `EVIDENCE_BUCKET`，本机放在 `data/uploads/report-evidence`（`src/db/evidence-store.ts`），只经 `/api/report-evidence/[id]` 交给审核员。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上数据库用 Cloudflare D1（#15，ADR 0029），要先把交互式事务改写（ADR 0031），还没建库。
+**数据库（`src/db/`）：** `src/lib/data.ts` 读写职位 `jobs`、企业 `employers`、账号 `accounts`（含和企业的绑定）、举报 `reports`、审核日志 `moderation_log`、联系方式查看记录 `contact_views`（#8、#11）；`src/lib/auth` 的验证码和会话（`sign_in_codes`、`sessions`，#9，ADR 0007）；`src/lib/chat-server` 的每个身份的聊天记录、通知已读和已应用的改动编号（#10，`chat_records` 表，#42）；`src/db/job-stats.ts` 的职位浏览和发起聊天计数（`job_views`、`job_chat_starts`，#55）；`src/db/job-alerts.ts` 的职位提醒和提醒命中（`job_alerts`、`job_alert_hits`，#53）；`src/db/account-data.ts` 导出和删除一个账号的全部数据（#54，ADR 0009）。职位举报附的截图（ADR 0027）不进数据库：线上放在 R2 桶 `EVIDENCE_BUCKET`，本机放在 `data/uploads/report-evidence`（`src/db/evidence-store.ts`），只经 `/api/report-evidence/[id]` 交给审核员。本机是 libSQL 文件 `data/zhaogong.db`，重启服务器不会丢，测试每个文件一个内存库；第一次用到时迁移，空库且 `DEMO_DATA` 打开时导入 `src/mock` 的演示数据（ADR 0005）。函数签名沿用阶段一（ADR 0001），页面不知道背后是数据库；聊天放在 `ChatServerStore` 接口后面，单测换成内存实现。线上数据库用 Cloudflare D1（#15，ADR 0029），集成分支已完成事务改写及本机 D1 验证（ADR 0031），最终构建和浏览器验收仍待完成，尚未建远程库。
 
 后来加的表（都在 `src/db/schema.ts`，读写在 `src/db/` 下对应的模块里，如 `team.ts`、`job-applications.ts`、`external-jobs.ts`）：
 
@@ -136,7 +136,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 ## 渲染和部署
 
 - Cache Components 开启：静态部分预渲染，依赖请求的部分（会话、`usePathname` 的动态路由）放在 `Suspense` 里流式输出。底部导航和顶栏导航有静态的占位，不开 JavaScript 也能用。
-- Cloudflare Workers + OpenNext（ADR 0004），数据库是 Cloudflare D1（ADR 0029，代码还没改过去）。还没重新部署：用户 10-20 定了等邮件服务（#16）定下来一起上线，部署前要过 #332；步骤见 `docs/cloudflare-deployment.md`。
+- Cloudflare Workers + OpenNext（ADR 0004），数据库是 Cloudflare D1（ADR 0029，ADR 0031 已在集成分支实现）。还没重新部署：用户 10-20 定了等邮件服务（#16）定下来一起上线，部署前要过 #332；步骤见 `docs/cloudflare-deployment.md`。
 
 ## 测试
 

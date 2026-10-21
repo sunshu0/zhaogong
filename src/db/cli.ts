@@ -14,6 +14,7 @@ import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { d1Binding, databaseUrl, setCommandLineD1, type D1Binding } from "@/db/client";
+import { DATABASE_USAGE as USAGE, parseDatabaseArguments } from "@/db/cli-args";
 import { migrateDb } from "@/db/migrate";
 import { grantModerator, revokeModerator } from "@/db/moderators";
 import { isDatabaseEmpty, seedDemoData } from "@/db/seed";
@@ -22,9 +23,6 @@ import { isValidEmail } from "@/components/seeker/session";
 import { retireDemoExternalJobs, runDemoImport } from "@/lib/external-jobs/demo-import";
 import { importExternalJobs, importSummary, takeDownUnlisted } from "@/lib/external-jobs/import";
 import { politeFetcher } from "@/lib/external-jobs/polite-fetch";
-
-const USAGE =
-  "Usage: tsx src/db/cli.ts migrate | seed | admin:grant <email> | admin:revoke <email> | import:external [--dry-run] [company ids] [--d1-local] [--persist-to <directory>]";
 
 async function prepareDatabase(): Promise<void> {
   // D1 migrations are applied before opening the proxy. Node databases use Drizzle's local migrator.
@@ -39,6 +37,10 @@ async function moderator(command: "admin:grant" | "admin:revoke", email: string 
   if (command === "admin:grant") {
     await ensureAccount(email);
     const result = await grantModerator(email, null);
+    if (result === "no_account") {
+      console.error("The account was removed before permission could be granted; try again.");
+      return 1;
+    }
     console.log(result === "already" ? `${email} is already a moderator.` : `${email} is now a moderator.`);
     return 0;
   }
@@ -123,21 +125,12 @@ async function main(command: string | undefined, arg: string | undefined, rest: 
 }
 
 async function run(): Promise<number> {
-  const [command, ...rawArgs] = process.argv.slice(2);
-  if (rawArgs.includes("--d1-remote")) throw new Error("Remote D1 is not supported by this local setup command.");
-  const local = rawArgs.includes("--d1-local");
-  const persistIndex = rawArgs.indexOf("--persist-to");
-  const persistTo = persistIndex < 0 ? ".wrangler/state" : rawArgs[persistIndex + 1];
-  if (!persistTo || persistTo.startsWith("--")) throw new Error("--persist-to needs a directory.");
-  if (!local && persistIndex >= 0) throw new Error("--persist-to requires --d1-local.");
-  const cleanArgs = rawArgs.filter(
-    (value, i) => value !== "--d1-local" && (persistIndex < 0 || (i !== persistIndex && i !== persistIndex + 1)),
-  );
-  if (!local) return main(command, cleanArgs[0], cleanArgs);
-  if (!["migrate", "seed", "admin:grant", "admin:revoke", "import:external"].includes(command ?? "")) {
-    console.error(USAGE);
+  const { command, args: cleanArgs, localD1, persistTo } = parseDatabaseArguments(process.argv.slice(2));
+  if ((command === "admin:grant" || command === "admin:revoke") && !isValidEmail(cleanArgs[0])) {
+    console.error(`${USAGE}\nGive the account's email.`);
     return 2;
   }
+  if (!localD1) return main(command, cleanArgs[0], cleanArgs);
   const runFile = promisify(execFile);
   await runFile(
     process.execPath,
@@ -172,7 +165,7 @@ async function run(): Promise<number> {
 run().then(
   (code) => process.exit(code),
   (error) => {
-    console.error(error);
+    console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   },
 );

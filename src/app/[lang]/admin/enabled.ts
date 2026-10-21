@@ -1,4 +1,4 @@
-// /admin is a demo without moderator sign-in, so it is off unless ADMIN_ENABLED=1. Local development
+// /admin is off unless ADMIN_ENABLED=1; requireModerator() also checks sign-in and the moderator role. Local development
 // turns it on in .env.development; the deployed Worker (wrangler.jsonc) does not set it.
 
 export function adminEnabled(): boolean {
