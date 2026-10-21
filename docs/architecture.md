@@ -37,6 +37,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `conversations`、`messages`、`exchanges` | 求职者和企业共用的一条对话，企业整个团队一起读写 | ADR 0015 |
 | `team_invites`、`team_chats` | 企业的团队和邀请；雇主一侧的聊天按企业存一份 | ADR 0012 |
 | `team_invite_links` | 团队邀请链接：只存令牌的哈希，7 天、一次、可撤销，只能加入为成员（`src/db/team-links.ts`） | ADR 0028 |
+| `write_guards` | D1 原子批量写入的临时守卫，只在 batch 中存在，完成或失败后不留记录（`src/db/guarded-batch.ts`）；团队快照与重试见 `team-state.ts` 和 `optimistic.ts` | ADR 0031 |
 | `moderators` | 审核员名单（`npm run admin:grant` 加第一位） | ADR 0007 补充 |
 | `verification_requests` | 企业验证的申请和审核员的核对、驳回理由 | ADR 0011 |
 | `saved_jobs` | 收藏和进度，只有账号自己读 | |
@@ -83,6 +84,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | --- | --- |
 | `src/app/[lang]/account/actions.ts` | 数据与账号 |
 | `src/app/[lang]/admin/actions.ts` | 审核后台 |
+| `src/app/[lang]/admin/evidence-actions.ts` | 举报附的聊天和截图，仅审核员可读，交出聊天前记录查看记录（ADR 0027） |
 | `src/app/[lang]/admin/entry-actions.ts` | 审核后台的入口：账号能不能打开 /admin（#73） |
 | `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |

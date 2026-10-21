@@ -314,6 +314,8 @@
 
 ## 审核后台 — `src/app/[lang]/admin/actions.ts`
 
+举报证据读取位于 `src/app/[lang]/admin/evidence-actions.ts`：`getReportEvidence(reportId)` 先验证审核员身份，返回 `{ evidence }`（聊天按发送顺序，再列截图）；拒绝时返回 `{ refused, error_zh }`。交出聊天前记录审核员查看行为；截图经单独的受保护接口交出并记录。
+
 只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/[lang]/admin/moderator.ts`，#50）：
 
 - 未登录：`getModerationQueue()`、`getModerators()` 返回 `{ refused: "signed_out", error_zh: "请先登录。" }`，其他函数返回「请先登录。」。

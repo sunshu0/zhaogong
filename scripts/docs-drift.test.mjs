@@ -32,9 +32,19 @@ function migratedTables() {
     .sort()
     .map(read)
     .join("\n");
-  const created = [...sql.matchAll(/CREATE TABLE `([a-z_]+)`/g)].map((m) => m[1]);
-  const dropped = new Set([...sql.matchAll(/DROP TABLE `([a-z_]+)`/g)].map((m) => m[1]));
-  return [...new Set(created)].filter((name) => !dropped.has(name)).sort();
+  const tables = new Set();
+  // Rebuild migrations rename a temporary table back to the original name; those are not extra product tables.
+  for (const match of sql.matchAll(
+    /CREATE TABLE `([a-z_]+)`|DROP TABLE `([a-z_]+)`|ALTER TABLE `([a-z_]+)` RENAME TO `([a-z_]+)`/g,
+  )) {
+    if (match[1]) tables.add(match[1]);
+    if (match[2]) tables.delete(match[2]);
+    if (match[3]) {
+      tables.delete(match[3]);
+      tables.add(match[4]);
+    }
+  }
+  return [...tables].sort();
 }
 
 /**
@@ -70,6 +80,8 @@ describe("docs follow the code", () => {
   it("finds the Server Function files and the tables at all", () => {
     expect(serverFunctionFiles()).toContain("src/app/[lang]/login/actions.ts");
     expect(migratedTables()).toContain("jobs");
+    expect(migratedTables()).toContain("job_applications");
+    expect(migratedTables()).not.toContain("__new_job_applications");
   });
 
   it("names every Server Function file in docs/api.md and in architecture.md's list", () => {
