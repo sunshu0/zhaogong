@@ -1,6 +1,7 @@
 // Writes that decide inside the statement (ADR 0031). D1 has no interactive transactions, so "check, then write"
 // becomes one statement whose condition the database checks at the moment it writes: nobody can slip in between.
 import { getTableColumns, is, sql, SQL } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 import type { Db } from "@/db/client";
 import { D1_MAX_PARAMETERS } from "@/db/d1-rules";
@@ -22,7 +23,7 @@ function columnValue(column: SQLiteColumn, value: unknown): SQL {
  */
 export function insertIf<T extends SQLiteTable>(db: Db, table: T, row: RowOrSql<T>, condition: SQL) {
   const values = Object.entries(getTableColumns(table))
-    .filter(([, column]) => !column.shouldDisableInsert())
+    .filter(([, column]) => !(column as SQLiteColumn & { shouldDisableInsert(): boolean }).shouldDisableInsert())
     .map(([key, column]) => columnValue(column, (row as Record<string, unknown>)[key]));
   return db.insert(table).select(sql`select ${sql.join(values, sql`, `)} where ${condition}`);
 }
@@ -43,7 +44,7 @@ export function insertsInChunks<T extends SQLiteTable>(db: Db, table: T, rows: T
   // Every column may take a parameter in a row (drizzle fills in defaults from code), so count them all.
   const perRow = Object.keys(getTableColumns(table)).length;
   const size = Math.max(1, Math.floor(D1_MAX_PARAMETERS / perRow));
-  const inserts = [];
+  const inserts: BatchItem<"sqlite">[] = [];
   for (let i = 0; i < rows.length; i += size) inserts.push(db.insert(table).values(rows.slice(i, i + size)));
   return inserts;
 }

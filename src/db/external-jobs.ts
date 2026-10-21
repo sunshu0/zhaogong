@@ -1,6 +1,7 @@
 // External jobs in the database (#111, ADR 0014): what each import found, kept as facts. The importer
 // (src/lib/external-jobs/import.ts) and, later, the moderators' and the sections' pages call this. Server only.
 import { and, asc, eq, getTableColumns, isNull, not, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { database } from "@/db/ready";
 import { inList } from "@/db/in-list";
 import * as t from "@/db/schema";
@@ -92,14 +93,17 @@ export async function saveCompanyFeed(
     );
   }
   for (const job of known.values()) if (!seen.has(job.id) && job.removedAt == null) result.removed += 1;
-  await db.batch([
+  const statements: BatchItem<"sqlite">[] = [
     ...upserts,
     // Jobs no longer in the feed come down; the list goes in as one parameter (D1 takes at most 100).
     db
       .update(jobs)
       .set({ removedAt: at, removedReason: "gone" })
       .where(and(eq(jobs.companyId, company.id), isNull(jobs.removedAt), not(inList(jobs.id, [...seen])))),
-  ]);
+  ];
+  if (statements.length > 0) {
+    await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+  }
   return result;
 }
 

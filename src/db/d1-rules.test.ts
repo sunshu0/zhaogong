@@ -1,6 +1,6 @@
 import { createClient } from "@libsql/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { d1Binding, useD1ForTests, type D1Binding } from "@/db/client";
+import { d1Binding, setD1ForTests, type D1Binding } from "@/db/client";
 import { checkD1Statement, d1Rules } from "@/db/d1-rules";
 
 describe("libSQL under D1's rules (ADR 0031)", () => {
@@ -33,11 +33,12 @@ describe("which database getDb() opens", () => {
   afterEach(() => {
     delete (globalThis as Record<symbol, unknown>)[cloudflare];
     process.env.DATABASE_URL = saved;
-    useD1ForTests(undefined);
+    setD1ForTests(undefined);
   });
 
   it("uses the Worker's DB binding on Cloudflare, unless DATABASE_URL asks for libSQL", () => {
     const binding = { prepare() {} } as unknown as D1Binding;
+    delete process.env.DATABASE_URL;
     (globalThis as Record<symbol, unknown>)[cloudflare] = { env: { DB: binding } };
     expect(d1Binding()).toBe(binding);
     process.env.DATABASE_URL = "file::memory:";

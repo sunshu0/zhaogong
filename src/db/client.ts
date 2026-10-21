@@ -62,7 +62,7 @@ export function d1Binding(): D1Binding | undefined {
  * Tests only: run on this D1 database instead of libSQL (undefined goes back to libSQL). `freshen` empties and migrates
  * it; it runs before the first use and after each reset, as a fresh file::memory: database would.
  */
-export function useD1ForTests(binding: D1Binding | undefined, freshen: () => Promise<void> = async () => {}): void {
+export function setD1ForTests(binding: D1Binding | undefined, freshen: () => Promise<void> = async () => {}): void {
   testD1 = binding && { binding, freshen };
   testD1Stale = true;
 }
