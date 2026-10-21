@@ -356,6 +356,8 @@ describe("deleteAccount (#54)", () => {
       "verification_requests.decided_by_email",
       "team_invites.email",
       "team_invites.invited_by_email",
+      "team_invite_links.created_by_email",
+      "team_invite_links.used_by_email",
       "ai_usage.email",
     ]);
     const found = Object.values(t as Record<string, unknown>)

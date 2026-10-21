@@ -3,6 +3,8 @@ import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { memoryChatStore, setChatServerStoreForTests } from "@/lib/chat-server/store";
 import { ensureAccount, openEmployerIdentity } from "@/lib/data";
+import { resetDatabaseForTests } from "@/db/ready";
+import { openSharedConversation } from "@/db/conversations";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -17,7 +19,7 @@ const { decideMyChatCandidate, getMyApplicationCounts, getMyChatCandidate, getMy
   await import("@/app/[lang]/employer/applicant-actions");
 const { inviteMyApplicant } = await import("@/app/[lang]/employer/interview-actions");
 const { myAppliedJobIds, myApplicationViews } = await import("@/app/[lang]/jobs/[id]/apply-actions");
-const { answerMyInterview, myInterviewTodos } = await import("@/app/[lang]/me/interview-actions");
+const { answerMyInterview } = await import("@/app/[lang]/me/interview-actions");
 const { myAlertNotifications } = await import("@/app/[lang]/me/alerts/actions");
 const { changeMyChat, myChat } = await import("@/app/[lang]/messages/actions");
 const { saveMyProfile } = await import("@/app/[lang]/profile/actions");
@@ -49,6 +51,7 @@ async function bossConversation() {
 }
 
 beforeEach(() => {
+  resetDatabaseForTests();
   setAuthStoreForTests();
   setChatServerStoreForTests(memoryChatStore());
   cookies.clear();
@@ -118,8 +121,11 @@ describe("聊过这个职位的人 (ADR 0030)", () => {
   });
 
   it("a mark before anything is said makes the row; an interview on it can be answered", async () => {
-    await openChat();
+    await signedIn(SEEKER);
     await saveMyProfile({ name: "陈小雨" });
+    await signedIn(BOSS, "employer");
+    // An empty conversation is visible only to its initiator, so the business starts this one.
+    await openSharedConversation({ seekerEmail: SEEKER, employerId: "e2", jobId: "j4", startedBy: "employer" });
     const chatId = await bossConversation();
     expect(await getMyChatCandidate(chatId)).toEqual({ decision: null });
     expect((await getMyJobApplicants("j4"))!.applicants).toEqual([]);
@@ -132,6 +138,7 @@ describe("聊过这个职位的人 (ADR 0030)", () => {
     expect((await myApplicationViews())![0].interview).toMatchObject({ status: "proposed" });
     expect(await answerMyInterview("j4", { kind: "confirm", slot: SOON })).toMatchObject({ ok: true });
     await signedIn(BOSS, "employer");
-    expect((await myInterviewTodos()).map((t) => t.title).join()).toContain("陈小雨");
+    const replies = (await myAlertNotifications())!.items.filter((n) => n.type === "面试");
+    expect(replies.map((n) => n.title).join()).toContain("陈小雨");
   });
 });
