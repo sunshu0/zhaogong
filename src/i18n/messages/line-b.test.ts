@@ -85,7 +85,10 @@ describe("line B's dictionaries", () => {
 
   it("words with a figure agree with it in English", () => {
     const en = pick(employerJobsMessages, "en");
-    expect([en.numbers.applicants(1), en.numbers.applicants(3)]).toEqual(["1 application", "3 applications"]);
+    expect([en.numbers.applicants(1), en.numbers.applicants(3)]).toEqual([
+      "People who chatted: 1",
+      "People who chatted: 3",
+    ]);
     expect([
       pick(employerPostMessages, "en").bars.holdReason(1, 0),
       pick(employerPostMessages, "en").bars.holdReason(2, 3),

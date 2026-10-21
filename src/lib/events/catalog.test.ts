@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { EVENTS, FILTER_NAMES, checkEvent } from "@/lib/events/catalog";
 
 describe("the funnel events' list (#312, ADR 0025 §4)", () => {
-  it("has the 18 events of the ADR's table", () => {
-    expect(Object.keys(EVENTS)).toHaveLength(18);
+  it("has the 16 events of the ADR's table after removing applications (#352)", () => {
+    expect(Object.keys(EVENTS)).toHaveLength(16);
     expect(FILTER_NAMES).toEqual(["q", "region", "industry", "role", "type", "minPay", "visa", "meals", "housing"]);
   });
 
@@ -34,6 +34,8 @@ describe("the funnel events' list (#312, ADR 0025 §4)", () => {
       null,
       "job_view",
       { name: "page_view", path: "/" },
+      { name: "apply_open", path: "/jobs/[id]", jobId: "j1" },
+      { name: "apply_submit", path: "/jobs/[id]", jobId: "j1" },
       { name: "toString", path: "/" },
       { name: "home_view", path: "https://evil.example/" },
       { name: "home_view", path: "/jobs?q=phone" },
