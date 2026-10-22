@@ -30,7 +30,13 @@ async function reportWithEvidence() {
   return submitReport("j1", "charges_fee", "押金", {
     reporterEmail: "reporter@example.com",
     messages: [
-      { messageId: 12, from: "employer", byName: "王经理", text: "入职前先交 200 元押金", sentAt: "2026-10-20T01:02:00Z" },
+      {
+        messageId: 12,
+        from: "employer",
+        byName: "王经理",
+        text: "入职前先交 200 元押金",
+        sentAt: "2026-10-20T01:02:00Z",
+      },
       { messageId: 11, from: "seeker", byName: null, text: "你好，还招人吗？", sentAt: "2026-10-20T01:01:00Z" },
     ],
     images: [{ key: "evidence-test-key", type: "image/png", bytes: 1234 }],
