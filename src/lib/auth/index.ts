@@ -8,6 +8,7 @@ export {
   type RequestCodeResult,
   type VerifyCodeResult,
 } from "@/lib/auth/codes";
+export { clientIp } from "@/lib/auth/limits";
 export { canSendCodes, sendSignInCode } from "@/lib/auth/delivery";
 export {
   AuthError,

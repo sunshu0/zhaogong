@@ -12,7 +12,7 @@ const jar: CookieJar = {
   set: (name, value) => void cookies.set(name, value),
   delete: (name) => void cookies.delete(name),
 };
-vi.mock("next/headers", () => ({ cookies: async () => jar }));
+vi.mock("next/headers", () => ({ cookies: async () => jar, headers: async () => new Headers() }));
 
 const { accountStatus, openEmployerForAccount, requestSignInCode, signInAccount } =
   await import("@/app/[lang]/login/actions");

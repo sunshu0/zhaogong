@@ -63,6 +63,19 @@ export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
     noCode: "Ask for a code first",
     expired: "The code has expired. Ask for a new one.",
     tooManyTries: "Too many wrong tries. Ask for a new code.",
+    limited: {
+      ip: (wait) => `Too many codes asked for or checked from this network. Try again in ${wait}.`,
+      email: (wait) => `Too many codes asked for or checked for this email today. Try again in ${wait}.`,
+      site: (wait) => `A lot of people are asking for codes right now. Try again in ${wait}.`,
+    },
+    waitText: (seconds) => {
+      if (seconds < 3600) {
+        const minutes = Math.max(1, Math.ceil(seconds / 60));
+        return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+      }
+      const hours = Math.ceil(seconds / 3600);
+      return hours === 1 ? "1 hour" : `${hours} hours`;
+    },
     wrongCode: (left) =>
       left === 1 ? "That code isn't right. 1 try left." : `That code isn't right. ${left} tries left.`,
     signInFirst: "Sign in first",

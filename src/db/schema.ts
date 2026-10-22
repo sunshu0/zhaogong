@@ -225,6 +225,20 @@ export const signInCodes = sqliteTable("sign_in_codes", {
 });
 
 /**
+ * How many sign-in codes were asked for or checked in a window (ADR 0033): one row per limit, subject and window.
+ * `key` is a keyed hash of all three, so no IP or email is stored; a row may go once `expires_at` has passed.
+ */
+export const authLimits = sqliteTable(
+  "auth_limits",
+  {
+    key: text("key").primaryKey(),
+    count: integer("count").notNull(),
+    expiresAt: text("expires_at").notNull(),
+  },
+  (table) => [index("auth_limits_expires_idx").on(table.expiresAt)],
+);
+
+/**
  * Server sessions behind an httpOnly cookie. The cookie holds the random token; the id is its SHA-256, so the
  * token itself is never stored. The employer identity is not kept here: it is read from accounts.employer_id.
  */

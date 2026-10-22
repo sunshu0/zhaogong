@@ -1,9 +1,9 @@
 // Sign-in codes and sessions in the database: the database version of A12-1's AuthStore
 // (src/lib/auth/store.ts on a/A12-1-auth), same methods and row shapes, so codes.ts and sessions.ts do not
 // change when A switches authStore() over to it. Server only.
-import { and, eq, gt, lt, sql } from "drizzle-orm";
+import { and, eq, gt, lt, lte, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
-import { sessions, signInCodes } from "@/db/schema";
+import { authLimits, sessions, signInCodes } from "@/db/schema";
 import type { AccountRole } from "@/lib/types";
 
 export type SignInCodeRow = typeof signInCodes.$inferSelect;
@@ -46,6 +46,27 @@ export function databaseAuthStore() {
     async deleteCode(email: string): Promise<void> {
       const db = await database();
       await db.delete(signInCodes).where(eq(signInCodes.email, email));
+    },
+    /**
+     * One statement (ADR 0033): the first count inserts the row, later ones add one only while below `max`, so
+     * requests sent at once cannot pass the limit between them. No row back means the limit was reached.
+     */
+    async takeLimit(key: string, max: number, expiresAt: string): Promise<boolean> {
+      const db = await database();
+      const rows = await db
+        .insert(authLimits)
+        .values({ key, count: 1, expiresAt })
+        .onConflictDoUpdate({
+          target: authLimits.key,
+          set: { count: sql`${authLimits.count} + 1` },
+          setWhere: lt(authLimits.count, max),
+        })
+        .returning({ count: authLimits.count });
+      return rows.length > 0 && rows[0].count <= max;
+    },
+    async clearEndedLimits(now: string): Promise<void> {
+      const db = await database();
+      await db.delete(authLimits).where(lte(authLimits.expiresAt, now));
     },
     async getSession(id: string): Promise<SessionRow | undefined> {
       const db = await database();

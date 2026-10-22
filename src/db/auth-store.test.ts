@@ -50,6 +50,24 @@ describe("taking a try and using a code in one statement each (security review)"
   });
 });
 
+describe("sign-in limits in the database (ADR 0033)", () => {
+  it("counts up to the limit in one statement each, even when the requests come at once", async () => {
+    const key = "c".repeat(64);
+    const taken = await Promise.all(Array.from({ length: 12 }, () => store.takeLimit(key, 5, "2026-10-15T11:00:00Z")));
+    expect(taken.filter(Boolean)).toHaveLength(5);
+    expect(await store.takeLimit(key, 5, "2026-10-15T11:00:00Z")).toBe(false);
+    expect(await store.takeLimit("d".repeat(64), 5, "2026-10-15T11:00:00Z")).toBe(true); // another key, its own count
+  });
+
+  it("clears only the counts whose window has ended", async () => {
+    await store.takeLimit("e".repeat(64), 1, "2026-10-15T09:00:00.000Z");
+    await store.takeLimit("f".repeat(64), 1, "2026-10-15T12:00:00.000Z");
+    await store.clearEndedLimits("2026-10-15T10:00:00.000Z");
+    expect(await store.takeLimit("e".repeat(64), 1, "2026-10-15T11:00:00.000Z")).toBe(true); // gone, so counted anew
+    expect(await store.takeLimit("f".repeat(64), 1, "2026-10-15T12:00:00.000Z")).toBe(false); // kept, still full
+  });
+});
+
 describe("sessions in the database", () => {
   const session = {
     id: "f".repeat(64),

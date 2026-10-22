@@ -2,6 +2,7 @@
 
 import {
   AuthError,
+  clientIp,
   createSession,
   getCurrentSession,
   requestCode,
@@ -11,7 +12,7 @@ import {
   type SessionView,
 } from "@/lib/auth";
 import { CODE_TTL_MS, RESEND_AFTER_MS } from "@/lib/auth/config";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { langOnSignIn } from "@/db/account-lang";
 import { demoDataWanted } from "@/db/ready";
 import { langCookieOptions } from "@/i18n/cookie";
@@ -31,6 +32,11 @@ import { isValidCode, isValidEmail, normalizeCode, normalizeEmail, type ActiveRo
 export type AccountStatus = SessionView;
 
 type Failure = { ok: false; error: string };
+
+/** The visitor's IP as Cloudflare passes it on, for the sign-in limits (ADR 0033); none in development. */
+async function asker() {
+  return { ip: clientIp((await headers()).get("cf-connecting-ip")) };
+}
 
 function validEmail(email: unknown): string | null {
   if (typeof email !== "string" || email.length > 320) return null;
@@ -52,7 +58,7 @@ export async function requestSignInCode(
   const t = pick(loginMessages, lang);
   const address = validEmail(email);
   if (!address) return { ok: false, error: t.email.invalid };
-  const result = await requestCode(address, new Date(), lang);
+  const result = await requestCode(address, new Date(), lang, await asker());
   const resendInSec = RESEND_AFTER_MS / 1000;
   const validMinutes = CODE_TTL_MS / 60_000;
   if (result.ok) {
@@ -65,6 +71,9 @@ export async function requestSignInCode(
     const { retryAfterSec } = result;
     return { ok: false, error: t.errors.sentRecently(retryAfterSec), retryAfterSec };
   }
+  // No countdown for these: the wait can be hours, and the message says how long.
+  if (result.reason === "limited")
+    return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
   return { ok: false, error: t.errors.noMailService };
 }
 
@@ -84,7 +93,7 @@ export async function signInAccount(
   // Cleaned before both the check and the verification (#290): " 123 456" passed the check and then failed here.
   const clean = typeof code === "string" ? normalizeCode(code) : "";
   if (!isValidCode(clean)) return { ok: false, error: t.code.invalid };
-  const result = await verifyCode(address, clean);
+  const result = await verifyCode(address, clean, new Date(), await asker());
   if (!result.ok) {
     switch (result.reason) {
       case "no_code":
@@ -93,6 +102,8 @@ export async function signInAccount(
         return { ok: false, error: t.errors.expired };
       case "too_many":
         return { ok: false, error: t.errors.tooManyTries };
+      case "limited":
+        return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
       case "wrong":
         return { ok: false, error: t.errors.wrongCode(result.attemptsLeft) };
     }

@@ -225,6 +225,13 @@
       "when": 1792621227789,
       "tag": "0031_write_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1792678126860,
+      "tag": "0032_auth_limits",
+      "breakpoints": true
     }
   ]
 }

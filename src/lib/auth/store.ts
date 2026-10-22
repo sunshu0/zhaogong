@@ -34,6 +34,13 @@ export interface AuthStore {
   /** Deletes the email's code only if it is still this one (`codeHash`); whether it did. A code works once. */
   useCode(email: string, codeHash: string): Promise<boolean>;
   deleteCode(email: string): Promise<void>;
+  /**
+   * Counts one under `key` in one step, only while the count is below `max` (ADR 0033); whether it counted. The row
+   * is made on the first count and may go at `expiresAt`.
+   */
+  takeLimit(key: string, max: number, expiresAt: string): Promise<boolean>;
+  /** Deletes the counts whose window has ended at `now`. */
+  clearEndedLimits(now: string): Promise<void>;
   getSession(id: string): Promise<SessionRow | undefined>;
   insertSession(row: SessionRow): Promise<void>;
   setSessionRole(id: string, activeRole: ActiveRole): Promise<void>;
@@ -44,12 +51,15 @@ export interface AuthStore {
 export function memoryAuthStore(): AuthStore & {
   codes: Map<string, SignInCodeRow>;
   sessions: Map<string, SessionRow>;
+  limits: Map<string, { count: number; expiresAt: string }>;
 } {
   const codes = new Map<string, SignInCodeRow>();
   const sessions = new Map<string, SessionRow>();
+  const limits = new Map<string, { count: number; expiresAt: string }>();
   return {
     codes,
     sessions,
+    limits,
     async getCode(email) {
       const row = codes.get(email);
       return row && { ...row };
@@ -72,6 +82,15 @@ export function memoryAuthStore(): AuthStore & {
     },
     async deleteCode(email) {
       codes.delete(email);
+    },
+    async takeLimit(key, max, expiresAt) {
+      const row = limits.get(key) ?? { count: 0, expiresAt };
+      if (row.count >= max) return false;
+      limits.set(key, { ...row, count: row.count + 1 });
+      return true;
+    },
+    async clearEndedLimits(now) {
+      for (const [key, row] of limits) if (row.expiresAt <= now) limits.delete(key);
     },
     async getSession(id) {
       const row = sessions.get(id);

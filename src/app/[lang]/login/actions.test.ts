@@ -10,7 +10,9 @@ const jar: CookieJar = {
   set: (name, value) => void cookies.set(name, value),
   delete: (name) => void cookies.delete(name),
 };
-vi.mock("next/headers", () => ({ cookies: async () => jar }));
+// And its headers: CF-Connecting-IP is how Cloudflare says who is asking (the sign-in limits, ADR 0033).
+let requestHeaders = new Headers();
+vi.mock("next/headers", () => ({ cookies: async () => jar, headers: async () => requestHeaders }));
 
 const { accountStatus, openEmployerForAccount, requestSignInCode, signInAccount, signOutAccount, switchIdentity } =
   await import("@/app/[lang]/login/actions");
@@ -25,6 +27,7 @@ async function signIn(email: string, role: "seeker" | "employer" = "seeker") {
 beforeEach(() => {
   setAuthStoreForTests();
   cookies.clear();
+  requestHeaders = new Headers();
   vi.spyOn(console, "info").mockImplementation(() => {});
 });
 
@@ -54,6 +57,17 @@ describe("注册或登录", () => {
     expect(again.error).toBe(`验证码刚发过，请 ${again.retryAfterSec} 秒后再获取`);
     expect(again.retryAfterSec).toBeGreaterThan(0);
     expect(again.retryAfterSec).toBeLessThanOrEqual(60);
+  });
+
+  it("stops one network after twenty codes in an hour and says for how long (ADR 0033)", async () => {
+    requestHeaders = new Headers({ "CF-Connecting-IP": "203.0.113.7" });
+    for (let i = 0; i < 20; i++) expect((await requestSignInCode(`ip${i}@example.com`)).ok).toBe(true);
+    expect(await requestSignInCode("ip20@example.com")).toEqual({
+      ok: false,
+      error: expect.stringMatching(/^这个网络获取或核对验证码太频繁，请 \d+ 分钟后再试$/),
+    });
+    requestHeaders = new Headers({ "CF-Connecting-IP": "198.51.100.1" });
+    expect((await requestSignInCode("ip20@example.com")).ok).toBe(true);
   });
 
   it("in production never hands the code to the page (no mail service yet: it refuses instead)", async () => {

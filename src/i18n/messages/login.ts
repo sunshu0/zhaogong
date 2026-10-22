@@ -65,6 +65,14 @@ const loginZh = {
     noCode: "请先获取验证码",
     expired: "验证码已过期，请重新获取",
     tooManyTries: "错误次数太多，请重新获取验证码",
+    // ADR 0033: over a limit for this network, this email, or the whole site; `wait` from waitText.
+    limited: {
+      ip: (wait: string) => `这个网络获取或核对验证码太频繁，请 ${wait}后再试`,
+      email: (wait: string) => `这个邮箱今天获取或核对验证码的次数太多，请 ${wait}后再试`,
+      site: (wait: string) => `现在获取验证码的人太多，请 ${wait}后再试`,
+    },
+    waitText: (seconds: number) =>
+      seconds < 3600 ? `${Math.max(1, Math.ceil(seconds / 60))} 分钟` : `${Math.ceil(seconds / 3600)} 小时`,
     wrongCode: (left: number) => `验证码不对，还可以再试 ${left} 次`,
     signInFirst: "请先登录",
     employerFirst: "需要先开通雇主身份",
