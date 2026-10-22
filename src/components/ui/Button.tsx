@@ -18,7 +18,7 @@ const BASE =
   "pressable inline-flex items-center justify-center gap-2 text-body font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-busy:cursor-progress";
 const SIZES: Record<ButtonSize, string> = { md: "min-h-11", lg: "min-h-12 text-subtitle" };
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand px-4 text-white hover:opacity-90",
+  primary: "bg-brand px-4 text-white hover:bg-brand-strong active:bg-brand-strong",
   secondary: "border border-brand/40 bg-surface px-4 text-brand hover:border-brand hover:bg-brand-soft",
   danger: "bg-danger px-4 text-white hover:opacity-90",
   "danger-secondary": "border border-danger/40 bg-surface px-4 text-danger hover:border-danger hover:bg-danger-soft",

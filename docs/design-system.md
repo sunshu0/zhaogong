@@ -23,6 +23,7 @@
 | `--muted` | #6b6b66 | 次要文字 | 白底 5.36，底色上 4.99 |
 | `--border` | #e4e4df | 分隔线、边框 | |
 | `--brand` / `--brand-soft` | #0f766e / #e6f4f2 | 品牌、主按钮、签证标签 | 白字在品牌色上 5.47；品牌色在浅底上 4.84 |
+| `--brand-strong` | #0b5f58 | 主按钮悬停和按下时的底色（10-23，#79 那轮查 axe 偶发时发现，原来淡到 90% 只有 4.48） | 白字在上面 7.52 |
 | `--ok` / `--ok-soft` | #147638 / #e8f5ec | 福利标签、已完成 | 5.08 |
 | `--danger` / `--danger-soft` | #b91c1c / #fdecec | 急招、错误、危险操作、未读数 | 5.66 |
 | `--warn` / `--warn-soft` | #b45309 / #fef3e2 | 提醒，如资料完成度里待填的项 | 白底 5.0 |
@@ -197,12 +198,12 @@
 | `--ease-app` | `cubic-bezier(0.2, 0, 0, 1)` | 都用这条：出得快，落得软 |
 | `--press-scale` | 0.97 | 按下时缩小到的比例 |
 
-Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animate-sheet-up`、`animate-pop-in`、`animate-fade-in`、`animate-toast-in`、`animate-shimmer`。**系统打开「减少动态效果」时**，所有动画和过渡都关掉，按下只变暗不缩放（`globals.css` 末尾的媒体查询）。不加动画库。
+Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animate-sheet-up`、`animate-pop-in`、`animate-fade-in`、`animate-toast-in`、`animate-shimmer`。**系统打开「减少动态效果」时**，所有动画和过渡都关掉，按下只变暗不缩放（`globals.css` 末尾的媒体查询）；实心的品牌色按钮不变淡，换成 `--brand-strong`。不加动画库。
 
 ### 按下有反应
 
 - 能点的东西都要有反应：`pressable`（按下缩到 0.97，松手回弹；按钮、卡片、标签、底部导航）或 `pressable-row`（按下变暗；整行宽的列表行，整行缩放看着像坏了）。禁用的不动。
-- 桌面上再加 hover（卡片阴影加深、按钮变浅、行变底色）。
+- 桌面上再加 hover（卡片阴影加深、行变底色；主按钮换深一号的 `bg-brand-strong`，不要用 `hover:opacity-*` 把白字压品牌色的按钮变淡，那样对比度不到 4.5）。
 - `Button`、`ButtonLink`、`buttonClass()` 已经自带 `pressable`。
 
 ### 圆角和阴影（改版页面）

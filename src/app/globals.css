@@ -7,7 +7,8 @@
   --foreground: #1c1c1a;
   --muted: #6b6b66;
   --border: #e4e4df;
-  --brand: #0f766e;
+  --brand: #0f766e; /* white on it 5.47:1 */
+  --brand-strong: #0b5f58; /* a pressed or hovered brand button; white on it 7.52:1 (opacity 0.9 was 4.48:1) */
   --brand-soft: #e6f4f2;
   --warn: #b45309;
   --warn-soft: #fef3e2;
@@ -36,6 +37,7 @@
   --color-muted: var(--muted);
   --color-border: var(--border);
   --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
@@ -191,7 +193,10 @@
   }
 }
 
-/* "Reduce motion" in the system settings: nothing slides, grows or spins; a press only dims. */
+/*
+ * "Reduce motion" in the system settings: nothing slides, grows or spins; a press only dims. A solid brand button
+ * darkens instead (active:bg-brand-strong): white on brand dimmed to 0.8 is 3.7:1.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -203,6 +208,8 @@
   }
   .pressable:active:not(:disabled, [aria-disabled="true"]) {
     transform: none;
+  }
+  .pressable:active:not(:disabled, [aria-disabled="true"], .bg-brand) {
     opacity: 0.8;
   }
 }

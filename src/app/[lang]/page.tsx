@@ -102,7 +102,7 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
                 />
                 <button
                   type="submit"
-                  className="pressable h-full shrink-0 rounded-control bg-brand px-4 font-bold text-white hover:opacity-90"
+                  className="pressable h-full shrink-0 rounded-control bg-brand px-4 font-bold text-white hover:bg-brand-strong active:bg-brand-strong"
                 >
                   {t.hero.submit}
                 </button>
