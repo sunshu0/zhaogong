@@ -27,18 +27,20 @@ export async function saveJob(
   const address = normalizeEmail(email);
   const db = await database();
   // One statement: the account and the job must exist, and the job must not be saved yet, when the row goes in.
+  // Only a job seekers can open (active or expired, isPublic): the saved list shows its title, pay and business, so
+  // saving j1, j2… must not list jobs held for review or taken down (security review).
   const saved = await insertIf(
     db,
     savedJobs,
     { email: address, jobId, savedAt: now.toISOString() },
-    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address}) and exists (select 1 from ${jobs} where ${jobs.id} = ${jobId}) and not exists (select 1 from ${savedJobs} where ${mine(address, jobId)})`,
+    sql`exists (select 1 from ${accounts} where ${accounts.email} = ${address}) and exists (select 1 from ${jobs} where ${jobs.id} = ${jobId} and ${jobs.status} in ('active', 'expired')) and not exists (select 1 from ${savedJobs} where ${mine(address, jobId)})`,
   ).returning({ jobId: savedJobs.jobId });
   if (saved.length) return "saved";
   // Only to say why not.
   const [account] = await db.select({ email: accounts.email }).from(accounts).where(eq(accounts.email, address));
   if (!account) return "no_account";
-  const [job] = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.id, jobId));
-  return job ? "already" : "no_job";
+  const [row] = await db.select().from(savedJobs).where(mine(address, jobId));
+  return row ? "already" : "no_job";
 }
 
 /** Removes a saved job, stage and all. */

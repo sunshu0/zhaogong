@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { listSavedJobs, saveJob, setSavedStage, unsaveJob } from "@/db/saved-jobs";
+import { eq } from "drizzle-orm";
+import { database } from "@/db/ready";
+import { jobs } from "@/db/schema";
 import { ensureAccount } from "@/lib/data";
 
 const t0 = new Date("2026-10-16T01:00:00.000Z");
@@ -18,6 +21,21 @@ describe("saved jobs (#52)", () => {
       ["j5", later(1000).toISOString(), null],
       ["j3", t0.toISOString(), null],
     ]);
+  });
+
+  it("does not save a job held for review or taken down, so the list cannot show it (security review)", async () => {
+    await ensureAccount("prober@example.com");
+    const db = await database();
+    for (const [id, status] of [
+      ["j8", "pending_review"],
+      ["j9", "removed"],
+    ] as const) {
+      await db.update(jobs).set({ status }).where(eq(jobs.id, id));
+      expect(await saveJob("prober@example.com", id, t0)).toBe("no_job");
+    }
+    expect(await listSavedJobs("prober@example.com")).toEqual([]);
+    await db.update(jobs).set({ status: "expired" }).where(eq(jobs.id, "j9"));
+    expect(await saveJob("prober@example.com", "j9", t0)).toBe("saved");
   });
 
   it("keeps each account's list to itself", async () => {

@@ -55,10 +55,16 @@ export function isValidCode(code: string): boolean {
   return /^[0-9]{6}$/.test(normalizeCode(code));
 }
 
+/** A stand-in origin: a `next` path that resolves anywhere else would leave the site. */
+const ONLY_HERE = "https://zhaogong.invalid";
+
 /** Where to go after signing in: a path on this site, never another origin or the login page itself; `fallback` otherwise. */
 export function safeNext(next: string | string[] | undefined, fallback = "/jobs"): string {
   const path = Array.isArray(next) ? next[0] : next;
-  if (!path || !path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return fallback;
+  // Browsers drop tabs and line breaks from a URL and read a backslash as a slash, so /<tab>/evil.example would
+  // become //evil.example (security review): none of those anywhere, and the path must stay on this origin.
+  if (!path || !path.startsWith("/") || /[\u0000-\u001f\u007f\\]/.test(path)) return fallback;
+  if (!URL.canParse(path, ONLY_HERE) || new URL(path, ONLY_HERE).origin !== ONLY_HERE) return fallback;
   if (path === "/login" || path.startsWith("/login?") || path.startsWith("/login/")) return fallback;
   return path;
 }

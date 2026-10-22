@@ -26,6 +26,13 @@ export interface AuthStore {
   /** Inserts or replaces the email's code. */
   putCode(row: SignInCodeRow): Promise<void>;
   setCodeAttempts(email: string, attempts: number): Promise<void>;
+  /**
+   * Counts one try on the email's code in one step, only while it has tries left (fewer than `max`) and has not
+   * expired at `now`; the row as counted, or undefined when no try was left. Parallel guesses each get their own try.
+   */
+  takeCodeAttempt(email: string, max: number, now: string): Promise<SignInCodeRow | undefined>;
+  /** Deletes the email's code only if it is still this one (`codeHash`); whether it did. A code works once. */
+  useCode(email: string, codeHash: string): Promise<boolean>;
   deleteCode(email: string): Promise<void>;
   getSession(id: string): Promise<SessionRow | undefined>;
   insertSession(row: SessionRow): Promise<void>;
@@ -53,6 +60,15 @@ export function memoryAuthStore(): AuthStore & {
     async setCodeAttempts(email, attempts) {
       const row = codes.get(email);
       if (row) row.attempts = attempts;
+    },
+    async takeCodeAttempt(email, max, now) {
+      const row = codes.get(email);
+      if (!row || row.attempts >= max || row.expiresAt <= now) return undefined;
+      row.attempts += 1;
+      return { ...row };
+    },
+    async useCode(email, codeHash) {
+      return codes.get(email)?.codeHash === codeHash && codes.delete(email);
     },
     async deleteCode(email) {
       codes.delete(email);

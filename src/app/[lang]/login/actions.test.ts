@@ -35,6 +35,9 @@ afterEach(() => {
 describe("注册或登录", () => {
   it("sends a code (shown on the page outside production), at most once a minute, and refuses a bad email", async () => {
     expect(await requestSignInCode("nope")).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
+    // Security review: no longer than an address can be (254), so a huge string never becomes a code row or a mail.
+    expect(await requestSignInCode(`${"a".repeat(250)}@x.co`)).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
+    expect(await requestSignInCode("x".repeat(100_000))).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
     expect(await requestSignInCode("New@Example.com")).toEqual({
       ok: true,
       devCode: expect.stringMatching(/^\d{6}$/),

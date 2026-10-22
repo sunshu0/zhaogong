@@ -80,6 +80,14 @@ describe("safeNext", () => {
       "/\\evil.example",
       "https://evil.example",
       "javascript:alert(1)",
+      // Security review: browsers drop tabs and line breaks, and read a backslash as a slash.
+      "/\t/evil.example",
+      "/\n/evil.example",
+      "/\r\n/evil.example",
+      "/\t\\evil.example",
+      "/jobs\\..\\evil",
+      "/\u0000/evil.example",
+      "//[",
     ]) {
       expect(safeNext(bad)).toBe("/jobs");
     }

@@ -24,6 +24,32 @@ describe("sign-in codes in the database", () => {
   });
 });
 
+describe("taking a try and using a code in one statement each (security review)", () => {
+  it("counts tries in the database up to the limit, only on a live code", async () => {
+    await store.putCode({ ...code, email: "try@example.com" });
+    const now = "2026-10-15T10:05:00.000Z";
+    const taken = await Promise.all(Array.from({ length: 8 }, () => store.takeCodeAttempt("try@example.com", 5, now)));
+    expect(
+      taken
+        .filter(Boolean)
+        .map((r) => r!.attempts)
+        .sort(),
+    ).toEqual([1, 2, 3, 4, 5]);
+    expect((await store.getCode("try@example.com"))?.attempts).toBe(5);
+    await store.putCode({ ...code, email: "late@example.com" });
+    expect(await store.takeCodeAttempt("late@example.com", 5, code.expiresAt)).toBeUndefined();
+    expect(await store.takeCodeAttempt("nobody@example.com", 5, now)).toBeUndefined();
+  });
+
+  it("uses a code once, and only the code it was given", async () => {
+    await store.putCode({ ...code, email: "use@example.com" });
+    expect(await store.useCode("use@example.com", "b".repeat(64))).toBe(false);
+    expect(await store.useCode("use@example.com", code.codeHash)).toBe(true);
+    expect(await store.useCode("use@example.com", code.codeHash)).toBe(false);
+    expect(await store.getCode("use@example.com")).toBeUndefined();
+  });
+});
+
 describe("sessions in the database", () => {
   const session = {
     id: "f".repeat(64),

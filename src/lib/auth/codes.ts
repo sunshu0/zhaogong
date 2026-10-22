@@ -66,7 +66,9 @@ export async function requestCode(
 
 /**
  * Checks a code. Right: the code is used up. Wrong: one try fewer; after five the code stops working but is kept
- * until it is replaced, so the once-a-minute limit on new codes still applies.
+ * until it is replaced, so the once-a-minute limit on new codes still applies. Each check first takes a try in one
+ * database step (takeCodeAttempt), so many guesses sent at once still get five tries between them, and the right
+ * code signs in once (useCode).
  */
 export async function verifyCode(email: string, code: string, now = new Date()): Promise<VerifyCodeResult> {
   const address = normalizeEmail(email);
@@ -79,13 +81,17 @@ export async function verifyCode(email: string, code: string, now = new Date()):
   }
   if (row.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "too_many" };
 
-  const given = String(code ?? "").trim();
-  if (/^[0-9]{6}$/.test(given) && sameHash(hashCode(address, given), row.codeHash)) {
-    await store.deleteCode(address);
-    return { ok: true };
+  const counted = await store.takeCodeAttempt(address, MAX_ATTEMPTS, now.toISOString());
+  if (!counted) {
+    // Other checks took the last tries, or the code went (used, expired or replaced) since it was read.
+    const again = await store.getCode(address);
+    return { ok: false, reason: !again ? "no_code" : again.attempts >= MAX_ATTEMPTS ? "too_many" : "expired" };
   }
-  const attempts = row.attempts + 1;
-  await store.setCodeAttempts(address, attempts);
+  const given = String(code ?? "").trim();
+  if (/^[0-9]{6}$/.test(given) && sameHash(hashCode(address, given), counted.codeHash)) {
+    return (await store.useCode(address, counted.codeHash)) ? { ok: true } : { ok: false, reason: "no_code" };
+  }
+  const attempts = counted.attempts;
   return attempts >= MAX_ATTEMPTS
     ? { ok: false, reason: "too_many" }
     : { ok: false, reason: "wrong", attemptsLeft: MAX_ATTEMPTS - attempts };

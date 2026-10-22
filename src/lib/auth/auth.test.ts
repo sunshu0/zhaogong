@@ -99,6 +99,25 @@ describe("sign-in codes", () => {
     expect(await verifyCode("b@example.com", "12ab56", later(11_000))).toEqual({ ok: false, reason: "too_many" });
   });
 
+  it("give guesses sent all at once five tries between them, not five each (security review)", async () => {
+    const { devCode } = (await requestCode("k@example.com", t0)) as { devCode: string };
+    const guesses = Array.from({ length: 30 }, (_, i) =>
+      String((Number(devCode) + 1 + i) % 1_000_000).padStart(6, "0"),
+    );
+    const results = await Promise.all(guesses.map((g) => verifyCode("k@example.com", g, later(1000))));
+    expect(results.filter((r) => r.ok)).toEqual([]);
+    expect(results.filter((r) => !r.ok && r.reason === "wrong")).toHaveLength(MAX_ATTEMPTS - 1);
+    expect(store.codes.get("k@example.com")?.attempts).toBe(MAX_ATTEMPTS);
+    expect(await verifyCode("k@example.com", devCode, later(2000))).toEqual({ ok: false, reason: "too_many" });
+  });
+
+  it("sign in once when the right code is sent twice at once", async () => {
+    const { devCode } = (await requestCode("m@example.com", t0)) as { devCode: string };
+    const both = await Promise.all([1, 2].map(() => verifyCode("m@example.com", devCode, later(1000))));
+    expect(both.filter((r) => r.ok)).toHaveLength(1);
+    expect(both.filter((r) => !r.ok)).toEqual([{ ok: false, reason: "no_code" }]);
+  });
+
   it("expire after 10 minutes", async () => {
     const { devCode } = (await requestCode("c@example.com", t0)) as { devCode: string };
     expect(CODE_TTL_MS).toBe(10 * 60_000);

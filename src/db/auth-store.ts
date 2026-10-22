@@ -1,7 +1,7 @@
 // Sign-in codes and sessions in the database: the database version of A12-1's AuthStore
 // (src/lib/auth/store.ts on a/A12-1-auth), same methods and row shapes, so codes.ts and sessions.ts do not
 // change when A switches authStore() over to it. Server only.
-import { eq } from "drizzle-orm";
+import { and, eq, gt, lt, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { sessions, signInCodes } from "@/db/schema";
 import type { AccountRole } from "@/lib/types";
@@ -24,6 +24,24 @@ export function databaseAuthStore() {
     async setCodeAttempts(email: string, attempts: number): Promise<void> {
       const db = await database();
       await db.update(signInCodes).set({ attempts }).where(eq(signInCodes.email, email));
+    },
+    /** One statement: the database counts the try, so parallel guesses each use up one (ADR 0031). */
+    async takeCodeAttempt(email: string, max: number, now: string): Promise<SignInCodeRow | undefined> {
+      const db = await database();
+      const [row] = await db
+        .update(signInCodes)
+        .set({ attempts: sql`${signInCodes.attempts} + 1` })
+        .where(and(eq(signInCodes.email, email), lt(signInCodes.attempts, max), gt(signInCodes.expiresAt, now)))
+        .returning();
+      return row;
+    },
+    async useCode(email: string, codeHash: string): Promise<boolean> {
+      const db = await database();
+      const used = await db
+        .delete(signInCodes)
+        .where(and(eq(signInCodes.email, email), eq(signInCodes.codeHash, codeHash)))
+        .returning({ email: signInCodes.email });
+      return used.length > 0;
     },
     async deleteCode(email: string): Promise<void> {
       const db = await database();

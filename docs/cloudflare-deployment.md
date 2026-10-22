@@ -99,7 +99,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 | --- | --- | --- |
 | `DEMO_DATA` | `true` | 页面显示演示数据；首页数字旁标「演示数据」 |
 | `DB`（D1 绑定） | 库 `zhaogong-demo`（第 3 节，`--location=oc`） | 演示站也用正式的库结构，只是数据是演示的；和正式库分开 |
-| `AUTH_SECRET` | 随机 32 字节以上 | 生产环境必须有，不然启动就报错 |
+| `AUTH_SECRET` | 随机 32 字节以上 | 生产环境必须有。没有它，网站照样启动，但第一次有人要验证码时就报错、登录不了（不会出安全问题，只是部署后要试一次登录才看得出来） |
 | `ZG_EVENTS_SECRET` | 随机 32 字节以上 | 漏斗统计；不设就不记 |
 | `EVIDENCE_BUCKET` | R2 桶（第 4 节第 2a 步） | 举报截图；不绑的话登录不了也用不上，但代码在 Worker 里会拒收截图 |
 | `DATABASE_URL`、`DATABASE_AUTH_TOKEN` | **不设** | 线上用 D1 绑定，不用 libSQL 地址和令牌 |

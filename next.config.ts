@@ -14,7 +14,20 @@ const testBuild = process.env.ZG_E2E === "1";
 if (testBuild && process.env.NEXT_PRIVATE_STANDALONE === "true")
   throw new Error("ZG_E2E=1 is for the browser tests' build only. Unset it before building the deployment.");
 
+// Security review (10-23): every page and route answers with these. No other site may frame ours (clickjacking on
+// /admin, /account/data or a team link), browsers must not guess content types, and a link out sends only our
+// origin. A full Content-Security-Policy is later work (ADR 0025 notes Clarity's scripts would need allowing).
+const SECURITY_HEADERS = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
   env: { ZG_E2E: testBuild ? "1" : "0" },
   // tsconfig.e2e.json already lists the folder's types, so the build leaves tsconfig.json as it is; `npm run check`
   // type-checks the same code.

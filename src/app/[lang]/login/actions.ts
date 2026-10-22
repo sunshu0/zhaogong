@@ -33,9 +33,9 @@ export type AccountStatus = SessionView;
 type Failure = { ok: false; error: string };
 
 function validEmail(email: unknown): string | null {
-  if (typeof email !== "string") return null;
+  if (typeof email !== "string" || email.length > 320) return null;
   const normalized = normalizeEmail(email);
-  return isValidEmail(normalized) ? normalized : null;
+  return normalized.length <= 254 && isValidEmail(normalized) ? normalized : null;
 }
 
 /**
