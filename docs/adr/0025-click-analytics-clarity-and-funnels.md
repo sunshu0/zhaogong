@@ -57,6 +57,9 @@
 **不存：** 邮箱、账号、企业编号、IP、完整 User-Agent、网址查询串、搜索词和任何用户写的字（备注、聊天、描述）、简历和主页的内容、联系方式、屏幕内容。
 
 **`zg_visitor`** 从「只在职位页发」改成「任何页面的 GET 都发」（`src/proxy.ts`），其余不变。
+- **10-23 补充（#79 偶发失败查出来的）：** 只在「打开页面本身」时发：GET、`Accept` 含 `text/html`、不是浏览器的预取（`Sec-Purpose` / `Purpose: prefetch`）。
+- 原因：Next 16 在把请求交给 proxy 之前，会删掉 `Next-Router-Prefetch`、`RSC` 这些头（`node_modules/next/dist/server/web/adapter.js` 的 `FLIGHT_HEADERS` 那一段）。proxy 看到的 Next 预取，和站内跳转一样，只是一个 `Accept: */*` 的 GET。按原来的写法，proxy 认不出 Next 的预取，会给它发编号。
+- 下面第 4 节说的「不记预取」照旧有效：`/api/events` 和服务器端的记录看得到这些头，Next 在 proxy 之后会把它们放回去。
 
 **`visitor` 列用 HMAC，不用直接哈希。** 密钥放在服务器的环境变量 `ZG_EVENTS_SECRET`，不进代码和数据库。日期也算进去，所以库里没法把一个人一年的行为连起来，漏斗只看同一天内的步骤。就算有人同时拿到数据库和某个人的 cookie，没有密钥也对不上。
 - 开发、单测、测试构建没设密钥时，用代码里固定的测试值。

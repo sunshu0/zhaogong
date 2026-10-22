@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { config, proxy } from "@/proxy";
 
+// What a browser's Accept says when it opens a page.
+const HTML = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
 const request = (path: string, cookie?: string, method = "GET") =>
-  new NextRequest(`http://localhost${path}`, { method, ...(cookie ? { headers: { cookie } } : {}) });
+  new NextRequest(`http://localhost${path}`, { method, headers: { accept: HTML, ...(cookie ? { cookie } : {}) } });
 const page = (cookie?: string) => request("/jobs/j2", cookie);
 const rewrittenTo = (response: Response) => response.headers.get("x-middleware-rewrite");
 
@@ -32,8 +34,12 @@ describe("proxy: the visitor id comes with the page (#79, #312)", () => {
 
   it("not with a prefetch: nobody opened that page yet (#312)", () => {
     const prefetch = (headers: Record<string, string>) => new NextRequest("http://localhost/jobs", { headers });
-    expect(proxy(prefetch({ "next-router-prefetch": "1" })).cookies.get("zg_visitor")).toBeUndefined();
-    expect(proxy(prefetch({ "sec-purpose": "prefetch" })).cookies.get("zg_visitor")).toBeUndefined();
+    // Next's own prefetch as the proxy gets it: Next has taken next-router-prefetch and rsc off (#79's second id).
+    expect(proxy(prefetch({ accept: "*/*" })).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(prefetch({ accept: "*/*", "next-router-prefetch": "1" })).cookies.get("zg_visitor")).toBeUndefined();
+    // The browser's own prefetch asks for HTML, and says what it is.
+    expect(proxy(prefetch({ accept: HTML, "sec-purpose": "prefetch" })).cookies.get("zg_visitor")).toBeUndefined();
+    expect(proxy(prefetch({ accept: HTML, purpose: "prefetch" })).cookies.get("zg_visitor")).toBeUndefined();
   });
 });
 

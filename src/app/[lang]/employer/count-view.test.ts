@@ -50,8 +50,8 @@ describe("countJobView (#55)", () => {
 
   it("counts a reload right after the first view once, even when the first count's answer is lost (#79)", async () => {
     const before = await views("j2");
-    // The job page's own answer gives the browser its id.
-    const page = proxy(new NextRequest("http://localhost/jobs/j2"));
+    // The job page's own answer gives the browser its id (a GET for HTML, as a browser opening the page sends).
+    const page = proxy(new NextRequest("http://localhost/jobs/j2", { headers: { accept: "text/html,*/*;q=0.8" } }));
     const id = page.cookies.get("zg_visitor")?.value;
     expect(id).toMatch(/^[A-Za-z0-9_-]{22}$/);
     cookies.set("zg_visitor", id!);

@@ -7,7 +7,9 @@
 //   browser twice), every page since #312 (the funnel events, ADR 0025, join up a visitor's steps). Only with the
 //   page (GET): a page's Server Functions post to the same path, and a cookie set in their answer makes Next refresh
 //   the page, dropping a #contact from the address (#90). Not with a prefetch either (#312): nobody has opened that
-//   page, and a prefetch racing a browser that lost its cookie would hand it a second id.
+//   page, and a prefetch racing a browser that lost its cookie would hand it a second id. Next takes its own
+//   prefetch's headers (next-router-prefetch, rsc) off the request before the proxy sees it, so a page is known by
+//   what the browser asks for: HTML. Next's prefetches and in-app moves ask for */* (the #79 test's two ids).
 import { NextResponse, type NextRequest } from "next/server";
 import { LANG_COOKIE, langRoute } from "@/i18n/lang";
 import { isProduction } from "@/lib/auth/config";
@@ -24,14 +26,19 @@ export function proxy(request: NextRequest) {
   }
   url.pathname = route.rewrite;
   const response = NextResponse.rewrite(url);
-  if (
-    request.method === "GET" &&
-    !isPrefetch(request.headers) &&
-    !isVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)
-  ) {
+  if (isPageLoad(request) && !isVisitorId(request.cookies.get(VISITOR_COOKIE)?.value)) {
     response.cookies.set(VISITOR_COOKIE, newVisitorId(), visitorCookieOptions(isProduction()));
   }
   return response;
+}
+
+/** The browser opening the page itself: a GET for HTML that is not the browser's own prefetch. */
+function isPageLoad(request: NextRequest): boolean {
+  return (
+    request.method === "GET" &&
+    (request.headers.get("accept") ?? "").includes("text/html") &&
+    !isPrefetch(request.headers)
+  );
 }
 
 // Every page: not Next's own files, the API, robots.txt, sitemap.xml, or the kinds of file in public/ (icons, the

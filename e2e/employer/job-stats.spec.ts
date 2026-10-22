@@ -65,8 +65,9 @@ test("a reload right after the first view counts once, even when the first count
     const kept = (await context.cookies()).filter((c) => c.name === "zg_visitor");
     await route.fetch(); // the server records the view
     await route.abort(); // the browser never sees the answer
-    // route.fetch() stores the answer's cookies in the context; put back what the browser had before.
-    await context.clearCookies({ name: "zg_visitor" });
+    // route.fetch() stores the answer's cookies in the context; put back what the browser had before. addCookies
+    // replaces the cookie in one step: clearing it first left a moment without one, and a link's prefetch in that
+    // moment came back with a second id (#79, 10-23).
     await context.addCookies(kept);
     firstCount();
   });
@@ -81,6 +82,21 @@ test("a reload right after the first view counts once, even when the first count
   await page.goto("/employer/jobs");
   const row = page.locator("article").filter({ has: page.getByRole("heading", { name: title }) });
   await expect(row).toContainText("1 次浏览");
+});
+
+// The proxy test calls proxy() directly; this goes through the real server, where Next takes its own prefetch's
+// headers off before the proxy runs (ADR 0025 §3, 10-23). Here a prefetch with the cookie gone used to get a new id.
+test("Next's prefetch gets no visitor id; opening the page does (#79)", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The server's answer is the same for both; one run is enough");
+  const visitorSet = (headers: { name: string; value: string }[]) =>
+    headers.some((h) => h.name.toLowerCase() === "set-cookie" && h.value.startsWith("zg_visitor="));
+  const prefetch = await page.request.get("/login", {
+    headers: { accept: "*/*", rsc: "1", "next-router-prefetch": "1", "next-router-segment-prefetch": "/_tree" },
+  });
+  expect(prefetch.ok()).toBe(true);
+  expect(visitorSet(prefetch.headersArray())).toBe(false);
+  const opened = await page.request.get("/login", { headers: { accept: "text/html,*/*;q=0.8" } });
+  expect(visitorSet(opened.headersArray())).toBe(true);
 });
 
 test("another business's job has no numbers to show", async ({ page }, testInfo) => {
