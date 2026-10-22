@@ -8,7 +8,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
   title: "Privacy",
   description:
     "What personal information we collect, why, who sees it, how long we keep it, and how you can see, correct and delete it.",
-  updated: "Last updated: 20 October 2026",
+  updated: "Last updated: 23 October 2026",
   placeholders:
     "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
@@ -40,6 +40,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Reports: the reason and anything you write. For a report with only a reason and a note, we do not record who made it. When you report a job while signed in, you can also attach evidence: messages you pick from your own chats with that business (up to 20, kept as they read when you report) and screenshots (up to 3, with location and other metadata removed before they are stored). Evidence is stored with your account, only so that it is deleted with your account and shown to you in your export; moderators are not shown who sent it.",
             "Activity: when a signed-in job seeker views the public contact details on a job, the account and time (employers only see a count); chats started; job views (only a hash of a browser identifier).",
             "AI posting use: when an employer posts by chatting, the account, time and amount of use. The conversation itself is not stored there.",
+            "Sign-in code counts: to stop anyone flooding the sign-in codes, we count the codes asked for and checked by your network address (IP) and by your email. We store only a hash made with a key on our server, which cannot be turned back into the address or the email; never the address or the email itself.",
             "Anonymous analytics events, see section 8.",
           ],
         },
@@ -148,6 +149,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
           list: [
             "Sign-in codes: 10 minutes.",
             "Staying signed in: 30 days, or until you sign out.",
+            "Sign-in code counts: at most 24 hours. Expired counts are deleted the next time anyone asks for or checks a code.",
             "Anonymous analytics events: 180 days.",
             "Chat messages and screenshots attached to a report: deleted 180 days after the report is handled, and deleted with your account if you delete it. The report itself (reason and note) is kept.",
             "Team invitations: they lapse after 14 days without an answer.",

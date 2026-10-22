@@ -123,6 +123,7 @@ export async function verifyCode(
   }
   if (row.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "too_many" };
   // ADR 0033: checks per network and per email, counted before the code's own try, right or wrong.
+  await store.clearEndedLimits(now.toISOString());
   const limited = await takeLimits(
     store,
     [

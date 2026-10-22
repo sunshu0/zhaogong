@@ -131,6 +131,14 @@ describe("checking codes", () => {
     expect(await verifyCode("li@example.com", devCode, later(2000), { ip: "198.51.100.1" })).toEqual({ ok: true });
   });
 
+  it("clears the counts of windows that have ended when a code is checked, too", async () => {
+    await requestCode("li@example.com", t0, "zh", { ip: "203.0.113.7" });
+    const { devCode } = (await requestCode("wang@example.com", later(25 * HOUR))) as { devCode: string };
+    store.limits.set("ended", { count: 1, expiresAt: later(25 * HOUR).toISOString() });
+    await verifyCode("wang@example.com", devCode, later(25 * HOUR + 1000));
+    expect(store.limits.has("ended")).toBe(false);
+  });
+
   it("does not count a check when there is no live code to check", async () => {
     expect(await verifyCode("nobody@example.com", "123456", t0)).toEqual({ ok: false, reason: "no_code" });
     expect(store.limits.size).toBe(0);
