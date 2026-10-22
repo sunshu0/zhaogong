@@ -17,6 +17,7 @@
   --ok: #147638; /* 5.08:1 on --ok-soft (WCAG AA) */
   --ok-soft: #e8f5ec;
   --neutral-soft: #efefeb; /* grey tags and the unverified badge; --muted on it is 4.6:1 */
+  --press-soft: #f4f4f1; /* a pressed list row (pressable-row); the lowest text on it, --warn, is 4.56:1 (4.36 on --neutral-soft) */
 
   /*
    * Round 19 (操作质感, an app's feel): how things move. A press answers in --duration-press, a menu or toast in
@@ -164,7 +165,7 @@
   transition-timing-function: var(--ease-app);
   -webkit-tap-highlight-color: transparent;
   &:active:not(:disabled, [aria-disabled="true"]) {
-    background-color: var(--neutral-soft);
+    background-color: var(--press-soft);
   }
 }
 
@@ -194,8 +195,9 @@
 }
 
 /*
- * "Reduce motion" in the system settings: nothing slides, grows or spins; a press only dims. A solid brand button
- * darkens instead (active:bg-brand-strong): white on brand dimmed to 0.8 is 3.7:1.
+ * "Reduce motion" in the system settings: nothing slides, grows or spins. A press draws a ring inside the edge in the
+ * thing's own text colour instead of shrinking, and a brand button still darkens (active:bg-brand-strong). Not a
+ * dimmed press (opacity 0.8, until 10-23): brand text or white on brand fell to 3.7:1, under WCAG AA's 4.5:1.
  */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -208,9 +210,8 @@
   }
   .pressable:active:not(:disabled, [aria-disabled="true"]) {
     transform: none;
-  }
-  .pressable:active:not(:disabled, [aria-disabled="true"], .bg-brand) {
-    opacity: 0.8;
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
   }
 }
 

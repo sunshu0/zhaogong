@@ -28,6 +28,7 @@
 | `--danger` / `--danger-soft` | #b91c1c / #fdecec | 急招、错误、危险操作、未读数 | 5.66 |
 | `--warn` / `--warn-soft` | #b45309 / #fef3e2 | 提醒，如资料完成度里待填的项 | 白底 5.0 |
 | `--neutral-soft` | #efefeb | 未验证标识 | 次要文字在上面 4.65 |
+| `--press-soft` | #f4f4f1 | 按下的列表行（`pressable-row`） | 最浅的字（`--warn`）在上面 4.56；原来用 `--neutral-soft` 只有 4.36 |
 
 第 13 轮保留全部颜色变量和青绿色主题，Logo 不变（顶栏青绿色「找工」文字，图标是「找」字）。**红色只用于急招、错误和危险操作**（未读数也是提醒），不用来装饰。
 
@@ -198,11 +199,11 @@
 | `--ease-app` | `cubic-bezier(0.2, 0, 0, 1)` | 都用这条：出得快，落得软 |
 | `--press-scale` | 0.97 | 按下时缩小到的比例 |
 
-Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animate-sheet-up`、`animate-pop-in`、`animate-fade-in`、`animate-toast-in`、`animate-shimmer`。**系统打开「减少动态效果」时**，所有动画和过渡都关掉，按下只变暗不缩放（`globals.css` 末尾的媒体查询）；实心的品牌色按钮不变淡，换成 `--brand-strong`。不加动画库。
+Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animate-sheet-up`、`animate-pop-in`、`animate-fade-in`、`animate-toast-in`、`animate-shimmer`。**系统打开「减少动态效果」时**，所有动画和过渡都关掉，按下不缩放，改为在边缘内侧画一圈和文字同色的 2 px 线，品牌色按钮照样变深（`globals.css` 末尾的媒体查询）。不用变淡（透明度）表示按下：品牌色的字或品牌色上的白字淡到 0.8，只有 3.7，不到 4.5（10-23 改）。不加动画库。
 
 ### 按下有反应
 
-- 能点的东西都要有反应：`pressable`（按下缩到 0.97，松手回弹；按钮、卡片、标签、底部导航）或 `pressable-row`（按下变暗；整行宽的列表行，整行缩放看着像坏了）。禁用的不动。
+- 能点的东西都要有反应：`pressable`（按下缩到 0.97，松手回弹；按钮、卡片、标签、底部导航）或 `pressable-row`（按下换成 `--press-soft` 底色；整行宽的列表行，整行缩放看着像坏了）。禁用的不动。
 - 桌面上再加 hover（卡片阴影加深、行变底色；主按钮换深一号的 `bg-brand-strong`，不要用 `hover:opacity-*` 把白字压品牌色的按钮变淡，那样对比度不到 4.5）。
 - `Button`、`ButtonLink`、`buttonClass()` 已经自带 `pressable`。
 
