@@ -7,7 +7,7 @@
 ## 0. 先决定的事
 
 - **落地主体和账号（用户做）：** Cloudflare 账号（Worker、D1、R2 都在里面）和域名，都以公司名义注册。
-- **登录验证码的邮件服务（Issue #16，还没定）：** 生产环境没有邮件服务就发不出验证码（`src/lib/auth/delivery.ts`：`canSendCodes()` 为假时直接拒绝），也就**没人能登录**。正式开放前一定要定下来。只放演示的话，可以先不开放登录，但所有要登录的功能就都用不了。
+- **登录验证码的邮件服务（#16，用户 10-23 定了 Amazon SES，ADR 0032）：** 代码已接好（`src/lib/auth/ses.ts`）。第 2 节的四个 SES 设置都有了才发信；少一个，生产环境就发不出验证码（`canSendCodes()` 为假时直接拒绝），也就**没人能登录**。账号、发信域名、离开沙盒由用户做，见第 4 节第 2b 步。
 - **Clarity：** 同意提示和敏感页面屏蔽已集成，启用前仍需配置项目 ID，见第 2 节。
 
 ## 1. 版本和配置
@@ -35,6 +35,10 @@
 | `ANTHROPIC_API_KEY` | 密钥 | 要「对话发布」用模型就要 | 生产环境有它就用 Claude，没有就说这个功能现在用不了 | `src/lib/ai-post/model/` |
 | `AI_POST_MODEL` | 变量 | 可以不设 | 换模型；不设用代码里的默认值 | `src/lib/ai-post/model/index.ts` |
 | `AI_POST_BASE_URL` | 变量 | 可以不设 | 默认 `https://api.anthropic.com` | `src/lib/ai-post/model/client.ts` |
+| `SES_REGION` | 变量 | 要登录就必须 | Amazon SES 的区域，`wrangler.jsonc` 里是 `ap-southeast-2`（悉尼，ADR 0032）。要和发信域名验证的区域一致 | `src/lib/auth/ses.ts` |
+| `MAIL_FROM` | 变量 | 要登录就必须 | 验证码邮件的发件人，必须在 SES 验证过的域名上，比如 `找工 <no-reply@你的域名>` | `src/lib/auth/ses.ts` |
+| `SES_ACCESS_KEY_ID` | 密钥 | 要登录就必须 | 只能发信的 IAM 用户的访问密钥 ID（权限只给 `ses:SendEmail`） | `src/lib/auth/ses.ts` |
+| `SES_SECRET_ACCESS_KEY` | 密钥 | 要登录就必须 | 上面那个访问密钥的私钥。四个 SES 设置少一个，生产环境就不发信、不让登录 | `src/lib/auth/ses.ts` |
 | `TAKEDOWN_EMAIL` | 变量 | 建议设 | 外部职位页下面「公司要求下架」的联系邮箱；不设就不显示 | `src/config/external-companies.ts` |
 | `EXTERNAL_JOBS` | 变量 | 生产环境别设 | `real` 会让空的演示库在后台去公司网站导入真实职位；生产环境默认不导入 | `src/db/ready.ts` |
 | `NEXTJS_ENV` | 变量 | 已经在 `wrangler.jsonc` | `production` | `wrangler.jsonc` |
@@ -82,10 +86,16 @@ npx wrangler d1 migrations apply zhaogong --remote
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
 2. 设密钥（第 2 节）：`npx wrangler secret put AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
 2a. **（用户做）举报截图的 R2 桶**（ADR 0027）：以公司名义在 Cloudflare 开 R2，建一个桶（比如 `zhaogong-report-evidence`，位置选亚太 APAC），**不要开公开访问**，也不要绑自定义域名；在 `wrangler.jsonc` 加 `"r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }]`。截图只通过 `/api/report-evidence/[id]` 给审核员看。处理完 180 天后和删号时，代码会把文件一起删掉。
+2b. **（用户做）登录验证码的邮件：Amazon SES（ADR 0032）。** 分步说明另给用户。要点：
+   - 以公司名义开 AWS 账号，在 SES 悉尼区（`ap-southeast-2`）验证发信域名：3 条 DKIM CNAME；自定义 MAIL FROM 子域（MX 加 SPF TXT），让 SPF 对齐；`_dmarc` TXT 先用 `p=none`。
+   - 申请离开沙盒（production access）。在沙盒里只能发给验证过的地址。
+   - **开启账号级 suppression list**（退信和投诉自动不再发）。SES 的退信、投诉回调（SNS）现在不做，见 ADR 0032。
+   - 建一个只有 `ses:SendEmail` 权限的 IAM 用户，访问密钥用 `npx wrangler secret put SES_ACCESS_KEY_ID`、`SES_SECRET_ACCESS_KEY` 放进 Worker；`MAIL_FROM` 写进 `wrangler.jsonc` 的 `vars`。
+   - 上线前用真实的 QQ、163、Gmail、Outlook 邮箱各收几次验证码，看收没收到、进没进垃圾箱。
 3. 对线上 D1 库迁移（第 3 节，ADR 0031 的代码合并后）。
 4. 本机预检：`npm run check`，再 `npm run cf:dry-run`（构建加上传前的检查，不上传）。**最终版本尚未完成这一步，先看第 4a 节。**
 5. 部署：`npm run cf:deploy`。
-6. 验收：首页、职位列表和筛选、职位页、登录（要有邮件服务）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
+6. 验收：首页、职位列表和筛选、职位页、登录（要有第 2b 步的 SES）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
 
 以后改用 Workers Builds 自动部署的话：构建命令 `npm run check && npm run cf:build`，部署命令 `npx opennextjs-cloudflare deploy`。构建变量要有 `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`，以及 `NEXT_PUBLIC_CLARITY_ID`（构建时用）（[说明](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)）。
 

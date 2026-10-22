@@ -62,6 +62,7 @@ const loginZh = {
   errors: {
     sentRecently: (seconds: number) => `验证码刚发过，请 ${seconds} 秒后再获取`,
     noMailService: "邮件服务还没有配置，暂时无法发送验证码",
+    sendFailed: "验证码没有发出去，请稍后再试",
     noCode: "请先获取验证码",
     expired: "验证码已过期，请重新获取",
     tooManyTries: "错误次数太多，请重新获取验证码",

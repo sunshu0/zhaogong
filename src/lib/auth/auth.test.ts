@@ -59,7 +59,28 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
 });
+
+/** Production with the four SES settings (#16); `answer` is what SES says to the send. */
+function productionWithSes(answer: () => Response) {
+  vi.stubEnv("NODE_ENV", "production");
+  vi.stubEnv("AUTH_SECRET", "production secret");
+  vi.stubEnv("SES_REGION", "ap-southeast-2");
+  vi.stubEnv("MAIL_FROM", "找工 <no-reply@example.com>");
+  vi.stubEnv("SES_ACCESS_KEY_ID", "AKIDEXAMPLE");
+  vi.stubEnv("SES_SECRET_ACCESS_KEY", "secret-example");
+  const sent: Request[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (request: Request) => {
+      sent.push(request);
+      return answer();
+    }),
+  );
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  return sent;
+}
 
 describe("sign-in codes", () => {
   it("are six digits from crypto.randomInt", () => {
@@ -158,6 +179,26 @@ describe("sign-in codes", () => {
     expect(await requestCode("g@example.com", t0)).toEqual({ ok: false, reason: "no_mailer" });
     expect(console.info).not.toHaveBeenCalled();
     expect(store.codes.size).toBe(0);
+  });
+
+  it("in production with SES set up: the code is mailed, not printed or given back to the page (#16)", async () => {
+    const sent = productionWithSes(() => Response.json({ MessageId: "m-1" }));
+    expect(await requestCode("Mei@Example.com", t0, "en")).toEqual({ ok: true });
+    expect(sent).toHaveLength(1);
+    const body = JSON.parse(await sent[0].text());
+    expect(body.Destination).toEqual({ ToAddresses: ["mei@example.com"] });
+    expect(body.Content.Simple.Subject.Data).toMatch(/^Your 找工 sign-in code: [0-9]{6}$/);
+    expect(console.info).not.toHaveBeenCalled();
+    expect(store.codes.has("mei@example.com")).toBe(true);
+  });
+
+  it("in production when SES does not take it: says so, drops the code, and asking again works at once", async () => {
+    productionWithSes(() => new Response("{}", { status: 503, headers: { "x-amzn-errortype": "ServiceUnavailable" } }));
+    expect(await requestCode("lin@example.com", t0)).toEqual({ ok: false, reason: "send_failed" });
+    expect(store.codes.size).toBe(0);
+    expect(console.error).toHaveBeenCalledWith("[auth] sign-in code not sent: SES 503 ServiceUnavailable");
+    expect(String(vi.mocked(console.error).mock.calls)).not.toContain("lin@example.com");
+    expect(await requestCode("lin@example.com", later(1000))).toEqual({ ok: false, reason: "send_failed" });
   });
 
   it("in production without AUTH_SECRET: refuse to hash at all", () => {

@@ -74,6 +74,7 @@ export async function requestSignInCode(
   // No countdown for these: the wait can be hours, and the message says how long.
   if (result.reason === "limited")
     return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
+  if (result.reason === "send_failed") return { ok: false, error: t.errors.sendFailed };
   return { ok: false, error: t.errors.noMailService };
 }
 

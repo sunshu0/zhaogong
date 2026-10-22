@@ -15,7 +15,9 @@ export type RequestCodeResult =
     }
   | { ok: false; reason: "throttled"; retryAfterSec: number }
   | Limited
-  | { ok: false; reason: "no_mailer" };
+  | { ok: false; reason: "no_mailer" }
+  /** The mail service did not take the email (#16): the code is dropped, so asking again works at once. */
+  | { ok: false; reason: "send_failed" };
 
 export type VerifyCodeResult =
   | { ok: true }
@@ -97,7 +99,10 @@ export async function requestCode(
     attempts: 0,
     createdAt: now.toISOString(),
   });
-  await sendSignInCode(address, code, lang);
+  if (!(await sendSignInCode(address, code, lang))) {
+    await store.deleteCode(address);
+    return { ok: false, reason: "send_failed" };
+  }
   return devHelpersEnabled() ? { ok: true, devCode: code } : { ok: true };
 }
 

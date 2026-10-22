@@ -84,7 +84,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             'Candidate recommendations: only if you tick "Let employers find my profile in Suggested candidates", employers can see the public part of your profile, without your email or contact details.',
             "Members of the same business's team: the business's chats, its jobs and who posted them.",
             "Moderators: the content involved when they handle reports and review jobs and business verification. Only moderators can see the chat messages and screenshots attached to a report, and each time one opens them we record which moderator and when; the employer cannot see this evidence and is not told who reported.",
-            "Providers who store and process data for us: hosting and the database (Cloudflare). They only keep and process it on our behalf, not for their own use; under section 11 of the Privacy Act 2020 this is not a disclosure to them.",
+            "Providers who store and process data for us: hosting and the database (Cloudflare); the sign-in code emails (Amazon SES, from Amazon Web Services, used only to send the codes). They only keep and process it on our behalf, not for their own use; under section 11 of the Privacy Act 2020 this is not a disclosure to them.",
             "Our staff in China: when needed to run and maintain the site, deal with reports and reviews, and answer your requests (section 6).",
             "AI posting: when an employer posts a job by chatting, the conversation and the job draft (including contact details the employer chooses to make public) are sent to Anthropic's model to be put in order. Anthropic processes them in the United States. Nothing is sent if you don't post by chatting.",
             "If the law requires it, or to prevent a serious threat to someone's safety, we may give information to the authorities (information privacy principle 11).",
@@ -97,6 +97,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
       heading: "6. Where it is kept, and whether it leaves New Zealand",
       body: [
         "The site's data is kept in Cloudflare data centres in Oceania (Cloudflare D1; Cloudflare decides which city), held for us by Cloudflare.",
+        "Sign-in code emails are sent by Amazon SES in Sydney, Australia, using your email address and the code. If an email bounces or you mark it as spam, the address stays on SES's suppression list and is not sent to again.",
         "Staff of the company in China can access this data, to run and maintain the site, deal with reports and reviews, and answer your requests.",
         "Under section 11 of the Privacy Act 2020, information a provider holds for us is treated as held by us, and our own staff using it is our use of it, not a disclosure to anyone else. So neither is a disclosure overseas under information privacy principle 12, but we remain fully responsible for your information, use and protect it as this page says, and only let staff who need it for their work access it.",
         "AI posting content is processed by Anthropic in the United States (section 5). United States law may not protect personal information as fully as New Zealand's does; if you don't want that, post the job by pasting or filling in the form, which sends nothing.",

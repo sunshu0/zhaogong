@@ -32,5 +32,8 @@
   ],
   "vars": {
     "NEXTJS_ENV": "production",
+    // #16, ADR 0032: sign-in codes go through Amazon SES in Sydney. MAIL_FROM (on the verified domain) is added at
+    // deployment; the two access keys are secrets (wrangler secret put).
+    "SES_REGION": "ap-southeast-2",
   },
 }

@@ -4,7 +4,7 @@
 
 代码仓库：[open-alternative-app/zhaogong](https://github.com/open-alternative-app/zhaogong)（私有仓库，需要组织授权才能访问）。
 
-职位、企业、账号和团队、聊天、候选人、举报、审核记录、联系方式查看记录、匿名的点击统计都存在数据库里（Drizzle + libSQL，见下方「数据库」）；浏览器只做缓存和还没送到的改动（`docs/architecture.md`「数据放在哪里」）。登录用邮箱验证码和服务器会话（ADR 0007）：开发环境把验证码显示在登录页上，生产环境要等邮件服务（#16，还没定），没有它就没人能登录。AI 发帖接 Claude（ADR 0018），没设 `ANTHROPIC_API_KEY` 时说这个功能现在用不了。
+职位、企业、账号和团队、聊天、候选人、举报、审核记录、联系方式查看记录、匿名的点击统计都存在数据库里（Drizzle + libSQL，见下方「数据库」）；浏览器只做缓存和还没送到的改动（`docs/architecture.md`「数据放在哪里」）。登录用邮箱验证码和服务器会话（ADR 0007）：开发环境把验证码显示在登录页上，生产环境用 Amazon SES 发（#16，ADR 0032），`docs/cloudflare-deployment.md` 第 2 节的四个 SES 设置齐了才能登录，少一个就没人能登录。AI 发帖接 Claude（ADR 0018），没设 `ANTHROPIC_API_KEY` 时说这个功能现在用不了。
 
 ## 本地开发
 
