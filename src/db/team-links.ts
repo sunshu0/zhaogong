@@ -200,10 +200,11 @@ export async function joinTeamByLink(
       if (!located.link) return { status: "invalid" };
       const unchanged = await unchangedTeam(db, located.link.employerId, address);
       const { state, link } = await stateOf(db, token, now);
-      if (state.status !== "open" || !link) return { status: state.status === "open" ? "invalid" : state.status };
+      if (state.status === "invalid" || !link) return { status: "invalid" };
       const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
       if (!account) return { status: "invalid" };
-      if (account.employerId === link.employerId) return { status: "member" };
+      if (account.employerId === link.employerId && state.status !== "banned") return { status: "member" };
+      if (state.status !== "open") return { status: state.status };
       if (account.employerId) return { status: "has_business" };
       if ((await membersOf(db, link.employerId)).length >= TEAM_MAX) return { status: "full" };
       const at = now.toISOString();

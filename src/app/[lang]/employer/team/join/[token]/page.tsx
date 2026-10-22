@@ -51,12 +51,13 @@ async function Join({ params }: Pick<PageProps<"/[lang]/employer/team/join/[toke
     </StatusCard>
   );
   if (state.status === "invalid") return card(t.state.invalid);
-  if (state.status === "expired") return card(t.state.expired(LINK_DAYS));
-  if (state.status !== "open") return card(t.state[state.status]);
 
+  // A member opening the link again (used by then, if they joined with it) is told they are in the team.
   const session = await getCurrentSession();
   const account = session ? await getAccount(session.email) : undefined;
-  if (account?.employerId === state.employerId) return card(t.state.member, true);
+  if (account?.employerId === state.employerId && state.status !== "banned") return card(t.state.member, true);
+  if (state.status === "expired") return card(t.state.expired(LINK_DAYS));
+  if (state.status !== "open") return card(t.state[state.status]);
   if (account?.employerId) return card(t.state.has_business);
 
   const here = `${JOIN_PATH}${token}`;

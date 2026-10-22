@@ -87,6 +87,8 @@ describe("team invitation links (#349, ADR 0028)", () => {
     });
     expect(await teamLinkState(made.token, later(1))).toMatchObject({ status: "used" });
     expect(await joinTeamByLink(others[1], made.token, "小王", later(1))).toEqual({ status: "used" });
+    // Whoever joined with it is told they are in the team, not that the link is used up.
+    expect(await joinTeamByLink(others[0], made.token, "小李", later(1))).toEqual({ status: "member" });
     expect(await openLinksOf(employer.id, later(1))).toEqual([]);
     expect((await getTeam(employer.id)).map((m) => m.email)).toEqual([boss, others[0]]);
   });
