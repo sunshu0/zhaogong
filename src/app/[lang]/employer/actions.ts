@@ -17,8 +17,8 @@ import {
 import { checkJob, publishDecision, type Finding } from "@/lib/compliance";
 import { claudeSend } from "@/lib/ai-post/model/client";
 import { assistantKind, FAKE_COOKIE, postingModel, postingTurn, type AssistantKind } from "@/lib/ai-post/model";
-import { LIMITED_ZH, overLimit } from "@/lib/ai-post/model/limits";
-import { countAiCalls, recordAiUsage } from "@/db/ai-usage";
+import { LIMITED_ZH } from "@/lib/ai-post/model/limits";
+import { finishAiCall, reserveAiCall } from "@/db/ai-usage";
 import { jobDays, jobNumbers, type JobDay, type JobNumbers } from "@/db/job-stats";
 import {
   applicationCounts,
@@ -210,6 +210,8 @@ export async function chatTurn(state: unknown, message: string): Promise<ChatSta
   const restored = restoreChat(state, DEFAULT_COUNTRY, (d) => sanitizeDraft(d, DEFAULT_COUNTRY));
   const kind = await chatAssistantKind();
   const model = kind === "fake" ? "fake" : postingModel(process.env);
+  // The call's place in ai_usage, taken just before the model is asked (security review B).
+  let reserved: number | undefined;
   // #102: Claude in production; the script (or the fake model) only outside it.
   const turn = await postingTurn(
     { ...restored, ...(typeof employer !== "string" && { employer: { verification: employer.verification } }) },
@@ -221,15 +223,15 @@ export async function chatTurn(state: unknown, message: string): Promise<ChatSta
       sanitize: (d) => sanitizeDraft(d, DEFAULT_COUNTRY),
       limit: async () => {
         if (!session) return LIMITED_ZH.signedOut;
-        const over = overLimit(await countAiCalls(session.email));
-        if (over) await recordAiUsage(session.email, { model, result: "limited" });
-        return over && LIMITED_ZH[over];
+        const place = await reserveAiCall(session.email, model);
+        if ("over" in place) return LIMITED_ZH[place.over];
+        reserved = place.id;
+        return undefined;
       },
     },
   );
-  const called = kind === "claude" || kind === "fake";
-  if (session && called && (turn.usage || (turn.failed && turn.failed !== "limited")))
-    await recordAiUsage(session.email, { model, usage: turn.usage, result: turn.failed ?? "ok" });
+  if (reserved !== undefined && turn.failed !== "limited")
+    await finishAiCall(reserved, { usage: turn.usage, result: turn.failed ?? "ok" });
   return turn.state;
 }
 

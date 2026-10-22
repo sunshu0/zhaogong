@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { countAiCalls, listAiUsageSince, recordAiUsage } from "@/db/ai-usage";
+import {
+  countAiCalls,
+  finishAiCall,
+  listAiUsageOf,
+  listAiUsageSince,
+  recordAiUsage,
+  reserveAiCall,
+} from "@/db/ai-usage";
 import { AI_LIMITS, limitWindows, overLimit } from "@/lib/ai-post/model/limits";
 
 const t0 = new Date("2026-10-17T01:00:00.000Z");
@@ -54,5 +61,38 @@ describe("ai_usage (#102)", () => {
       },
     ]);
     expect(JSON.stringify(rows)).not.toContain("@example.com");
+  });
+});
+
+describe("taking a call's place before the model is asked (security review B)", () => {
+  it("lets only 6 of 10 calls sent at once through, and records the others as turned away", async () => {
+    const me = "at.once@example.com";
+    const places = await Promise.all(Array.from({ length: 10 }, () => reserveAiCall(me, "m", t0)));
+    expect(places.filter((p) => "id" in p)).toHaveLength(AI_LIMITS.perMinute);
+    expect(places.filter((p) => "over" in p)).toEqual(Array(10 - AI_LIMITS.perMinute).fill({ over: "minute" }));
+    const rows = await listAiUsageOf(me);
+    expect(rows.filter((r) => r.result === "pending")).toHaveLength(AI_LIMITS.perMinute);
+    expect(rows.filter((r) => r.result === "limited")).toHaveLength(10 - AI_LIMITS.perMinute);
+    expect(await countAiCalls(me, t0)).toEqual({ lastMinute: 6, lastDay: 6 });
+  });
+
+  it("fills in the call when it ends; one left pending still counts", async () => {
+    const me = "filled@example.com";
+    const place = await reserveAiCall(me, "m", t0);
+    if (!("id" in place)) throw new Error("no place");
+    await finishAiCall(place.id, { usage: TOKENS, result: "ok" });
+    await reserveAiCall(me, "m", later(1000)); // never finished
+    expect((await listAiUsageOf(me)).map((r) => [r.result, r.input])).toEqual([
+      ["ok", TOKENS.input],
+      ["pending", 0],
+    ]);
+    expect(await countAiCalls(me, later(2000))).toMatchObject({ lastMinute: 2 });
+  });
+
+  it("says the day limit once 100 calls were made in 24 hours", async () => {
+    const me = "whole.day@example.com";
+    for (let i = 0; i < AI_LIMITS.perDay; i++)
+      await recordAiUsage(me, { model: "m", usage: TOKENS, result: "ok" }, later(-i * 600_000));
+    expect(await reserveAiCall(me, "m", later(60_000))).toEqual({ over: "day" });
   });
 });

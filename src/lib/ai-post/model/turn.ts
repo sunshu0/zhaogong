@@ -98,10 +98,32 @@ function fail(s: ChatState, text: string): ChatState {
   return { ...withMessage(s, "assistant", text), unavailable: true };
 }
 
+/**
+ * How much of the conversation the model is sent (security review B): the browser may send up to 200 messages of
+ * 4,000 characters, and every token is paid for. The draft so far goes with every call (contextNote), so the model
+ * does not need the older turns to keep what was agreed.
+ */
+export const HISTORY_LIMITS = { messages: 30, chars: 12_000 } as const;
+
+/**
+ * The latest messages within HISTORY_LIMITS, oldest first, starting with one of the employer's (the model's turns
+ * must start with the user's; the greeting is the page's, not the model's). The latest one is always kept.
+ */
+export function recentHistory<M extends { from: string; text: string }>(messages: readonly M[]): M[] {
+  const kept: M[] = [];
+  let chars = 0;
+  for (let i = messages.length - 1; i >= 0 && kept.length < HISTORY_LIMITS.messages; i -= 1) {
+    chars += messages[i].text.length;
+    if (kept.length > 0 && chars > HISTORY_LIMITS.chars) break;
+    kept.unshift(messages[i]);
+  }
+  const first = kept.findIndex((m) => m.from === "employer");
+  return first < 0 ? [] : kept.slice(first);
+}
+
 function request(s: ChatState, model: string, findings: Finding[]): Params {
-  // The conversation as the model's turns; it starts with the employer (the greeting is the page's, not the model's).
-  const first = s.messages.findIndex((m) => m.from === "employer");
-  const history: Anthropic.Beta.BetaMessageParam[] = s.messages.slice(first).map((m) => ({
+  // The recent conversation as the model's turns.
+  const history: Anthropic.Beta.BetaMessageParam[] = recentHistory(s.messages).map((m) => ({
     role: m.from === "employer" ? "user" : "assistant",
     content: m.text,
   }));

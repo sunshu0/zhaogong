@@ -6,7 +6,7 @@ import type { ChatState } from "@/lib/ai-post/chat-state";
 import { assistantKind, DEFAULT_MODEL, postingModel, postingTurn, PREVIEW, UNAVAILABLE } from "./index";
 import { fakeSend } from "./fake";
 import { applyPatch, readReply, replySchema } from "./reply";
-import { modelTurn, type SendMessage } from "./turn";
+import { HISTORY_LIMITS, modelTurn, recentHistory, type SendMessage } from "./turn";
 
 const sanitize = (d: unknown) => sanitizeDraft(d, "NZ");
 type Params = Anthropic.Beta.MessageCreateParamsNonStreaming;
@@ -173,5 +173,45 @@ describe("the reply's shape", () => {
       hoursPerWeek: { min: 20 },
       contact: { wechat: "old", phone: "021 000" },
     });
+  });
+});
+
+describe("the conversation the model is sent (security review B)", () => {
+  const say = (from: "employer" | "assistant", text: string) => ({ from, text });
+
+  it("is at most the last 30 messages, starting with one of the employer's", () => {
+    const chat = Array.from({ length: 200 }, (_, i) => say(i % 2 ? "assistant" : "employer", `第 ${i} 句`));
+    const sent = recentHistory(chat);
+    expect(sent.length).toBeLessThanOrEqual(HISTORY_LIMITS.messages);
+    expect(sent.at(-1)).toBe(chat.at(-1));
+    expect(sent[0].from).toBe("employer");
+  });
+
+  it("stops at 12,000 characters, but always keeps the latest message", () => {
+    const long = "字".repeat(4000);
+    const chat = [say("employer", long), say("assistant", long), say("employer", long), say("assistant", long)];
+    const sent = recentHistory([...chat, say("employer", "时薪 25")]);
+    expect(sent.reduce((n, m) => n + m.text.length, 0)).toBeLessThanOrEqual(HISTORY_LIMITS.chars);
+    expect(sent.at(-1)?.text).toBe("时薪 25");
+    expect(sent[0].from).toBe("employer");
+    expect(recentHistory([say("employer", "字".repeat(20_000))])).toHaveLength(1);
+  });
+
+  it("sends the model only that much", async () => {
+    let sent = 0;
+    const send: SendMessage = async (params) => {
+      sent = params.messages.filter((m) => m.role !== "system").length;
+      return fakeSend(params);
+    };
+    let state = startChat("NZ");
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      id: `x${i}`,
+      from: i % 2 ? "assistant" : "employer",
+      text: "好",
+    }));
+    state = { ...state, messages: [...state.messages, ...(many as ChatState["messages"])] };
+    await modelTurn(state, "时薪 25", { send, model: "m", sanitize: (d) => sanitizeDraft(d, "NZ") });
+    expect(sent).toBeLessThanOrEqual(HISTORY_LIMITS.messages);
+    expect(sent).toBeGreaterThan(0);
   });
 });

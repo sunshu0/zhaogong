@@ -7,8 +7,12 @@ export const AI_LIMITS = { perMinute: 6, perDay: 100 } as const;
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
 
-/** How a call to the posting model ended; `limited` is one the limits turned away before it was made. */
-export type AiUsageResult = "ok" | "error" | "refused" | "unreadable" | "limited";
+/**
+ * How a call to the posting model ended; `limited` is one the limits turned away before it was made. `pending`: the
+ * call's place is taken (reserveAiCall) and its answer not yet in; one left pending (the server stopped mid-call)
+ * keeps counting against the limits and shows in 审核数据 as failed.
+ */
+export type AiUsageResult = "ok" | "error" | "refused" | "unreadable" | "limited" | "pending";
 
 /** The account's calls since each window began. */
 export interface AiCallCounts {
