@@ -1,5 +1,5 @@
 // Real sign-in and server sessions (line A). Server only: import from Server Functions and Server Components.
-export { CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS, SESSION_COOKIE, SESSION_TTL_MS } from "@/lib/auth/config";
+export { CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS, SESSION_TTL_MS, sessionCookieName } from "@/lib/auth/config";
 export {
   generateCode,
   hashCode,

@@ -7,7 +7,15 @@ export const MAX_ATTEMPTS = 5;
 /** One code per email per minute. */
 export const RESEND_AFTER_MS = 60_000;
 
-export const SESSION_COOKIE = "zg_session";
+/**
+ * The session cookie's name. In production `__Host-zg_session` (security review I, 10-23): the browser then keeps it
+ * only when it is Secure, Path=/ and without Domain, so no subdomain can set or replace it. Development and the unit
+ * tests run on plain http and use `zg_session`. The test build is production, and Chromium treats http://localhost as
+ * secure, so the browser tests use the production name. Renaming it after launch would sign everyone out.
+ */
+export function sessionCookieName(production = isProduction()): string {
+  return production ? "__Host-zg_session" : "zg_session";
+}
 /** Sessions last 30 days. */
 export const SESSION_TTL_MS = 30 * 24 * 3600_000;
 

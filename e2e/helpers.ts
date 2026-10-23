@@ -10,6 +10,12 @@ export async function fillSignInCode(page: Page) {
   await page.getByLabel("验证码").fill((await shown.textContent())!.trim());
 }
 
+/**
+ * The session cookie's name (src/lib/auth/config.ts sessionCookieName): `__Host-zg_session` in a production build,
+ * the browser tests' build included (E2E_SERVER=start); `zg_session` on next dev.
+ */
+export const SESSION_COOKIE_NAME = process.env.E2E_SERVER === "start" ? "__Host-zg_session" : "zg_session";
+
 /** A fresh address for one test: a code can be asked for once a minute per email, and specs run side by side. */
 export function freshEmail(tag = "e2e.seeker") {
   return `${tag}.${Date.now()}.${Math.floor(Math.random() * 1e6)}@example.com`;

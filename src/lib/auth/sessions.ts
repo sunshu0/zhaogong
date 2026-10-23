@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { authStore } from "@/lib/auth/store";
 import { getAccountEmployer } from "@/lib/data";
 import type { Employer } from "@/lib/types";
-import { isProduction, SESSION_COOKIE, SESSION_TTL_MS } from "@/lib/auth/config";
+import { isProduction, SESSION_TTL_MS, sessionCookieName } from "@/lib/auth/config";
 import { normalizeEmail, type ActiveRole } from "@/components/seeker/session";
 
 /** The bits of Next's cookie store used here; tests pass their own. */
@@ -73,12 +73,12 @@ export async function createSession(
     createdAt: now.toISOString(),
     expiresAt: expires.toISOString(),
   });
-  (jar ?? (await requestJar())).set(SESSION_COOKIE, token, sessionCookieOptions(expires));
+  (jar ?? (await requestJar())).set(sessionCookieName(), token, sessionCookieOptions(expires));
   return result;
 }
 
 async function currentRow(jar: CookieJar, now: Date) {
-  const token = jar.get(SESSION_COOKIE)?.value;
+  const token = jar.get(sessionCookieName())?.value;
   if (!token) return undefined;
   const store = authStore();
   const row = await store.getSession(idOf(token));
@@ -123,7 +123,9 @@ export async function switchRole(role: ActiveRole, jar?: CookieJar, now = new Da
 
 export async function signOut(jar?: CookieJar): Promise<void> {
   const cookieJar = jar ?? (await requestJar());
-  const token = cookieJar.get(SESSION_COOKIE)?.value;
+  const token = cookieJar.get(sessionCookieName())?.value;
   if (token) await authStore().deleteSession(idOf(token));
-  cookieJar.delete(SESSION_COOKIE);
+  // Expired with the cookie's own options, not delete(name): Next's delete sends no Secure, and the browser refuses to
+  // replace a __Host- cookie without it, so the cookie would stay (an empty value never signs anyone in).
+  cookieJar.set(sessionCookieName(), "", { ...sessionCookieOptions(new Date(0)), maxAge: 0 });
 }

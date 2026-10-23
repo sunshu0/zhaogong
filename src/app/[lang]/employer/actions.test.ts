@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { createSession, SESSION_COOKIE, type CookieJar } from "@/lib/auth";
+import { createSession, sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { startChat } from "@/lib/ai-post";
 import { recordChatStart, recordJobView } from "@/db/job-stats";
@@ -543,7 +543,7 @@ describe("refused without the right session (#19)", () => {
   it("refuses a browser that is not signed in, or sends a cookie the server never issued", async () => {
     for (const cookie of [undefined, "made-up-token"]) {
       cookies.clear();
-      if (cookie) cookies.set(SESSION_COOKIE, cookie);
+      if (cookie) cookies.set(sessionCookieName(), cookie);
       const r = await everything();
       expect(r).toMatchObject({
         jobs: [],

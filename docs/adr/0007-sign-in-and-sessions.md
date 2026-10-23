@@ -18,6 +18,9 @@
   - 验证码 6 位数字，10 分钟有效，同一邮箱每分钟最多发一次，错 5 次作废（`src/lib/auth/config.ts`）。
   - 库里只存验证码的 HMAC-SHA256（密钥 `AUTH_SECRET`；生产环境没有设置就拒绝运行），比较用 `timingSafeEqual`。每个邮箱只有一个有效验证码，新的替换旧的。
 - **服务器会话，放在 httpOnly cookie 里。** cookie `zg_session` 里是 32 字节随机数；库里存它的 SHA-256、账号和当前身份，30 天过期。cookie 设 `HttpOnly`、`SameSite=Lax`，生产环境加 `Secure`。退出登录时删库里的会话和 cookie。
+  - **10-23 补充（安全检查 I）：** 生产环境的 cookie 名是 `__Host-zg_session`（`sessionCookieName()`，`src/lib/auth/config.ts`）。浏览器只在它带 `Secure`、`Path=/`、不带 `Domain` 时才收下，所以子域名没法种或覆盖它。本地开发是 http，名字仍是 `zg_session`；测试构建是生产构建，Chromium 把 http://localhost 当作安全来源，所以 e2e 用的也是生产的名字。
+  - 退出登录不用 `cookies().delete(name)`：Next 的 delete 不带 `Secure`，浏览器不会用它替换 `__Host-` cookie。改成用同样的选项写一个已过期的空值。
+  - **上线后再改这个名字，会让所有人登出。** 这次是上线前改的，没有旧 cookie 要迁移。
 - **企业永远从账号查。** 会话只记邮箱和当前身份；企业每次用 `getAccountEmployer` 从账号查出来，不信任浏览器传来的企业编号。切到雇主身份要求账号确实有企业（`switchRole`）。所有需要身份的 Server Function 用 `getCurrentSession()`、`requireSession()`、`requireEmployer()`（`src/lib/auth/sessions.ts`）读会话，不收邮箱参数；雇主和审核接口在 #41（关闭 #19）改完。
 - **存储放在接口后面。** `AuthStore`（`src/lib/auth/store.ts`）定义验证码和会话的读写；默认实现是数据库（`src/db/auth-store.ts`，`sign_in_codes`、`sessions` 两张表，ADR 0005），单测换成内存实现。
 - **验证码怎么送达：**

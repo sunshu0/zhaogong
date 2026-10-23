@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { banEmployer, getAccountEmployer, listEmployers } from "@/lib/data";
-import { SESSION_COOKIE, type CookieJar } from "@/lib/auth";
+import { sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
@@ -86,7 +86,7 @@ describe("注册或登录", () => {
       ok: true,
       account: { email: "new.person@example.com", activeRole: "seeker" },
     });
-    expect(cookies.get(SESSION_COOKIE)).toMatch(/^[\w-]{43}$/);
+    expect(cookies.get(sessionCookieName())).toMatch(/^[\w-]{43}$/);
     expect(await accountStatus()).toEqual({ email: "new.person@example.com", activeRole: "seeker" });
     expect(await accountStatus("new.person@example.com")).toEqual({
       email: "new.person@example.com",
@@ -111,7 +111,7 @@ describe("注册或登录", () => {
   it("signs out on the server: the cookie and the session are gone", async () => {
     await signIn("leaving@example.com");
     await signOutAccount();
-    expect(cookies.has(SESSION_COOKIE)).toBe(false);
+    expect(cookies.get(sessionCookieName()) ?? "").toBe("");
     expect(await accountStatus()).toBeNull();
   });
 });

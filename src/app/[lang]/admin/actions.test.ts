@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createSession, type CookieJar } from "@/lib/auth";
+import { createSession, sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { ensureAccount, getEmployer, getJob, listJobs, listReports, submitReport, updateJob } from "@/lib/data";
 import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
@@ -77,7 +77,7 @@ describe("admin switch", () => {
       for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer, addModerator, removeModerator]) {
         expect(await act("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
       }
-      cookies.set("zg_session", "made-up-token");
+      cookies.set(sessionCookieName(), "made-up-token");
       expect(await getModerationQueue()).toMatchObject({ refused: "signed_out" });
       expect(await takeDownJob("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
       expect((await getJob("j10"))?.status).toBe("active");

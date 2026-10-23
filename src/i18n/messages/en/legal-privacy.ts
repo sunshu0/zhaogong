@@ -113,7 +113,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             head: ["Name", "What it does", "How long"],
             rows: [
               [
-                "zg_session",
+                "__Host-zg_session (zg_session in local development)",
                 "Keeps you signed in. It holds a random sign-in token; the server only stores a hash of it.",
                 "30 days, or until you sign out",
               ],

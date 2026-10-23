@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SESSION_COOKIE, type CookieJar } from "@/lib/auth";
+import { sessionCookieName, type CookieJar } from "@/lib/auth";
 import { getAccount } from "@/lib/data";
 import { grantModerator, listModerators, revokeModerator } from "@/db/moderators";
 import { DEMO_MODERATOR } from "@/db/seed";
@@ -54,7 +54,7 @@ describe("删除账号 (#54)", () => {
       error: "输入的邮箱和当前登录的邮箱不一致",
     });
     expect(await deleteMyAccount(" Leaving@Example.com ")).toEqual({ ok: true });
-    expect(cookies.has(SESSION_COOKIE)).toBe(false);
+    expect(cookies.get(sessionCookieName()) ?? "").toBe("");
     expect(await accountStatus()).toBeNull();
     expect(await getAccount("leaving@example.com")).toBeUndefined();
 

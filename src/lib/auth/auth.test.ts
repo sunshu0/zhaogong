@@ -14,7 +14,7 @@ import {
   requireEmployer,
   requireSession,
   RESEND_AFTER_MS,
-  SESSION_COOKIE,
+  sessionCookieName,
   SESSION_TTL_MS,
   signOut,
   switchRole,
@@ -215,9 +215,9 @@ describe("sessions", () => {
     const view = await createSession("s1@example.com", "seeker", jar, t0);
     expect(view).toEqual({ email: "s1@example.com", activeRole: "seeker" });
 
-    const token = values.get(SESSION_COOKIE)!;
+    const token = values.get(sessionCookieName())!;
     expect(Buffer.from(token, "base64url")).toHaveLength(32);
-    expect(options.get(SESSION_COOKIE)).toMatchObject({
+    expect(options.get(sessionCookieName())).toMatchObject({
       httpOnly: true,
       sameSite: "lax",
       secure: false,
@@ -234,13 +234,25 @@ describe("sessions", () => {
     expect(rows[0].id).toBe(createHash("sha256").update(token).digest("hex"));
   });
 
-  it("set Secure on the cookie in production", async () => {
+  it("in production are __Host-zg_session: Secure, Path=/, no Domain, the rest unchanged (review I)", async () => {
     await account("s2@example.com");
+    expect(sessionCookieName()).toBe("zg_session"); // development and these tests: plain http
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("AUTH_SECRET", "production secret");
-    const { jar, options } = fakeJar();
+    expect(sessionCookieName()).toBe("__Host-zg_session");
+    const { jar, values, options } = fakeJar();
     await createSession("s2@example.com", "seeker", jar, t0);
-    expect(options.get(SESSION_COOKIE)?.secure).toBe(true);
+    expect(values.has("zg_session")).toBe(false);
+    const set = options.get("__Host-zg_session")!;
+    expect(set).toMatchObject({ httpOnly: true, sameSite: "lax", secure: true, path: "/" });
+    expect(set).not.toHaveProperty("domain");
+    expect(await getCurrentSession(jar)).toEqual({ email: "s2@example.com", activeRole: "seeker" });
+
+    // Sign-out replaces it with an expired one with the same options: a __Host- cookie is only cleared by a Secure one.
+    await signOut(jar);
+    expect(values.get("__Host-zg_session")).toBe("");
+    expect(options.get("__Host-zg_session")).toMatchObject({ secure: true, path: "/", maxAge: 0 });
+    expect(await getCurrentSession(jar)).toBeNull();
   });
 
   it("are read back from the cookie, and end after 30 days", async () => {
@@ -254,7 +266,7 @@ describe("sessions", () => {
 
   it("know nothing of a cookie the server did not issue", async () => {
     const { jar } = fakeJar();
-    jar.set(SESSION_COOKIE, Buffer.alloc(32, 7).toString("base64url"), {});
+    jar.set(sessionCookieName(), Buffer.alloc(32, 7).toString("base64url"), {});
     expect(await getCurrentSession(jar)).toBeNull();
     await expect(requireSession(jar)).rejects.toThrow(AuthError);
   });
@@ -277,12 +289,13 @@ describe("sessions", () => {
     expect(row.activeRole).toBe("seeker");
   });
 
-  it("end on sign-out: row and cookie gone", async () => {
+  it("end on sign-out: row gone, cookie expired", async () => {
     await account("s5@example.com");
-    const { jar, values } = fakeJar();
+    const { jar, values, options } = fakeJar();
     await createSession("s5@example.com", "seeker", jar, t0);
     await signOut(jar);
-    expect(values.has(SESSION_COOKIE)).toBe(false);
+    expect(values.get(sessionCookieName())).toBe("");
+    expect(options.get(sessionCookieName())).toMatchObject({ maxAge: 0 });
     expect(store.sessions.size).toBe(0);
     expect(await getCurrentSession(jar)).toBeNull();
   });

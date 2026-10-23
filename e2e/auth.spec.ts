@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { contactBlock, fillSignInCode, freshEmail, signIn } from "./helpers";
+import { SESSION_COOKIE_NAME, contactBlock, fillSignInCode, freshEmail, signIn } from "./helpers";
 
 // A12-1: random sign-in codes and a server session in an httpOnly cookie; the browser's copy is for display only.
 
@@ -8,12 +8,14 @@ test("the session lives in an httpOnly, SameSite=Lax cookie for 30 days, out of 
   context,
 }) => {
   await signIn(page, "/jobs", freshEmail("cookie"));
-  const cookie = (await context.cookies()).find((c) => c.name === "zg_session");
+  const cookie = (await context.cookies()).find((c) => c.name === SESSION_COOKIE_NAME);
   expect(cookie).toBeDefined();
   expect(cookie!.httpOnly).toBe(true);
   expect(cookie!.sameSite).toBe("Lax");
-  // Secure is set in production builds, the browser tests' build included (E2E_SERVER=start, #139); not on next dev.
+  // Secure, and the __Host- name, in production builds, the browser tests' build included (E2E_SERVER=start, #139);
+  // not on next dev. __Host- also means no Domain: the cookie belongs to this host only (security review I).
   expect(cookie!.secure).toBe(process.env.E2E_SERVER === "start");
+  expect(cookie!.domain).toBe("localhost");
   expect(cookie!.path).toBe("/");
   const days = (cookie!.expires * 1000 - Date.now()) / 86_400_000;
   expect(days).toBeGreaterThan(29.9);
@@ -105,7 +107,7 @@ test("the server's session wins over the browser's copy, and signing out removes
 
   await page.goto("/account");
   await page.getByRole("button", { name: "退出登录" }).click();
-  await expect.poll(async () => (await context.cookies()).some((c) => c.name === "zg_session")).toBe(false);
+  await expect.poll(async () => (await context.cookies()).some((c) => c.name === SESSION_COOKIE_NAME)).toBe(false);
 
   // Putting the copy back does not bring the session back.
   await page.evaluate((a) => {
