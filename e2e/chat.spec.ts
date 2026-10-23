@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { chatEntry, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -34,6 +35,7 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
     expect((await input.boundingBox())!.y).toBe(before.y);
     expect(before.y + before.height).toBeLessThan(page.viewportSize()!.height);
   }
+  await waitForTitle(page);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(results.violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

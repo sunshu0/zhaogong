@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { waitForTitle } from "./helpers/title";
 
 // #313 (ADR 0025 §7): the consent prompt, in a test build made with NEXT_PUBLIC_CLARITY_ID (the #313 gate makes one
 // for this spec alone). A test build asks but never loads Clarity, so these also check nothing goes to clarity.ms.
@@ -24,6 +25,7 @@ test("asks once per page load until answered, at most three times, and the site 
   const clarity = watchClarity(page);
   await page.goto("/");
   await expect(prompt(page)).toContainText("Microsoft Clarity");
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(violations).toEqual([]);
   // Asking by itself takes nothing from the keyboard.

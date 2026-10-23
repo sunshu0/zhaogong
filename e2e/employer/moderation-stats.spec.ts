@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { MODERATOR_EMAIL, moderatorPage, openReportForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -37,6 +38,7 @@ test("审核数据: a report waits in the summary, and taking the job down count
   const [reportedBefore, handledBefore, , takenDownBefore] = await thisWeek(admin);
   const weeks = admin.getByRole("table", { name: /最近 8 周每周/ });
   await expect(weeks.getByRole("row")).toHaveCount(9); // the header and eight weeks
+  await waitForTitle(admin);
   expect(
     (await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
   ).toEqual([]);
@@ -97,6 +99,7 @@ test("审核数据's 漏斗 shows the four flows' steps, for 7 or 30 days, split
   await admin.getByRole("radio", { name: "按语言" }).check();
   await expect(post.getByRole("columnheader", { name: "中文页面" })).toBeVisible();
 
+  await waitForTitle(admin);
   const { violations } = await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(violations).toEqual([]);
   await admin.context().close();

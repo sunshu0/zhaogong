@@ -2,11 +2,13 @@ import { expect, test } from "@playwright/test";
 import { chatEntry, freshEmail, openWorkspacePage, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 test("seeker notifications open related threads and persist both read states", async ({ page }, testInfo) => {
   await signIn(page, "/notifications", freshEmail("demo.notifications"));
   const list = page.getByRole("region", { name: "通知列表" });
   await expect(list).toContainText("2 条未读");
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("notifications.png"), fullPage: true });
   const entry = chatEntry(page);

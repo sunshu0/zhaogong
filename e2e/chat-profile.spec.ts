@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectProfileSaved, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -101,6 +102,7 @@ test("employer opens candidate home, including legacy local chats and withdrawn 
   await expect(page).toHaveURL("/candidates/candidate-lin");
   await expect(page.getByRole("heading", { name: "林晓", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "公开求职资料", exact: true })).toContainText("点餐");
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("candidate-home.png"), fullPage: true });

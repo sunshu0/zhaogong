@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { waitForTitle } from "./helpers/title";
 
 // #324: 关于找工, reached from the footer of any page, with the minimum wage read from the country's settings.
 test.use({ reducedMotion: "reduce" });
@@ -22,6 +23,7 @@ test("the footer links to 关于找工, 隐私说明 and 使用条款; the about
     "href",
     "https://www.iaa.govt.nz/for-migrants/who-can-give-advice/",
   );
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(violations).toEqual([]);
 });

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { chatMenuItem, counterpartActs, freshEmail, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -30,6 +31,7 @@ test("seeker sees employer activity and receipts only change when the counterpar
   await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(2);
   await expect(log.getByLabel("我已读", { exact: true })).toHaveCount(3);
   await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(0);
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("seeker-chat-activity.png"), fullPage: true });

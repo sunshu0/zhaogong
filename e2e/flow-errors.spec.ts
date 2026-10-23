@@ -5,6 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { freshEmail, signIn } from "./helpers";
 import { openTheForm, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { TEST_CRASH_KEY } from "../src/lib/test-crash";
+import { waitForTitle } from "./helpers/title";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -13,6 +14,7 @@ const failNext = (page: Page, part: string) =>
 const stopFailing = (page: Page) => page.evaluate((k) => localStorage.removeItem(k), TEST_CRASH_KEY);
 
 async function expectNoViolations(page: Page) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(violations).toEqual([]);
 }

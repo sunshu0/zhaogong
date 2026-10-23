@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { freshEmail, openWorkspacePage, signIn } from "./helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // 职位提醒 (#53, PRD R-29): save the list's filters, hear about a new job that matches in 通知, manage the alerts.
 
@@ -53,6 +54,7 @@ test("alerts can be renamed, paused and deleted in 我的", async ({ page }, tes
 
   const alert = page.getByRole("article", { name: "提醒：清洁、包餐" });
   await expect(alert).toContainText("清洁 · 包餐");
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 
   await alert.getByRole("button", { name: "改名" }).click();

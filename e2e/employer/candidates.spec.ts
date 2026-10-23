@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { chooseOption, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "../helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -62,6 +63,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   await expect(rows.first().getByRole("region", { name: "匹配分析", exact: true })).toContainText("用工形式");
   await page.screenshot({ path: testInfo.outputPath("candidates.png"), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await chooseOption(page, page, "最低匹配分", "80 分及以上");
   await expect(rows).toHaveCount(2);

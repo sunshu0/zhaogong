@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { chatEntry, freshEmail, signIn, siteNav } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -33,6 +34,7 @@ test("workspace navigation stays visible across its pages", async ({ page }, tes
     await expect(current).toHaveAttribute("aria-current", "page");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
+  await waitForTitle(page);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(results.violations).toEqual([]);
   await page.goto("/workspace");

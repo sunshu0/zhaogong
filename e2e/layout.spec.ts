@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { waitForTitle } from "./helpers/title";
 
 const box = async (locator: Locator) => (await locator.boundingBox())!;
 const noSideScroll = (page: Page) =>
@@ -98,6 +99,7 @@ test("job cards: title, pay, one line of points, one status and two tags, employ
     expect(await noSideScroll(page)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`job-cards-${width}.png`) });
   }
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 });
 

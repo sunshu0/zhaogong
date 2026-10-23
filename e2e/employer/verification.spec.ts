@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { moderatorPage, signUpEmployer } from "./helpers";
+import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -57,6 +58,7 @@ test("an application waits for a moderator, who approves it after the checklist;
   await card.getByLabel("申请人身份的备注").fill("董事名单上有王店主");
   await expect(approve).toBeDisabled(); // the phone call is still to do
   await card.getByRole("checkbox", { name: "电话核实" }).check();
+  await waitForTitle(admin);
   expect(
     (await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
   ).toEqual([]);
@@ -128,6 +130,7 @@ test("opening an application is recorded in 查看记录 with its number, not it
   await expect(row).toContainText("企业验证申请");
   await expect(log).not.toContainText("09 055 0336");
   await expect(log).not.toContainText("王店主");
+  await waitForTitle(admin);
   expect(
     (await new AxeBuilder({ page: admin }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
   ).toEqual([]);

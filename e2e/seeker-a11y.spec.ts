@@ -1,12 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { freshEmail, selectTrigger, signIn } from "./helpers";
+import { waitForTitle } from "./helpers/title";
 
 // Accessibility of the job seeker's pages that no other spec checks with axe after Round 19 (#166): 收藏和进度 in
 // its three states, and the cards for pages that are not there (#161). Phone and desktop (both projects).
 // Reduced motion: the 进度 dropdown fades in (animate-pop-in), and axe measured its options' contrast mid-fade.
 test.use({ reducedMotion: "reduce" });
 async function expectNoViolations(page: Page, state: string) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

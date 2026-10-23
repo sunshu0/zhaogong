@@ -3,10 +3,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { chineseLeft, useEnglish } from "./helpers/english";
+import { waitForTitle } from "./helpers/title";
 
 test.use({ reducedMotion: "reduce" });
 
 async function expectNoViolations(page: Page) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(violations).toEqual([]);
 }

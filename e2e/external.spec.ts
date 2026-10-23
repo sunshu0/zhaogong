@@ -1,11 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { chooseOption } from "./helpers";
+import { waitForTitle } from "./helpers/title";
 
 // 实习 and 专业职位 (#113): the demo external jobs (src/mock/external-jobs.ts) a moderator already approved.
 // Read-only, so both projects can share the server; other specs may approve more, so no counts are relied on.
 
 async function expectNoViolations(page: Page, state: string) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

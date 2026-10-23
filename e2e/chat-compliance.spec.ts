@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { counterpartActs, freshEmail, selectTrigger, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -20,6 +21,7 @@ test("a received message asking for a deposit gets a reminder and a report link;
   await expect(note).toHaveCount(1);
   await expect(note).toContainText("找工不允许向求职者收取押金或任何费用。请谨慎，不要先付钱；可以举报。");
   await page.screenshot({ path: testInfo.outputPath("chat-reminder.png"), fullPage: true });
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 
   await note.getByRole("button", { name: "举报这条消息" }).click();

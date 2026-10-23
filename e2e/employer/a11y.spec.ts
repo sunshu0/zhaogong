@@ -13,6 +13,7 @@ import {
   setJobClosing,
 } from "./helpers";
 import { chatAboutJob, freshEmail, signIn } from "../helpers";
+import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -38,6 +39,7 @@ async function expectNoZoomOnFocus(page: Page, scope: string, state: string) {
 }
 
 async function expectNoViolations(page: Page, state: string) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

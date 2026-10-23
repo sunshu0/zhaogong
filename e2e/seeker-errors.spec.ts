@@ -6,6 +6,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { SESSION_COOKIE_NAME, expectProfileSaved, freshEmail, signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -21,6 +22,7 @@ async function cutCalls(page: Page, path: string) {
 
 /** axe on the page, or only on `scope` where the page also lists what other specs published (#241's lesson). */
 async function expectNoViolations(page: Page, scope?: string) {
+  await waitForTitle(page);
   let axe = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]);
   if (scope) axe = axe.include(scope);
   const { violations } = await axe.analyze();

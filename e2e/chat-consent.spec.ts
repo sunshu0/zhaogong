@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { chatMenuItem, chooseOption, exchangeTool, signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -25,6 +26,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("09 055 8801");
   await expect(dialog).not.toContainText("021 ••• 0901");
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -122,6 +124,7 @@ test("employers can report seekers and accepted private data stays out of public
   await dialog.getByRole("button", { name: /^举报范围/ }).click();
   await page.getByRole("listbox", { name: "举报范围", exact: true }).getByRole("option", { name: /^2\. / }).click();
   await page.screenshot({ path: testInfo.outputPath("report-dialog.png"), fullPage: true });
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   await dialog.getByRole("button", { name: "提交举报", exact: true }).click();
   await expect(dialog).toContainText("举报已记录");

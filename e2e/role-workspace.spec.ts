@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { chatEntry, exchangeTool, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
@@ -35,6 +36,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expectProfileSaved(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath("employer-profile.png"), fullPage: true });
+  await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
 
   await page.goto("/messages");

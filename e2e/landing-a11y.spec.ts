@@ -1,10 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { waitForTitle } from "./helpers/title";
 
 test("/ has no axe violations (WCAG 2.1 A and AA)", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("region", { name: "精选工作" }).getByRole("listitem").first()).toBeVisible();
   await expect(page.locator("[data-hero-counts]")).toBeVisible();
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { fillSignInCode, freshEmail, signIn } from "./helpers";
 import { moderatorPage } from "./employer/helpers";
+import { waitForTitle } from "./helpers/title";
 
 // #187: axe on line C's pages that no spec scanned yet, in the states people see: each step of /login, 我的 and
 // 数据与账号, and the 外部职位 tab of /admin (the other tabs are in employer/a11y.spec). WCAG 2.1 A and AA, no
@@ -11,6 +12,7 @@ import { moderatorPage } from "./employer/helpers";
 test.use({ reducedMotion: "reduce" });
 
 async function expectNoViolations(page: Page, state: string) {
+  await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
