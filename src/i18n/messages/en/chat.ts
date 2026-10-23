@@ -79,6 +79,13 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     unsent: "Not sent yet",
     openFailed: "Network problem: the chat didn't open. Try again later.",
   },
+  limits: {
+    messagesFull: (max) =>
+      `This conversation already has ${max} messages, the most it can hold, so this one wasn't sent.`,
+    conversationsFull: (max) =>
+      `You already have ${max} conversations like this, the most allowed, so a new chat didn't open.`,
+    importTooBig: "The older chat records on this device are too many to keep, so they weren't saved to the server.",
+  },
   log: {
     label: "Messages",
     empty: "No messages yet",

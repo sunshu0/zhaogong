@@ -87,6 +87,12 @@ const chatZh = {
     unsent: "未送出",
     openFailed: "网络有问题，没能发起聊天，请稍后再试。",
   },
+  // messages/actions.ts (security review F): the sizes of an identity's own record, src/lib/chat-server/own-limits.ts.
+  limits: {
+    messagesFull: (max: number) => `这段对话里已经有 ${max} 条消息，到上限了，这条没有发出。`,
+    conversationsFull: (max: number) => `你已经有 ${max} 段这样的对话，到上限了，没能发起新的聊天。`,
+    importTooBig: "这台设备上的旧聊天记录太多，没有存到服务器。",
+  },
   log: {
     label: "消息记录",
     empty: "尚未发送消息",

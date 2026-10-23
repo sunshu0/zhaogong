@@ -269,6 +269,71 @@ describe("chat on the server (#10)", () => {
     );
     expect(await importRecord({ junk: true })).toEqual(local);
   });
+
+  it("adds at most 200 messages to a conversation of the own record, and says so (security review F)", async () => {
+    await signedIn("demo.full@example.com");
+    let full = EMPTY_CHAT;
+    for (let i = 1; i < 200; i++) full = addSentMessage(full, "north-tea", `第 ${i} 条`, "2026-10-14T01:00:00.000Z");
+    expect(await importRecord(full)).toEqual(full);
+    const last = await changeMyChat({ type: "send", conversationId: "north-tea", text: "第 200 条" });
+    expect(last?.record.added["north-tea"]).toHaveLength(200);
+    expect(last?.notice).toBeUndefined();
+    const over = await changeMyChat({ type: "send", conversationId: "north-tea", text: "第 201 条" });
+    expect(over?.record.added["north-tea"]).toHaveLength(200);
+    expect(over?.notice).toBe("这段对话里已经有 200 条消息，到上限了，这条没有发出。");
+    cookies.set("zg_lang", "en");
+    expect((await changeMyChat({ type: "send", conversationId: "north-tea", text: "again" }))?.notice).toBe(
+      "This conversation already has 200 messages, the most it can hold, so this one wasn't sent.",
+    );
+    expect(
+      (await change({ type: "send", conversationId: "mt-eden", text: "另一段对话" }))?.added["mt-eden"],
+    ).toHaveLength(1);
+  });
+
+  it("does not take an older record over the own record's sizes, and says so (security review F)", async () => {
+    const at = "2026-10-14T01:00:00.000Z";
+    const messages = (n: number, text = "一条") =>
+      Array.from({ length: n }, () => ({ from: "me" as const, text, time: "刚刚", sentAt: at }));
+    const report = (text: string) => ({
+      id: "r1",
+      conversationId: "north-tea",
+      targetName: "北岸茶餐厅",
+      targetRole: "employer",
+      reason: "fraud",
+      note: "",
+      evidence: [{ from: "them", text, time: "昨天" }],
+      createdAt: at,
+    });
+    const tooBig: [string, ChatRecord][] = [
+      ["201 messages in one conversation", { ...EMPTY_CHAT, added: { "north-tea": messages(201) } }],
+      [
+        "101 conversations",
+        { ...EMPTY_CHAT, readAt: Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`c${i}`, at])) },
+      ],
+      ["a message over 2000 characters", { ...EMPTY_CHAT, added: { "north-tea": messages(1, "字".repeat(2001)) } }],
+      ["101 reports", { ...EMPTY_CHAT, reports: Array.from({ length: 101 }, () => report("骗子")) } as ChatRecord],
+      ["evidence over 2000 characters", { ...EMPTY_CHAT, reports: [report("字".repeat(2001))] } as ChatRecord],
+    ];
+    for (const [what, record] of tooBig) {
+      await signedIn(`demo.import.${tooBig.findIndex(([w]) => w === what)}@example.com`);
+      const answer = await importMyChat(record);
+      expect(answer?.record, what).toEqual(EMPTY_CHAT);
+      expect(answer?.notice, what).toBe("这台设备上的旧聊天记录太多，没有存到服务器。");
+      expect(await my(), what).toEqual(EMPTY_CHAT);
+    }
+    // Just inside every size, it is taken.
+    await signedIn("demo.import.fits@example.com");
+    const fits: ChatRecord = {
+      ...EMPTY_CHAT,
+      added: { "north-tea": messages(200, "字".repeat(2000)) },
+      readAt: Object.fromEntries(Array.from({ length: 99 }, (_, i) => [`c${i}`, at])),
+      reports: Array.from({ length: 100 }, () => report("骗子")) as ChatRecord["reports"],
+    };
+    const taken = await importMyChat(fits);
+    expect(taken?.notice).toBeUndefined();
+    expect(await my()).toEqual(taken?.record);
+    expect(taken?.record.added["north-tea"]).toHaveLength(200);
+  });
 });
 
 describe("notifications on the server (#10)", () => {
@@ -493,6 +558,35 @@ describe("chats both sides share (#110)", () => {
     });
     expect(demo?.opened).toBe(`recommend:candidate-lin:${job.id}`);
     expect(store.chats.get(teamChatScope(job.employerId))?.extra.map((c) => c.id)).toEqual([demo?.opened]);
+  });
+
+  it("a business's own record holds at most 100 conversations; a new one past that is refused and said (security review F)", async () => {
+    const { boss, job } = await business("crowded");
+    const scope = teamChatScope(job.employerId);
+    const lin = `recommend:candidate-lin:${job.id}`;
+    const others = Array.from({ length: 99 }, (_, i) => ({
+      id: `recommend:other${i}:${job.id}`,
+      person: "某人",
+      title: job.titleZh,
+      time: "昨天",
+      avatar: "某",
+      job: job.id,
+    }));
+    await signedIn(boss, "employer");
+    const open = {
+      type: "open",
+      conversation: { kind: "candidate", jobId: job.id, candidateId: "candidate-lin", name: "林晓" },
+    } as const;
+    await store.putChat(scope, { ...EMPTY_CHAT, extra: [...others, { ...others[0], id: lin }] });
+    expect((await changeMyChat(open))?.opened).toBe(lin); // one it has opens again
+    await store.putChat(scope, {
+      ...EMPTY_CHAT,
+      extra: [...others, { ...others[0], id: `recommend:other99:${job.id}` }],
+    });
+    const refused = await changeMyChat(open);
+    expect(refused?.opened).toBeUndefined();
+    expect(refused?.notice).toBe("你已经有 100 段这样的对话，到上限了，没能发起新的聊天。");
+    expect(store.chats.get(scope)?.extra).toHaveLength(100);
   });
 
   it("a job seeker's chat from before #110 keeps its messages and goes on in the shared conversation", async () => {

@@ -117,13 +117,15 @@
 
 每个身份（邮箱 + 身份 + 企业，`identityScope`）有自己的一份聊天记录：会话里的消息、已读、交换请求和回应、聊天举报（`ChatRecord`，`src/components/seeker/chat-store.ts`），存在数据库的 `chat_records` 表（#42）。服务器上的这一份是准的；浏览器 `localStorage` 里的是缓存，跟着服务器的回答更新。每次回答都带 `scope`，浏览器只在对应的身份下采用。
 
-`ChatSnapshot`：`{ scope, record: ChatRecord, opened? }`。`record` 是这个身份自己的记录加上它和对方共用的对话（#110，ADR 0015）；`opened` 只在 `open` 之后有，是要进的对话编号。`ReadsSnapshot`：`{ scope, ids: string[] }`。
+`ChatSnapshot`：`{ scope, record: ChatRecord, opened?, notice? }`。`record` 是这个身份自己的记录加上它和对方共用的对话（#110，ADR 0015）；`opened` 只在 `open` 之后有，是要进的对话编号；`notice` 是因为超过自己记录的上限而没收下时的说明，用访客的语言，浏览器用提示条显示。
+
+**自己记录的上限**（安全检查 F，`src/lib/chat-server/own-limits.ts`）：自己的记录只放演示账号的演示对话、和演示候选人的对话、#10 之前的记录（真实的聊天是共用对话，存在自己的表里），每次改动都整份重写，所以要小：最多 100 段对话，每段最多新加 200 条消息；导入的记录另外最多 100 条举报，每条消息和证据不超过 2000 字。`ReadsSnapshot`：`{ scope, ids: string[] }`。
 
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `myChat()` | | 当前身份的 `ChatSnapshot`，还没有记录时是空记录 | 未登录时 `null` |
 | `changeMyChat(change, ticket?)` | `change` 见下表；`ticket`：`{ id, scope }`，浏览器待发送队列里这一项的编号（8–64 位字母、数字、连字符）和它产生时的身份 | 改动后的 `ChatSnapshot`。带 `ticket` 时同一编号只应用一次（每个身份记最近 200 个），`scope` 和当前会话不一致时不应用（切换身份期间浏览器稍后重发） | 未登录时 `null`；改动不合规则时原样返回当前记录，不报错 |
-| `importMyChat(record)` | #10 之前只存在浏览器里的记录 | 服务器还没有这个身份的记录时，校验后存下并返回；已有记录时返回服务器的，不覆盖 | 未登录时 `null`；格式不对时返回空记录 |
+| `importMyChat(record)` | #10 之前只存在浏览器里的记录 | 服务器还没有这个身份的记录时，校验后存下并返回；已有记录时返回服务器的，不覆盖 | 未登录时 `null`；格式不对时返回空记录；超过自己记录的上限时不存，返回空记录和 `notice` |
 | `myNotificationReads()` | | 当前身份已读的通知编号 | 未登录时 `null` |
 | `markMyNotificationsRead(ids)` | 通知编号数组，或 `"all"` | 合并后的已读编号；只收这个身份确实有的通知（求职者身份包括职位提醒的 `alert:<职位编号>`） | 未登录时 `null` |
 
@@ -131,8 +133,8 @@
 
 | `type` | 其余字段 | 规则 |
 | --- | --- | --- |
-| `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里。回答的 `opened` 是要进的对话编号，打不开时没有 |
-| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
+| `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里，已有 100 段时新的打不开，回答带 `notice`。回答的 `opened` 是要进的对话编号，打不开时没有 |
+| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
 | `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |

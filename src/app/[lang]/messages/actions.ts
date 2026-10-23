@@ -27,6 +27,8 @@ import {
 import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/[lang]/messages/server-notifications";
 import { requestLang } from "@/i18n/server";
+import { pick } from "@/i18n/messages";
+import { chatMessages } from "@/i18n/messages/chat";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
 import {
   parsePayload,
@@ -53,6 +55,7 @@ import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { normalizeEmail } from "@/components/seeker/session";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
+import { OWN_CONVERSATIONS_MAX, OWN_MESSAGES_MAX, fitsOwnLimits, roomForMessage } from "@/lib/chat-server/own-limits";
 
 const NAME_MAX = 40;
 /** Applied change ids kept per identity: far more than a browser sends before it hears back. */
@@ -82,9 +85,10 @@ export type ChatChange =
 /**
  * What the server answers with: the records and the identity they belong to (the browser's copy may name another
  * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for). After an
- * `open`, `opened` is the id of the conversation to show.
+ * `open`, `opened` is the id of the conversation to show. `notice`, in the visitor's language, says why a message
+ * or an import was not taken (a size above).
  */
-export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string };
+export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string; notice?: string };
 export type ReadsSnapshot = { scope: string; ids: string[] };
 
 /** Whose shared conversations the identity sees: its own as a job seeker, its business's as an employer. */
@@ -103,8 +107,18 @@ async function withSharedOf(me: ChatIdentity, own: ChatRecord): Promise<ChatReco
   );
 }
 
-async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string): Promise<ChatSnapshot> {
-  return { scope: me.scope, record: await withSharedOf(me, own), ...(opened ? { opened } : {}) };
+async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string, notice?: string): Promise<ChatSnapshot> {
+  return {
+    scope: me.scope,
+    record: await withSharedOf(me, own),
+    ...(opened ? { opened } : {}),
+    ...(notice ? { notice } : {}),
+  };
+}
+
+/** The visitor's words for a size of the own record (own-limits.ts). */
+async function limits() {
+  return pick(chatMessages, await requestLang()).limits;
 }
 
 /** The signed-in identity's chat records; null when signed out. */
@@ -135,15 +149,16 @@ export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): P
     applied = (await store.getAppliedChanges(me.scope)) ?? [];
     if (applied.includes(ticket.id)) return snapshot(me, current);
   }
-  const { record: next, opened } = await apply(current, change, me);
+  const { record: next, opened, notice } = await apply(current, change, me);
   if (next !== current) await store.putChat(me.recordScope, next);
   if (applied && ticket) await store.putAppliedChanges(me.scope, [...applied, ticket.id].slice(-APPLIED_KEPT));
-  return snapshot(me, next, opened);
+  return snapshot(me, next, opened, notice);
 }
 
 /**
  * The browser's records from before #10 (kept only in localStorage), taken once: when the server has nothing for
- * that identity yet. Checked like anything else that comes from a browser.
+ * that identity yet. Checked like anything else that comes from a browser; a record over the own record's sizes
+ * (own-limits.ts) is not taken, and the answer says so.
  */
 export async function importMyChat(record: unknown): Promise<ChatSnapshot | null> {
   const me = await currentChatIdentity();
@@ -153,11 +168,12 @@ export async function importMyChat(record: unknown): Promise<ChatSnapshot | null
   if (current) return snapshot(me, current);
   const parsed = parseChatRecord(record);
   if (!parsed) return snapshot(me, EMPTY_CHAT);
+  if (!fitsOwnLimits(parsed)) return snapshot(me, EMPTY_CHAT, undefined, (await limits()).importTooBig);
   await store.putChat(me.recordScope, parsed);
   return snapshot(me, parsed);
 }
 
-type Applied = { record: ChatRecord; opened?: string };
+type Applied = { record: ChatRecord; opened?: string; notice?: string };
 
 async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): Promise<Applied> {
   if (!change || typeof change !== "object") return { record };
@@ -176,6 +192,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
     }
   }
   if (!view.messages[conversationId]) return { record };
+  if (change.type === "send" && !roomForMessage(record, conversationId))
+    return { record, notice: (await limits()).messagesFull(OWN_MESSAGES_MAX) };
   return { record: applyOwn(record, change, me, view) };
 }
 
@@ -370,6 +388,8 @@ async function openFor(
       return page && name ? withAccount(page.email, name.slice(0, NAME_MAX)) : { record };
     }
     const id = `recommend:${demo.id}:${job.id}`;
+    if (!record.extra.some((c) => c.id === id) && record.extra.length >= OWN_CONVERSATIONS_MAX)
+      return { record, notice: (await limits()).conversationsFull(OWN_CONVERSATIONS_MAX) };
     return {
       record: openConversation(record, {
         id,

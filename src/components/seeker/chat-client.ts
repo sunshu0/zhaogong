@@ -108,7 +108,9 @@ function syncScope(scope: string) {
     const server = await myChat();
     if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
     const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
-    keep(isEmpty(server.record) && local && !isEmpty(local) ? await importMyChat(local) : server);
+    const kept = isEmpty(server.record) && local && !isEmpty(local) ? await importMyChat(local) : server;
+    keep(kept);
+    if (kept?.notice) toast(kept.notice, 8000);
     setUnreached(scope, false);
   })().catch(() => {
     syncedScopes.delete(scope);
@@ -193,6 +195,7 @@ async function openOnServer(
   }
   if (snapshot?.scope !== scope) return null;
   keep(snapshot);
+  if (snapshot.notice) toast(snapshot.notice, 8000);
   return snapshot.opened ?? null;
 }
 
@@ -200,6 +203,8 @@ async function openOnServer(
 async function deliver(item: OutboxItem): Promise<boolean> {
   const snapshot = await changeMyChat(item.change, { id: item.id, scope: item.scope });
   keep(snapshot);
+  // Not taken for a size (security review F): said, since the browser showed the change already.
+  if (snapshot?.notice) toast(snapshot.notice, 8000);
   if (snapshot?.scope !== item.scope) return false;
   removeFromOutbox(localStorage, item.id);
   announceDelivery();
