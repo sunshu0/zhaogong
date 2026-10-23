@@ -124,6 +124,9 @@ export async function horizontalOverflow(page: Page): Promise<number> {
  */
 export async function expectEnglishPage(page: Page, state: string, options: EnglishPageOptions = {}): Promise<void> {
   await expect(page.locator("html"), `${state}: <html lang>`).toHaveAttribute("lang", "en-NZ");
+  // After an in-app move the title comes on its own, after the content (Next 16 streams generateMetadata); axe in
+  // between finds no <title> (employer-public, 10-23). An empty title for good still fails here.
+  await expect(page, `${state}: <title>`).toHaveTitle(/\S/);
 
   let axe = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]);
   if (options.disableRules?.length) axe = axe.disableRules([...options.disableRules]);

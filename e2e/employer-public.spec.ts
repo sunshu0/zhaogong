@@ -21,6 +21,9 @@ test("seeker finds company jobs and credentials, signs in and initiates a persis
   await expect(jobs.getByRole("link", { name: /^前厅服务员/ })).toBeVisible();
   await expect(jobs.getByRole("link", { name: /^厨房帮工/ })).toBeVisible();
   await expect(jobs).not.toContainText("点心师傅");
+  // After the in-app move the page's title comes on its own, after the content (Next 16 streams generateMetadata):
+  // axe right after the content once found no <title> at all (gate of 791f9f3, 10-23).
+  await expect(page).toHaveTitle(/川味小馆/);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("company-public.png"), fullPage: true });
