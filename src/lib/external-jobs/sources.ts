@@ -4,6 +4,20 @@
 import { decodeEntities, htmlToText } from "@/lib/external-jobs/facts";
 import type { ExternalPay, ExternalSource, PayPeriod, RawPosting } from "@/lib/external-jobs/types";
 
+/**
+ * Whether a posting's link is a web address (security review J): an absolute http: or https: URL. Anything else
+ * (javascript:, data:, a link without its scheme) leaves the posting out, as Ashby's unlisted ones are: the job page's
+ * 去官网申请 is its only way to apply. The link is stored as the feed gave it.
+ */
+export function isWebLink(url: unknown): boolean {
+  if (typeof url !== "string") return false;
+  try {
+    return ["http:", "https:"].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
 // ---- Greenhouse Job Board API: https://developers.greenhouse.io/job-board.html ----
 
 interface GreenhouseJob {
@@ -35,20 +49,22 @@ function greenhousePay(job: GreenhouseJob): ExternalPay | undefined {
 export function parseGreenhouse(body: unknown): RawPosting[] {
   const jobs = (body as { jobs?: GreenhouseJob[] })?.jobs;
   if (!Array.isArray(jobs)) throw new Error("Greenhouse answer has no jobs list");
-  return jobs.map((job) => ({
-    externalId: String(job.id),
-    source: "greenhouse",
-    title: job.title,
-    locations: [job.location?.name, ...(job.offices ?? []).flatMap((o) => [o.location, o.name])].filter(
-      (n): n is string => Boolean(n),
-    ),
-    departments: (job.departments ?? []).map((d) => d.name ?? "").filter(Boolean),
-    url: job.absolute_url,
-    ...(job.first_published && { postedAt: new Date(job.first_published).toISOString() }),
-    ...(job.application_deadline && { deadline: job.application_deadline }),
-    ...(greenhousePay(job) && { pay: greenhousePay(job) }),
-    text: htmlToText(decodeEntities(job.content ?? "")),
-  }));
+  return jobs
+    .filter((job) => isWebLink(job.absolute_url))
+    .map((job) => ({
+      externalId: String(job.id),
+      source: "greenhouse",
+      title: job.title,
+      locations: [job.location?.name, ...(job.offices ?? []).flatMap((o) => [o.location, o.name])].filter(
+        (n): n is string => Boolean(n),
+      ),
+      departments: (job.departments ?? []).map((d) => d.name ?? "").filter(Boolean),
+      url: job.absolute_url,
+      ...(job.first_published && { postedAt: new Date(job.first_published).toISOString() }),
+      ...(job.application_deadline && { deadline: job.application_deadline }),
+      ...(greenhousePay(job) && { pay: greenhousePay(job) }),
+      text: htmlToText(decodeEntities(job.content ?? "")),
+    }));
 }
 
 // ---- Lever Postings API: https://github.com/lever/postings-api ----
@@ -84,24 +100,26 @@ function leverPay(p: LeverPosting): ExternalPay | undefined {
 
 export function parseLever(body: unknown): RawPosting[] {
   if (!Array.isArray(body)) throw new Error("Lever answer is not a list of postings");
-  return (body as LeverPosting[]).map((p) => {
-    const c = p.categories ?? {};
-    const locations = [c.location, ...(c.allLocations ?? [])].filter((n): n is string => Boolean(n));
-    const lists = (p.lists ?? []).map((l) => `${l.text ?? ""}\n${htmlToText(l.content ?? "")}`);
-    return {
-      externalId: p.id,
-      source: "lever",
-      title: p.text,
-      locations: [...new Set(locations)],
-      ...(p.country && { country: p.country }),
-      departments: [c.department, c.team].filter((n): n is string => Boolean(n)),
-      ...(c.commitment && { commitment: c.commitment }),
-      url: p.hostedUrl,
-      ...(p.createdAt && { postedAt: new Date(p.createdAt).toISOString() }),
-      ...(leverPay(p) && { pay: leverPay(p) }),
-      text: [p.descriptionPlain ?? "", ...lists, p.additionalPlain ?? ""].join("\n"),
-    };
-  });
+  return (body as LeverPosting[])
+    .filter((p) => isWebLink(p.hostedUrl))
+    .map((p) => {
+      const c = p.categories ?? {};
+      const locations = [c.location, ...(c.allLocations ?? [])].filter((n): n is string => Boolean(n));
+      const lists = (p.lists ?? []).map((l) => `${l.text ?? ""}\n${htmlToText(l.content ?? "")}`);
+      return {
+        externalId: p.id,
+        source: "lever",
+        title: p.text,
+        locations: [...new Set(locations)],
+        ...(p.country && { country: p.country }),
+        departments: [c.department, c.team].filter((n): n is string => Boolean(n)),
+        ...(c.commitment && { commitment: c.commitment }),
+        url: p.hostedUrl,
+        ...(p.createdAt && { postedAt: new Date(p.createdAt).toISOString() }),
+        ...(leverPay(p) && { pay: leverPay(p) }),
+        text: [p.descriptionPlain ?? "", ...lists, p.additionalPlain ?? ""].join("\n"),
+      };
+    });
 }
 
 // ---- Ashby Job Postings API: https://developers.ashbyhq.com/docs/public-job-posting-api (#138) ----
@@ -166,7 +184,7 @@ export function parseAshby(body: unknown): RawPosting[] {
   return (
     jobs
       // Ashby: a posting not listed "should only be available via direct link".
-      .filter((job) => job.isListed !== false)
+      .filter((job) => job.isListed !== false && isWebLink(job.jobUrl))
       .map((job) => {
         const secondary = job.secondaryLocations ?? [];
         const countries = [job.address, ...secondary.map((s) => s.address)]

@@ -74,6 +74,8 @@
 
 **导入器：** 第三个适配器 `parseAshby`（`src/lib/external-jobs/sources.ts`）。地点取 `location`、`address` 和 `secondaryLocations`；只有每个地址都在新西兰时，才记国家为 NZ。部门取 `department` 和 `team`，`employmentType` 当用工形式，薪资取 `compensation.summaryComponents` 里的 Salary。**`isListed: false` 的职位跳过**：Ashby 文档说这种职位只许直链，公司没把它列在自己的招聘页上，我们也不列。事实规则（第 2–4 条）和先审后显示（第 6 条）不变。
 
+**链接只收 http、https**（安全检查 J，2026-10-23）：三个适配器都跳过链接不是绝对 `http:` / `https:` 地址的职位（`isWebLink`，`javascript:`、`data:`、没写协议的都算），和跳过 `isListed: false` 一样。职位页只有「去官网申请」这一个出口，没有能用的链接，这条职位就没有意义；存下的是接口给的原样链接。
+
 **放上去以后：** 2026-10-17 用真实接口 dry run，Halter 284 条里留下 28 条（软件 22、电子电气 6，都在奥克兰），Partly 34 条里留下 11 条（基督城、奥克兰），Auror 13 条里留下 4 条（奥克兰和新西兰远程，写了薪资）。Partly 有 1 条产品经理职位因为标题里有 Developer 被算成软件，审核员会看到。
 
 **分类的两处调整（#180，2026-10-18）：**

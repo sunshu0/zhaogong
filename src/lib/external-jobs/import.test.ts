@@ -7,7 +7,7 @@ import { EXTERNAL_COMPANIES, importAllowed, type ExternalCompany } from "@/confi
 import { getExternalJob, listExternalJobs as listAll, setExternalReview } from "@/db/external-jobs";
 import { database } from "@/db/ready";
 import { importExternalJobs, importSummary, takeDownUnlisted } from "@/lib/external-jobs/import";
-import { parseAshby, parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
+import { isWebLink, parseAshby, parseGreenhouse, parseLever, postingsUrl } from "@/lib/external-jobs/sources";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
 
 const fixture = (name: string) =>
@@ -291,6 +291,40 @@ describe("external job import (#111)", () => {
     expect(postingsUrl("ashby", "partly.com")).toBe(
       "https://api.ashbyhq.com/posting-api/job-board/partly.com?includeCompensation=true",
     );
+  });
+
+  it("leaves out a posting whose link is not http or https (security review J)", () => {
+    const bad = [
+      "javascript:alert(1)",
+      "JavaScript:alert(1)",
+      "java	script:alert(1)",
+      "data:text/html,<b>x</b>",
+      "kowhai.example.com/careers/4001",
+      "//kowhai.example.com/careers/4001",
+      "/careers/4001",
+      "",
+      "mailto:jobs@kowhai.example.com",
+    ];
+    for (const url of bad) expect(isWebLink(url), url).toBe(false);
+    expect(isWebLink(undefined)).toBe(false);
+    expect(isWebLink("https://kowhai.example.com/careers/4001")).toBe(true);
+    expect(isWebLink("http://kowhai.example.com/careers/4001")).toBe(true);
+
+    const withLinks = <T>(list: T[], key: keyof T) => bad.map((url, i) => ({ ...list[i % list.length], [key]: url }));
+    const gh = structuredClone(GREENHOUSE);
+    gh.jobs = [...withLinks(gh.jobs, "absolute_url").map((job, i) => ({ ...job, id: 9000 + i })), gh.jobs[0]];
+    expect(parseGreenhouse(gh).map((p) => p.url)).toEqual(["https://kowhai.example.com/careers/4001"]);
+    const lv = [...withLinks(structuredClone(LEVER), "hostedUrl"), LEVER[0]];
+    expect(parseLever(lv).map((p) => p.url)).toEqual([LEVER[0].hostedUrl]);
+    const ab = structuredClone(ASHBY);
+    ab.jobs = [
+      ...withLinks(
+        ab.jobs.filter((job: { isListed?: boolean }) => job.isListed !== false),
+        "jobUrl",
+      ),
+      ab.jobs[0],
+    ];
+    expect(parseAshby(ab).map((p) => p.url)).toEqual([ASHBY.jobs[0].jobUrl]);
   });
 
   it("keeps an Ashby company's software and electrical jobs in New Zealand, like the other two", async () => {
