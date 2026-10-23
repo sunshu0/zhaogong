@@ -68,6 +68,14 @@ export function databaseAuthStore() {
       const db = await database();
       await db.delete(authLimits).where(lte(authLimits.expiresAt, now));
     },
+    async clearExpiredCodes(before: string): Promise<void> {
+      const db = await database();
+      await db.delete(signInCodes).where(lte(signInCodes.expiresAt, before));
+    },
+    async clearExpiredSessions(now: string): Promise<void> {
+      const db = await database();
+      await db.delete(sessions).where(lte(sessions.expiresAt, now));
+    },
     async getSession(id: string): Promise<SessionRow | undefined> {
       const db = await database();
       const [row] = await db.select().from(sessions).where(eq(sessions.id, id));

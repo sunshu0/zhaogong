@@ -41,6 +41,10 @@ export interface AuthStore {
   takeLimit(key: string, max: number, expiresAt: string): Promise<boolean>;
   /** Deletes the counts whose window has ended at `now`. */
   clearEndedLimits(now: string): Promise<void>;
+  /** Deletes the codes that expired at or before `before` (security review H). */
+  clearExpiredCodes(before: string): Promise<void>;
+  /** Deletes the sessions that have expired at `now` (security review H). */
+  clearExpiredSessions(now: string): Promise<void>;
   getSession(id: string): Promise<SessionRow | undefined>;
   insertSession(row: SessionRow): Promise<void>;
   setSessionRole(id: string, activeRole: ActiveRole): Promise<void>;
@@ -91,6 +95,12 @@ export function memoryAuthStore(): AuthStore & {
     },
     async clearEndedLimits(now) {
       for (const [key, row] of limits) if (row.expiresAt <= now) limits.delete(key);
+    },
+    async clearExpiredCodes(before) {
+      for (const [email, row] of codes) if (row.expiresAt <= before) codes.delete(email);
+    },
+    async clearExpiredSessions(now) {
+      for (const [id, row] of sessions) if (row.expiresAt <= now) sessions.delete(id);
     },
     async getSession(id) {
       const row = sessions.get(id);

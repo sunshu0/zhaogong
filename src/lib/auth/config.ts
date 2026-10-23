@@ -6,6 +6,11 @@ export const CODE_TTL_MS = 10 * 60_000;
 export const MAX_ATTEMPTS = 5;
 /** One code per email per minute. */
 export const RESEND_AFTER_MS = 60_000;
+/**
+ * An expired code stays this long before the clean-up deletes it (security review H), so checking it late still
+ * says 「验证码已过期」 rather than that there is none.
+ */
+export const EXPIRED_CODE_KEPT_MS = 24 * 3600_000;
 
 /**
  * The session cookie's name. In production `__Host-zg_session` (security review I, 10-23): the browser then keeps it

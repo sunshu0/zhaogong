@@ -208,6 +208,45 @@ describe("sign-in codes", () => {
   });
 });
 
+describe("clearing what has ended while someone signs in (security review H)", () => {
+  it("deletes ended sessions and codes a day past their end when a code is asked for or checked; keeps the rest", async () => {
+    const day = 24 * 3600_000;
+    await account("ended@example.com");
+    await account("live@example.com");
+    await createSession("ended@example.com", "seeker", fakeJar().jar, t0); // ends at t0 + 30 days
+    await createSession("live@example.com", "seeker", fakeJar().jar, later(20 * day)); // ends at t0 + 50 days
+    await requestCode("gone@example.com", t0); // expires 10 minutes later
+    const T = later(31 * day);
+    const { devCode: lateCode } = (await requestCode("late@example.com", new Date(T.getTime() - 3600_000))) as {
+      devCode: string;
+    };
+
+    await requestCode("asks@example.com", T);
+    expect([...store.sessions.values()].map((s) => s.email)).toEqual(["live@example.com"]);
+    expect([...store.codes.keys()].sort()).toEqual(["asks@example.com", "late@example.com"]);
+    // Expired 50 minutes ago: kept, so checking it still says it expired.
+    expect(await verifyCode("late@example.com", lateCode, T)).toEqual({ ok: false, reason: "expired" });
+
+    // Checking a code clears on its own too: an old code and an ended session put in after the last request.
+    const U = later(33 * day);
+    const { devCode } = (await requestCode("checks@example.com", U)) as { devCode: string };
+    store.codes.set("old@example.com", {
+      ...store.codes.get("checks@example.com")!,
+      email: "old@example.com",
+      expiresAt: T.toISOString(),
+    });
+    store.sessions.set("x".repeat(64), {
+      ...[...store.sessions.values()][0],
+      id: "x".repeat(64),
+      expiresAt: U.toISOString(),
+    });
+    expect(await verifyCode("checks@example.com", devCode, new Date(U.getTime() + 1000))).toEqual({ ok: true });
+    expect(store.codes.has("old@example.com")).toBe(false);
+    expect([...store.sessions.keys()]).not.toContain("x".repeat(64));
+    expect([...store.sessions.values()].map((s) => s.email)).toEqual(["live@example.com"]);
+  });
+});
+
 describe("sessions", () => {
   it("live behind an httpOnly, SameSite=Lax cookie for 30 days, holding 32 random bytes", async () => {
     await account("s1@example.com");

@@ -87,6 +87,23 @@ describe("sessions in the database", () => {
     expect(await store.getSession(session.id)).toBeUndefined();
   });
 
+  it("deletes only the sessions that have ended, and the codes expired at or before the time given (security review H)", async () => {
+    await ensureAccount(session.email);
+    const ended = { ...session, id: "1".repeat(64), expiresAt: "2026-11-01T00:00:00.000Z" };
+    const live = { ...session, id: "2".repeat(64), expiresAt: "2026-11-20T00:00:00.000Z" };
+    await store.insertSession(ended);
+    await store.insertSession(live);
+    await store.clearExpiredSessions("2026-11-01T00:00:00.000Z");
+    expect(await store.getSession(ended.id)).toBeUndefined();
+    expect(await store.getSession(live.id)).toEqual(live);
+
+    await store.putCode({ ...code, email: "old.code@example.com", expiresAt: "2026-10-30T00:00:00.000Z" });
+    await store.putCode({ ...code, email: "new.code@example.com", expiresAt: "2026-10-31T00:00:01.000Z" });
+    await store.clearExpiredCodes("2026-10-31T00:00:00.000Z");
+    expect(await store.getCode("old.code@example.com")).toBeUndefined();
+    expect(await store.getCode("new.code@example.com")).toMatchObject({ email: "new.code@example.com" });
+  });
+
   it("refuses a session for an account that does not exist", async () => {
     await expect(
       store.insertSession({ ...session, id: "e".repeat(64), email: "nobody@example.com" }),

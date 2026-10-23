@@ -148,8 +148,8 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
       body: [
         {
           list: [
-            "Sign-in codes: 10 minutes.",
-            "Staying signed in: 30 days, or until you sign out.",
+            "Sign-in codes: valid for 10 minutes. Once a code has been expired for a day, it is deleted the next time someone asks for or checks a code (we keep it that extra day so we can tell you it has expired).",
+            "Staying signed in: 30 days, or until you sign out. Expired sign-ins are deleted when someone later asks for or checks a code.",
             "Sign-in code and report counts: they lapse within 24 hours, and lapsed counts are deleted when someone later asks for or checks a code, or sends a report.",
             "Anonymous analytics events: 180 days.",
             "Chat messages and screenshots attached to a report: deleted 180 days after the report is handled, and deleted with your account if you delete it. The report itself (reason and note) is kept.",

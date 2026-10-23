@@ -2,7 +2,7 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { authStore, type AuthStore } from "@/lib/auth/store";
 import { LIMITS, limitWindow, siteFuseOn, type LimitCheck, type LimitScope } from "@/lib/auth/limits";
-import { authSecret, CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
+import { authSecret, CODE_TTL_MS, EXPIRED_CODE_KEPT_MS, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { canSendCodes, sendSignInCode } from "@/lib/auth/delivery";
 import { devHelpersEnabled } from "@/lib/test-build";
@@ -62,6 +62,17 @@ function sameHash(a: string, b: string): boolean {
 }
 
 /**
+ * What has ended, cleared while someone signs in, as the limits of ADR 0033 are (security review H; no scheduled
+ * job, ADR 0008): limit counts, sessions past their end, and codes a day past theirs. Without it a session that is
+ * never brought back, and the code of someone who never signs in, would stay in the tables for good.
+ */
+async function clearEnded(store: AuthStore, now: Date): Promise<void> {
+  await store.clearEndedLimits(now.toISOString());
+  await store.clearExpiredSessions(now.toISOString());
+  await store.clearExpiredCodes(new Date(now.getTime() - EXPIRED_CODE_KEPT_MS).toISOString());
+}
+
+/**
  * Creates a code for the email (replacing any older one) and sends it; at most once a minute per email, and within
  * the limits of ADR 0033 for the asker's network, the email and the whole site.
  */
@@ -79,7 +90,7 @@ export async function requestCode(
     const wait = RESEND_AFTER_MS - (now.getTime() - Date.parse(existing.createdAt));
     if (wait > 0) return { ok: false, reason: "throttled", retryAfterSec: Math.ceil(wait / 1000) };
   }
-  await store.clearEndedLimits(now.toISOString());
+  await clearEnded(store, now);
   const limited = await takeLimits(
     store,
     [
@@ -128,7 +139,7 @@ export async function verifyCode(
   }
   if (row.attempts >= MAX_ATTEMPTS) return { ok: false, reason: "too_many" };
   // ADR 0033: checks per network and per email, counted before the code's own try, right or wrong.
-  await store.clearEndedLimits(now.toISOString());
+  await clearEnded(store, now);
   const limited = await takeLimits(
     store,
     [

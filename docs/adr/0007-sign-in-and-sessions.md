@@ -21,6 +21,7 @@
   - **10-23 补充（安全检查 I）：** 生产环境的 cookie 名是 `__Host-zg_session`（`sessionCookieName()`，`src/lib/auth/config.ts`）。浏览器只在它带 `Secure`、`Path=/`、不带 `Domain` 时才收下，所以子域名没法种或覆盖它。本地开发是 http，名字仍是 `zg_session`；测试构建是生产构建，Chromium 把 http://localhost 当作安全来源，所以 e2e 用的也是生产的名字。
   - 退出登录不用 `cookies().delete(name)`：Next 的 delete 不带 `Secure`，浏览器不会用它替换 `__Host-` cookie。改成用同样的选项写一个已过期的空值。
   - **上线后再改这个名字，会让所有人登出。** 这次是上线前改的，没有旧 cookie 要迁移。
+  - **到期的清掉**（安全检查 H，2026-10-23）：每次有人要码或核对验证码，和 ADR 0033 的计数一起，删掉已过期的会话（`clearExpiredSessions`）和过期超过一天的验证码（`clearExpiredCodes`，留一天是为了晚输入时还能说「验证码已过期」）。不跑定时任务（ADR 0008）。以前过期的会话要等它的 cookie 再被带来才删，没人用的验证码一直留到被新码替换。
 - **企业永远从账号查。** 会话只记邮箱和当前身份；企业每次用 `getAccountEmployer` 从账号查出来，不信任浏览器传来的企业编号。切到雇主身份要求账号确实有企业（`switchRole`）。所有需要身份的 Server Function 用 `getCurrentSession()`、`requireSession()`、`requireEmployer()`（`src/lib/auth/sessions.ts`）读会话，不收邮箱参数；雇主和审核接口在 #41（关闭 #19）改完。
 - **存储放在接口后面。** `AuthStore`（`src/lib/auth/store.ts`）定义验证码和会话的读写；默认实现是数据库（`src/db/auth-store.ts`，`sign_in_codes`、`sessions` 两张表，ADR 0005），单测换成内存实现。
 - **验证码怎么送达：**
