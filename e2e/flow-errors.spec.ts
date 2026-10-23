@@ -83,6 +83,9 @@ test("editing a job: a form that fails keeps the changes, a reload picks them up
   await expect(page.getByRole("heading", { name: "编辑职位" })).toBeVisible();
   const name = page.getByLabel("职位名称（中文）");
   await name.fill(`${title}乙`);
+  // The business's profile loads after the form shows and redraws it: once failNext is set, that redraw would fail
+  // the form before the second fill (gate 10-24 e7). Let the loads finish first.
+  await page.waitForLoadState("networkidle");
 
   await failNext(page, "job-form");
   await name.fill(`${title}丙`);
