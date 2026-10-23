@@ -138,7 +138,7 @@
 | `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
-| `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条 |
+| `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条；举报存在自己的记录里，已有 100 条时不收，回答带 `notice`（`src/lib/chat-server/own-limits.ts`）。这和每天能举报几次（职位举报的 ADR 0034）无关 |
 
 ## 收藏和进度 — `src/app/[lang]/me/saved/actions.ts`
 

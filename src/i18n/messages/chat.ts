@@ -93,6 +93,7 @@ const chatZh = {
     messagesFull: (max: number) => `这段对话里已经有 ${max} 条消息，到上限了，这条没有发出。`,
     conversationsFull: (max: number) => `你已经有 ${max} 段这样的对话，到上限了，没能发起新的聊天。`,
     importTooBig: "这台设备上的旧聊天记录太多，没有存到服务器。",
+    reportsFull: (max: number) => `你已经保存了 ${max} 条聊天举报，到上限了，这次举报没有保存。`,
   },
   log: {
     label: "消息记录",

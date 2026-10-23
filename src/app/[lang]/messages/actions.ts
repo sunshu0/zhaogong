@@ -56,7 +56,14 @@ import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { normalizeEmail } from "@/components/seeker/session";
 import { MOCK_CANDIDATES } from "@/mock/candidates";
-import { OWN_CONVERSATIONS_MAX, OWN_MESSAGES_MAX, fitsOwnLimits, roomForMessage } from "@/lib/chat-server/own-limits";
+import {
+  OWN_CONVERSATIONS_MAX,
+  OWN_MESSAGES_MAX,
+  OWN_REPORTS_MAX,
+  fitsOwnLimits,
+  roomForMessage,
+  roomForReport,
+} from "@/lib/chat-server/own-limits";
 
 const NAME_MAX = 40;
 /** Applied change ids kept per identity: far more than a browser sends before it hears back. */
@@ -87,7 +94,7 @@ export type ChatChange =
  * What the server answers with: the records and the identity they belong to (the browser's copy may name another
  * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for). After an
  * `open`, `opened` is the id of the conversation to show. `notice`, in the visitor's language, says why a message
- * or an import was not taken (a size: SHARED_MESSAGES_MAX, own-limits.ts).
+ * or an import or a report was not taken (a size: SHARED_MESSAGES_MAX, own-limits.ts).
  */
 export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string; notice?: string };
 export type ReadsSnapshot = { scope: string; ids: string[] };
@@ -195,6 +202,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
   if (!view.messages[conversationId]) return { record };
   if (change.type === "send" && !roomForMessage(record, conversationId))
     return { record, notice: (await limits()).messagesFull(OWN_MESSAGES_MAX) };
+  if (change.type === "report" && !roomForReport(record))
+    return { record, notice: (await limits()).reportsFull(OWN_REPORTS_MAX) };
   return { record: applyOwn(record, change, me, view) };
 }
 

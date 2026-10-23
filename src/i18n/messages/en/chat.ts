@@ -85,6 +85,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     conversationsFull: (max) =>
       `You already have ${max} conversations like this, the most allowed, so a new chat didn't open.`,
     importTooBig: "The older chat records on this device are too many to keep, so they weren't saved to the server.",
+    reportsFull: (max) => `You already have ${max} chat reports saved, the most allowed, so this one wasn't saved.`,
   },
   log: {
     label: "Messages",

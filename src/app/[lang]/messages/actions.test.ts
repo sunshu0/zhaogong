@@ -247,6 +247,32 @@ describe("chat on the server (#10)", () => {
     expect(refused?.reports).toHaveLength(1);
   });
 
+  it("keeps at most 100 chat reports in the own record, and says so (a size of the own record)", async () => {
+    await signedIn("demo.reporter@example.com");
+    const report = { type: "report", conversationId: "north-tea", reason: "fraud", note: "", messageIndex: 0 } as const;
+    const first = (await change(report))!;
+    const scope = seekerScope("demo.reporter@example.com");
+    await store.putChat(scope, {
+      ...first,
+      reports: Array.from({ length: 99 }, (_, i) => ({ ...first.reports[0], id: `r${i}` })),
+    });
+
+    const hundredth = await changeMyChat(report);
+    expect(hundredth?.notice).toBeUndefined();
+    expect(hundredth?.record.reports).toHaveLength(100);
+    const over = await changeMyChat(report);
+    expect(over?.notice).toBe("你已经保存了 100 条聊天举报，到上限了，这次举报没有保存。");
+    expect(store.chats.get(scope)?.reports).toHaveLength(100);
+    cookies.set("zg_lang", "en");
+    expect((await changeMyChat(report))?.notice).toBe(
+      "You already have 100 chat reports saved, the most allowed, so this one wasn't saved.",
+    );
+    // Other changes still go through.
+    expect(
+      (await change({ type: "send", conversationId: "north-tea", text: "还能发消息" }))?.added["north-tea"],
+    ).toHaveLength(1);
+  });
+
   it("opens a chat with an employer about one of its active jobs only", async () => {
     await signedIn("demo.asker@example.com");
     const opened = await change({ type: "open", conversation: { kind: "employer", jobId: "j1" } });

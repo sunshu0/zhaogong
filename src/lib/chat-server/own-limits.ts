@@ -1,14 +1,14 @@
-// Sizes of an identity's own chat record (security review F; messages/actions.ts). It holds only the demo chats of
-// demo accounts, chats with demo candidates and records from before #10 (real chats are shared conversations, in
-// their own tables), and it is written whole on every change, so it stays small. Over a size a message is not added
-// and an import is not taken; the answer says why in the visitor's language.
+// Sizes of an identity's own chat record (messages/actions.ts). Besides the demo chats of demo accounts, chats with
+// demo candidates and records from before #10, it keeps every account's chat reports (each with up to 100 messages
+// as evidence), and it is written whole on every change, so it stays small. Over a size a message or a report is
+// not added and an import is not taken; the answer says why in the visitor's language.
 import { MESSAGE_MAX, type ChatRecord } from "@/components/seeker/chat-store";
 
 /** Conversations in the record: the demo has a handful, and chats with demo candidates one per candidate and job. */
 export const OWN_CONVERSATIONS_MAX = 100;
 /** Messages added to one conversation: far more than trying out a demo chat; a report takes the last 100. */
 export const OWN_MESSAGES_MAX = 200;
-/** Reports in an imported record. */
+/** Reports in the record, and in an imported one: one per chat reported is the usual; 100 is far past it. */
 export const OWN_REPORTS_MAX = 100;
 
 /** Whether one more message fits the conversation. */
@@ -35,4 +35,9 @@ export function fitsOwnLimits(record: ChatRecord): boolean {
     record.reports.length <= OWN_REPORTS_MAX &&
     record.reports.every((r) => r.evidence.every(short))
   );
+}
+
+/** Whether one more report fits the record. */
+export function roomForReport(record: ChatRecord): boolean {
+  return record.reports.length < OWN_REPORTS_MAX;
 }
