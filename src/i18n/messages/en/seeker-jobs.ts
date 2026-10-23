@@ -185,6 +185,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
       tooManyImages: (max) => `You can attach up to ${max} screenshots`,
       imageTooBig: (mb) => `Each screenshot must be ${mb} MB or smaller`,
       notImage: "Only JPG, PNG or WebP images can be uploaded",
+      cutImage: "This image is incomplete. Take the screenshot again or choose another one.",
     },
   },
   chat: {

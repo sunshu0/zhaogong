@@ -22,7 +22,7 @@
 ### 2. 截图（第二个 PR）
 
 - 最多 3 张（`EVIDENCE_IMAGES_MAX`），只收 JPG / PNG / WebP，每张 ≤5 MB。浏览器选的时候先按类型和大小挡一次；服务器再按文件开头的字节判断格式（`sniffImage`），不信文件名和浏览器给的类型。也要登录：截图跟着举报人的账号删。
-- **去掉元数据再存**（`stripMetadata`，`src/lib/image-metadata.ts`）：JPEG 去掉 APP1–APP15（EXIF、XMP，含拍摄地点）和注释，留下 JFIF、色彩配置（ICC）和 Adobe 色彩变换；PNG 去掉 tEXt、zTXt、iTXt、eXIf、tIME；WebP 去掉 EXIF、XMP 块并清掉 VP8X 里对应的标记。画面本身原样复制。文件不完整就拒收。
+- **去掉元数据再存**（`stripMetadata`，`src/lib/image-metadata.ts`）：JPEG 去掉 APP1–APP15（EXIF、XMP，含拍摄地点）和注释，留下 JFIF、色彩配置（ICC）和 Adobe 色彩变换，渐进式 JPEG 两次扫描之间的也照此处理；文件到第一个结束标记（EOI）为止，后面的一律丢掉（有的手机在这里再放一张带 EXIF 的图）。PNG 和 WebP 用白名单：PNG 只留 IHDR、PLTE、tRNS、IDAT、IEND 和色彩块（gAMA、cHRM、sRGB、iCCP、cICP），IEND 后面的丢掉，动图只显示 IDAT 那一张（和不支持 APNG 的浏览器一样）；WebP 只留 VP8、VP8L、VP8X、ALPH、ICCP、ANIM、ANMF（每帧里只留 ALPH、VP8、VP8L），清掉 VP8X 里 EXIF、XMP 的标记，RIFF 后面的丢掉。画面本身原样复制。文件不完整就拒收：没到结束标记就断了的 JPEG 提示「这张图片不完整，请重新截图或换一张。」（`isCutJpeg`），其他认不出的照旧提示只能传 JPG、PNG 或 WebP。
 - **没有重新编码**（导师 10:4x 说的是「去 EXIF、重新编码」）：重新编码在 Worker 里要加 WASM 编码库（几百 KB），截图还会变糊。重新编码主要防的是图片里藏可执行内容；这里图片只给审核员看，地址的回答固定成图片本身：`Content-Type` 是服务器判断出的格式、`X-Content-Type-Options: nosniff`、`Content-Security-Policy: default-src 'none'; sandbox`、不缓存，所以不重新编码风险很小。代价：手机照片的旋转方向在 EXIF 里，去掉后竖拍的照片可能横着显示（截图不受影响）。导师要重新编码的话另开一项。
 - **存储做成可换的接口**（`src/db/evidence-store.ts`）：Cloudflare 上用绑定成 `EVIDENCE_BUCKET` 的 R2 桶（以公司名义开，部署清单第 4 节第 2a 步），没绑就拒收；本机放 `data/uploads/report-evidence/`（`data/` 不进 git，`ZG_EVIDENCE_DIR` 可改）。文件名是服务器生成的随机编号，表里只存这个编号、格式和大小。
 - **只能通过 `/api/report-evidence/[id]` 看**：只有审核员能取到，其他人一律 404；每交出一次先按 ADR 0026 记一条（`chat`，编号是举报编号）。

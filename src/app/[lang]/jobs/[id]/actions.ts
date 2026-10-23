@@ -24,7 +24,7 @@ import { requestLang } from "@/i18n/server";
 import { randomUUID } from "node:crypto";
 import { evidenceStore } from "@/db/evidence-store";
 import { findOwnMessages, listPickableMessages, purgeExpiredEvidence, removeImages } from "@/db/report-evidence";
-import { sniffImage, stripMetadata } from "@/lib/image-metadata";
+import { isCutJpeg, sniffImage, stripMetadata } from "@/lib/image-metadata";
 import {
   EVIDENCE_IMAGE_BYTES_MAX,
   EVIDENCE_IMAGES_MAX,
@@ -104,7 +104,7 @@ export async function reportJob(
       const bytes = new Uint8Array(await file.arrayBuffer());
       const type = sniffImage(bytes);
       const clean = type && stripMetadata(bytes, type);
-      if (!type || !clean) return { ok: false, error: t.evidence.notImage };
+      if (!type || !clean) return { ok: false, error: isCutJpeg(bytes) ? t.evidence.cutImage : t.evidence.notImage };
       cleaned.push({ bytes: clean, type });
     }
     evidence = { reporterEmail: session.email, messages, images: [] };

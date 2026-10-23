@@ -194,6 +194,8 @@ const seekerJobsZh = {
       tooManyImages: (max: number) => `截图最多 ${max} 张`,
       imageTooBig: (mb: number) => `每张截图不能超过 ${mb} MB`,
       notImage: "只能上传 JPG、PNG 或 WebP 格式的图片",
+      /** A JPEG that ends before its end-of-image marker (image-metadata.ts isCutJpeg). */
+      cutImage: "这张图片不完整，请重新截图或换一张。",
     },
   },
   // StartEmployerChat.tsx
