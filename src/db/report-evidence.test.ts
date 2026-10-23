@@ -148,4 +148,37 @@ describe("report evidence: screenshots (ADR 0027 §2)", () => {
       setEvidenceStoreForTests(undefined);
     }
   });
+
+  it("keeps a screenshot whose file was not removed and removes it on the next call, the same day too (security review E)", async () => {
+    const files = memoryStore();
+    let failures = 1;
+    setEvidenceStoreForTests({
+      ...files,
+      async remove(keys) {
+        if (failures-- > 0) throw new Error("the store did not answer");
+        await files.remove(keys);
+      },
+    });
+    try {
+      const email = "evidence.retry@example.com";
+      const ids = await chats(email);
+      const messages = await findOwnMessages(email, "e1", [ids[1]]);
+      const key = randomUUID();
+      await files.put(key, new Uint8Array([1]), "image/png");
+      const images = [{ key, type: "image/png" as const, bytes: 1 }];
+      const report = await submitReport("j1", "charges_fee", undefined, { reporterEmail: email, messages, images });
+      const handled = new Date("2026-01-01T00:00:00.000Z");
+      await updateReport(report.id, "actioned", handled);
+      const day = new Date(handled.getTime() + (EVIDENCE_KEEP_DAYS + 1) * 86_400_000);
+
+      expect(await purgeExpiredEvidence(day)).toBe(1); // the message; the screenshot's file stayed
+      expect(await listReportEvidence(report.id)).toMatchObject([{ kind: "image" }]);
+      expect(files.keys()).toEqual([key]);
+      expect(await purgeExpiredEvidence(day)).toBe(1); // tried again at once, not tomorrow
+      expect(await listReportEvidence(report.id)).toEqual([]);
+      expect(files.keys()).toEqual([]);
+    } finally {
+      setEvidenceStoreForTests(undefined);
+    }
+  });
 });

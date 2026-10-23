@@ -3,7 +3,7 @@
 // then the moderator role (requireModerator, #50); anyone else is refused.
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { matchJobAlerts } from "@/db/job-alerts";
-import { countReportEvidence } from "@/db/report-evidence";
+import { countReportEvidence, purgeExpiredEvidence } from "@/db/report-evidence";
 import { grantModerator, listModerators, revokeModerator, type Moderator } from "@/db/moderators";
 import { checkJob, type Finding } from "@/lib/compliance";
 import {
@@ -61,6 +61,9 @@ async function item(job: Job, lang: Lang): Promise<QueueItem> {
 export async function getModerationQueue(): Promise<ModerationQueue | Refused> {
   const me = await requireModerator();
   if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
+  // Security review E: evidence 180 days past its report's handling also goes when nobody reports anything new.
+  // Once a day; a failure is tried again next time and never stops the queue from showing.
+  await purgeExpiredEvidence().catch((error: unknown) => console.error("report evidence: cleanup failed", error));
   const lang = await requestLang();
   const jobs = await listAllJobs(DEFAULT_COUNTRY);
   const flagged = await Promise.all(jobs.filter((j) => j.status === "pending_review").map((j) => item(j, lang)));

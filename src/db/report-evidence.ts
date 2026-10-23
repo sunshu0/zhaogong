@@ -186,24 +186,55 @@ let cleanedDay: string | undefined;
 
 /**
  * Deletes the evidence of reports handled more than EVIDENCE_KEEP_DAYS ago, screenshots' files too, once per New
- * Zealand day (the first report of the day calls it). Returns how many pieces went.
+ * Zealand day: the first new report of the day or the first time a moderator opens the queue calls it (security
+ * review E; no scheduled job, ADR 0008). Messages go at once. A screenshot's row goes only after its file is
+ * removed, so a file the store did not remove keeps its row and is tried again; after any failure the next call
+ * runs again whatever the day. Returns how many pieces went.
  */
 export async function purgeExpiredEvidence(now = new Date()): Promise<number> {
   const day = nzDay(now);
   if (cleanedDay === day) return 0;
   cleanedDay = day;
-  const db = await database();
-  const cutoff = new Date(now.getTime() - EVIDENCE_KEEP_DAYS * 86_400_000).toISOString();
-  const handled = db
-    .select({ id: t.reports.id })
-    .from(t.reports)
-    .where(and(ne(t.reports.status, "open"), isNotNull(t.reports.handledAt), lt(t.reports.handledAt, cutoff)));
-  const gone = await db
-    .delete(t.reportEvidence)
-    .where(inArray(t.reportEvidence.reportId, handled))
-    .returning({ key: t.reportEvidence.imageKey });
-  await removeImages(gone.map((row) => row.key));
-  return gone.length;
+  try {
+    const db = await database();
+    const cutoff = new Date(now.getTime() - EVIDENCE_KEEP_DAYS * 86_400_000).toISOString();
+    const expired = (kind: "message" | "image") =>
+      and(
+        eq(t.reportEvidence.kind, kind),
+        inArray(
+          t.reportEvidence.reportId,
+          db
+            .select({ id: t.reports.id })
+            .from(t.reports)
+            .where(and(ne(t.reports.status, "open"), isNotNull(t.reports.handledAt), lt(t.reports.handledAt, cutoff))),
+        ),
+      );
+    const messages = await db.delete(t.reportEvidence).where(expired("message")).returning({ id: t.reportEvidence.id });
+    const images = await db
+      .select({ id: t.reportEvidence.id, key: t.reportEvidence.imageKey })
+      .from(t.reportEvidence)
+      .where(expired("image"));
+    if (images.length) {
+      const keys = images.flatMap((row) => (row.key ? [row.key] : []));
+      try {
+        if (keys.length) await evidenceStore().remove(keys);
+      } catch (error) {
+        console.error("report evidence: expired files not removed, tried again next time", keys, error);
+        cleanedDay = undefined;
+        return messages.length;
+      }
+      await db.delete(t.reportEvidence).where(
+        inList(
+          t.reportEvidence.id,
+          images.map((row) => row.id),
+        ),
+      );
+    }
+    return messages.length + images.length;
+  } catch (error) {
+    cleanedDay = undefined;
+    throw error;
+  }
 }
 
 /** For tests: the next purgeExpiredEvidence call runs whatever the day. */

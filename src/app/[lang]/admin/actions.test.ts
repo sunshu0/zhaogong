@@ -1,9 +1,21 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSession, sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
-import { ensureAccount, getEmployer, getJob, listJobs, listReports, submitReport, updateJob } from "@/lib/data";
+import {
+  ensureAccount,
+  getEmployer,
+  getJob,
+  listJobs,
+  listReports,
+  submitReport,
+  updateJob,
+  updateReport,
+} from "@/lib/data";
 import { createJobAlert, listJobAlertHits } from "@/db/job-alerts";
 import { grantModerator, isModerator, listModerators } from "@/db/moderators";
+import { memoryStore, setEvidenceStoreForTests } from "@/db/evidence-store";
+import { listReportEvidence, resetEvidenceCleanupForTests } from "@/db/report-evidence";
+import { EVIDENCE_KEEP_DAYS } from "@/lib/report-evidence";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -52,6 +64,34 @@ beforeAll(async () => {
 });
 afterAll(() => {
   vi.unstubAllEnvs();
+});
+
+describe("report evidence past its 180 days (security review E)", () => {
+  it("goes when a moderator opens the queue, with no new report; evidence not yet that old stays", async () => {
+    const files = memoryStore();
+    setEvidenceStoreForTests(files);
+    try {
+      const reporter = "queue.evidence@example.com";
+      await ensureAccount(reporter);
+      const report = async (key: string, handledDaysAgo: number) => {
+        await files.put(key, new Uint8Array([1]), "image/png");
+        const images = [{ key, type: "image/png" as const, bytes: 1 }];
+        const r = await submitReport("j2", "charges_fee", undefined, { reporterEmail: reporter, messages: [], images });
+        await updateReport(r.id, "dismissed", new Date(Date.now() - handledDaysAgo * 86_400_000));
+        return r.id;
+      };
+      const old = await report("8f1d2c3b-0000-4000-8000-000000000001", EVIDENCE_KEEP_DAYS + 1);
+      const recent = await report("8f1d2c3b-0000-4000-8000-000000000002", EVIDENCE_KEEP_DAYS - 1);
+      resetEvidenceCleanupForTests(); // as on a new day
+
+      await queue();
+      expect(await listReportEvidence(old)).toEqual([]);
+      expect(await listReportEvidence(recent)).toHaveLength(1);
+      expect(files.keys()).toEqual(["8f1d2c3b-0000-4000-8000-000000000002"]);
+    } finally {
+      setEvidenceStoreForTests(undefined);
+    }
+  });
 });
 
 describe("admin switch", () => {
