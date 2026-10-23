@@ -1,0 +1,2 @@
+ALTER TABLE `reports` ADD `reporter` text;--> statement-breakpoint
+CREATE UNIQUE INDEX `reports_open_reporter_uq` ON `reports` (`job_id`,`reporter`) WHERE "reports"."status" = 'open' and "reports"."reporter" is not null;

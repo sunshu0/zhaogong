@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
-import { ensureAccount, listContactViews, listReports } from "@/lib/data";
+import { ensureAccount, listContactViews, listReports, updateReport } from "@/lib/data";
+import { grantModerator } from "@/db/moderators";
+import { databaseAuthStore } from "@/db/auth-store";
+import { database } from "@/db/ready";
+import { reports } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -10,7 +15,12 @@ const jar: CookieJar = {
   set: (name, value) => void cookies.set(name, value),
   delete: (name) => void cookies.delete(name),
 };
-vi.mock("next/headers", () => ({ cookies: async () => jar }));
+// The request's headers: CF-Connecting-IP only where a test sets `ip` (Cloudflare's; none locally).
+let ip: string | undefined;
+vi.mock("next/headers", () => ({
+  cookies: async () => jar,
+  headers: async () => new Headers(ip ? { "cf-connecting-ip": ip } : {}),
+}));
 
 const { jobSummary, reportJob, revealContact } = await import("@/app/[lang]/jobs/[id]/actions");
 
@@ -24,6 +34,7 @@ async function signedIn(email: string) {
 beforeEach(() => {
   setAuthStoreForTests();
   cookies.clear();
+  ip = undefined;
 });
 
 afterEach(() => {
@@ -85,6 +96,69 @@ describe("reportJob", () => {
     expect(await reportJob("j7", "spam")).toEqual({ ok: false, error: "请选择举报原因" });
     expect((await reportJob("nope", "fake_job")).ok).toBe(false);
     expect((await listReports()).length).toBe(before);
+  });
+});
+
+// Security review C (ADR 0034). Each test is another browser (visitor id) or account, so the counts do not meet.
+describe("reportJob: how often (security review C)", () => {
+  const browser = (n: number) => cookies.set("zg_visitor", `${n}`.padStart(22, "b"));
+  const close = async (result: Awaited<ReturnType<typeof reportJob>>) => {
+    if (result.ok) await updateReport(result.reportId, "dismissed");
+  };
+
+  it("keeps one open report per person and job: again says 「已经举报过」, after it is handled it can be sent again", async () => {
+    browser(1);
+    const first = await reportJob("j7", "fake_job");
+    expect(first.ok).toBe(true);
+    expect(await reportJob("j7", "charges_fee", "又看到一次")).toEqual({
+      ok: false,
+      error: "你已经举报过这个职位，我们会尽快核查。",
+    });
+    expect((await reportJob("j8", "fake_job")).ok).toBe(true); // another job
+    browser(2);
+    expect((await reportJob("j7", "fake_job")).ok).toBe(true); // another browser
+
+    browser(1);
+    await close(first);
+    const again = await reportJob("j7", "fake_job");
+    expect(again.ok).toBe(true);
+    // A handled report keeps no trace of who sent it; an open one keeps only the hash.
+    const reporterOf = async (id: string) =>
+      (await (await database()).select().from(reports).where(eq(reports.id, id)))[0]?.reporter;
+    if (!first.ok || !again.ok) throw new Error("reports expected");
+    expect(await reporterOf(first.reportId)).toBeNull();
+    expect(await reporterOf(again.reportId)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("lets two reports sent at once by the same person in as one, the other told it is already there", async () => {
+    browser(3);
+    const both = await Promise.all([reportJob("j9", "fake_job"), reportJob("j9", "other", "同时点了两次")]);
+    expect(both.filter((r) => r.ok)).toHaveLength(1);
+    expect(both.find((r) => !r.ok)).toEqual({ ok: false, error: "你已经举报过这个职位，我们会尽快核查。" });
+  });
+
+  it("stops a browser at 5 reports a day and an account at 10, in the language of the page", async () => {
+    setAuthStoreForTests(databaseAuthStore());
+    browser(4);
+    for (let i = 0; i < 5; i++) await close(await reportJob("j7", "fake_job"));
+    expect(await reportJob("j7", "fake_job")).toEqual({
+      ok: false,
+      error: "今天的举报次数已经到上限，明天再试。登录后可以继续举报。",
+    });
+
+    await signedIn("reporter.limit@example.com");
+    for (let i = 0; i < 10; i++) await close(await reportJob("j7", "fake_job"));
+    expect(await reportJob("j7", "fake_job")).toEqual({ ok: false, error: "今天的举报次数已经到上限，明天再试。" });
+  });
+
+  it("does not count a moderator", async () => {
+    await signedIn("moderator.reports@example.com");
+    expect(await grantModerator("moderator.reports@example.com", null)).toBe("granted");
+    for (let i = 0; i < 12; i++) {
+      const result = await reportJob("j7", "fake_job");
+      expect(result.ok).toBe(true);
+      await close(result);
+    }
   });
 });
 

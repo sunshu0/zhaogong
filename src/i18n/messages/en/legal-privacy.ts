@@ -37,7 +37,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Business verification: the contact person's name and role, the business's phone and website.",
             "Chats: the messages you and the other person send, and records of contact details or profiles exchanged.",
             "Saved jobs, job alerts and their filters.",
-            "Reports: the reason and anything you write. For a report with only a reason and a note, we do not record who made it. When you report a job while signed in, you can also attach evidence: messages you pick from your own chats with that business (up to 20, kept as they read when you report) and screenshots (up to 3, with location and other metadata removed before they are stored). Evidence is stored with your account, only so that it is deleted with your account and shown to you in your export; moderators are not shown who sent it.",
+            "Reports: the reason and anything you write. For a report with only a reason and a note, we do not record your account or email itself. To stop duplicate and mass reports, an open report carries a number worked out from your account or anonymous visitor number that cannot be turned back into either, deleted once the report is handled; each day's reports are counted under such numbers too (including one worked out from your network address; the address itself is not stored); a count lapses within 24 hours, and lapsed counts are deleted when someone later asks for or checks a sign-in code, or sends a report. When you report a job while signed in, you can also attach evidence: messages you pick from your own chats with that business (up to 20, kept as they read when you report) and screenshots (up to 3, with location and other metadata removed before they are stored). Evidence is stored with your account, only so that it is deleted with your account and shown to you in your export; moderators are not shown who sent it.",
             "Activity: when a signed-in job seeker views the public contact details on a job, the account and time (employers only see a count); chats started; job views (only a hash of a browser identifier).",
             "AI posting use: when an employer posts by chatting, the account, time and amount of use. The conversation itself is not stored there.",
             "Sign-in code counts: to stop anyone flooding the sign-in codes, we count the codes asked for and checked by your network address (IP) and by your email. We store only a hash made with a key on our server, which cannot be turned back into the address or the email; never the address or the email itself.",
@@ -150,7 +150,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
           list: [
             "Sign-in codes: 10 minutes.",
             "Staying signed in: 30 days, or until you sign out.",
-            "Sign-in code counts: at most 24 hours. Expired counts are deleted the next time anyone asks for or checks a code.",
+            "Sign-in code and report counts: they lapse within 24 hours, and lapsed counts are deleted when someone later asks for or checks a code, or sends a report.",
             "Anonymous analytics events: 180 days.",
             "Chat messages and screenshots attached to a report: deleted 180 days after the report is handled, and deleted with your account if you delete it. The report itself (reason and note) is kept.",
             "Team invitations: they lapse after 14 days without an answer.",

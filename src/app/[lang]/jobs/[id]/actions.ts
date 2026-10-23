@@ -1,7 +1,19 @@
 "use server";
 
 import { getCurrentSession } from "@/lib/auth";
-import { getJob, listContactViews, recordContactView, submitReport } from "@/lib/data";
+import { cookies, headers } from "next/headers";
+import { clientIp } from "@/lib/auth/limits";
+import { isModerator } from "@/db/moderators";
+import {
+  getJob,
+  hasOpenReport,
+  isOpenReportClash,
+  listContactViews,
+  recordContactView,
+  submitReport,
+} from "@/lib/data";
+import { reporterKey, takeReportCounts, type Reporter } from "@/lib/report-limits";
+import { VISITOR_COOKIE, isVisitorId } from "@/lib/visitor";
 import type { Job } from "@/lib/types";
 import { isExpired, isPublic } from "@/components/seeker/job-facts";
 import { formatPay } from "@/components/seeker/format";
@@ -52,6 +64,9 @@ export type ReportResult = { ok: true; reportId: string } | { ok: false; error: 
  * (ADR 0027): `messageIds` must be messages of this browser's account's own chats with the job's business, at most
  * EVIDENCE_MESSAGES_MAX, copied into the report as they are now; `images` holds up to EVIDENCE_IMAGES_MAX files
  * under "image", JPEG, PNG or WebP by their bytes, each at most EVIDENCE_IMAGE_BYTES_MAX, kept without their metadata.
+ * How often (security review C, ADR 0034): one open report per person and job, answered with 「已经举报过」, and a
+ * daily count per account, visitor and network (report-limits.ts), answered with 「今天…到上限」. Moderators are not
+ * counted.
  */
 export async function reportJob(
   jobId: string,
@@ -71,14 +86,18 @@ export async function reportJob(
   const files = images instanceof FormData ? images.getAll("image") : [];
   if (files.length > EVIDENCE_IMAGES_MAX || !files.every((file) => file instanceof File))
     return { ok: false, error: t.evidence.tooManyImages(EVIDENCE_IMAGES_MAX) };
+  const session = await getCurrentSession();
+  const visitor = (await cookies()).get(VISITOR_COOKIE)?.value;
+  const reporter: Reporter = session ? { account: session.email } : isVisitorId(visitor) ? { visitor } : undefined;
+  const key = reporterKey(reporter);
+  if (key && (await hasOpenReport(job.id, key))) return { ok: false, error: t.already };
   let evidence: Parameters<typeof submitReport>[3];
   let stored: EvidenceImage[] = [];
+  const cleaned: { bytes: Uint8Array; type: EvidenceImage["type"] }[] = [];
   if (ids.length || files.length) {
-    const session = await getCurrentSession();
     if (!session) return { ok: false, error: t.evidence.signedOut };
     const messages = await findOwnMessages(session.email, job.employerId, ids);
     if (messages.length !== ids.length) return { ok: false, error: t.evidence.notYours };
-    const cleaned: { bytes: Uint8Array; type: EvidenceImage["type"] }[] = [];
     for (const file of files as File[]) {
       if (file.size > EVIDENCE_IMAGE_BYTES_MAX)
         return { ok: false, error: t.evidence.imageTooBig(EVIDENCE_IMAGE_BYTES_MAX / 1024 / 1024) };
@@ -88,6 +107,15 @@ export async function reportJob(
       if (!type || !clean) return { ok: false, error: t.evidence.notImage };
       cleaned.push({ bytes: clean, type });
     }
+    evidence = { reporterEmail: session.email, messages, images: [] };
+  }
+  // Counted once the report is known to be valid, before anything is stored.
+  if (!(session && (await isModerator(session.email)))) {
+    const ip = clientIp((await headers()).get("cf-connecting-ip"));
+    if (await takeReportCounts(reporter, ip, cleaned.length))
+      return { ok: false, error: session ? t.limited : t.limitedSignedOut };
+  }
+  if (evidence) {
     const store = evidenceStore();
     stored = cleaned.map(({ bytes, type }) => ({ key: randomUUID(), type, bytes: bytes.length }));
     await Promise.all(stored.map((image, i) => store.put(image.key, cleaned[i].bytes, image.type))).catch(
@@ -96,13 +124,18 @@ export async function reportJob(
         throw error;
       },
     );
-    evidence = { reporterEmail: session.email, messages, images: stored };
+    evidence = { ...evidence, images: stored };
   }
-  const report = await submitReport(job.id, parsed.reason, parsed.note, evidence).catch(async (error: unknown) => {
+  let report: Awaited<ReturnType<typeof submitReport>>;
+  try {
+    report = await submitReport(job.id, parsed.reason, parsed.note, evidence, key);
+  } catch (error) {
     // The files have no row to point at them: take them back.
     await removeImages(stored.map((image) => image.key));
+    // The same person's other report on this job got in first (sent twice at once): theirs stands.
+    if (isOpenReportClash(error)) return { ok: false, error: t.already };
     throw error;
-  });
+  }
   // The report is in; clearing old evidence failing is for the next report of the day to try.
   await purgeExpiredEvidence().catch(() => 0);
   return { ok: true, reportId: report.id };

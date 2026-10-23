@@ -52,7 +52,7 @@
 | 函数 | 参数 | 成功 | 失败 |
 | --- | --- | --- | --- |
 | `revealContact(jobId)` | 职位编号；查看的人取自会话 | `{ phone?, wechat?, email? }`。只对雇主选择公开联系方式（`contactPublic`）、且求职者能看到的职位；同一人对同一职位 30 分钟内只记一次查看 | `null`（未登录、参数无效、职位不公开联系方式、已下架或不存在） |
-| `reportJob(jobId, reason, note?, messageIds?, images?)` | `reason`：`fake_job`、`charges_fee`、`below_min_wage`、`discriminatory`、`visa_selling`、`inappropriate`、`other`；`note` 最多 500 字，选 `other` 时必填。不需要登录；`messageIds`（ADR 0027）是要附上的聊天消息，最多 20 条，必须是登录账号自己和这个职位所属企业的对话里的，服务器存举报时的快照；`images`（FormData，字段 `image`）最多 3 张 JPG / PNG / WebP，每张 ≤5 MB，按文件内容判断格式，去掉元数据后存进证据存储；附证据要登录 | `{ ok: true, reportId }` | `{ ok: false, error }`：「请选择举报原因」「补充说明最多 500 字」「选择“其他”时，请简单写一下原因」「找不到这个职位，可能已经下架」「登录已经失效，请重新登录后再附上聊天记录」「选中的聊天记录有变化，请重新选择」「截图最多 3 张」「每张截图不能超过 5 MB」「只能上传 JPG、PNG 或 WebP 格式的图片」 |
+| `reportJob(jobId, reason, note?, messageIds?, images?)` | `reason`：`fake_job`、`charges_fee`、`below_min_wage`、`discriminatory`、`visa_selling`、`inappropriate`、`other`；`note` 最多 500 字，选 `other` 时必填。不需要登录；`messageIds`（ADR 0027）是要附上的聊天消息，最多 20 条，必须是登录账号自己和这个职位所属企业的对话里的，服务器存举报时的快照；`images`（FormData，字段 `image`）最多 3 张 JPG / PNG / WebP，每张 ≤5 MB，按文件内容判断格式，去掉元数据后存进证据存储；附证据要登录 | `{ ok: true, reportId }` | `{ ok: false, error }`：「请选择举报原因」「补充说明最多 500 字」「选择“其他”时，请简单写一下原因」「找不到这个职位，可能已经下架」「登录已经失效，请重新登录后再附上聊天记录」「选中的聊天记录有变化，请重新选择」「截图最多 3 张」「每张截图不能超过 5 MB」「只能上传 JPG、PNG 或 WebP 格式的图片」「你已经举报过这个职位，我们会尽快核查。」（同一个人对这个职位已经有一条没处理的举报，ADR 0034）「今天的举报次数已经到上限，明天再试。」（每天的上限，ADR 0034） |
 | `reportableMessages(jobId)` | 职位编号；账号取自会话 | 举报表单可以附上的消息（ADR 0027）：登录账号和这个职位所属企业的所有对话里最新的 200 条，旧的在前：`{ id, mine, byName, text, sentAt, jobTitle }[]`；职位不公开时是空的 | `null`（未登录） |
 | `jobSummary(jobId)` | 职位编号 | `{ id, title, pay, open }`，聊天顶部的职位条用；`open` 表示还在招 | `null` |
 

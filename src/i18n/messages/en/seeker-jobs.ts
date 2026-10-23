@@ -158,6 +158,9 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     seeLink: "Me",
     seeAfter: ".",
     already: "You've already reported this job. We'll check it as soon as we can.",
+    limited: "You've reached today's limit for reports. Please try again tomorrow.",
+    limitedSignedOut:
+      "You've reached today's limit for reports. Please try again tomorrow, or sign in to keep reporting.",
     noReason: "Choose a reason",
     noteTooLong: (max) => `Keep the details to ${max} characters or fewer`,
     otherNeedsNote: "If you choose Other, say briefly what's wrong",

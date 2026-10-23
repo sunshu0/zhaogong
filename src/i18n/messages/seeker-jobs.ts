@@ -167,6 +167,8 @@ const seekerJobsZh = {
     seeLink: "「我的」",
     seeAfter: "里看到。",
     already: "你已经举报过这个职位，我们会尽快核查。",
+    limited: "今天的举报次数已经到上限，明天再试。",
+    limitedSignedOut: "今天的举报次数已经到上限，明天再试。登录后可以继续举报。",
     noReason: "请选择举报原因",
     noteTooLong: (max: number) => `补充说明最多 ${max} 字`,
     otherNeedsNote: "选择“其他”时，请简单写一下原因",

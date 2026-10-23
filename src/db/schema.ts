@@ -1,6 +1,7 @@
 // Database tables. Shapes follow src/lib/types.ts; lists and small objects are stored as JSON, pay in cents.
 // The tables under "reserved" are defined now so the migrations carry them, but no code reads them yet:
 // sign-in and sessions come with A12-1, chats and exchanges with A12-2.
+import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { Lang } from "@/i18n/lang";
 import type { JobRoleId } from "@/config/job-roles";
@@ -99,18 +100,31 @@ export const jobs = sqliteTable("jobs", {
   contactBy: text("contact_by_email"),
 });
 
-export const reports = sqliteTable("reports", {
-  id: text("id").primaryKey(),
-  jobId: text("job_id")
-    .notNull()
-    .references(() => jobs.id),
-  reason: text("reason").$type<ReportReason>().notNull(),
-  note: text("note"),
-  createdAt: text("created_at").notNull(),
-  status: text("status").$type<"open" | "actioned" | "dismissed">().notNull(),
-  /** When a moderator closed it (#70); null while open, and for reports closed before migration 0008. */
-  handledAt: text("handled_at"),
-});
+export const reports = sqliteTable(
+  "reports",
+  {
+    id: text("id").primaryKey(),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id),
+    reason: text("reason").$type<ReportReason>().notNull(),
+    note: text("note"),
+    createdAt: text("created_at").notNull(),
+    status: text("status").$type<"open" | "actioned" | "dismissed">().notNull(),
+    /** When a moderator closed it (#70); null while open, and for reports closed before migration 0008. */
+    handledAt: text("handled_at"),
+    /**
+     * Who reported, as a keyed hash of the account or the visitor id (ADR 0034), while the report is open: one open
+     * report per person and job. Cleared when a moderator closes it; null for a browser without either.
+     */
+    reporter: text("reporter"),
+  },
+  (table) => [
+    uniqueIndex("reports_open_reporter_uq")
+      .on(table.jobId, table.reporter)
+      .where(sql`${table.status} = 'open' and ${table.reporter} is not null`),
+  ],
+);
 
 export const contactViews = sqliteTable("contact_views", {
   id: integer("id").primaryKey({ autoIncrement: true }),

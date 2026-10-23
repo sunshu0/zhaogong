@@ -118,9 +118,12 @@ export async function submitReport(
   reason: ReportReason,
   note?: string,
   evidence?: { reporterEmail: string; messages: readonly EvidenceMessage[]; images?: readonly EvidenceImage[] },
+  reporter?: string,
 ): Promise<Report> {
   const db = await database();
   const createdAt = new Date().toISOString();
+  // With `reporter` (report-limits.ts reporterKey), a second open report on the job by the same person breaks the
+  // unique index reports_open_reporter_uq and the whole batch is undone: see isOpenReportClash.
   const report = db
     .insert(t.reports)
     .values({
@@ -130,6 +133,7 @@ export async function submitReport(
       note: note ?? null,
       createdAt,
       status: "open",
+      reporter: reporter ?? null,
     })
     .returning();
   const reporterEmail = evidence && normalizeEmail(evidence.reporterEmail);
@@ -159,6 +163,26 @@ export async function submitReport(
     ),
   ]);
   return toReport(reports[0]);
+}
+
+/** Whether `reporter` (a reporterKey) has an open report on the job (ADR 0034). */
+export async function hasOpenReport(jobId: string, reporter: string): Promise<boolean> {
+  const db = await database();
+  const [row] = await db
+    .select({ id: t.reports.id })
+    .from(t.reports)
+    .where(and(eq(t.reports.jobId, jobId), eq(t.reports.reporter, reporter), eq(t.reports.status, "open")))
+    .limit(1);
+  return !!row;
+}
+
+/** Whether a failed submitReport hit the one-open-report-per-person index: two of the same person's at once. */
+export function isOpenReportClash(error: unknown): boolean {
+  for (let e: unknown = error; e; e = (e as { cause?: unknown }).cause) {
+    if (/UNIQUE constraint failed: reports\.job_id, reports\.reporter/.test(String((e as Error).message ?? e)))
+      return true;
+  }
+  return false;
 }
 
 export async function listReports(): Promise<Report[]> {
@@ -196,7 +220,12 @@ export async function updateReport(
 ): Promise<Report | undefined> {
   const db = await database();
   const handledAt = status === "open" ? null : now.toISOString();
-  await db.update(t.reports).set({ status, handledAt }).where(eq(t.reports.id, id));
+  // A closed report forgets who sent it (ADR 0034): the hash was only there to keep one report open per person.
+  const closed = status === "open" ? {} : { reporter: null };
+  await db
+    .update(t.reports)
+    .set({ status, handledAt, ...closed })
+    .where(eq(t.reports.id, id));
   const [row] = await db.select().from(t.reports).where(eq(t.reports.id, id));
   return row && toReport(row);
 }
