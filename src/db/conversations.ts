@@ -2,9 +2,10 @@
 // with its messages and exchanges. Both sides read and write the same rows; src/lib/chat-server/shared-view.ts turns
 // them into what each side sees. Server only.
 import { randomUUID } from "node:crypto";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { guardedBatch } from "@/db/guarded-batch";
 import { inList } from "@/db/in-list";
+import { insertIf } from "@/db/write-if";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { chatCandidateInsert } from "@/db/job-applications";
@@ -18,6 +19,13 @@ export type ConversationRow = typeof t.conversations.$inferSelect;
 export type SharedReader = { side: "seeker"; email: string } | { side: "employer"; employerId: string };
 
 const NAME_MAX = 40;
+
+/**
+ * Messages one shared conversation holds, both sides and the whole team together (review of security review F): about
+ * one job, so a few hundred is weeks of daily talk, and every read sends the whole thread (the chat page reads again
+ * every 10 seconds), so it must stay bounded. A message past it is not added; the sender is told.
+ */
+export const SHARED_MESSAGES_MAX = 500;
 
 /** The reader's conversations with their messages and exchanges, oldest message first. */
 export async function listSharedConversations(reader: SharedReader): Promise<SharedConversation[]> {
@@ -195,7 +203,8 @@ export async function markSharedRead(conversationId: string, side: Side, now = n
 
 /**
  * A message from one side; whoever sends has read everything before it. The first one makes the job seeker one of the
- * job's candidates (ADR 0030).
+ * job's candidates (ADR 0030). Only while the conversation has fewer than SHARED_MESSAGES_MAX messages, checked in
+ * the statement that writes, so messages sent at once cannot pass it together; whether it was added.
  */
 export async function addSharedMessage(
   conversationId: string,
@@ -203,17 +212,22 @@ export async function addSharedMessage(
   text: string,
   byName: string | undefined,
   now = new Date(),
-): Promise<void> {
+): Promise<boolean> {
   const db = await database();
   const at = now.toISOString();
-  await db.batch([
-    db.insert(t.messages).values({ conversationId, from: side, text, sentAt: at, byName: byName ?? null }),
-    chatCandidateInsert(db, conversationId, at),
-    db
-      .update(t.conversations)
-      .set({ updatedAt: at, [readColumn(side)]: at })
-      .where(eq(t.conversations.id, conversationId)),
-  ]);
+  const { applied } = await guardedBatch(
+    db,
+    sql`(${db.select({ n: count() }).from(t.messages).where(eq(t.messages.conversationId, conversationId))}) < ${SHARED_MESSAGES_MAX}`,
+    (allowed) => [
+      insertIf(db, t.messages, { conversationId, from: side, text, sentAt: at, byName: byName ?? null }, allowed),
+      chatCandidateInsert(db, conversationId, at, allowed),
+      db
+        .update(t.conversations)
+        .set({ updatedAt: at, [readColumn(side)]: at })
+        .where(and(eq(t.conversations.id, conversationId), allowed)),
+    ],
+  );
+  return applied;
 }
 
 export async function addSharedExchange(

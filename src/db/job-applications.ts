@@ -2,7 +2,7 @@
 // written to about the job, read by the job seeker (by email) and by the job's employer (by business and application
 // id, never by email). Who may do what is checked by the Server Functions. Server only.
 import { randomBytes } from "node:crypto";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { inList } from "@/db/in-list";
 import { insertIf } from "@/db/write-if";
@@ -87,8 +87,11 @@ export async function addChatCandidate(
     .onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] });
 }
 
-/** Candidate insertion for a message batch: read the conversation inside the same atomic write. */
-export function chatCandidateInsert(db: Db, conversationId: string, at: string) {
+/**
+ * Candidate insertion for a message batch: read the conversation inside the same atomic write. `allowed`, the batch's
+ * guard (guardedBatch), keeps a refused message from making the candidate again.
+ */
+export function chatCandidateInsert(db: Db, conversationId: string, at: string, allowed: SQL) {
   const field = (column: SQLiteColumn) =>
     sql`(select ${column} from ${conversations} where ${conversations.id} = ${conversationId})`;
   return insertIf(
@@ -105,7 +108,7 @@ export function chatCandidateInsert(db: Db, conversationId: string, at: string) 
       appliedAt: at,
       seenAt: at,
     },
-    sql`exists (select 1 from ${conversations} where ${conversations.id} = ${conversationId} and ${conversations.jobId} is not null)`,
+    sql`exists (select 1 from ${conversations} where ${conversations.id} = ${conversationId} and ${conversations.jobId} is not null) and ${allowed}`,
   ).onConflictDoNothing({ target: [jobApplications.seekerEmail, jobApplications.jobId] });
 }
 

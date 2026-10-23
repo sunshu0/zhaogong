@@ -21,6 +21,7 @@ import {
   listSharedConversations,
   markSharedRead,
   openSharedConversation,
+  SHARED_MESSAGES_MAX,
   type ConversationRow,
   type SharedReader,
 } from "@/db/conversations";
@@ -86,7 +87,7 @@ export type ChatChange =
  * What the server answers with: the records and the identity they belong to (the browser's copy may name another
  * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for). After an
  * `open`, `opened` is the id of the conversation to show. `notice`, in the visitor's language, says why a message
- * or an import was not taken (a size above).
+ * or an import was not taken (a size: SHARED_MESSAGES_MAX, own-limits.ts).
  */
 export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string; notice?: string };
 export type ReadsSnapshot = { scope: string; ids: string[] };
@@ -116,7 +117,7 @@ async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string, noti
   };
 }
 
-/** The visitor's words for a size of the own record (own-limits.ts). */
+/** The visitor's words for a size of a conversation or of the own record. */
 async function limits() {
   return pick(chatMessages, await requestLang()).limits;
 }
@@ -187,8 +188,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
   if (reader && key && change.type !== "report") {
     const shared = (await findSharedConversation(reader, key)) ?? (await sharedToStart(me, key, change));
     if (shared) {
-      await applyShared(shared, change, me, reader.side, view);
-      return { record };
+      const notice = await applyShared(shared, change, me, reader.side, view);
+      return notice ? { record, notice } : { record };
     }
   }
   if (!view.messages[conversationId]) return { record };
@@ -212,23 +213,25 @@ async function sharedToStart(
   return opened && opened.employerId === key.employerId ? opened : undefined;
 }
 
-/** A change to a conversation both sides share, written to its rows. */
+/** A change to a conversation both sides share, written to its rows; what to tell the sender when it is not taken. */
 async function applyShared(
   row: ConversationRow,
   change: Exclude<ChatChange, { type: "open" } | { type: "report" }>,
   me: ChatIdentity,
   side: "seeker" | "employer",
   view: ReturnType<typeof chatView>,
-): Promise<void> {
+): Promise<string | undefined> {
   const id = change.conversationId;
   switch (change.type) {
     case "read":
-      return markSharedRead(row.id, side);
+      await markSharedRead(row.id, side);
+      return;
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!text || text.length > MESSAGE_MAX) return;
       if (side === "seeker") await countChatStart(id, me.session.email);
-      return addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined);
+      if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined)) return;
+      return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
     }
     case "request": {
       const payload = parsePayload(change.payload);
@@ -237,13 +240,14 @@ async function applyShared(
       const next = requestExchange(current, change.kind, payload, randomUUID());
       if (next === current) return;
       const created = next[next.length - 1];
-      return addSharedExchange(row.id, {
+      await addSharedExchange(row.id, {
         id: created.id,
         kind: created.kind,
         requestedBy: side,
         offered: created.offered,
         createdAt: created.createdAt,
       });
+      return;
     }
     case "answer": {
       if (typeof change.exchangeId !== "string") return;
@@ -254,11 +258,12 @@ async function applyShared(
       if (!item) return;
       const answered = respondExchange(item, "me", change.status, payload);
       if (answered === item) return;
-      return answerSharedExchange(row.id, item.id, {
+      await answerSharedExchange(row.id, item.id, {
         status: answered.status,
         ...(answered.response ? { response: answered.response } : {}),
         respondedAt: answered.respondedAt!,
       });
+      return;
     }
   }
 }

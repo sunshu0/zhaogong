@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { eq } from "drizzle-orm";
 import { createSession, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import { createEmployer, createJob, ensureAccount, openEmployerIdentity } from "@/lib/data";
@@ -14,6 +15,10 @@ import { EMPTY_CHAT, addSentMessage, chatView, type ChatRecord } from "@/compone
 import { addApplication } from "@/db/job-applications";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { teamChatScope } from "@/lib/chat-server/identity";
+import { SHARED_MESSAGES_MAX } from "@/db/conversations";
+import { database } from "@/db/ready";
+import * as t from "@/db/schema";
+import { insertsInChunks } from "@/db/write-if";
 
 // Server Functions read the request's cookies; here one jar stands in for one browser.
 const cookies = new Map<string, string>();
@@ -605,6 +610,40 @@ describe("chats both sides share (#110)", () => {
     const seen = (await my())!;
     const id = seen.extra.find((c) => c.job === job.id)!.id;
     expect(seen.added[id].map((m) => m.text)).toEqual(["现在发的"]);
+  });
+
+  it("a full shared conversation takes no more messages and tells the sender, in their language", async () => {
+    const { shop, boss, job } = await business("full");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("full.seeker@example.com");
+    await change({ type: "send", conversationId: seekerId, text: "你好" });
+    const db = await database();
+    const [row] = await db
+      .select()
+      .from(t.conversations)
+      .where(eq(t.conversations.seekerEmail, "full.seeker@example.com"));
+    const filler = Array.from({ length: SHARED_MESSAGES_MAX - 2 }, () => ({
+      conversationId: row.id,
+      from: "employer" as const,
+      text: "在",
+      sentAt: new Date().toISOString(),
+    }));
+    const [first, ...rest] = insertsInChunks(db, t.messages, filler);
+    await db.batch([first, ...rest]);
+
+    const last = await changeMyChat({ type: "send", conversationId: seekerId, text: "最后一条" });
+    expect(last?.notice).toBeUndefined();
+    const over = await changeMyChat({ type: "send", conversationId: seekerId, text: "多出来的" });
+    expect(over?.notice).toBe(`这段对话里已经有 ${SHARED_MESSAGES_MAX} 条消息，到上限了，这条没有发出。`);
+    expect(over?.record.added[seekerId]?.map((m) => m.text)).not.toContain("多出来的");
+
+    await signedIn(boss, "employer");
+    cookies.set("zg_lang", "en");
+    const id = (await my())!.extra.find((c) => c.job === job.id)!.id;
+    expect((await changeMyChat({ type: "send", conversationId: id, text: "还在" }))?.notice).toBe(
+      `This conversation already has ${SHARED_MESSAGES_MAX} messages, the most it can hold, so this one wasn't sent.`,
+    );
+    expect((await my())!.added[id]).toHaveLength(SHARED_MESSAGES_MAX);
   });
 
   it("a ticket applies a shared change once", async () => {

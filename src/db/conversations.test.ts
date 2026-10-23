@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {
   addSharedExchange,
@@ -7,7 +8,11 @@ import {
   listSharedConversations,
   markSharedRead,
   openSharedConversation,
+  SHARED_MESSAGES_MAX,
 } from "@/db/conversations";
+import { database } from "@/db/ready";
+import * as t from "@/db/schema";
+import { insertsInChunks } from "@/db/write-if";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { ensureAccount } from "@/lib/data";
 
@@ -108,6 +113,40 @@ describe("shared conversations (#110)", () => {
       resume: { employmentTypes: [], regionIds: [], skills: "", candidateId: "abc", discoverable: false },
     });
     expect((await seen())?.candidateId).toBeUndefined();
+  });
+
+  it(`holds at most ${SHARED_MESSAGES_MAX} messages, also when the last ones are sent at once`, async () => {
+    const row = await opened("shared.full@example.com");
+    const db = await database();
+    const sentAt = later(1).toISOString();
+    const filler = Array.from({ length: SHARED_MESSAGES_MAX - 3 }, (_, i) => ({
+      conversationId: row.id,
+      from: "seeker" as const,
+      text: `第 ${i + 1} 条`,
+      sentAt,
+    }));
+    const [first, ...rest] = insertsInChunks(db, t.messages, filler);
+    await db.batch([first, ...rest]);
+    expect(await addSharedMessage(row.id, "employer", "还在吗", "王经理", later(2))).toBe(true);
+
+    const atOnce = await Promise.all(
+      Array.from({ length: 5 }, (_, i) => addSharedMessage(row.id, "seeker", `同时 ${i}`, undefined, later(3))),
+    );
+    expect(atOnce.filter(Boolean)).toHaveLength(2);
+    expect(await addSharedMessage(row.id, "employer", "再发一条", "王经理", later(4))).toBe(false);
+    // A refused message does not make the job seeker a candidate again once their candidate row is gone.
+    const candidate = and(
+      eq(t.jobApplications.seekerEmail, "shared.full@example.com"),
+      eq(t.jobApplications.jobId, "j1"),
+    );
+    expect(await db.select().from(t.jobApplications).where(candidate)).toHaveLength(1);
+    await db.delete(t.jobApplications).where(candidate);
+    expect(await addSharedMessage(row.id, "seeker", "被拒的", undefined, later(5))).toBe(false);
+    expect(await db.select().from(t.jobApplications).where(candidate)).toEqual([]);
+    const [seen] = await listSharedConversations({ side: "seeker", email: "shared.full@example.com" });
+    expect(seen.messages).toHaveLength(SHARED_MESSAGES_MAX);
+    expect(seen.messages.at(-1)?.text).toMatch(/^同时/);
+    expect(seen.employerReadAt).toBe(later(2).toISOString()); // the refused one changed nothing
   });
 
   it("an exchange is answered once", async () => {

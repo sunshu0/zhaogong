@@ -203,7 +203,7 @@ async function openOnServer(
 async function deliver(item: OutboxItem): Promise<boolean> {
   const snapshot = await changeMyChat(item.change, { id: item.id, scope: item.scope });
   keep(snapshot);
-  // Not taken for a size (security review F): said, since the browser showed the change already.
+  // Not taken for a size: said, since the browser showed the change already.
   if (snapshot?.notice) toast(snapshot.notice, 8000);
   if (snapshot?.scope !== item.scope) return false;
   removeFromOutbox(localStorage, item.id);

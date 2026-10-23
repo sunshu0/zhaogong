@@ -134,7 +134,7 @@
 | `type` | 其余字段 | 规则 |
 | --- | --- | --- |
 | `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里，已有 100 段时新的打不开，回答带 `notice`。回答的 `opened` 是要进的对话编号，打不开时没有 |
-| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
+| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`；共用对话已有 500 条消息时也不收（ADR 0015）。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
 | `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
