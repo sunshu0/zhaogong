@@ -11,10 +11,13 @@ import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 export function EmployerActivityLine({
   activity,
   className = "",
+  inline = false,
   lang = DEFAULT_LANG,
 }: {
   activity?: EmployerActivity;
   className?: string;
+  /** A span in a row (job cards) rather than a line of its own (the job page). */
+  inline?: boolean;
   lang?: Lang;
 }) {
   const t = pick(seekerJobsMessages, lang).activity;
@@ -22,9 +25,16 @@ export function EmployerActivityLine({
     (part): part is string => Boolean(part),
   );
   if (!parts.length) return null;
+  // On a card it sits in the employer's row, after the name (which gives way first), so the card is no taller: a
+  // phone still shows three whole cards (layout.spec, A21).
+  const Tag = inline ? "span" : "p";
   return (
-    <p data-employer-activity="" title={t.label} className={`text-meta text-muted ${className}`}>
+    <Tag
+      data-employer-activity=""
+      title={t.label}
+      className={`text-meta font-normal text-muted ${inline ? "min-w-0 truncate" : ""} ${className}`}
+    >
       {parts.join(t.join)}
-    </p>
+    </Tag>
   );
 }

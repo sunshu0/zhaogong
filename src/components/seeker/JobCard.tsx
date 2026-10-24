@@ -112,6 +112,7 @@ export function JobCard({
             <span className="font-normal">
               <VerificationBadge verification={employer.verification} lang={lang} />
             </span>
+            <EmployerActivityLine activity={activity} lang={lang} inline />
           </p>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -127,7 +128,6 @@ export function JobCard({
           <SaveJobButton jobId={job.id} title={job.titleZh} />
         </div>
       </div>
-      <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
     </article>
   );
 }
@@ -227,6 +227,7 @@ function AppJobCard({
             <span lang={contentLang(employer.name)} className="truncate">
               {employer.name}
             </span>
+            <EmployerActivityLine activity={activity} lang={lang} inline />
           </p>
         )}
         <div className="ml-auto flex shrink-0 items-center gap-1">
@@ -234,7 +235,6 @@ function AppJobCard({
           {action && <div className="relative z-10 ml-1">{action}</div>}
         </div>
       </div>
-      <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
     </article>
   );
 }
