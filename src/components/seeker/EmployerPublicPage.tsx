@@ -13,6 +13,7 @@ import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
 import { EmployerActivitySummary } from "@/components/seeker/ChatActivity";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { buttonClass } from "@/components/ui/Button";
+import { employerIndustry } from "@/components/ui/industry-avatar";
 import type { Employer, Job } from "@/lib/types";
 import { BACK, PageTransition } from "@/components/ui/PageTransition";
 import { useLang, useMessages } from "@/i18n/client";
@@ -42,7 +43,7 @@ export function EmployerPublicPage({ employer, jobs }: { employer: Employer; job
         </Link>
         <header className={CARD}>
           <div className="flex items-start gap-4">
-            <EmployerAvatar employerId={employer.id} fallback={name} large />
+            <EmployerAvatar employerId={employer.id} fallback={name} industry={employerIndustry(jobs)} large />
             <div className="min-w-0 flex-1">
               <p className="text-meta text-muted">{t.eyebrow(employer.id)}</p>
               <h1 lang={contentLang(name)} className="mt-1 text-title font-semibold break-words">

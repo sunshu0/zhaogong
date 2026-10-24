@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera } from "lucide-react";
 import { useCandidateDirectory, usePublicEmployerProfile } from "@/components/seeker/hub-client";
+import { IndustryAvatar } from "@/components/ui/IndustryAvatar";
+import type { Industry } from "@/lib/types";
 import type { Conversation } from "@/components/seeker/chat-client";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
@@ -42,17 +44,24 @@ export function AvatarImage({
   );
 }
 
+/**
+ * The employer's photo; without one, the drawing for `industry` (#375, IndustryAvatar: the job's industry on a job,
+ * employerIndustry() on the employer's page), or the name's first character where no industry is known.
+ */
 export function EmployerAvatar({
   employerId,
   fallback,
+  industry,
   large = false,
 }: {
   employerId: string;
   fallback: string;
+  industry?: Industry;
   large?: boolean;
 }) {
   const t = useMessages(seekerProfileMessages).avatar;
   const profile = usePublicEmployerProfile(employerId);
+  if (!profile?.avatar && industry) return <IndustryAvatar industry={industry} large={large} />;
   return <AvatarImage avatar={profile?.avatar} fallback={fallback} alt={t.alt(fallback)} large={large} />;
 }
 

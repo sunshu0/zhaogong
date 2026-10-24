@@ -37,7 +37,7 @@ function HeaderLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav
       aria-label={w.main}
-      className="hidden items-center gap-4 whitespace-nowrap text-body md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-7"
+      className="hidden items-center gap-4 whitespace-nowrap text-body md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-2"
     >
       {headerItems(role, w).map((item) => {
         const current = item.key === active;
@@ -47,8 +47,8 @@ function HeaderLinks({ pathname }: { pathname: string | null }) {
             href={item.href}
             aria-current={current ? "page" : undefined}
             title={item.key === "chat" ? chatTitle(totalUnread, w) : undefined}
-            className={`inline-flex min-h-11 items-center gap-1.5 px-1 hover:text-brand ${
-              current ? "font-semibold text-brand" : "text-muted"
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-control px-3 ${
+              current ? "bg-brand-soft font-bold text-brand" : "text-muted hover:bg-neutral-soft hover:text-foreground"
             }`}
           >
             {item.key === "chat" && <MessageSquare aria-hidden="true" className="size-5" />}

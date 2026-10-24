@@ -12,7 +12,8 @@ const SIZES = {
 } as const;
 
 /**
- * Pay, the first thing on every job (Round 13): a large narrow figure in brand colour with a small grey 「/小时」.
+ * Pay, the first thing on every job (Round 13): a large narrow figure in the accent colour (#375, visual A) with a
+ * small grey 「/小时」.
  * The same on job lists, the job page and the home page's notices. Example: `<Pay pay={job.pay} country={job.country} />`.
  */
 export function Pay({
@@ -31,7 +32,7 @@ export function Pay({
 }) {
   const { amount, unit } = payParts(pay, country, lang);
   return (
-    <span className={`inline-flex items-baseline whitespace-nowrap text-brand ${className}`.trim()}>
+    <span className={`inline-flex items-baseline whitespace-nowrap text-accent ${className}`.trim()}>
       <span className={`font-figure ${SIZES[size]}`}>{amount}</span>
       {unit && <span className="ml-0.5 text-meta font-medium text-muted">{unit}</span>}
     </span>

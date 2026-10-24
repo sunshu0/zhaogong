@@ -162,7 +162,7 @@ export function JobDetail({
       {employer && (
         <section aria-label={t.detail.employer} className={CARD}>
           <p className="flex min-w-0 items-center gap-2 font-medium">
-            <EmployerAvatar employerId={employer.id} fallback={employer.name} />
+            <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} />
             <span lang={contentLang(employer.name)} className="break-words">
               {employer.name}
             </span>

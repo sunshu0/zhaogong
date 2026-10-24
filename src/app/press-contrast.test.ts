@@ -30,8 +30,28 @@ describe("pressed and hovered things keep their text at 4.5:1", () => {
     expect(contrast("#ffffff", token("brand-strong"))).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("white on the main (accent) button at rest, hovered and pressed (#375)", () => {
+    expect(contrast("#ffffff", token("accent"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#ffffff", token("accent-strong"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("pay and every text colour on the page, the cards and the soft fills (#375, visual A)", () => {
+    for (const text of ["foreground", "muted", "brand", "accent", "danger", "warn", "ok"])
+      for (const ground of ["surface", "background"])
+        expect(contrast(token(text), token(ground)), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
+    for (const [text, ground] of [
+      ["brand", "brand-soft"],
+      ["accent", "accent-soft"],
+      ["danger", "danger-soft"],
+      ["warn", "warn-soft"],
+      ["ok", "ok-soft"],
+      ["muted", "neutral-soft"],
+    ])
+      expect(contrast(token(text), token(ground)), `${text} on ${ground}`).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("every text colour on a pressed list row", () => {
-    for (const text of ["foreground", "muted", "brand", "danger", "warn", "ok"])
+    for (const text of ["foreground", "muted", "brand", "accent", "danger", "warn", "ok"])
       expect(contrast(token(text), token("press-soft")), text).toBeGreaterThanOrEqual(4.5);
   });
 

@@ -1,23 +1,39 @@
 @import "tailwindcss";
 
-/* Design tokens. Shared by both lines; ask the lead before changing them. */
+/*
+ * Design tokens. Shared by both lines; ask the lead before changing them.
+ * Visual A「可信的本地服务」(#375, the user 10-24; docs/design-system.md, ADR 0036): deep teal for the brand, links and
+ * whatever is selected; warm orange (--accent) for pay, the main button and unread counts; a warm white page.
+ * Contrast ratios are WCAG 2.x, against white unless said otherwise; src/app/press-contrast.test.ts checks them.
+ */
 :root {
-  --background: #f7f7f5;
+  --background: #f8f5f0;
   --surface: #ffffff;
-  --foreground: #1c1c1a;
-  --muted: #6b6b66;
-  --border: #e4e4df;
-  --brand: #0f766e; /* white on it 5.47:1 */
-  --brand-strong: #0b5f58; /* a pressed or hovered brand button; white on it 7.52:1 (opacity 0.9 was 4.48:1) */
-  --brand-soft: #e6f4f2;
-  --warn: #b45309;
+  --foreground: #1d1a16; /* 17.3:1 */
+  --muted: #5e574e; /* 7.1:1; 6.6:1 on --background */
+  --border: #e7e0d5;
+  --brand: #0f5e57; /* 7.6:1; white on it 7.6:1 */
+  --brand-strong: #0a4a44; /* a pressed or hovered brand button; white on it 10.1:1 */
+  --brand-soft: #e2f0ed; /* --brand on it 6.5:1 */
+  --accent: #c2410c; /* pay, the main button, unread counts: 5.2:1, 4.8:1 on --background; white on it 5.2:1 */
+  --accent-strong: #9a3412; /* a pressed or hovered main button; white on it 7.3:1 */
+  --accent-soft: #fdeee4; /* --accent on it 4.6:1 */
+  --warn: #a34a08; /* 5.9:1 */
   --warn-soft: #fef3e2;
-  --danger: #b91c1c;
-  --danger-soft: #fdecec;
-  --ok: #147638; /* 5.08:1 on --ok-soft (WCAG AA) */
-  --ok-soft: #e8f5ec;
-  --neutral-soft: #efefeb; /* grey tags and the unverified badge; --muted on it is 4.6:1 */
-  --press-soft: #f4f4f1; /* a pressed list row (pressable-row); the lowest text on it, --warn, is 4.56:1 (4.36 on --neutral-soft) */
+  --danger: #b42318; /* 6.6:1; 5.8:1 on --danger-soft */
+  --danger-soft: #fdecea;
+  --ok: #157a3a; /* 5.4:1; 4.8:1 on --ok-soft */
+  --ok-soft: #e6f4ea;
+  --neutral-soft: #f1ece4; /* grey tags, the unverified badge, quiet buttons; --muted on it 6.1:1 */
+  --press-soft: #f6f2eb; /* a pressed list row (pressable-row); the lowest text on it, --accent, is 4.6:1 */
+
+  /* Industry avatars (IndustryAvatar): decoration only, aria-hidden, so no text contrast applies. */
+  --ill-1: #fde3cf;
+  --ill-2: #d9ede8;
+  --ill-3: #f5e6c4;
+  --ill-main: #0f5e57;
+  --ill-accent: #f08a4b;
+  --ill-ink: #3b2f25;
 
   /*
    * Round 19 (操作质感, an app's feel): how things move. A press answers in --duration-press, a menu or toast in
@@ -40,6 +56,9 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
@@ -107,8 +126,9 @@
    */
   --radius-card: 16px;
   --radius-control: 12px;
-  --shadow-card: 0 1px 2px rgb(28 28 26 / 0.04), 0 4px 14px rgb(28 28 26 / 0.06);
-  --shadow-pop: 0 10px 36px rgb(28 28 26 / 0.18);
+  --shadow-card: 0 1px 2px rgb(60 40 20 / 0.06), 0 4px 14px -6px rgb(60 40 20 / 0.14);
+  --shadow-card-hover: 0 2px 4px rgb(60 40 20 / 0.08), 0 10px 24px -8px rgb(60 40 20 / 0.2);
+  --shadow-pop: 0 10px 36px rgb(60 40 20 / 0.2);
 
   --animate-sheet-up: sheet-up var(--duration-sheet) var(--ease-app);
   --animate-fade-in: fade-in var(--duration-ui) var(--ease-app);
@@ -172,10 +192,10 @@
 /*
  * Round 19 sample (#141): the type of the reworked pages, on their outermost element until the user approves it for
  * the whole site. Body text 15px (the user: grey text too small and pale), every size a step up from 1024px, and a
- * darker grey: --muted here is 7.5:1 on white (WCAG AA asks 4.5:1).
+ * darker grey: --muted here is 9.2:1 on white (WCAG AA asks 4.5:1).
  */
 @utility type-app {
-  --muted: #55554f;
+  --muted: #4d473f;
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.25rem;
   --text-body: 0.9375rem;
@@ -248,4 +268,46 @@ input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [typ
 textarea,
 select {
   font-size: max(1rem, 1em);
+}
+
+/* The industry avatars' drawings (IndustryAvatar, #375): fills and strokes from the --ill-* colours. */
+.industry-ill {
+  .m {
+    fill: var(--ill-main);
+  }
+  .a {
+    fill: var(--ill-accent);
+  }
+  .k {
+    fill: var(--ill-ink);
+  }
+  .w {
+    fill: #fff;
+  }
+  .s,
+  .sk,
+  .sm,
+  .sw {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .s {
+    stroke: var(--ill-ink);
+    stroke-width: 2;
+    opacity: 0.55;
+  }
+  .sk {
+    stroke: var(--ill-ink);
+    stroke-width: 2.6;
+  }
+  .sm {
+    stroke: var(--ill-main);
+    stroke-width: 3;
+  }
+  .sw {
+    stroke: #fff;
+    stroke-width: 1.8;
+    opacity: 0.85;
+  }
 }

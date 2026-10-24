@@ -13,7 +13,7 @@ test("Chrome parses the web app manifest: name, standalone, start URL, theme col
   expect(manifest?.name).toBe("找工 Zhaogong"); // #328, the name the user chose 10-20
   expect(manifest?.display).toBe("kStandalone");
   expect(manifest?.startUrl).toBe(new URL("/jobs", page.url()).href); // the installed app opens on the list; any E2E_PORT
-  expect(manifest?.themeColor).toBe("rgba(15,118,110,1)");
+  expect(manifest?.themeColor).toBe("rgba(15,94,87,1)"); // --brand #0f5e57 (ADR 0036)
 
   const icons = manifest?.icons ?? [];
   expect(icons.map((i) => i.sizes)).toEqual(expect.arrayContaining(["192x192", "512x512"]));

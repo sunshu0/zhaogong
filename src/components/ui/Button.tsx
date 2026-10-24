@@ -3,7 +3,8 @@ import type { ButtonHTMLAttributes, ComponentProps } from "react";
 import { busyProps } from "@/components/ui/busy";
 
 /**
- * Three levels of action (Round 11): `primary` is solid brand, at most one per screen; `secondary` is outlined;
+ * Three levels of action (Round 11): `primary` is solid accent (#375, visual A: warm orange, the colour of pay), at
+ * most one per screen; `secondary` is outlined in the brand colour;
  * `link` is a text link. Anything else goes into a MoreMenu. No shadow (Round 13).
  * Round 19: every button answers a press (`pressable`), and a Button can show that its action is on its way
  * (`loading`). `size="lg"` is the 48px main action of a screen, such as a bottom bar's. Controls' 12px corners
@@ -18,8 +19,8 @@ const BASE =
   "pressable inline-flex items-center justify-center gap-2 text-body font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-busy:cursor-progress";
 const SIZES: Record<ButtonSize, string> = { md: "min-h-11", lg: "min-h-12 text-subtitle" };
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand px-4 text-white hover:bg-brand-strong active:bg-brand-strong",
-  secondary: "border border-brand/40 bg-surface px-4 text-brand hover:border-brand hover:bg-brand-soft",
+  primary: "bg-accent px-4 font-semibold text-white hover:bg-accent-strong active:bg-accent-strong",
+  secondary: "border-[1.5px] border-brand bg-surface px-4 font-semibold text-brand hover:bg-brand-soft",
   danger: "bg-danger px-4 text-white hover:opacity-90",
   "danger-secondary": "border border-danger/40 bg-surface px-4 text-danger hover:border-danger hover:bg-danger-soft",
   link: "px-1 text-brand underline-offset-4 hover:underline",

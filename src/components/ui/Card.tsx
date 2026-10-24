@@ -10,7 +10,8 @@ export function cardClass({ interactive = false, padded = true } = {}) {
   return [
     "rounded-card bg-surface shadow-card",
     padded && "p-4 lg:p-5",
-    interactive && "pressable cursor-pointer hover:shadow-pop focus-visible:outline-2 focus-visible:outline-brand",
+    interactive &&
+      "pressable cursor-pointer hover:shadow-card-hover focus-visible:outline-2 focus-visible:outline-brand",
   ]
     .filter(Boolean)
     .join(" ");
@@ -22,7 +23,7 @@ export function cardClass({ interactive = false, padded = true } = {}) {
  * pressed, its shadow deepens on hover, and it shows the link's focus ring.
  */
 export function linkCardClass() {
-  return "group relative rounded-card bg-surface px-4 py-3.5 shadow-card transition-[scale,box-shadow] duration-(--duration-press) ease-(--ease-app) hover:shadow-pop has-[a:active]:scale-(--press-scale) has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand lg:p-5";
+  return "group relative rounded-card bg-surface px-4 py-3.5 shadow-card transition-[scale,box-shadow] duration-(--duration-press) ease-(--ease-app) hover:shadow-card-hover has-[a:active]:scale-(--press-scale) has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-brand lg:p-5";
 }
 
 /** A row of a list (notifications, settings, saved searches): full width, darkens while pressed. */

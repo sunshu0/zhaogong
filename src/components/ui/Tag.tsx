@@ -19,18 +19,19 @@ export function Tag({ kind, children }: { kind?: TagKind; children: ReactNode })
 
 const SOFT_TONES = {
   urgent: "bg-danger-soft font-semibold text-danger",
-  brand: "bg-brand-soft text-brand",
+  brand: "bg-brand-soft font-semibold text-brand",
   neutral: "bg-neutral-soft text-muted",
 };
 
 /**
- * Round 19 cards' tags: a soft fill and round ends, no border. At most one status and two others on a card.
+ * Round 19 cards' tags: a soft fill, no border; #375: 6px corners like the visual A sample. At most one status and
+ * two others on a card.
  * Example: `<SoftTag tone="urgent">急招</SoftTag>`.
  */
 export function SoftTag({ tone, children }: { tone: keyof typeof SOFT_TONES; children: ReactNode }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-meta leading-5 ${SOFT_TONES[tone]}`}
+      className={`inline-flex shrink-0 items-center rounded-md px-2 py-0.5 text-meta leading-5 ${SOFT_TONES[tone]}`}
     >
       {children}
     </span>

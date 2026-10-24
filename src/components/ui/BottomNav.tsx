@@ -57,7 +57,7 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                   aria-current={current ? "page" : undefined}
                   className="pressable -mt-4 flex flex-col items-center gap-0.5 text-meta font-medium text-brand"
                 >
-                  <span className="flex size-11 items-center justify-center rounded-full bg-brand text-white ring-4 ring-surface">
+                  <span className="flex size-11 items-center justify-center rounded-full bg-accent text-white ring-4 ring-surface">
                     <Plus aria-hidden="true" className="size-6" />
                   </span>
                   {item.label}
@@ -78,12 +78,12 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
                 }`}
               >
                 <span className="relative">
-                  {/* Round 19: the current item's icon turns solid and grows a little. */}
+                  {/* Round 19: the current item's icon grows a little; #375: it fills with the soft brand colour. */}
                   <Icon
                     aria-hidden="true"
                     className={`size-6 transition-transform duration-(--duration-ui) ease-(--ease-app) ${current ? "scale-110" : ""}`}
-                    strokeWidth={current ? 2 : 1.75}
-                    fill={current ? "currentColor" : "none"}
+                    strokeWidth={2}
+                    fill={current ? "var(--brand-soft)" : "none"}
                   />
                   {unread > 0 && (
                     <span className="absolute -top-1.5 left-4">
