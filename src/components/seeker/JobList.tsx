@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Employer, Job } from "@/lib/types";
 import { JobCard, JobCardSkeleton } from "@/components/seeker/JobCard";
+import type { EmployerActivity } from "@/lib/employer-activity";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { uiMessages } from "@/i18n/messages/ui";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
@@ -10,12 +11,15 @@ import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 export function JobList({
   jobs,
   employers,
+  activities,
   empty,
   look = "classic",
   lang = DEFAULT_LANG,
 }: {
   jobs: Job[];
   employers: Map<string, Employer>;
+  /** 老板活跃度 by employer (#381), read for the whole list at once (employerActivities). */
+  activities?: Map<string, EmployerActivity>;
   /** Extra content for the empty state, e.g. a link that clears the filters. */
   empty?: ReactNode;
   /** The cards' look (JobCard): "app" is the Round 19 sample. */
@@ -41,7 +45,13 @@ export function JobList({
     <ul className="space-y-3">
       {jobs.map((job) => (
         <li key={job.id}>
-          <JobCard job={job} employer={employers.get(job.employerId)} look={look} lang={lang} />
+          <JobCard
+            job={job}
+            employer={employers.get(job.employerId)}
+            activity={activities?.get(job.employerId)}
+            look={look}
+            lang={lang}
+          />
         </li>
       ))}
     </ul>

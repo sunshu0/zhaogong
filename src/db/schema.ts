@@ -52,6 +52,18 @@ export const employers = sqliteTable("employers", {
   bannedAt: text("banned_at"),
 });
 
+/**
+ * When someone in a business's team last used the site as that business (#381, ADR 0038): written at most every 10
+ * minutes. Job pages show only whether it was today (Auckland time), never the time itself, so it is a table of its
+ * own and never travels with an Employer.
+ */
+export const employerActivity = sqliteTable("employer_activity", {
+  employerId: text("employer_id")
+    .primaryKey()
+    .references(() => employers.id),
+  lastActiveAt: text("last_active_at").notNull(),
+});
+
 export const jobs = sqliteTable("jobs", {
   id: text("id").primaryKey(),
   country: text("country").$type<"NZ" | "AU">().notNull(),

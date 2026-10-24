@@ -10,6 +10,7 @@ import type { JobFilter } from "@/lib/types";
 import { englishSummary, parsePost } from "@/lib/ai-post";
 import { getPlatformStats, listFeaturedJobs, listJobs } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
+import { employerActivities } from "@/db/employer-activity";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobCard } from "@/components/seeker/JobCard";
 import { PostJobLink } from "@/components/seeker/AccountMenu";
@@ -288,8 +289,15 @@ async function HeroCount() {
 
 async function FeaturedBand() {
   await connection(); // featured jobs change as jobs are published
-  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT, await requestTime());
-  const employers = await employersOf(jobs);
+  const now = await requestTime();
+  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT, now);
+  const [employers, activities] = await Promise.all([
+    employersOf(jobs),
+    employerActivities(
+      jobs.map((job) => job.employerId),
+      now,
+    ),
+  ]);
   const lang = await serverLang();
   const t = (await messages(seekerHomeMessages)).featured;
   return (
@@ -309,7 +317,14 @@ async function FeaturedBand() {
         <ul className="mt-6 space-y-3 lg:max-w-3xl">
           {jobs.map((job) => (
             <li key={job.id}>
-              <JobCard look="app" job={job} employer={employers.get(job.employerId)} headingLevel={3} lang={lang} />
+              <JobCard
+                look="app"
+                job={job}
+                employer={employers.get(job.employerId)}
+                activity={activities.get(job.employerId)}
+                headingLevel={3}
+                lang={lang}
+              />
             </li>
           ))}
         </ul>

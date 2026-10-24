@@ -16,6 +16,8 @@ import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { cardPoints, cardStatus, cardTags } from "@/components/seeker/job-card-parts";
 import { FORWARD } from "@/components/ui/PageTransition";
+import { EmployerActivityLine } from "@/components/seeker/EmployerActivityLine";
+import type { EmployerActivity } from "@/lib/employer-activity";
 
 /** At most this many tags on a row; the job page shows everything. */
 const CARD_TAGS = 3;
@@ -33,10 +35,13 @@ export function JobCard({
   headingLevel = 2,
   look = "classic",
   action,
+  activity,
   lang = DEFAULT_LANG,
 }: {
   job: Job;
   employer?: Employer;
+  /** 今天在线, 通常 1 小时内回复 (#381): one line under the employer, when there is something to say. */
+  activity?: EmployerActivity;
   headingLevel?: 2 | 3;
   /** The page's language (Round 20): the card renders on the server and in the browser, so it is told. */
   lang?: Lang;
@@ -46,7 +51,16 @@ export function JobCard({
   action?: ReactNode;
 }) {
   if (look === "app")
-    return <AppJobCard job={job} employer={employer} headingLevel={headingLevel} action={action} lang={lang} />;
+    return (
+      <AppJobCard
+        job={job}
+        employer={employer}
+        headingLevel={headingLevel}
+        action={action}
+        activity={activity}
+        lang={lang}
+      />
+    );
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const t = pick(seekerJobsMessages, lang);
   const region = placeName(regionById(job.country, job.regionId), lang);
@@ -113,6 +127,7 @@ export function JobCard({
           <SaveJobButton jobId={job.id} title={job.titleZh} />
         </div>
       </div>
+      <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
     </article>
   );
 }
@@ -129,12 +144,14 @@ function AppJobCard({
   employer,
   headingLevel,
   action,
+  activity,
   lang,
 }: {
   job: Job;
   employer?: Employer;
   headingLevel: 2 | 3;
   action?: ReactNode;
+  activity?: EmployerActivity;
   lang: Lang;
 }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
@@ -217,6 +234,7 @@ function AppJobCard({
           {action && <div className="relative z-10 ml-1">{action}</div>}
         </div>
       </div>
+      <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
     </article>
   );
 }

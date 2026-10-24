@@ -1,6 +1,7 @@
 // The signed-in identity whose chat the server reads and writes (#10). Server only.
 import { getCurrentSession, type SessionView } from "@/lib/auth";
 import { getAccount } from "@/lib/data";
+import { markEmployerActive } from "@/db/employer-activity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import type { ChatRecord } from "@/components/seeker/chat-store";
 import { chatDemo } from "@/components/seeker/chat-demo";
@@ -30,7 +31,13 @@ export async function currentChatIdentity(): Promise<ChatIdentity | null> {
   const demoAccount = isDemoAccount(session.email);
   if (!isEmployer || !session.employer)
     return { session, isEmployer, scope, recordScope: scope, demo: chatDemo(false, demoAccount) };
-  const by = (await getAccount(session.email))?.teamName;
+  // 今天在线 on the business's jobs (#381): every page a team member opens reads the chat once. Not worth failing
+  // the chat for.
+  const [account] = await Promise.all([
+    getAccount(session.email),
+    markEmployerActive(session.employer.id).catch(() => undefined),
+  ]);
+  const by = account?.teamName;
   return {
     session,
     isEmployer,

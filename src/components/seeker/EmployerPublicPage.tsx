@@ -9,6 +9,7 @@ import { useSession } from "@/components/seeker/session-client";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { verificationNote } from "@/components/seeker/job-facts";
 import { JobCard } from "@/components/seeker/JobCard";
+import type { EmployerActivity } from "@/lib/employer-activity";
 import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
 import { EmployerActivitySummary } from "@/components/seeker/ChatActivity";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
@@ -21,7 +22,16 @@ import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 import { contentLang } from "@/i18n/lang";
 import { placeName } from "@/components/seeker/format";
 
-export function EmployerPublicPage({ employer, jobs }: { employer: Employer; jobs: Job[] }) {
+export function EmployerPublicPage({
+  employer,
+  jobs,
+  activity,
+}: {
+  employer: Employer;
+  jobs: Job[];
+  /** 老板活跃度 on its job cards (#381). */
+  activity?: EmployerActivity;
+}) {
   const profile = usePublicEmployerProfile(employer.id);
   const session = useSession();
   const lang = useLang();
@@ -146,6 +156,7 @@ export function EmployerPublicPage({ employer, jobs }: { employer: Employer; job
                     look="app"
                     job={job}
                     employer={{ ...employer, name }}
+                    activity={activity}
                     headingLevel={3}
                     lang={lang}
                     action={<StartEmployerChat employer={employer} job={job} />}

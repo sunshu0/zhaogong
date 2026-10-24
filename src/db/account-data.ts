@@ -507,6 +507,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
         ...(account.employerId && !teammates.length
           ? [
               db.delete(t.teamChats).where(and(eq(t.teamChats.employerId, account.employerId), allowed)),
+              db.delete(t.employerActivity).where(and(eq(t.employerActivity.employerId, account.employerId), allowed)),
               db.delete(t.employerProfiles).where(and(eq(t.employerProfiles.employerId, account.employerId), allowed)),
               db
                 .update(t.teamInvites)

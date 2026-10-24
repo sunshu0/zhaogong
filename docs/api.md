@@ -381,7 +381,7 @@
 | 路由 | 内容 | 需要 |
 | --- | --- | --- |
 | `/` | 介绍页 | — |
-| `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里：`region`、`industry`、`role`（岗位类别编号，见 `docs/job-roles.md`，#96）、`type`、`minPay`、`visa`、`meals`、`housing`、`q`；职位提醒存的就是这串参数）、职位详情 | — |
+| `/jobs`、`/jobs/[id]` | 职位列表（筛选条件在查询参数里：`region`、`industry`、`role`（岗位类别编号，见 `docs/job-roles.md`，#96）、`type`、`minPay`、`visa`、`meals`、`housing`、`q`；职位提醒存的就是这串参数）、职位详情。职位卡和详情在企业下面显示老板活跃度：「今天在线」（新西兰时间）、「通常 1 小时内回复」或「通常当天内回复」，慢的、不在线的什么都不显示（#381，ADR 0038）；首页「精选职位」和企业主页的职位卡也一样 | — |
 | `/employers/[id]` | 企业公开主页 | — |
 | `/internships`、`/professional`、`/external/[id]` | 实习、专业职位两个分区和外部职位详情（见上面那一节，#113）；详情页不收录 | — |
 | `/about`、`/privacy`、`/terms` | 关于找工（#324）、隐私说明和使用条款（#323）；三页都从页脚进 | — |

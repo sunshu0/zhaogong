@@ -19,6 +19,8 @@ import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { FORWARD } from "@/components/ui/PageTransition";
+import { EmployerActivityLine } from "@/components/seeker/EmployerActivityLine";
+import type { EmployerActivity } from "@/lib/employer-activity";
 
 /** Round 19 (操作质感): the page's blocks are cards, 16px corners and a soft shadow, no border. */
 const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
@@ -38,10 +40,13 @@ export function JobDetail({
   share,
   payReference,
   children,
+  activity,
   lang = DEFAULT_LANG,
 }: {
   job: Job;
   employer?: Employer;
+  /** 今天在线, 通常 1 小时内回复 (#381): one line under the employer's name, when there is something to say. */
+  activity?: EmployerActivity;
   now: number;
   /** Blocks for a right-hand column that stays in view from 1024 px (contact); on phones they follow the description. */
   aside?: ReactNode;
@@ -167,6 +172,7 @@ export function JobDetail({
               {employer.name}
             </span>
           </p>
+          <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
           <div className="mt-2">
             <VerificationBadge verification={employer.verification} explain lang={lang} />
           </div>

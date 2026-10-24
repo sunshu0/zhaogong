@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getEmployer, listJobsByEmployer } from "@/lib/data";
 import { requestTime } from "@/components/seeker/request-time";
+import { employerActivities } from "@/db/employer-activity";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { EmployerPublicPage } from "@/components/seeker/EmployerPublicPage";
@@ -36,5 +37,6 @@ async function PublicEmployer({ params }: Pick<PageProps<"/[lang]/employers/[id]
     .filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
     .map((job) => ({ ...job, contact: {} }));
-  return <EmployerPublicPage employer={employer} jobs={jobs} />;
+  const activity = (await employerActivities([employer.id], now)).get(employer.id);
+  return <EmployerPublicPage employer={employer} jobs={jobs} activity={activity} />;
 }

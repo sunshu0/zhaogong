@@ -7,6 +7,7 @@ import { DEFAULT_COUNTRY } from "@/config/countries";
 import { listJobs } from "@/lib/data";
 import { ActiveFilters } from "@/components/seeker/ActiveFilters";
 import { employersOf } from "@/components/seeker/employers";
+import { employerActivities } from "@/db/employer-activity";
 import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
@@ -57,7 +58,13 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
   const filter = parseFilter(await searchParams, DEFAULT_COUNTRY);
   const now = await requestTime(); // the list changes as jobs are published and close
   const jobs = await listJobs(filter, now);
-  const employers = await employersOf(jobs);
+  const [employers, activities] = await Promise.all([
+    employersOf(jobs),
+    employerActivities(
+      jobs.map((job) => job.employerId),
+      now,
+    ),
+  ]);
   const filtered = isFiltered(filter);
   const query = filterToQuery(filter);
   const lang = await serverLang();
@@ -83,6 +90,7 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
           look="app"
           jobs={jobs}
           employers={employers}
+          activities={activities}
           lang={lang}
           empty={
             filtered && (

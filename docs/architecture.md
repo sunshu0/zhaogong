@@ -36,6 +36,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `accounts` 的 `lang` | 账号选的界面语言，空就是没选过 | ADR 0023 |
 | `conversations`、`messages`、`exchanges` | 求职者和企业共用的一条对话，企业整个团队一起读写；`messages.resume` 是求职者在聊天里发的中英文简历（发出时的那一份） | ADR 0015、0037 |
 | `team_invites`、`team_chats` | 企业的团队和邀请；雇主一侧的聊天按企业存一份 | ADR 0012 |
+| `employer_activity` | 企业团队最近一次用网站的时间（最多每 10 分钟写一次），职位卡和详情只用它显示「今天在线」；回复速度从共用对话现算（`src/db/employer-activity.ts`） | ADR 0038 |
 | `team_invite_links` | 团队邀请链接：只存令牌的哈希，7 天、一次、可撤销，只能加入为成员（`src/db/team-links.ts`） | ADR 0028 |
 | `write_guards` | D1 原子批量写入的临时守卫，只在 batch 中存在，完成或失败后不留记录（`src/db/guarded-batch.ts`）；团队快照与重试见 `team-state.ts` 和 `optimistic.ts` | ADR 0031 |
 | `moderators` | 审核员名单（`npm run admin:grant` 加第一位） | ADR 0007 补充 |

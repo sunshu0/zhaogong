@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { headers } from "next/headers";
+import { employerActivities } from "@/db/employer-activity";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -79,7 +80,11 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
   const t = await messages(seekerJobsMessages);
   // The request's time first: the open jobs are counted at it (#100).
   const now = await requestTime();
-  const [employer, open] = await Promise.all([getEmployer(job.employerId), listJobs({ country: job.country }, now)]);
+  const [employer, open, activities] = await Promise.all([
+    getEmployer(job.employerId),
+    listJobs({ country: job.country }, now),
+    employerActivities([job.employerId], now),
+  ]);
   // 时薪参考 (#85): the other open jobs of the industry, in the region or across its area.
   const reference = payReference(open, {
     country: job.country,
@@ -96,6 +101,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
       <JobDetail
         job={job}
         employer={employer}
+        activity={activities.get(job.employerId)}
         now={now}
         lang={lang}
         payReference={

@@ -65,6 +65,13 @@ const seekerJobsZh = {
     contactPublic: "联系方式公开",
     contactByChat: "聊天交换联系方式",
   },
+  // EmployerActivityLine.tsx (#381, ADR 0038): on job cards and the job page; only what is good, nothing slow.
+  activity: {
+    label: "老板活跃度",
+    onlineToday: "今天在线",
+    replies: { hour: "通常 1 小时内回复", day: "通常当天内回复" },
+    join: " · ",
+  },
   // JobDetail.tsx, DescriptionTabs.tsx, the page's title when the job is gone.
   detail: {
     facts: "职位信息",

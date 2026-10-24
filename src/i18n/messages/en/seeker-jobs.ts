@@ -59,6 +59,12 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     contactPublic: "Contact shown",
     contactByChat: "Contact in chat",
   },
+  activity: {
+    label: "How active the employer is",
+    onlineToday: "Online today",
+    replies: { hour: "Usually replies within an hour", day: "Usually replies within a day" },
+    join: " · ",
+  },
   detail: {
     facts: "About the job",
     region: "Area",
