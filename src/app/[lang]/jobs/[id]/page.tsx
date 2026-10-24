@@ -121,6 +121,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
                     id: job.id,
                     employerId: job.employerId,
                     titleZh: job.titleZh,
+                    titleEn: job.titleEn,
                     status: job.status,
                     expiresAt: job.expiresAt,
                   }}

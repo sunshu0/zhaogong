@@ -2,6 +2,7 @@
 // account. What is deleted, what is kept without the person in it, and why: docs/adr/0009-account-deletion.md.
 // Server only.
 import type { Lang } from "@/i18n/lang";
+import { readOpener, readPhrases, type ChatPhrases } from "@/lib/chat-phrases";
 import { and, asc, count, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { listAiUsageOf, type AiUsageRow } from "@/db/ai-usage";
 import { listSharedConversations } from "@/db/conversations";
@@ -27,6 +28,8 @@ import type { AccountRole, Employer, Job } from "@/lib/types";
 /** The server's part of the export. The browser adds what it keeps itself (profiles, reports sent, jobs viewed). */
 export interface ServerAccountData {
   account: { email: string; createdAt: string; lastRole: AccountRole; lang: Lang | null };
+  /** The 常用语 and 开场白 the person changed (#372, #373, ADR 0035); null where they kept the defaults. */
+  chatPhrases: ChatPhrases;
   /** The account's place in its business's team (#87): role, the name the team sees, since when. */
   team: { role: string; name: string | null; joinedAt: string | null } | null;
   /** Team invitations this account received or sent (#87), whatever their status. */
@@ -246,6 +249,11 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       createdAt: account.createdAt,
       lastRole: account.lastRole,
       lang: account.lang ?? null,
+    },
+    chatPhrases: {
+      seeker: readPhrases(account.seekerPhrases),
+      employer: readPhrases(account.employerPhrases),
+      opener: readOpener(account.chatOpener),
     },
     team: account.employerId
       ? { role: account.teamRole ?? "admin", name: account.teamName, joinedAt: account.teamJoinedAt }

@@ -140,6 +140,15 @@
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
 | `report` | `conversationId`、`reason`、`note`、可选 `messageIndex` | 举报对方的一条消息（只能是对方发的）或整段对话，证据取被举报的那条或最近 100 条；举报存在自己的记录里，已有 100 条时不收，回答带 `notice`（`src/lib/chat-server/own-limits.ts`）。这和每天能举报几次（职位举报的 ADR 0034）无关 |
 
+## 聊天常用语和开场白 — `src/app/[lang]/messages/phrases-actions.ts`
+
+常用语（#372）和求职者的开场白（#373），存在账号上（`accounts` 的三列，迁移 0034，ADR 0035）。`ChatPhrases`：`{ seeker, employer, opener }`，`seeker`、`employer` 是各自身份的常用语数组，`opener` 是 `{ template: 1–3 }` 或 `{ text }`；没改过的是 `null`，浏览器显示页面语言下的默认文字（开场白默认模板 1）。上限和解析在 `src/lib/chat-phrases.ts`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myChatPhrases()` | | `{ email, phrases: ChatPhrases }` | 未登录时 `null` |
+| `saveMyChatPhrases(save)` | `{ role: "seeker" \| "employer", phrases?, opener? }`：`phrases` 是数组或 `null`（恢复默认），`opener` 是选择或 `null`（回到模板 1）；没传的不动 | `{ ok: true, email, phrases }`，存后的全部。常用语去掉首尾空白、空的丢掉 | 未登录或格式不对时 `null`；超过 10 条、某条超过 60 字、开场白超过 200 字或是空的、任何一条带电话、微信、邮箱（`readContact`）时 `{ ok: false, why }`，`why.problem` 是 `too_many`、`too_long`、`empty` 或 `contact`（带 `index`、`found`），什么都不存 |
+
 ## 收藏和进度 — `src/app/[lang]/me/saved/actions.ts`
 
 #52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。「实习」「专业职位」的外部职位（#131，ADR 0020）存在 `saved_external_jobs`（迁移 0021），在这些函数里的编号写成 `external:<外部职位编号>`（`externalSaveKey`）；只有分区里正在显示的外部职位能收藏。

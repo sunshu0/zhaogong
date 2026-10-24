@@ -6,6 +6,7 @@ import { crashForTests } from "@/lib/test-crash";
 import { ArrowLeft, Send } from "lucide-react";
 import { conversationProfileHref, useChat, useChatDelivery, type Conversation } from "@/components/seeker/chat-client";
 import { ChatActivity } from "@/components/seeker/ChatActivity";
+import { ChatPhraseRow } from "@/components/seeker/ChatPhrases";
 import { ChatExchangeMenu } from "@/components/seeker/ChatInteractions";
 import { ChatReportDialog } from "@/components/seeker/ChatReportButton";
 import { ConversationJob } from "@/components/seeker/ConversationJob";
@@ -34,6 +35,7 @@ export function ChatThread({
 }) {
   crashForTests("chat");
   const t = useMessages(chatMessages).thread;
+  const lang = useLang();
   const { messages, conversations, send } = useChat();
 
   function submit(event: FormEvent) {
@@ -42,6 +44,13 @@ export function ChatThread({
     if (!text) return;
     send(conversation.id, text);
     onDraftChange("");
+  }
+
+  // 常用语 (#372): one press sends it, beside whatever is being written. One the chat rules warn about goes into the
+  // box instead, where the warning shows as for anything typed, and the person decides.
+  function sendPhrase(phrase: string) {
+    if (outgoingWarningParts(phrase, lang)) onDraftChange(draft.trim() ? `${draft.trimEnd()} ${phrase}` : phrase);
+    else send(conversation.id, phrase);
   }
 
   return (
@@ -64,6 +73,7 @@ export function ChatThread({
       <MessageLog conversationId={conversation.id} thread={messages[conversation.id]} />
 
       <div className="shrink-0 border-t border-border px-4 py-3 lg:px-6 lg:py-4">
+        <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} />
         <MessageComposer
           draft={draft}
           onDraftChange={onDraftChange}

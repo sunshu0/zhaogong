@@ -42,6 +42,16 @@ export function writeDraft(storage: StorageLike, scope: string, conversationId: 
   else storage.removeItem(DRAFTS_KEY);
 }
 
+/**
+ * Puts `text` as the draft only where nothing is written yet (the 开场白 of #373); what someone started is kept.
+ * Whether it was put.
+ */
+export function writeDraftIfEmpty(storage: StorageLike, scope: string, conversationId: string, text: string): boolean {
+  if (readDraft(storage, scope, conversationId)) return false;
+  writeDraft(storage, scope, conversationId, text);
+  return true;
+}
+
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {
   listeners.add(listener);

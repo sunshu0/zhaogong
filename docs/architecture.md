@@ -104,6 +104,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/me/interview-actions.ts` | 约面试 |
 | `src/app/[lang]/me/saved/actions.ts` | 收藏和进度 |
 | `src/app/[lang]/messages/actions.ts` | 聊天、交换和通知 |
+| `src/app/[lang]/messages/phrases-actions.ts` | 聊天常用语和开场白（ADR 0035） |
 | `src/app/[lang]/profile/actions.ts` | 我的主页 |
 | `src/app/[lang]/profile/candidate-actions.ts` | 推荐人才：雇主看到的求职者主页 |
 | `src/app/[lang]/profile/resume/actions.ts` | 中英文简历的分享链接 |

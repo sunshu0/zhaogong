@@ -175,6 +175,14 @@ export const accounts = sqliteTable(
      * sign in. Signing in on another device brings it back as the zg_lang cookie.
      */
     lang: text("lang").$type<Lang>(),
+    /**
+     * 常用语 (#372, ADR 0035): the job seeker's and the business's lists as JSON arrays, null while the person never
+     * changed them (the defaults then follow the page's language). 开场白 (#373): JSON {template} or {text}, null
+     * for template 1. Read with lib/chat-phrases.ts.
+     */
+    seekerPhrases: text("seeker_phrases"),
+    employerPhrases: text("employer_phrases"),
+    chatOpener: text("chat_opener"),
   },
   (table) => [index("accounts_employer_idx").on(table.employerId)],
 );

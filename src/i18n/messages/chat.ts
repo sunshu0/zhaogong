@@ -290,6 +290,63 @@ const chatZh = {
     noLongerHiring: (title: string) => `${title}已经停止招聘`,
     thisJob: "这个职位",
   },
+
+  /**
+   * ChatPhrases.tsx: 常用语 above the box and their 管理 (#372); the job seeker's 开场白 (#373); ADR 0035. The
+   * defaults and templates are the ones the user approved (10-24); {职位} in an opener becomes the job's name.
+   */
+  phrases: {
+    rowLabel: "常用语",
+    sendPhrase: (phrase: string) => `发送常用语：${phrase}`,
+    manage: "管理",
+    manageLabel: "管理常用语和开场白",
+    dialogTitle: "常用语和开场白",
+    listHeading: "常用语",
+    listNote: (max: number, length: number) =>
+      `点一条就发出。最多 ${max} 条，每条最多 ${length} 个字。不能写电话、微信、邮箱：交换联系方式请在聊天里申请交换。`,
+    phraseLabel: (n: number) => `常用语 ${n}`,
+    moveUp: (n: number) => `上移第 ${n} 条`,
+    moveDown: (n: number) => `下移第 ${n} 条`,
+    remove: (n: number) => `删除第 ${n} 条`,
+    add: "添加一条",
+    restore: "恢复默认",
+    openerHeading: "开场白",
+    openerNote:
+      "在职位页点「立即沟通」开始新的对话时，它会填进输入框，不会自动发出：你看过、可以改，再按发送。{职位} 会换成职位的名字。",
+    openerTemplate: (n: number) => `模板 ${n}：`,
+    openerOwn: "自己写",
+    openerOwnLabel: "自己写的开场白",
+    save: "保存",
+    saving: "正在保存…",
+    saved: "已保存",
+    notSaved: "没有保存成功，请稍后再试。",
+    tooMany: (max: number) => `最多 ${max} 条常用语。`,
+    tooLong: (n: number, max: number) => `第 ${n} 条超过 ${max} 个字了。`,
+    openerTooLong: (max: number) => `开场白最多 ${max} 个字。`,
+    openerEmpty: "自己写的开场白还是空的。",
+    contact: (n: number, found: string) => `第 ${n} 条里有联系方式（${found}），请删掉再保存。`,
+    openerContact: (found: string) => `开场白里有联系方式（${found}），请删掉再保存。`,
+    foundJoiner: "、",
+    seekerDefaults: [
+      "请问这个职位还在招吗？",
+      "请问每周大概排几个班，每个班几个小时？",
+      "请问什么时候方便去面试？",
+      "简历已经发给您了，麻烦您看一下。",
+      "好的，谢谢您，我会准时到。",
+    ],
+    employerDefaults: [
+      "您好，看了您的资料，方便聊一下吗？",
+      "请问您每周哪几天、什么时间段可以上班？",
+      "请问您做过类似的工作吗？",
+      "请问您什么时候方便来面试？",
+      "谢谢您的关注，这个职位已经招到人了。",
+    ],
+    openers: [
+      "您好，我对「{职位}」很感兴趣，想多了解一下，方便聊聊吗？",
+      "您好，我想应聘「{职位}」，我的资料和简历在主页上，麻烦您看一下，谢谢！",
+      "您好，请问「{职位}」还在招人吗？我可以尽快开始上班。",
+    ],
+  },
 };
 
 export const chatMessages: Dictionary<typeof chatZh> = { key: "chat", zh: chatZh };

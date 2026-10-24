@@ -8,7 +8,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
   title: "Privacy",
   description:
     "What personal information we collect, why, who sees it, how long we keep it, and how you can see, correct and delete it.",
-  updated: "Last updated: 23 October 2026",
+  updated: "Last updated: 24 October 2026",
   placeholders:
     "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
@@ -30,7 +30,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
         "We only collect what we need to run the service:",
         {
           list: [
-            "Your account: the email you sign in with, when you signed up, your interface language, and whether you are using the job seeker or the employer role. You sign in with a one-time code; there is no password.",
+            "Your account: the email you sign in with, when you signed up, your interface language, and whether you are using the job seeker or the employer role; the chat quick replies and opening message you changed (nothing is kept while you use the defaults). You sign in with a one-time code; there is no password.",
             "Your job seeker profile and CV: the name, summary, area, languages, availability, work history and skills, photo and work rights (such as your visa, as you describe it) that you fill in. Your private contact details (phone, WeChat, email) only go to someone when you choose to exchange them.",
             "Applications: your note, a copy of your profile as it was when you applied, and any interview times and replies.",
             "Employers and jobs: the business's name, New Zealand Business Number (NZBN), area, business page, the jobs and the contact details on them. Team members' display names, roles and when they joined.",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DRAFTS_KEY, readDraft, writeDraft } from "@/components/seeker/chat-drafts";
+import { DRAFTS_KEY, readDraft, writeDraft, writeDraftIfEmpty } from "@/components/seeker/chat-drafts";
 import { MESSAGE_MAX } from "@/components/seeker/chat-store";
 
 function memoryStorage() {
@@ -45,5 +45,14 @@ describe("chat drafts (#281)", () => {
     expect(readDraft(storage, "s", "c54")).toBe("");
     writeDraft(storage, "s", "north-tea", "重新写");
     expect(readDraft(storage, "s", "north-tea")).toBe("重新写");
+  });
+
+  it("take the 开场白 only where nothing is written yet (#373)", () => {
+    const storage = memoryStorage();
+    expect(writeDraftIfEmpty(storage, "s", "north-tea", "您好，我对「点心师傅」很感兴趣")).toBe(true);
+    expect(readDraft(storage, "s", "north-tea")).toBe("您好，我对「点心师傅」很感兴趣");
+    writeDraft(storage, "s", "harbour", "我自己写的");
+    expect(writeDraftIfEmpty(storage, "s", "harbour", "开场白")).toBe(false);
+    expect(readDraft(storage, "s", "harbour")).toBe("我自己写的");
   });
 });
