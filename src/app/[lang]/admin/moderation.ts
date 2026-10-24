@@ -87,5 +87,7 @@ export function describeAction(entry: ModerationLogEntry, lang: Lang = DEFAULT_L
       return t.externalResume(employer, note);
     case "external_takedown":
       return t.externalTakedown(employer, takenDown, note);
+    case "chat_risk_close":
+      return t.chatRiskClose(employer, why, note);
   }
 }

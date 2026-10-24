@@ -42,6 +42,28 @@ const adminViewsZh = {
     none: "这份举报的证据已经删除（处理完 180 天后删）。",
     name: "举报证据",
   },
+  /** 聊天风险 (#384, ADR 0039): its tab, ChatRiskQueue.tsx. */
+  chatRisk: {
+    tab: "聊天风险",
+    // The words LoadFailed puts before 没取到.
+    name: "聊天风险",
+    howTo:
+      "同一家企业 7 天内有 3 条或更多聊天消息提到押金、介绍费、卖签证或担保收费、刷单、按种族招人这类话术，就出现在这里。只记企业发的，不记求职者发的。消息照常发出，双方在聊天里都已经看到提醒。看过以后点「看过，关闭」；之后要再有 3 条才会再出现。",
+    empty: "没有待处理的聊天风险。",
+    cardLabel: (business: string) => `${business}的聊天风险`,
+    count: (n: number) => `${n} 条消息`,
+    last: (time: string) => `最近一次 ${time}`,
+    open: (n: number) => `查看这 ${n} 条消息`,
+    close: "收起消息",
+    // Said once above the messages: opening them is recorded, and what they are.
+    note: "企业在聊天里发的、触发规则的消息，新的在前（最多 50 条）。打开会记进「查看记录」（聊天，对话编号）。",
+    messagesLabel: "触发规则的聊天消息",
+    employer: (name: string | null) => (name ? `雇主（${name}）` : "雇主"),
+    conversation: (id: string) => `对话 ${id}`,
+    none: "这些消息已经删除（求职者删了账号，或者超过 90 天）。",
+    closeItem: "看过，关闭",
+    gone: "这一项已经关闭了（可能是别的审核员刚关的）。",
+  },
 };
 
 export const adminViewsMessages: Dictionary<typeof adminViewsZh> = { key: "adminViews", zh: adminViewsZh };

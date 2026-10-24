@@ -101,6 +101,8 @@ const chatZh = {
     /** The read state as the sender hears it: 「对方已读」. */
     counterpartRead: (state: string) => `对方${state}`,
     warningsLabel: "合规提醒",
+    /** Under a message of one's own that hits the chat rules (#384). */
+    sentWarningsLabel: "我发出的消息的合规提醒",
     reportMessage: "举报这条消息",
   },
 
@@ -314,12 +316,16 @@ const chatZh = {
     feeCaution: "请谨慎，不要先付钱；可以举报。",
     visaSellingForbidden: "找工不允许用办签证、包工签或包身份招人",
     visaSellingCaution: "请谨慎，可以举报。",
+    taskScamForbidden: "找工不允许用刷单、刷好评、垫付返利这类「任务」招人",
+    taskScamCaution: "这类往往是诈骗：不要先垫钱；可以举报。",
     ethnicForbidden: "找工不允许按种族或国籍招人",
     ethnicCaution: "请谨慎，可以举报。",
     incoming: (forbidden: string, caution: string) => `${forbidden}。${caution}`,
     /** Around the words quoted from the message itself, which stay as they were written (marked separately). */
     outgoingBefore: "这条消息提到",
     outgoingAfter: (forbidden: string) => `：${forbidden}，建议修改后再发。`,
+    /** The same, under a message already sent (#384): it went, and the other side sees a reminder. */
+    sentAfter: (forbidden: string) => `：${forbidden}。对方会看到一条提醒。`,
     /** Between the rules of one outgoing warning. */
     forbiddenJoiner: "；",
   },

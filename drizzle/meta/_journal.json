@@ -260,6 +260,13 @@
       "when": 1792820559880,
       "tag": "0036_employer_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1792843558016,
+      "tag": "0037_chat_risk",
+      "breakpoints": true
     }
   ]
 }

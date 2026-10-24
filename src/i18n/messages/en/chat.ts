@@ -92,6 +92,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     empty: "No messages yet",
     counterpartRead: (state) => `The other person: ${state}`,
     warningsLabel: "Rule reminder",
+    sentWarningsLabel: "Rule reminder on your message",
     reportMessage: "Report this message",
   },
 
@@ -294,11 +295,14 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     feeCaution: "Be careful: do not pay anything first. You can report it.",
     visaSellingForbidden: "找工 does not allow hiring by offering to arrange a visa or residence",
     visaSellingCaution: "Be careful. You can report it.",
+    taskScamForbidden: "找工 does not allow hiring for order brushing, fake reviews or tasks you pay for first",
+    taskScamCaution: "These are often scams: do not pay anything in. You can report it.",
     ethnicForbidden: "找工 does not allow hiring by race or nationality",
     ethnicCaution: "Be careful. You can report it.",
     incoming: (forbidden, caution) => `${forbidden}. ${caution}`,
     outgoingBefore: "This message mentions ",
     outgoingAfter: (forbidden) => `: ${forbidden}. Consider changing it before you send.`,
+    sentAfter: (forbidden) => `: ${forbidden}. The other person sees a reminder.`,
     forbiddenJoiner: "; ",
   },
 

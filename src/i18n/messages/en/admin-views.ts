@@ -43,4 +43,23 @@ export const adminViewsEn: Messages<(typeof adminViewsMessages)["zh"]> = {
     none: "This report's evidence has been deleted (180 days after it was handled).",
     name: "the evidence",
   },
+  chatRisk: {
+    tab: "Chat risks",
+    name: "chat risks",
+    howTo:
+      "A business shows here when 3 or more of its chat messages within 7 days mention deposits, placement fees, selling visas or charging for sponsorship, order brushing or hiring by race. Only the business's messages count, never the job seeker's. The messages were sent as written, and both sides already saw a reminder in the chat. Once you have looked, choose “Looked at, close”; it shows again only after 3 more.",
+    empty: "No chat risks to look at.",
+    cardLabel: (business: string) => `Chat risks of ${business}`,
+    count: (n: number) => (n === 1 ? "1 message" : `${n} messages`),
+    last: (time: string) => `Latest ${time}`,
+    open: (n: number) => (n === 1 ? "See the message" : `See these ${n} messages`),
+    close: "Hide the messages",
+    note: "Messages the business sent in chats that hit the rules, newest first (at most 50). Opening them is recorded in the access log (chat, the conversation's number).",
+    messagesLabel: "Chat messages that hit the rules",
+    employer: (name: string | null) => (name ? `Employer (${name})` : "Employer"),
+    conversation: (id: string) => `Conversation ${id}`,
+    none: "These messages have been deleted (the job seeker deleted their account, or they are over 90 days old).",
+    closeItem: "Looked at, close",
+    gone: "This one is already closed (another moderator may have just closed it).",
+  },
 };

@@ -170,11 +170,11 @@ export function checkJob(
   return findings.sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
 }
 
-const CHAT_RULES: ChatFinding["rule"][] = ["fee", "visa_selling", "ethnic_preference"];
+export const CHAT_RULES: readonly ChatFinding["rule"][] = ["fee", "visa_selling", "task_scam", "ethnic_preference"];
 const isChatRule = (rule: WordRule["rule"]): rule is ChatFinding["rule"] =>
   CHAT_RULES.includes(rule as ChatFinding["rule"]);
 
-/** Fee, visa-selling and ethnic words in one chat message, so the chat can warn about them. */
+/** Fee, visa-selling, task-scam and ethnic words in one chat message, so the chat can warn about them. */
 export function checkChatMessage(text: string, country: CountryCode = "NZ"): ChatFinding[] {
   const findings: ChatFinding[] = [];
   for (const { rule, ...wordRule } of WORD_RULES[country]) {

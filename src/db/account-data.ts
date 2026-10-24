@@ -500,6 +500,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           .update(t.jobChatStarts)
           .set({ seekerEmail: DELETED_ACCOUNT })
           .where(and(eq(t.jobChatStarts.seekerEmail, address), allowed)),
+        // 聊天风险 (#384, ADR 0039): the records point at these chats' messages, so they go with them.
+        db.delete(t.chatRiskHits).where(and(inArray(t.chatRiskHits.conversationId, chats), allowed)),
         db.delete(t.messages).where(and(inArray(t.messages.conversationId, chats), allowed)),
         db.delete(t.exchanges).where(and(inArray(t.exchanges.conversationId, chats), allowed)),
         db.delete(t.conversations).where(and(ownChats, allowed)),
@@ -508,6 +510,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           ? [
               db.delete(t.teamChats).where(and(eq(t.teamChats.employerId, account.employerId), allowed)),
               db.delete(t.employerActivity).where(and(eq(t.employerActivity.employerId, account.employerId), allowed)),
+              db.delete(t.chatRiskFlags).where(and(eq(t.chatRiskFlags.employerId, account.employerId), allowed)),
               db.delete(t.employerProfiles).where(and(eq(t.employerProfiles.employerId, account.employerId), allowed)),
               db
                 .update(t.teamInvites)

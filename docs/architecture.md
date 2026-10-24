@@ -53,6 +53,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
 | `report_evidence` | 职位举报附的证据：选中的聊天消息（举报时的快照）和截图，只给审核员看，处理完 180 天后删 | ADR 0027 |
 | `events` | 点击统计的匿名事件（访客是按天变的 HMAC，不存 IP 和 UA），留 180 天；审核数据的漏斗从这里算（`src/db/events.ts`） | ADR 0025 |
+| `chat_risk_hits`、`chat_risk_flags` | 聊天风险：企业发的、碰到聊天规则的消息（哪家、哪段对话哪条、哪几类、时间，不存内容，留 90 天），和每家企业给审核员的一项（7 天内 3 条开、审核员关）（`src/db/chat-risk.ts`） | ADR 0039 |
 | `personal_info_views` | 审核员看过谁的个人信息：审核员、时间、类别、记录编号，不记内容，留一年（`src/db/personal-info-views.ts`） | ADR 0026 |
 
 **浏览器（`createLocalStore`，`src/components/seeker/local-store.ts`）：**
@@ -86,6 +87,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/account/actions.ts` | 数据与账号 |
 | `src/app/[lang]/admin/actions.ts` | 审核后台 |
 | `src/app/[lang]/admin/evidence-actions.ts` | 举报附的聊天和截图，仅审核员可读，交出聊天前记录查看记录（ADR 0027） |
+| `src/app/[lang]/admin/chat-risk-actions.ts` | 审核后台「聊天风险」（#384）：列出、交出消息前记录查看记录、关闭（ADR 0039） |
 | `src/app/[lang]/admin/entry-actions.ts` | 审核后台的入口：账号能不能打开 /admin（#73） |
 | `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |

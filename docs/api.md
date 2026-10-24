@@ -134,7 +134,7 @@
 | `type` | 其余字段 | 规则 |
 | --- | --- | --- |
 | `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里，已有 100 段时新的打不开，回答带 `notice`。回答的 `opened` 是要进的对话编号，打不开时没有 |
-| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`；共用对话已有 500 条消息时也不收（ADR 0015）。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
+| `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`；共用对话已有 500 条消息时也不收（ADR 0015）。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55）。企业一方在共用对话里发的消息碰到聊天规则（收费、卖签证或担保收费、刷单、按种族招人，`checkChatMessage`）时，写进之后记一条聊天风险（`recordChatRisk`，`src/db/chat-risk.ts`，#384，ADR 0039）：哪家企业、哪段对话哪条消息、哪几类、时间，不另存内容；7 天内够 3 条就给审核员开一项。求职者发的不记；记失败不影响发送 |
 | `resume` | `conversationId`、`resume`：浏览器按「中英文简历」页打印出来的那一份（`ResumeDoc`） | 求职者发自己的中英文简历（#379，ADR 0037）：只在和企业共用的对话里（`employer:<企业>:<职位>`，和 `send` 一样可以是第一句、会给职位记一次「发起聊天」），演示对话、企业一方发的都不收。服务器照分享链接的规则重新解析，没有称呼不收；联系方式照求职者勾的带上（邮箱也带，分享链接不带）。存成一条消息（`messages.resume`，文字 `[简历]`），占共用对话 500 条里的一条。双方看到的是卡片：`Message.resume` = `{ id, name, contact }`，`text` 是读的人语言里的「[简历] 名字」；整份只在 `/messages/resume/[id]` 给双方看 |
 | `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
@@ -325,6 +325,8 @@
 #113（PRD R-39）。没有 Server Function：服务器组件直接读 `listExternalJobs({ shownAt })`（请求时间，`requestTime()`）和 `getExternalJob(id)`，只显示 `isShown()` 为真的职位。筛选参数（`src/lib/external-jobs/filter.ts`）：`field`（software / electrical）、`kind`（实习：internship / graduate；专业职位：full_time / part_time / contract / unstated）、`experience`（le2 / ge3 / unstated）、`visa`（sponsorship / required / unstated）、`city`、`paid=1`。职位页地址里的编号用 `encodeURIComponent`（编号含冒号）。
 
 ## 审核后台 — `src/app/[lang]/admin/actions.ts`
+
+聊天风险（#384，ADR 0039）位于 `src/app/[lang]/admin/chat-risk-actions.ts`，三个函数都先 `requireModerator()`，拒绝时返回 `{ refused, error_zh }`（关闭时是 `AdminResult`）：`getChatRiskQueue()` 返回 `{ items }`，每项是一家企业：名字、碰到的几类、几条、最近一次、开项时间，不带消息；`getChatRiskMessages(employerId)` 返回这一项的消息 `{ messages }`（新的在前，最多 50 条：对话编号、消息编号、哪几类、文字、团队里谁发的、时间），交出之前按每段对话记一条查看记录（`chat`）；`closeChatRiskItem(employerId)` 关掉这一项、写一条操作记录（`chat_risk_close`），之后要再有 3 条才重新开。
 
 举报证据读取位于 `src/app/[lang]/admin/evidence-actions.ts`：`getReportEvidence(reportId)` 先验证审核员身份，返回 `{ evidence }`（聊天按发送顺序，再列截图）；拒绝时返回 `{ refused, error_zh }`。交出聊天前记录审核员查看行为；截图经单独的受保护接口交出并记录。
 

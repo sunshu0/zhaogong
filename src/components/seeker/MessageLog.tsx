@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { FileUser, TriangleAlert } from "lucide-react";
 import { useChat, useChatDelivery, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { ChatExchangeList, ChatReportButton } from "@/components/seeker/ChatInteractions";
-import { incomingWarnings } from "@/components/seeker/chat-warnings";
+import { incomingWarnings, sentWarningParts } from "@/components/seeker/chat-warnings";
 import { messageReadLabel } from "@/lib/chat-activity";
 import { teamSignature } from "@/components/employer/team";
 import { useLang, useMessages } from "@/i18n/client";
@@ -120,6 +120,8 @@ function MessageBubble({
   const mine = message.from === "me";
   const readLabel = messageReadLabel(message, lang);
   const warnings = mine || message.resume ? [] : incomingWarnings(message.text, lang);
+  // #384: one's own message that hits the chat rules went as it was; a line under it says the other side is warned.
+  const sentWarning = mine && !message.resume ? sentWarningParts(message.text, lang) : undefined;
   // 「店名 · 名字」 (#110) or the team name: all of it is what people wrote, so one lang for the whole line.
   const by = message.by ? (mine ? message.by : teamSignature(conversation?.person ?? "", message.by)) : undefined;
   return (
@@ -174,6 +176,20 @@ function MessageBubble({
             />
           )}
         </div>
+      )}
+      {sentWarning && (
+        <p
+          role="note"
+          aria-label={t.sentWarningsLabel}
+          className="mt-1.5 flex max-w-[85%] gap-1.5 rounded-control bg-warn-soft px-3 py-2 text-meta leading-relaxed text-warn lg:max-w-[75%]"
+        >
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+          <span>
+            {sentWarning.before}
+            <span lang={contentLang(sentWarning.words)}>{sentWarning.words}</span>
+            {sentWarning.after}
+          </span>
+        </p>
       )}
     </div>
   );

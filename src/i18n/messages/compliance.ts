@@ -25,6 +25,7 @@ const complianceZh = {
   rules: {
     fee: (words: string) => `含有${words}：招聘不能向求职者收取押金、介绍费或任何费用，请删除。`,
     visa_selling: (words: string) => `含有${words}：不能出售或承诺办理签证。签证一栏只写接受哪些签证。`,
+    task_scam: (words: string) => `含有${words}：刷单、垫付返利这类「任务」不是工作，不能发布。`,
     ethnic_preference: (words: string) =>
       `含有${words}：不能按种族或国籍招人。如果需要中文能力，请改写为「需会普通话」或「需会粤语」。`,
     high_risk: (words: string) => `含有${words}：这类职位需要人工审核，审核通过后才会公开。`,

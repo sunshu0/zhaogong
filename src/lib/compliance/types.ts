@@ -10,16 +10,20 @@ export type JobDraft = Partial<Omit<Job, "id" | "status" | "postedAt" | "expires
  */
 export type FindingLevel = "block" | "rewrite" | "review";
 
-export type RuleId = "min_wage" | "fee" | "visa_selling" | "ethnic_preference" | "high_risk" | "aewv_unaccredited";
+export type RuleId =
+  "min_wage" | "fee" | "visa_selling" | "task_scam" | "ethnic_preference" | "high_risk" | "aewv_unaccredited";
 
 /** What the check needs to know about who posts the job. Leave it out where the employer is not known. */
 export interface PostingEmployer {
   verification: EmployerVerification;
 }
 
-/** A word rule that matched in a chat message. Chats only look for fees, visa selling and ethnic preference. */
+/**
+ * A word rule that matched in a chat message. Chats only look for fees, visa selling, task scams (#384) and ethnic
+ * preference.
+ */
 export interface ChatFinding {
-  rule: Extract<RuleId, "fee" | "visa_selling" | "ethnic_preference">;
+  rule: Extract<RuleId, "fee" | "visa_selling" | "task_scam" | "ethnic_preference">;
   /** Words that triggered the rule, in the order they appear. */
   matches: string[];
 }

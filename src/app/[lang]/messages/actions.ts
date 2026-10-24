@@ -54,6 +54,8 @@ import {
   RESUME_MESSAGE_TEXT,
 } from "@/components/seeker/chat-store";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
+import { chatRiskRules } from "@/lib/chat-risk";
+import { recordChatRisk } from "@/db/chat-risk";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -244,7 +246,21 @@ async function applyShared(
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!text || text.length > MESSAGE_MAX) return;
       if (side === "seeker") await countChatStart(id, me.session.email);
-      if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined)) return;
+      const now = new Date();
+      if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined, now)) {
+        // 聊天风险 (#384, ADR 0039): only the business's messages count towards telling a moderator; a job seeker
+        // asking 要交押金吗 is not reported. Both sides still see their reminders in the chat.
+        const rules = side === "employer" ? chatRiskRules(text) : [];
+        if (rules.length) {
+          await recordChatRisk({
+            employerId: row.employerId,
+            conversationId: row.id,
+            sentAt: now.toISOString(),
+            rules,
+          }).catch((error: unknown) => console.error("chat risk: not recorded", error));
+        }
+        return;
+      }
       return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
     }
     case "resume": {

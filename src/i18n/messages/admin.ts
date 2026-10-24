@@ -98,6 +98,7 @@ const adminZh = {
     min_wage: "低于成人最低工资",
     fee: "收费用词",
     visa_selling: "卖签证用词",
+    task_scam: "刷单用词",
     ethnic_preference: "按种族或国籍招人",
     high_risk: "高风险行业",
     aewv_unaccredited: "非认证雇主招 AEWV",
@@ -122,6 +123,7 @@ const adminZh = {
     externalResume: (company: string, note: string) => `恢复导入外部公司「${company}」${note}`,
     externalTakedown: (company: string, n: number, note: string) =>
       `公司要求删除「${company}」，下架 ${n} 个职位${note}`,
+    chatRiskClose: (employer: string, why: string, note: string) => `看过并关闭「${employer}」的聊天风险${why}${note}`,
   },
 };
 

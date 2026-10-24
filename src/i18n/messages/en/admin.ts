@@ -93,6 +93,7 @@ export const adminEn: Messages<(typeof adminMessages)["zh"]> = {
     min_wage: "Below the adult minimum wage",
     fee: "Wording about fees",
     visa_selling: "Wording about selling visas",
+    task_scam: "Wording about order brushing",
     ethnic_preference: "Hiring by race or nationality",
     high_risk: "High-risk industry",
     aewv_unaccredited: "AEWV hiring by an employer that isn't accredited",
@@ -115,5 +116,6 @@ export const adminEn: Messages<(typeof adminMessages)["zh"]> = {
     externalStop: (company, n, note) => `Stopped importing from “${company}” and took down ${jobs(n)}${note}`,
     externalResume: (company, note) => `Resumed importing from “${company}”${note}`,
     externalTakedown: (company, n, note) => `Removal requested by “${company}”: took down ${jobs(n)}${note}`,
+    chatRiskClose: (employer, why, note) => `Looked at and closed the chat risks of “${employer}”${why}${note}`,
   },
 };

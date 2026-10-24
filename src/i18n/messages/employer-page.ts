@@ -26,6 +26,7 @@ const employerPageZh = {
     rule: {
       fee: "不能向求职者收取押金、介绍费或任何费用，请删除。",
       visa_selling: "不能出售或承诺办理签证，请删除。",
+      task_scam: "刷单、垫付返利这类「任务」不是工作，请删除。",
       ethnic_preference: "不能按种族或国籍招人。需要中文能力的话，写「需会普通话」或「需会粤语」。",
     },
     /** The words the rule matched, as they appear inside a finding. */

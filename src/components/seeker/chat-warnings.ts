@@ -9,6 +9,7 @@ import { complianceMessages } from "@/i18n/messages/compliance";
 const REPORT_REASONS: Record<ChatFinding["rule"], ChatReportReason> = {
   fee: "fees",
   visa_selling: "illegal",
+  task_scam: "fraud",
   ethnic_preference: "discrimination",
 };
 
@@ -18,6 +19,7 @@ function ruleWords(lang: Lang): Record<ChatFinding["rule"], { forbidden: string;
   return {
     fee: { forbidden: t.feeForbidden, caution: t.feeCaution },
     visa_selling: { forbidden: t.visaSellingForbidden, caution: t.visaSellingCaution },
+    task_scam: { forbidden: t.taskScamForbidden, caution: t.taskScamCaution },
     ethnic_preference: { forbidden: t.ethnicForbidden, caution: t.ethnicCaution },
   };
 }
@@ -43,6 +45,18 @@ export type OutgoingWarning = { before: string; words: string; after: string };
  * shows it can mark the quoted words as what they are: the writer's own words, not the interface's language.
  */
 export function outgoingWarningParts(text: string, lang: Lang = DEFAULT_LANG): OutgoingWarning | undefined {
+  return ownWarningParts(text, lang, "outgoingAfter");
+}
+
+/**
+ * Under a message of one's own once it is sent (#384): the same three parts, saying the other side sees a reminder.
+ * Both sides get one, whoever wrote it; the server keeps count only of the business's (ADR 0039).
+ */
+export function sentWarningParts(text: string, lang: Lang = DEFAULT_LANG): OutgoingWarning | undefined {
+  return ownWarningParts(text, lang, "sentAfter");
+}
+
+function ownWarningParts(text: string, lang: Lang, ending: "outgoingAfter" | "sentAfter"): OutgoingWarning | undefined {
   const findings = checkChatMessage(text);
   if (!findings.length) return undefined;
   const t = pick(chatMessages, lang).warnings;
@@ -51,7 +65,7 @@ export function outgoingWarningParts(text: string, lang: Lang = DEFAULT_LANG): O
   return {
     before: t.outgoingBefore,
     words: [...new Set(findings.flatMap((f) => f.matches))].map((word) => quote(word)).join(joiner),
-    after: t.outgoingAfter(findings.map((f) => rules[f.rule].forbidden).join(t.forbiddenJoiner)),
+    after: t[ending](findings.map((f) => rules[f.rule].forbidden).join(t.forbiddenJoiner)),
   };
 }
 

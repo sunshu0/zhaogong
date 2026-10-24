@@ -241,6 +241,43 @@ describe("checkChatMessage", () => {
   });
 });
 
+describe("checkChatMessage: words added for chat risks (#384)", () => {
+  it("finds money asked for before the job, charging for sponsorship and task scams", () => {
+    expect(checkChatMessage("上班前要先交钱 300，入职费另算")).toEqual([
+      { rule: "fee", matches: ["先交钱", "入职费"] },
+    ]);
+    expect(checkChatMessage("工签可以办，担保费自理，交担保费两万")).toEqual([
+      { rule: "visa_selling", matches: ["担保费自理", "交担保费"] },
+    ]);
+    expect(checkChatMessage("在家刷单，垫付返款，日结")).toEqual([
+      { rule: "task_scam", matches: ["刷单", "垫付返款"] },
+    ]);
+    expect(checkChatMessage("You pay for the sponsorship, and there is a joining fee.")).toEqual([
+      { rule: "fee", matches: ["joining fee"] },
+      { rule: "visa_selling", matches: ["you pay for the sponsorship"] },
+    ]);
+    expect(checkChatMessage("Simple online work: order brushing and fake reviews")).toEqual([
+      { rule: "task_scam", matches: ["order brushing", "fake reviews"] },
+    ]);
+  });
+
+  it("does not flag an employer bearing the cost, paying the worker, or saying no", () => {
+    expect(checkChatMessage("担保费用由公司承担，工签我们出钱")).toEqual([]);
+    expect(checkChatMessage("We pay the sponsorship fee ourselves.")).toEqual([]);
+    expect(checkChatMessage("第一周工资我们先转账给你，先付钱后干活")).toEqual([]);
+    expect(checkChatMessage("我们不收担保费，不用先交钱，不要刷好评")).toEqual([]);
+    expect(checkChatMessage("No fake reviews, no registration fee.")).toEqual([]);
+    expect(checkChatMessage("Cleaning: brushing floors and wiping tables")).toEqual([]);
+    expect(checkChatMessage("公司先垫付机票")).toEqual([]);
+  });
+
+  it("blocks a task scam in a job post too", () => {
+    const [finding] = checkJob(withZh("兼职刷单，点赞返现"), "NZ");
+    expect(finding).toMatchObject({ level: "block", rule: "task_scam", matches: ["刷单", "点赞返现"] });
+    expect(finding.message_zh).toBe("含有「刷单」「点赞返现」：刷单、垫付返利这类「任务」不是工作，不能发布。");
+  });
+});
+
 describe("publishDecision", () => {
   it("holds publishing while a block or rewrite is open", () => {
     expect(publishDecision(checkJob({ ...clean, pay: { min: 20 } }, "NZ")).canPublish).toBe(false);

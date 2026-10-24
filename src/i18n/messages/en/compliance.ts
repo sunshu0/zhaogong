@@ -24,6 +24,8 @@ export const complianceEn: Messages<(typeof complianceMessages)["zh"]> = {
       `Contains ${words}: a job cannot ask job seekers for a deposit, a placement fee or any other fee. Remove it.`,
     visa_selling: (words) =>
       `Contains ${words}: you cannot sell a visa or promise to arrange one. The visa field only says which visas you accept.`,
+    task_scam: (words) =>
+      `Contains ${words}: order brushing, fake reviews and tasks paid in advance are not jobs and cannot be posted.`,
     ethnic_preference: (words) =>
       `Contains ${words}: you cannot hire by race or nationality. If the job needs Chinese, say that it needs Mandarin or Cantonese instead.`,
     high_risk: (words) => `Contains ${words}: a job like this is checked by a person and only shows once approved.`,

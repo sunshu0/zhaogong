@@ -26,6 +26,7 @@ import type { Checklist, RejectReason, RequestStatus, VerifyKind } from "@/compo
 import type { TeamInviteStatus, TeamLinkStatus, TeamRole } from "@/components/employer/team";
 import type { EmployerPage } from "@/components/employer/employer-page";
 import type { PersonalInfoKind } from "@/lib/personal-info-views";
+import type { ChatRiskRule } from "@/lib/chat-risk";
 import type {
   DegreeLevel,
   DegreeSubject,
@@ -892,3 +893,40 @@ export const reportEvidence = sqliteTable(
     index("report_evidence_reporter_idx").on(table.reporterEmail),
   ],
 );
+
+/**
+ * 聊天风险 (#384, ADR 0039): each message a business sent in a shared chat that hit the chat rules — which business,
+ * which chat and message, which kinds of rule, when. Never the text: a moderator reads the message itself. Only the
+ * business's side is counted. Kept CHAT_RISK_KEEP_DAYS; goes with the chat when the job seeker's account goes, and
+ * with the business's chats when its last team member's does. No references: the message may go first.
+ */
+export const chatRiskHits = sqliteTable(
+  "chat_risk_hits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    employerId: text("employer_id").notNull(),
+    conversationId: text("conversation_id").notNull(),
+    messageId: integer("message_id").notNull(),
+    rules: text("rules", { mode: "json" }).$type<ChatRiskRule[]>().notNull(),
+    at: text("at").notNull(),
+  },
+  (table) => [
+    index("chat_risk_hits_employer_at_idx").on(table.employerId, table.at),
+    index("chat_risk_hits_conversation_idx").on(table.conversationId),
+  ],
+);
+
+/**
+ * A business's 聊天风险 item for moderators (#384, ADR 0039), one row per business: opened when it reaches
+ * CHAT_RISK_THRESHOLD hits within CHAT_RISK_WINDOW_DAYS, closed by a moderator. While open, more hits only add to it;
+ * once closed, it opens again only after as many new ones. The item covers the hits after `since` (the time the one
+ * before was closed; null for the first).
+ */
+export const chatRiskFlags = sqliteTable("chat_risk_flags", {
+  employerId: text("employer_id").primaryKey(),
+  status: text("status").$type<"open" | "closed">().notNull(),
+  since: text("since"),
+  openedAt: text("opened_at").notNull(),
+  /** Who closed it is in the moderation log (chat_risk_close), as for every other decision. */
+  closedAt: text("closed_at"),
+});

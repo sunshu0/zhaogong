@@ -23,6 +23,7 @@ export const employerPageEn: Messages<(typeof employerPageMessages)["zh"]> = {
     rule: {
       fee: "You can't charge job seekers a deposit, a finder's fee or any other fee. Please take it out.",
       visa_selling: "You can't sell a visa or promise to arrange one. Please take it out.",
+      task_scam: "Order brushing, fake reviews and tasks paid in advance are not jobs. Please take it out.",
       ethnic_preference:
         "You can't hire by race or nationality. If you need Chinese, write “Mandarin needed” or “Cantonese needed”.",
     },

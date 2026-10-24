@@ -30,6 +30,7 @@ import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
 import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
 import { ReportEvidenceView } from "@/app/[lang]/admin/_components/ReportEvidenceView";
+import { ChatRiskQueue, useChatRiskQueue } from "@/app/[lang]/admin/_components/ChatRiskQueue";
 import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { useVerificationQueue, VerificationQueue } from "@/app/[lang]/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/[lang]/admin/_components/ExternalReview";
@@ -58,7 +59,7 @@ import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "verification" | "external" | "log" | "views" | "stats" | "moderators";
+type Tab = "flagged" | "reported" | "chatRisk" | "verification" | "external" | "log" | "views" | "stats" | "moderators";
 
 // When a job was posted, a report made, a decision taken: day and time, New Zealand time (format.ts).
 const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
@@ -78,6 +79,7 @@ export function ModerationQueue() {
   // #78; asked only on its tab, as each application it hands over is recorded (#336). The tab counts from the stats.
   const verifications = useVerificationQueue(version, tab === "verification");
   const external = useExternalReview(version); // #112
+  const chatRisk = useChatRiskQueue(version); // #384: names and counts only; the messages load when opened
 
   const done = (r: AdminResult) => {
     setResult(r);
@@ -98,6 +100,7 @@ export function ModerationQueue() {
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "flagged", label: t.tabs.flagged, count: queue?.flagged.length },
     { key: "reported", label: t.tabs.reported, count: queue?.reported.length },
+    { key: "chatRisk", label: tv.chatRisk.tab, count: ready(chatRisk)?.items.length },
     {
       key: "verification",
       label: t.tabs.verification,
@@ -144,6 +147,8 @@ export function ModerationQueue() {
           <ModeratorList onDone={setResult} />
         ) : tab === "views" ? (
           <PersonalInfoViews />
+        ) : tab === "chatRisk" ? (
+          <ChatRiskQueue queue={chatRisk} onDone={done} onRetry={reload} />
         ) : tab === "verification" ? (
           <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
         ) : tab === "external" ? (

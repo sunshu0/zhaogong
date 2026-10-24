@@ -500,6 +500,24 @@ describe("chats both sides share (#110)", () => {
     expect((await my())!.added[conversation.id]).toHaveLength(3);
   });
 
+  it("records the business's messages that hit the chat rules, never the job seeker's (#384, ADR 0039)", async () => {
+    const { shop, boss, job } = await business("risk");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("risk.seeker@example.com");
+    await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+    await change({ type: "send", conversationId: seekerId, text: "要先交押金吗？" });
+
+    await signedIn(boss, "employer");
+    const conversation = (await my())!.extra.find((c) => c.job === job.id)!;
+    await change({ type: "send", conversationId: conversation.id, text: "我们不收押金" });
+    await change({ type: "send", conversationId: conversation.id, text: "入职前先交押金 200，另外可以刷单" });
+
+    const hits = await (await database()).select().from(t.chatRiskHits).where(eq(t.chatRiskHits.employerId, shop.id));
+    expect(hits.map((h) => h.rules)).toEqual([["fee", "task_scam"]]);
+    const [message] = await (await database()).select().from(t.messages).where(eq(t.messages.id, hits[0].messageId));
+    expect(message).toMatchObject({ from: "employer", text: "入职前先交押金 200，另外可以刷单", byName: "王老板" });
+  });
+
   it("the business's 发起聊天 on an applicant opens the conversation the job seeker has", async () => {
     const { shop, boss, job } = await business("applied");
     await ensureAccount("applied.seeker@example.com");
