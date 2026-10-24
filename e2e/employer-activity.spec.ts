@@ -28,7 +28,9 @@ test("a business in use today shows 今天在线 on its job page and card, and n
   await expect(visitor.locator("[data-employer-activity]").filter({ visible: true })).toHaveText("Online today");
   await visitor.context().close();
 
-  // A job seeker signed in sees the same; nothing on the page says when, or who.
-  await signIn(page, `/jobs/${jobId}`, freshEmail("e2e.activity.seeker"));
-  await expect(page.locator("[data-employer-activity]").filter({ visible: true })).toHaveText("今天在线");
+  // A job seeker signed in, in a browser of their own, sees the same.
+  const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
+  await signIn(seeker, `/jobs/${jobId}`, freshEmail("e2e.activity.seeker"));
+  await expect(seeker.locator("[data-employer-activity]").filter({ visible: true })).toHaveText("今天在线");
+  await seeker.context().close();
 });
