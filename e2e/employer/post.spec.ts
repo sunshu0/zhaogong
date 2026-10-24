@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFromList } from "../helpers";
 import {
   findingsPanel,
   jobCard,
@@ -41,7 +42,7 @@ test("paste → findings hold publishing → fix → publish → the job is on t
 
   await searchJobList(page, title);
   await expect(page.getByText("找到 1 个职位").filter({ visible: true })).toBeVisible();
-  await jobCard(page, title).click();
+  await openFromList(page, jobCard(page, title).getByRole("link", { name: new RegExp(`^${title}`) }));
   await expect(page).toHaveURL(`/jobs/${id}`);
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
   await expect(page.getByText("$24.50/小时").first()).toBeVisible();

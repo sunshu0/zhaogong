@@ -10,7 +10,8 @@ export type NavWords = Messages<typeof uiMessages.zh>["nav"];
 const ZH: NavWords = uiMessages.zh.nav;
 
 export type NavRole = "out" | "seeker" | "employer";
-export type NavKey = "jobs" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine";
+export type NavKey =
+  "jobs" | "internships" | "professional" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine";
 export type NavItem = { key: NavKey; href: string; label: string };
 
 export const ACCOUNT_PATH = "/account";
@@ -52,15 +53,22 @@ export function bottomNavItems(role: NavRole, w: NavWords = ZH): NavItem[] {
 
 /**
  * Desktop header links (the account menu and 发布招聘 come after them). Signed out there is no 聊天;
- * job seekers get no 发布招聘 (they open an employer identity from the account menu).
+ * job seekers get no 发布招聘 (they open an employer identity from the account menu). Visitors and job seekers see
+ * the two job sections beside 找工作 (V6, #376); on phones they stay on the job list.
  */
 export function headerItems(role: NavRole, w: NavWords = ZH): NavItem[] {
   switch (role) {
     case "out":
-      return [{ key: "jobs", href: "/jobs", label: w.findJobs }];
+      return [
+        { key: "jobs", href: "/jobs", label: w.findJobs },
+        { key: "internships", href: "/internships", label: w.internships },
+        { key: "professional", href: "/professional", label: w.professional },
+      ];
     case "seeker":
       return [
         { key: "jobs", href: "/jobs", label: w.findJobs },
+        { key: "internships", href: "/internships", label: w.internships },
+        { key: "professional", href: "/professional", label: w.professional },
         { key: "chat", href: "/messages", label: w.chat },
         { key: "workspace", href: "/workspace", label: w.workspace },
       ];
@@ -82,14 +90,16 @@ export function showsPostJob(role: NavRole): boolean {
 const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
 
 /**
- * Pages that are part of finding a job besides /jobs (#263): the internship and professional sections (#113), an
- * external job, and a business's page opened from a job.
+ * Pages that are part of finding a job besides /jobs (#263): an external job and a business's page opened from a
+ * job. The internship and professional sections (#113) have header entries of their own (#376).
  */
-const JOB_PAGES = ["/internships", "/professional", "/external", "/employers"];
+const JOB_PAGES = ["/external", "/employers"];
 
 /** Which entry a page belongs to. In the bottom bar, workspace pages count as 我的. */
 export function activeNavKey(pathname: string): NavKey | null {
   if (under(pathname, "/jobs") || JOB_PAGES.some((base) => under(pathname, base))) return "jobs";
+  if (under(pathname, "/internships")) return "internships";
+  if (under(pathname, "/professional")) return "professional";
   if (under(pathname, POST_JOB_PATH)) return "post";
   if (under(pathname, MANAGE_JOBS_PATH) || pathname === "/employer") return "manage";
   if (under(pathname, "/employer/candidates")) return "candidates";
@@ -113,9 +123,10 @@ export function activeNavKey(pathname: string): NavKey | null {
   return null;
 }
 
-/** The bottom bar's highlighted item: workspace pages and 推荐人才 sit under 我的 there. */
+/** The bottom bar's highlighted item: workspace pages and 推荐人才 sit under 我的 there, the job sections under 职位. */
 export function activeBottomKey(pathname: string): NavKey | null {
   const key = activeNavKey(pathname);
+  if (key === "internships" || key === "professional") return "jobs";
   return key === "workspace" || key === "candidates" ? "mine" : key;
 }
 

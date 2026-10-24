@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
+import { expectProfileSaved, freshEmail, openFromList, openOptionalProfile, signIn } from "./helpers";
 import { jobCard, publishJob, searchJobList, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 const AVATAR =
@@ -96,9 +96,7 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await searchJobList(page, title);
   await expect(jobCard(page, title).getByRole("img", { name: `${shop}头像` })).toBeVisible();
-  await jobCard(page, title)
-    .getByRole("link", { name: new RegExp(`^${title}`) })
-    .click();
+  await openFromList(page, jobCard(page, title).getByRole("link", { name: new RegExp(`^${title}`) }));
   const employer = page.getByRole("region", { name: "雇主", exact: true });
   await expect(employer.getByRole("img", { name: `${shop}头像` })).toBeVisible();
   await expect(employer).not.toContainText("雇主ID"); // A29: name, badge and its explanation only

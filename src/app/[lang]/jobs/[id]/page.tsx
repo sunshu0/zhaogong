@@ -110,7 +110,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
             at={new Date(now).toISOString()}
             country={job.country}
             industry={job.industry}
-            look="card"
+            look="sheet"
             lang={lang}
           />
         }
@@ -119,7 +119,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
           employer && !employer.bannedAt ? (
             <>
               {/* The main action takes the room that is left; its label never wraps. */}
-              <div className="min-w-0 flex-1 md:flex-none [&_a]:w-full [&_button]:w-full">
+              <div className="min-w-0 flex-1 [&_a]:w-full [&_button]:w-full">
                 <StartEmployerChat
                   size="lg"
                   employer={{ id: employer.id, name: employer.name }}

@@ -12,6 +12,8 @@ const uiZh = {
   nav: {
     jobs: "职位",
     findJobs: "找工作",
+    internships: "实习",
+    professional: "专业职位",
     chat: "聊天",
     chatUnread: (n: number) => `聊天，${n} 条未读消息`,
     mine: "我的",

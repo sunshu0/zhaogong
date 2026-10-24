@@ -15,7 +15,8 @@ export function chatTitle(unread: number, w: NavWords = uiMessages.zh.nav): stri
 }
 
 /**
- * Desktop header links by identity (from 768 px; phones use the bottom bar), centred in the header from 1024 px.
+ * Desktop header links by identity (from 768 px; phones use the bottom bar), centred in the header from 1024 px and
+ * in the row before the job search from 1280 px (#376).
  * Only the current page is highlighted.
  * Like BottomNav, rendered in Suspense with HeaderNavShell (nothing highlighted) as the fallback.
  */
@@ -37,7 +38,7 @@ function HeaderLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav
       aria-label={w.main}
-      className="hidden items-center gap-4 whitespace-nowrap text-body md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-2"
+      className="hidden items-center gap-4 whitespace-nowrap text-body md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-1 xl:static xl:translate-x-0"
     >
       {headerItems(role, w).map((item) => {
         const current = item.key === active;

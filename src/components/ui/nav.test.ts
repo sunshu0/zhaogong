@@ -37,8 +37,8 @@ describe("bottomNavItems", () => {
 
 describe("headerItems", () => {
   it("shows 聊天 only when signed in, and 发布招聘 only to visitors and employers", () => {
-    expect(labels(headerItems("out"))).toEqual(["找工作"]);
-    expect(labels(headerItems("seeker"))).toEqual(["找工作", "聊天", "工作台"]);
+    expect(labels(headerItems("out"))).toEqual(["找工作", "实习", "专业职位"]);
+    expect(labels(headerItems("seeker"))).toEqual(["找工作", "实习", "专业职位", "聊天", "工作台"]);
     expect(labels(headerItems("employer"))).toEqual(["职位管理", "推荐人才", "聊天", "工作台"]);
     expect([showsPostJob("out"), showsPostJob("seeker"), showsPostJob("employer")]).toEqual([true, false, true]);
   });
@@ -61,9 +61,12 @@ describe("activeNavKey", () => {
     expect(activeNavKey("/jobsearch")).toBeNull();
   });
 
-  it("counts the job sections, an external job and a business's page as 找工作, and the CV as 我的 (#263)", () => {
-    expect(activeNavKey("/internships")).toBe("jobs");
-    expect(activeNavKey("/professional")).toBe("jobs");
+  it("counts an external job and a business's page as 找工作, and the CV as 我的 (#263)", () => {
+    // The job sections have header entries of their own (#376); the bottom bar keeps them under 职位.
+    expect(activeNavKey("/internships")).toBe("internships");
+    expect(activeNavKey("/professional")).toBe("professional");
+    expect(activeBottomKey("/internships")).toBe("jobs");
+    expect(activeBottomKey("/professional")).toBe("jobs");
     expect(activeNavKey("/external/ext-1")).toBe("jobs");
     expect(activeNavKey("/employers/e1")).toBe("jobs");
     expect(activeBottomKey("/employers/e1")).toBe("jobs");

@@ -44,7 +44,17 @@ const aboutZh = {
     body: "邮箱：[联系邮箱]。职位的问题请先在职位页按「举报这个职位」，这样处理得最快。",
   },
   // The footer's links to the three pages (the layout), named as each page is titled (#323 has the other two).
-  footer: { label: "关于和法律信息", about: "关于找工", privacy: "隐私说明", terms: "使用条款" },
+  footer: {
+    label: "关于和法律信息",
+    about: "关于找工",
+    privacy: "隐私说明",
+    terms: "使用条款",
+    // #376: the desktop footer's columns.
+    tagline: "奥克兰的中文工作，时薪写在最前面。",
+    seekers: "求职者",
+    employers: "雇主",
+    legal: "法律",
+  },
 };
 
 export const aboutMessages: Dictionary<typeof aboutZh> = { key: "about", zh: aboutZh };

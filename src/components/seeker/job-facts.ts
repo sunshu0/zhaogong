@@ -113,6 +113,6 @@ export function isPublic(job: Job): boolean {
   return job.status === "active" || job.status === "expired";
 }
 
-export function isExpired(job: Job, now: number): boolean {
+export function isExpired(job: Pick<Job, "status" | "expiresAt">, now: number): boolean {
   return job.status === "expired" || Date.parse(job.expiresAt) <= now;
 }

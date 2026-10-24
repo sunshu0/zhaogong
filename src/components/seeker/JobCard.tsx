@@ -161,7 +161,9 @@ function AppJobCard({
   const tags = cardTags(job);
 
   return (
-    <article className={`${linkCardClass()} h-full`}>
+    <article
+      className={`${linkCardClass()} h-full xl:has-[a[aria-current=true]]:ring-2 xl:has-[a[aria-current=true]]:ring-brand`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Heading className="line-clamp-2 text-subtitle font-semibold break-words group-hover:text-brand">

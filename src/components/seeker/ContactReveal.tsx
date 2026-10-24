@@ -62,7 +62,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`}
-            className={`mt-3 ${buttonClass("primary", { block: true })}`}
+            className={`mt-3 ${buttonClass("secondary", { block: true })}`}
           >
             {t.contact.signIn}
           </Link>

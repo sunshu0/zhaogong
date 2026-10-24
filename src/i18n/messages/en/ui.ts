@@ -10,6 +10,8 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
   nav: {
     jobs: "Jobs",
     findJobs: "Find jobs",
+    internships: "Internships",
+    professional: "Professional jobs",
     chat: "Chat",
     chatUnread: (n) => `Chat, ${n} unread ${n === 1 ? "message" : "messages"}`,
     mine: "Me",

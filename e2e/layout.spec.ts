@@ -125,13 +125,23 @@ test("job cards in English (Round 20): still three whole cards on a 375 × 812 p
   await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });
 });
 
-test("the whole card opens the job, and featured cards on the home page are h3 under 精选工作", async ({ page }) => {
+test("the whole card opens the job (its preview from 1280 px), and featured cards on the home page are h3 under 精选工作", async ({
+  page,
+}) => {
   await page.goto("/jobs");
-  const card = page.getByRole("region", { name: "职位列表" }).locator("article").first();
+  const card = page.getByRole("region", { name: "职位列表" }).locator("article").nth(1);
   await expect(card.getByRole("heading", { level: 2 })).toBeVisible();
+  const href = (await card.getByRole("link").getAttribute("href"))!;
+  const preview = page.getByRole("complementary", { name: "职位预览" });
+  // From 1280 px the click shows the job beside the list (#376); wait for the list's script to be there.
+  if (page.viewportSize()!.width >= 1280) await expect(preview).toBeVisible();
   const { x, y, width, height } = await box(card);
   await page.mouse.click(x + width - 12, y + height - 12); // a corner far from the title
-  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+  if (page.viewportSize()!.width >= 1280) {
+    await expect(preview.getByRole("link", { name: "查看完整页面" })).toHaveAttribute("href", href);
+    await expect(card.getByRole("link")).toHaveAttribute("aria-current", "true");
+    await expect(page).toHaveURL("/jobs");
+  } else await expect(page).toHaveURL(href);
 
   await page.goto("/");
   const featured = page.locator("#featured");
@@ -225,7 +235,7 @@ test("job list below 1024 px: filters in a bottom sheet; Esc or a tap outside cl
   await expect(page.getByRole("group", { name: "行业" }).getByLabel("餐饮")).toBeChecked();
 });
 
-test("job list from 1024 px: the filters are a 240 px column left of the list, and a change applies at once", async ({
+test("job list from 1024 px: the filters are a column left of the list, and a change applies at once", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "The filter column is a desktop layout");
@@ -238,7 +248,8 @@ test("job list from 1024 px: the filters are a 240 px column left of the list, a
   await expect(page.getByRole("button", { name: "查看职位" })).toBeHidden();
 
   const [column, rows] = [await box(panel), await box(list)];
-  expect(column.width).toBeCloseTo(256, 0); // 16rem from Round 19 (#141)
+  // 16rem from Round 19 (#141); 14rem from 1280 px (the desktop project), where the preview column comes (#376).
+  expect(column.width).toBeCloseTo(page.viewportSize()!.width >= 1280 ? 224 : 256, 0);
   expect(column.x + column.width).toBeLessThan(rows.x);
   expect(rows.width).toBeLessThanOrEqual(768);
   const search = await box(page.getByRole("searchbox", { name: "搜索职位" }));

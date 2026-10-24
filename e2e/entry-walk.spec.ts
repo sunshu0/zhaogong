@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { chatEntry, chooseOption, fillSignInCode, freshEmail, siteNav } from "./helpers";
+import { chatEntry, chooseOption, fillSignInCode, freshEmail, openFromList, siteNav } from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/auckland-time";
 import {
   CLEAN_MESSAGE,
@@ -69,8 +69,7 @@ test("举报职位: home → a job → 举报这个职位", async ({ page }, tes
     .click();
   await expect(page).toHaveURL("/jobs");
   const first = page.getByRole("region", { name: "职位列表" }).getByRole("article").first();
-  await first.getByRole("heading").getByRole("link").click();
-  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+  await openFromList(page, first.getByRole("heading").getByRole("link"));
   await openReportForm(page);
   await page.getByRole("group", { name: "举报这个职位" }).getByLabel("其他").check();
   await page.getByLabel("补充说明（选填）").fill(`入口走查 ${testInfo.project.name}`);
@@ -240,8 +239,7 @@ async function postAndChatByClicks(page: Page, browser: Browser, testInfo: TestI
   const hero = seeker.getByRole("region", { name: /^奥克兰的中文工作/ });
   await hero.getByRole("searchbox", { name: "搜索职位" }).fill(title);
   await hero.getByRole("button", { name: "找工作" }).click();
-  await seeker.getByRole("main").getByRole("link", { name: title, exact: true }).click();
-  await expect(seeker).toHaveURL(/\/jobs\/j\d+$/);
+  await openFromList(seeker, seeker.getByRole("main").getByRole("link", { name: title, exact: true }));
   await expect(seeker.getByRole("button", { name: "申请", exact: true })).toHaveCount(0);
   await seeker.getByRole("main").getByRole("button", { name: "立即沟通", exact: true }).click();
   // On the test build the page changes later than on next dev: wait for it before looking (#139).
@@ -324,14 +322,8 @@ test("已录用和职位结束: the employer 职位管理 → 聊过的人 → �
 
 test("时薪参考: home → a job → 同类职位时薪; 发布招聘 → 直接填表 → beside 时薪 (#85)", async ({ page }, testInfo) => {
   await toJobList(page);
-  await page
-    .getByRole("region", { name: "职位列表" })
-    .getByRole("article")
-    .first()
-    .getByRole("heading")
-    .getByRole("link")
-    .click();
-  await expect(page).toHaveURL(/\/jobs\/j\d+$/);
+  const first = page.getByRole("region", { name: "职位列表" }).getByRole("article").first();
+  await openFromList(page, first.getByRole("heading").getByRole("link"));
   await expect(page.getByRole("region", { name: "同类职位时薪" })).toContainText("根据平台上");
 
   await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();

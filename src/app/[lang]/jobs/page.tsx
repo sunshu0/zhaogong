@@ -11,6 +11,8 @@ import { employerActivities } from "@/db/employer-activity";
 import { FilterForm } from "@/components/seeker/FilterForm";
 import { filterToQuery, isFiltered, jobsHref, parseFilter } from "@/components/seeker/filter-query";
 import { JobList, JobListSkeleton } from "@/components/seeker/JobList";
+import { JobBrowser } from "@/components/seeker/JobBrowser";
+import { previewEmployer, previewJob } from "@/components/seeker/job-preview";
 import { RememberListQuery } from "@/components/seeker/last-list";
 import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
 import { SaveAlert } from "@/components/seeker/SaveAlert";
@@ -73,34 +75,43 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
   // From 1024 px: the filters in a 240 px column on the left, the search box and the list (at most 720 px) on the
   // right. The form spans both columns (display: contents), so it stays one GET form. The second row takes what
   // the filter column needs beyond the first, so the search box keeps its own height above the list.
+  // From 1280 px a third column previews the selected job (V6, #376; JobBrowser).
   return (
-    <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
+    <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10 xl:grid-cols-[14rem_minmax(0,1fr)_22rem] xl:gap-x-6">
       <RememberListQuery query={query} />
       {/* The search funnel's first step (#319, ADR 0025): once per arrival at the list. */}
       <TrackView event={{ name: "jobs_list_view", path: "/jobs", detail: filtered ? "filtered" : "all" }} />
       <FilterForm filter={filter} />
-      <section aria-label={t.listLabel} className="lg:col-start-2">
-        <ActiveFilters filter={filter} lang={lang} />
-        {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
-        <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
-          <p className="text-body text-muted">{filtered ? t.found(jobs.length) : t.all(jobs.length)}</p>
-          <SaveAlert key={query} query={query} />
-        </div>
-        <JobList
-          look="app"
-          jobs={jobs}
-          employers={employers}
-          activities={activities}
-          lang={lang}
-          empty={
-            filtered && (
-              <Link href={jobsHref("")} className={buttonClass("primary")}>
-                {t.clear}
-              </Link>
-            )
-          }
-        />
-      </section>
+      <JobBrowser
+        jobs={jobs.map(previewJob)}
+        employers={Object.fromEntries(
+          [...employers].map(([id, employer]) => [id, previewEmployer(employer, activities.get(id))]),
+        )}
+        now={now}
+      >
+        <section aria-label={t.listLabel} className="lg:col-start-2">
+          <ActiveFilters filter={filter} lang={lang} />
+          {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
+          <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
+            <p className="text-body text-muted">{filtered ? t.found(jobs.length) : t.all(jobs.length)}</p>
+            <SaveAlert key={query} query={query} />
+          </div>
+          <JobList
+            look="app"
+            jobs={jobs}
+            employers={employers}
+            activities={activities}
+            lang={lang}
+            empty={
+              filtered && (
+                <Link href={jobsHref("")} className={buttonClass("primary")}>
+                  {t.clear}
+                </Link>
+              )
+            }
+          />
+        </section>
+      </JobBrowser>
     </div>
   );
 }

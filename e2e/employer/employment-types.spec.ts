@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFromList } from "../helpers";
 import { jobCard, openTheForm, publishFromPreview, signUpEmployer, uniqueTitle } from "./helpers";
 
 test("multiple types survive posting, filtering, sharing and editing", async ({ page }, testInfo) => {
@@ -33,7 +34,7 @@ test("multiple types survive posting, filtering, sharing and editing", async ({ 
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("multi-type-list.png"), fullPage: true });
-  await jobCard(page, title).click();
+  await openFromList(page, jobCard(page, title).getByRole("link", { name: new RegExp(`^${title}`) }));
   await expect(page.getByRole("main")).toContainText("全职 / 兼职 / 临时工");
 
   await page.goto(`/employer/jobs/${id}`);

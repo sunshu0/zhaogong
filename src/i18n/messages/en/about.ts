@@ -45,5 +45,14 @@ export const aboutEn: Messages<(typeof aboutMessages)["zh"]> = {
     heading: "Contact us",
     body: "Email: [Contact email]. For a problem with a job, press “Report this job” on the job page first: that is the quickest way.",
   },
-  footer: { label: "About and legal", about: "About 找工", privacy: "Privacy", terms: "Terms of use" },
+  footer: {
+    label: "About and legal",
+    about: "About 找工",
+    privacy: "Privacy",
+    terms: "Terms of use",
+    tagline: "Jobs in Chinese in Auckland, with the pay up front.",
+    seekers: "Job seekers",
+    employers: "Employers",
+    legal: "Legal",
+  },
 };

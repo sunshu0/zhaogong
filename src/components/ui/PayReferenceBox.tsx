@@ -30,7 +30,7 @@ export function PayReferenceBox({
   country: CountryCode;
   industry: Industry;
   rate?: number;
-  look?: "box" | "card";
+  look?: "box" | "card" | "sheet";
   /** The page's language (Round 20): it renders on the server and in the browser, so it is told rather than asking. */
   lang?: Lang;
 }) {
@@ -39,14 +39,16 @@ export function PayReferenceBox({
   const money = (n: number) => `${symbol}${formatAmount(n, lang)}`;
   const label = INDUSTRY_LABELS[industry][lang];
   const hint = belowMedianHint(rate, reference) && t.belowMedian;
-  const card = look === "card";
+  const card = look !== "box";
   return (
     <section
       aria-label={t.title}
       className={
-        card
-          ? "rounded-card bg-surface p-4 text-body shadow-card lg:p-6"
-          : "rounded-md border border-border bg-background px-3 py-2 text-body"
+        look === "sheet"
+          ? "p-4 text-body lg:px-7 lg:py-5"
+          : card
+            ? "rounded-card bg-surface p-4 text-body shadow-card lg:p-6"
+            : "rounded-md border border-border bg-background px-3 py-2 text-body"
       }
     >
       {reference.scope === "none" ? (

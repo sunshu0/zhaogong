@@ -14,7 +14,8 @@ const TABS = [
  * The job description in Chinese or English, one at a time: Chinese first, English first on the English page when
  * the employer wrote it (Round 20). Arrow keys move between the tabs.
  */
-export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
+/** `plain`: a part of the job page's sheet (#376), no card of its own. */
+export function DescriptionTabs({ zh, en, plain = false }: { zh: string; en: string; plain?: boolean }) {
   const t = useMessages(seekerJobsMessages).detail;
   const pageLang = useLang();
   const [current, setCurrent] = useState<"zh" | "en">(pageLang === "en" && en.trim() ? "en" : "zh");
@@ -31,7 +32,10 @@ export function DescriptionTabs({ zh, en }: { zh: string; en: string }) {
   }
 
   return (
-    <section aria-labelledby={`${id}-heading`} className="rounded-card bg-surface p-4 shadow-card lg:p-6">
+    <section
+      aria-labelledby={`${id}-heading`}
+      className={plain ? "p-4 lg:px-7 lg:py-5" : "rounded-card bg-surface p-4 shadow-card lg:p-6"}
+    >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id={`${id}-heading`} className="text-subtitle font-semibold">
           {t.description}

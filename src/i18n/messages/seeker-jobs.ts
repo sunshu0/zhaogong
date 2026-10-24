@@ -24,6 +24,9 @@ const seekerJobsZh = {
     emptyTitle: "暂时没有符合条件的职位",
     emptyHint: "换个条件试试，或者过几天再来看看。",
     back: "职位列表",
+    // #376: the preview column beside the list, from 1280 px.
+    preview: "职位预览",
+    openFull: "查看完整页面",
   },
   // seeker/format.ts and job-facts.ts: the figures come formatted.
   pay: {

@@ -3,10 +3,11 @@ import localFont from "next/font/local";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lang as rootLang } from "next/root-params";
-import { Suspense } from "react";
-import { AccountMenu, HeaderPostJob } from "@/components/seeker/AccountMenu";
+import { Suspense, type ReactNode } from "react";
+import { AccountMenu, HeaderPostJob, PostJobLink } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
+import { HeaderSearch } from "@/components/ui/HeaderSearch";
 import { StickyHeader } from "@/components/ui/StickyHeader";
 import { LangSwitch } from "@/components/ui/LangSwitch";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -69,7 +70,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   // showing the Chinese home page.
   if (!isLang(await rootLang())) notFound();
   const lang = await serverLang();
-  const { site } = await messages(uiMessages);
+  const { site, nav } = await messages(uiMessages);
   const { footer } = await messages(aboutMessages);
   return (
     <html lang={localeTag(lang)} className={`${archivo.variable} h-full antialiased`}>
@@ -86,18 +87,21 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
       <body className="min-h-full flex flex-col">
         <LangProvider lang={lang}>
           <StickyHeader>
-            <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
+            <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:h-16 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
               <Link
                 href="/"
-                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xl font-bold text-brand"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xl font-bold text-brand lg:text-[1.375rem]"
               >
-                <BrandMark className="size-8" />
+                <BrandMark className="size-8 lg:size-9" />
                 {site.name}
               </Link>
-              <span className="hidden text-body text-muted md:inline">{site.city}</span>
+              <span className="hidden text-body text-muted md:inline xl:hidden">{site.city}</span>
               <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-body md:gap-4">
                 <Suspense fallback={<HeaderNavShell />}>
                   <HeaderNav />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <HeaderSearch />
                 </Suspense>
                 <LangSwitch />
                 <AccountMenu />
@@ -106,21 +110,55 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
             </div>
           </StickyHeader>
           <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
-          <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted">
-            <p>{site.lawNote}</p>
-            <nav aria-label={footer.label} className="flex flex-wrap justify-center gap-x-4">
-              <Link href="/about" className="inline-flex min-h-11 items-center underline underline-offset-2">
-                {footer.about}
-              </Link>
-              <Link href="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-2">
-                {footer.privacy}
-              </Link>
-              <Link href="/terms" className="inline-flex min-h-11 items-center underline underline-offset-2">
-                {footer.terms}
-              </Link>
-            </nav>
-            <LangSwitch look="footer" />
-            <ConsentSettingsButton />
+          {/* Phones: the law note, the legal links, the language switch and 统计设置, centred. From 1024 px four
+              columns (V6, #376): the site and its law note, 求职者, 雇主, 法律; the switches under them. */}
+          <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted lg:bg-surface lg:py-10 lg:text-left">
+            <div className="mx-auto lg:grid lg:max-w-[min(72rem,_100vw_-_3rem)] lg:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-8">
+              <div>
+                <Link
+                  href="/"
+                  className="hidden items-center gap-1.5 text-lg font-bold text-brand lg:inline-flex"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                >
+                  <BrandMark className="size-7" />
+                  {site.name}
+                </Link>
+                <p className="hidden text-body text-foreground lg:mt-2 lg:block">{footer.tagline}</p>
+                <p className="lg:mt-2">{site.lawNote}</p>
+              </div>
+              <FooterColumn label={footer.seekers}>
+                <FooterLink href="/jobs">{nav.findJobs}</FooterLink>
+                <FooterLink href="/internships">{nav.internships}</FooterLink>
+                <FooterLink href="/professional">{nav.professional}</FooterLink>
+              </FooterColumn>
+              <FooterColumn label={footer.employers}>
+                <li>
+                  <PostJobLink className={FOOTER_LINK} />
+                </li>
+                <FooterLink href="/employer/candidates">{nav.candidates}</FooterLink>
+              </FooterColumn>
+              <div>
+                <p aria-hidden="true" className="hidden font-semibold text-foreground lg:block">
+                  {footer.legal}
+                </p>
+                <nav aria-label={footer.label} className="flex flex-wrap justify-center gap-x-4 lg:mt-1 lg:block">
+                  <Link href="/about" className={FOOTER_LEGAL_LINK}>
+                    {footer.about}
+                  </Link>
+                  <Link href="/privacy" className={FOOTER_LEGAL_LINK}>
+                    {footer.privacy}
+                  </Link>
+                  <Link href="/terms" className={FOOTER_LEGAL_LINK}>
+                    {footer.terms}
+                  </Link>
+                </nav>
+              </div>
+            </div>
+            <div className="mx-auto lg:mt-6 lg:flex lg:max-w-[min(72rem,_100vw_-_3rem)] lg:items-center lg:gap-6 lg:border-t lg:border-border lg:pt-4">
+              <LangSwitch look="footer" />
+              <ConsentSettingsButton />
+            </div>
           </footer>
           <Suspense fallback={<BottomNavShell />}>
             <BottomNav />
@@ -133,5 +171,32 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
         </LangProvider>
       </body>
     </html>
+  );
+}
+
+const FOOTER_LINK = "inline-flex min-h-9 items-center hover:text-brand hover:underline";
+/** The legal links: underlined on phones (a row of plain words), a column of links from 1024 px. */
+const FOOTER_LEGAL_LINK =
+  "inline-flex min-h-11 items-center underline underline-offset-2 lg:flex lg:min-h-9 lg:no-underline lg:hover:text-brand lg:hover:underline";
+
+/** A desktop footer column (#376): a name and its links. Phones keep the short footer, so it is not there. */
+function FooterColumn({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <nav aria-label={label} className="hidden lg:block">
+      <p aria-hidden="true" className="font-semibold text-foreground">
+        {label}
+      </p>
+      <ul className="mt-1">{children}</ul>
+    </nav>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <li>
+      <Link href={href} className={FOOTER_LINK}>
+        {children}
+      </Link>
+    </li>
   );
 }

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openFromList } from "./helpers";
 
 // #171: going into a job and back, the page content slides (a View Transition); with "reduce motion" nothing moves.
 // The page records each view transition: the types React started it with (a navigation's nav-forward / nav-back)
@@ -40,8 +41,8 @@ async function animationsOf(page: Page, type: string) {
 
 async function intoAJobAndBack(page: Page) {
   await page.goto("/jobs");
-  await page.locator('a[href^="/jobs/j"]').filter({ visible: true }).first().click();
-  await expect(page).toHaveURL(/\/jobs\/j\w+$/);
+  // From 1280 px a card shows the job beside the list (#376); 查看完整页面 opens it, the same forward transition.
+  await openFromList(page, page.locator('a[href^="/jobs/j"]').filter({ visible: true }).first());
   const forward = await animationsOf(page, "nav-forward");
   await page.getByRole("link", { name: "职位列表" }).click();
   await expect(page).toHaveURL(/\/jobs$/);

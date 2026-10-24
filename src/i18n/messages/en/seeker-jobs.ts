@@ -22,6 +22,8 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     emptyTitle: "No jobs match these filters yet",
     emptyHint: "Try other filters, or come back in a few days.",
     back: "Jobs",
+    preview: "Job preview",
+    openFull: "Open the full page",
   },
   pay: {
     hourUnit: " an hour",

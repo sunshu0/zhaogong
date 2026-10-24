@@ -22,8 +22,14 @@ import { FORWARD } from "@/components/ui/PageTransition";
 import { EmployerActivityLine } from "@/components/seeker/EmployerActivityLine";
 import type { EmployerActivity } from "@/lib/employer-activity";
 
-/** Round 19 (操作质感): the page's blocks are cards, 16px corners and a soft shadow, no border. */
-const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
+/**
+ * V2 (#376): the job is one sheet, its parts split by thin lines; only what opens something is a card (shadow).
+ */
+const SHEET = "divide-y divide-border overflow-hidden rounded-card bg-surface ring-1 ring-border";
+/** A part of the sheet. */
+const SHEET_PART = "p-4 lg:px-7 lg:py-5";
+/** A card of its own: the employer, in the right column from 1024 px. */
+const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-5";
 
 const NOTE_STYLES = {
   below: "bg-danger-soft text-danger",
@@ -48,16 +54,20 @@ export function JobDetail({
   /** 今天在线, 通常 1 小时内回复 (#381): one line under the employer's name, when there is something to say. */
   activity?: EmployerActivity;
   now: number;
-  /** Blocks for a right-hand column that stays in view from 1024 px (contact); on phones they follow the description. */
+  /**
+   * Blocks for the right-hand column that stays in view from 1024 px (contact), under the pay and `actions`; on
+   * phones they follow the description.
+   */
   aside?: ReactNode;
   /**
-   * 立即沟通 and an icon for the contact details: a bar fixed above the bottom navigation on phones, at the
-   * foot of the header from 768 px. The page sizes them: one main action, the rest icons.
+   * 立即沟通 and an icon for the contact details: a bar fixed above the bottom navigation below 1024 px, under
+   * the pay at the top of the right-hand column from 1024 px (#376). The page sizes them: one main action, the
+   * rest icons.
    */
   actions?: ReactNode;
   /** The share button, top right of the header. */
   share?: ReactNode;
-  /** 时薪参考 (#85), right under the facts. */
+  /** 时薪参考 (#85), right under the facts: a part of the sheet (PayReferenceBox look="sheet"). */
   payReference?: ReactNode;
   /** Blocks shown after the description (and after `aside` on phones), e.g. report. */
   children?: ReactNode;
@@ -72,14 +82,38 @@ export function JobDetail({
   const shifts = job.shiftsZh?.trim();
   const join = (items: string[]) => items.join(t.detail.listJoin);
 
+  const expired = isExpired(job, now) && (
+    <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.closes.closedNote}</p>
+  );
+
+  // The employer: name, verification and a link to its page. Rendered in the sheet on phones and as a card in the
+  // right-hand column from 1024 px; CSS shows one, so screen readers meet it once.
+  const employerCard = employer && (
+    <section aria-label={t.detail.employer}>
+      <p className="flex min-w-0 items-center gap-2 font-medium">
+        <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} />
+        <span lang={contentLang(employer.name)} className="break-words">
+          {employer.name}
+        </span>
+      </p>
+      <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
+      <div className="mt-2">
+        <VerificationBadge verification={employer.verification} explain lang={lang} />
+      </div>
+      <Link
+        href={`/employers/${employer.id}`}
+        transitionTypes={FORWARD}
+        className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
+      >
+        {t.detail.employerPage}
+      </Link>
+    </section>
+  );
+
   const details = (
     <>
-      {isExpired(job, now) && (
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.closes.closedNote}</p>
-      )}
-
-      {/* The title and the pay lead (Round 19); the facts follow in a card of their own. */}
-      <header className={CARD}>
+      {/* The title and the pay lead (Round 19); the facts follow, then the pay reference and the description. */}
+      <header className={SHEET_PART}>
         <div className="flex items-start justify-between gap-2">
           {tags.length > 0 ? (
             <ul className="flex flex-wrap gap-1.5" aria-label={t.tags.label}>
@@ -112,15 +146,12 @@ export function JobDetail({
         {payNote && (
           <p className={`mt-3 rounded-control px-3 py-2 text-body ${NOTE_STYLES[payNote.level]}`}>{payNote.text}</p>
         )}
-
-        {actions && (
-          <div className="fixed inset-x-0 bottom-above-nav z-10 flex items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
-            {actions}
-          </div>
-        )}
       </header>
 
-      <section aria-label={t.detail.facts} className={CARD}>
+      {/* On phones the employer follows the title (V8); from 1024 px it is a card in the right-hand column. */}
+      {employerCard && <div className={`${SHEET_PART} ${aside || actions ? "lg:hidden" : ""}`}>{employerCard}</div>}
+
+      <section aria-label={t.detail.facts} className={SHEET_PART}>
         {/* The facts both sides need first (A29): 2 columns on phones, 3 from 1024 px. */}
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
           <Fact term={t.detail.region}>
@@ -164,38 +195,17 @@ export function JobDetail({
 
       {payReference}
 
-      {employer && (
-        <section aria-label={t.detail.employer} className={CARD}>
-          <p className="flex min-w-0 items-center gap-2 font-medium">
-            <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} />
-            <span lang={contentLang(employer.name)} className="break-words">
-              {employer.name}
-            </span>
-          </p>
-          <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
-          <div className="mt-2">
-            <VerificationBadge verification={employer.verification} explain lang={lang} />
-          </div>
-          <Link
-            href={`/employers/${employer.id}`}
-            transitionTypes={FORWARD}
-            className="pressable mt-1 inline-flex min-h-11 items-center text-body font-medium text-brand"
-          >
-            {t.detail.employerPage}
-          </Link>
-        </section>
-      )}
-
-      <DescriptionTabs zh={job.descriptionZh} en={job.descriptionEn} />
+      <DescriptionTabs zh={job.descriptionZh} en={job.descriptionEn} plain />
     </>
   );
 
-  // On phones the action bar is fixed above the bottom navigation; leave room for it at the end of the page.
-  const room = actions ? "pb-24 md:pb-0" : "";
-  if (!aside) {
+  // Below 1024 px the action bar is fixed above the bottom navigation; leave room for it at the end of the page.
+  const room = actions ? "pb-24 lg:pb-0" : "";
+  if (!aside && !actions) {
     return (
       <article className={`space-y-3 ${room}`}>
-        {details}
+        {expired}
+        <div className={SHEET}>{details}</div>
         {children}
       </article>
     );
@@ -203,14 +213,29 @@ export function JobDetail({
 
   return (
     <article
-      className={`space-y-3 ${room} lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0`}
+      className={`space-y-3 ${room} lg:grid lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-x-6 lg:gap-y-3 lg:space-y-0`}
     >
-      <div className="space-y-3 lg:col-start-1">{details}</div>
+      <div className="space-y-3 lg:col-start-1">
+        {expired}
+        <div className={SHEET}>{details}</div>
+      </div>
       <aside
         aria-label={t.detail.contactEmployer}
         className={`space-y-3 lg:col-start-2 lg:row-span-2 lg:row-start-1 ${STICKY_COLUMN}`}
       >
+        {actions && (
+          // The pay again with the main action from 1024 px (V8's action card); below, only the fixed bar shows.
+          <div className="lg:space-y-4 lg:rounded-card lg:bg-surface lg:p-5 lg:ring-1 lg:ring-border">
+            <p aria-hidden="true" className="hidden leading-none lg:block">
+              <Pay pay={job.pay} country={job.country} size="card" lang={lang} />
+            </p>
+            <div className="fixed inset-x-0 bottom-above-nav z-10 flex items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:static lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+              {actions}
+            </div>
+          </div>
+        )}
         {aside}
+        {employerCard && <div className={`hidden lg:block ${CARD}`}>{employerCard}</div>}
       </aside>
       {children && <div className="space-y-3 lg:col-start-1">{children}</div>}
     </article>

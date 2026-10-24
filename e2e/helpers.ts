@@ -35,6 +35,21 @@ export async function chatAboutJob(page: Page, jobId: string, text = "你好，�
   await expect(page.getByRole("log", { name: "消息记录" })).toContainText(text);
 }
 
+/**
+ * Opens a job from the job list by its card's link (#376). From 1280 px the click shows the job in the preview
+ * column beside the list; its 查看完整页面 opens the page. Before the list's script runs the link opens it directly.
+ */
+export async function openFromList(page: Page, link: Locator) {
+  const href = (await link.getAttribute("href"))!;
+  await link.click();
+  const full = page.getByRole("complementary", { name: "职位预览" }).getByRole("link", { name: "查看完整页面" });
+  const onJob = () => new URL(page.url()).pathname === href;
+  const previewed = async () => (await full.count()) > 0 && (await full.getAttribute("href")) === href;
+  await expect.poll(async () => onJob() || (await previewed())).toBe(true);
+  if (!onJob()) await full.click();
+  await expect(page).toHaveURL(href);
+}
+
 /** Signs in through /login like a user would: an email, then the code it was sent; ends on `next`. */
 export async function signIn(page: Page, next: string, email = freshEmail()) {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);

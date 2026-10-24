@@ -41,7 +41,9 @@ export function formatHours(hours: Job["hoursPerWeek"], lang: Lang = DEFAULT_LAN
 export type JobTag = "urgent" | "meals" | "housing" | "student";
 
 /** Short tags for a job card, most important first. Visa tags state the employer's answer, nothing more. */
-export function jobTagKeys(job: Job): JobTag[] {
+export function jobTagKeys(
+  job: Pick<Job, "urgent" | "mealsIncluded" | "accommodationIncluded" | "visaAccepted">,
+): JobTag[] {
   const tags: JobTag[] = [];
   if (job.urgent) tags.push("urgent");
   if (job.mealsIncluded) tags.push("meals");

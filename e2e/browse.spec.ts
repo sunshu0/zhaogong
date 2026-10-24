@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { siteNav } from "./helpers";
+import { openFromList, siteNav } from "./helpers";
 
 test("list → filter → detail → back to the filtered list", async ({ page }, testInfo) => {
   // From 1024 px the filters are a column where each change applies at once; below, a panel behind 筛选.
@@ -34,7 +34,7 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
   await expect(page.getByRole("link", { name: /超市理货员/ })).toHaveCount(0); // retail, no meals
 
-  await page.getByRole("link", { name: /点心师傅/ }).click();
+  await openFromList(page, page.getByRole("link", { name: /点心师傅/ }));
   await expect(page).toHaveURL("/jobs/j3");
   await expect(page.getByRole("heading", { level: 1, name: "点心师傅" })).toBeVisible();
   await expect(page.getByText("Dim sum chef").filter({ visible: true })).toBeVisible();
