@@ -9,6 +9,7 @@ import type { Candidate } from "@/lib/candidate-matching";
 import type { Employer, Job } from "@/lib/types";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReportReason } from "@/lib/chat-report";
+import { contactKeys, type ResumeDoc } from "@/components/seeker/resume-doc";
 import { chatDemo } from "@/components/seeker/chat-demo";
 import { isDemoAccount } from "@/lib/demo-accounts";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
@@ -22,6 +23,7 @@ import {
   addExchangeRequest,
   addReport,
   addSentMessage,
+  addSentResume,
   answerExchange,
   chatView,
   markConversationRead,
@@ -223,7 +225,8 @@ function deliveryKey(scope: string, conversationId: string): string {
     (item) => "conversationId" in item.change && item.change.conversationId === conversationId,
   );
   const waiting = mine.filter((item) => item.change.type !== "read").length;
-  const unsent = mine.filter((item) => item.change.type === "send").length;
+  // A résumé shows in the log as a message too (#379).
+  const unsent = mine.filter((item) => item.change.type === "send" || item.change.type === "resume").length;
   return `${waiting}:${unsent}:${unreached.has(scope) ? 1 : 0}`;
 }
 
@@ -295,6 +298,17 @@ export function useChat() {
       if (!view.messages[id] || !text.trim() || text.length > MESSAGE_MAX) return;
       change((current) => addSentMessage(current, id, text, new Date().toISOString()));
       sendChange(scope, { type: "send", conversationId: id, text });
+    },
+    /**
+     * #379: the job seeker sends their 中英文简历 into a chat with a business (`employer:` ids; never a demo chat). It
+     * shows as its card at once; the server keeps the page as sent.
+     */
+    sendResume(id: string, resume: ResumeDoc) {
+      if (!view.messages[id] || isEmployer || !id.startsWith("employer:")) return;
+      const card = { id: 0, name: resume.zh.name, contact: contactKeys(resume.contact) };
+      const text = pick(chatMessages, lang).resumeCard.text(card.name);
+      change((current) => addSentResume(current, id, card, text, new Date().toISOString()));
+      sendChange(scope, { type: "resume", conversationId: id, resume });
     },
     requestInfo(id: string, kind: ExchangeKind, payload: ExchangePayload) {
       if (!view.messages[id]) return;

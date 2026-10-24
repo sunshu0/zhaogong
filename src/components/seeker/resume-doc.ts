@@ -56,6 +56,12 @@ export const HELD_VISA_LABELS: Record<VisaAccepted, { zh: string; en: string }> 
 export type ResumeContactChoice = { phone: boolean; wechat: boolean; email: boolean };
 export const NO_CONTACT: ResumeContactChoice = { phone: false, wechat: false, email: false };
 export type ResumeContact = { phone?: string; wechat?: string; email?: string };
+export type ResumeContactKey = keyof ResumeContact;
+/** The contact details in print order. */
+export const CONTACT_KEYS = ["phone", "wechat", "email"] as const satisfies readonly ResumeContactKey[];
+
+/** Which contact details a page carries, in print order. */
+export const contactKeys = (contact: ResumeContact): ResumeContactKey[] => CONTACT_KEYS.filter((key) => contact[key]);
 
 export type ResumeFacts = Omit<Resume, "candidateId" | "discoverable" | "skills">;
 
@@ -144,8 +150,11 @@ export function resumeDocFrom(source: ResumeSource): ResumeDoc {
   };
 }
 
-/** What a browser sent to share; null without a name. The email is dropped: a share link never shows it. */
-export function parseResumeDoc(value: unknown): ResumeDoc | null {
+/**
+ * What a browser sent to share; null without a name. The email is dropped: a share link never shows it. A résumé
+ * sent in a chat (#379, ADR 0037) keeps it (`withEmail`): the person ticked it, and only that business reads it.
+ */
+export function parseResumeDoc(value: unknown, { withEmail = false } = {}): ResumeDoc | null {
   if (!value || typeof value !== "object") return null;
   const input = value as Record<string, unknown>;
   const zh = parseText(input.zh);
@@ -159,7 +168,7 @@ export function parseResumeDoc(value: unknown): ResumeDoc | null {
     unknown
   >;
   const contact: ResumeContact = {};
-  for (const key of ["phone", "wechat"] as const) {
+  for (const key of withEmail ? CONTACT_KEYS : (["phone", "wechat"] as const)) {
     const value = line(contactInput[key], 80);
     if (value) contact[key] = value;
   }

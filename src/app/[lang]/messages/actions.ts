@@ -51,7 +51,9 @@ import {
   type ChatRecord,
   JUST_NOW,
   MESSAGE_MAX,
+  RESUME_MESSAGE_TEXT,
 } from "@/components/seeker/chat-store";
+import { parseResumeDoc } from "@/components/seeker/resume-doc";
 import { initialNotifications } from "@/components/seeker/hub-state";
 import { isExpired } from "@/components/seeker/job-facts";
 import { normalizeEmail } from "@/components/seeker/session";
@@ -73,6 +75,8 @@ const TICKET_ID = /^[A-Za-z0-9-]{8,64}$/;
 export type ChatChange =
   | { type: "read"; conversationId: string }
   | { type: "send"; conversationId: string; text: string }
+  /** A job seeker sends their 中英文简历 (#379, ADR 0037): the page as their browser prints it, contact as ticked. */
+  | { type: "resume"; conversationId: string; resume: unknown }
   | { type: "request"; conversationId: string; kind: ExchangeKind; payload: ExchangePayload }
   | {
       type: "answer";
@@ -199,7 +203,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
       return notice ? { record, notice } : { record };
     }
   }
-  if (!view.messages[conversationId]) return { record };
+  // A résumé goes only to a business on the platform, in a conversation both share: never to a demo chat.
+  if (change.type === "resume" || !view.messages[conversationId]) return { record };
   if (change.type === "send" && !roomForMessage(record, conversationId))
     return { record, notice: (await limits()).messagesFull(OWN_MESSAGES_MAX) };
   if (change.type === "report" && !roomForReport(record))
@@ -217,7 +222,7 @@ async function sharedToStart(
   key: NonNullable<ReturnType<typeof parseSharedId>>,
   change: ChatChange,
 ): Promise<ConversationRow | undefined> {
-  if (me.isEmployer || change.type !== "send" || !("jobId" in key)) return undefined;
+  if (me.isEmployer || (change.type !== "send" && change.type !== "resume") || !("jobId" in key)) return undefined;
   const opened = await openForSeeker(me, key.jobId);
   return opened && opened.employerId === key.employerId ? opened : undefined;
 }
@@ -240,6 +245,15 @@ async function applyShared(
       if (!text || text.length > MESSAGE_MAX) return;
       if (side === "seeker") await countChatStart(id, me.session.email);
       if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined)) return;
+      return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
+    }
+    case "resume": {
+      // Only the job seeker's own page, as their browser sent it; checked like the share link's, email kept.
+      if (side !== "seeker") return;
+      const resume = parseResumeDoc(change.resume, { withEmail: true });
+      if (!resume) return;
+      await countChatStart(id, me.session.email);
+      if (await addSharedMessage(row.id, side, RESUME_MESSAGE_TEXT, undefined, new Date(), resume)) return;
       return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
     }
     case "request": {

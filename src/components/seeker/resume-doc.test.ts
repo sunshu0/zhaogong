@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseProfilePatch } from "@/components/seeker/hub-state";
 import {
+  contactKeys,
   contactRows,
   missingEnglish,
   parseContactChoice,
@@ -102,6 +103,14 @@ describe("中英文简历 (#86)", () => {
     expect(shared.contact).toEqual({ phone: "09 023 4567" });
     const parsed = parseResumeDoc({ ...resumeDocFrom(source), contact: { phone: "1", email: "x@example.com" } });
     expect(parsed?.contact).toEqual({ phone: "1" });
+  });
+
+  it("keeps the ticked email for a résumé sent in a chat (#379), and lists what it carries in print order", () => {
+    const sent = parseResumeDoc(resumeDocFrom(source), { withEmail: true });
+    expect(sent?.contact).toEqual(resumeDocFrom(source).contact);
+    expect(contactKeys(sent!.contact)).toEqual(["phone", "email"]);
+    expect(contactKeys({ email: "x@example.com", wechat: "w" })).toEqual(["wechat", "email"]);
+    expect(contactKeys({})).toEqual([]);
   });
 
   it("parses what a browser sends: needs a name, trims and caps the text, keeps only known facts", () => {

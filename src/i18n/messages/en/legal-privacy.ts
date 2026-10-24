@@ -31,11 +31,11 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
         {
           list: [
             "Your account: the email you sign in with, when you signed up, your interface language, and whether you are using the job seeker or the employer role; the chat quick replies and opening message you changed (nothing is kept while you use the defaults). You sign in with a one-time code; there is no password.",
-            "Your job seeker profile and CV: the name, summary, area, languages, availability, work history and skills, photo and work rights (such as your visa, as you describe it) that you fill in. Your private contact details (phone, WeChat, email) only go to someone when you choose to exchange them.",
+            "Your job seeker profile and CV: the name, summary, area, languages, availability, work history and skills, photo and work rights (such as your visa, as you describe it) that you fill in. Your private contact details (phone, WeChat, email) only go to someone when you choose to exchange them, or when you tick them on a CV you send in a chat.",
             "Applications: your note, a copy of your profile as it was when you applied, and any interview times and replies.",
             "Employers and jobs: the business's name, New Zealand Business Number (NZBN), area, business page, the jobs and the contact details on them. Team members' display names, roles and when they joined.",
             "Business verification: the contact person's name and role, the business's phone and website.",
-            "Chats: the messages you and the other person send, and records of contact details or profiles exchanged.",
+            "Chats: the messages you and the other person send, and records of contact details or profiles exchanged; any CV you send to a business in a chat (kept as it was when you sent it, with the contact details you ticked).",
             "Saved jobs, job alerts and their filters.",
             "Reports: the reason and anything you write. For a report with only a reason and a note, we do not record your account or email itself. To stop duplicate and mass reports, an open report carries a number worked out from your account or anonymous visitor number that cannot be turned back into either, deleted once the report is handled; each day's reports are counted under such numbers too (including one worked out from your network address; the address itself is not stored); a count lapses within 24 hours, and lapsed counts are deleted when someone later asks for or checks a sign-in code, or sends a report. When you report a job while signed in, you can also attach evidence: messages you pick from your own chats with that business (up to 20, kept as they read when you report) and screenshots (up to 3, with location and other metadata removed before they are stored). Evidence is stored with your account, only so that it is deleted with your account and shown to you in your export; moderators are not shown who sent it.",
             "Activity: when a signed-in job seeker views the public contact details on a job, the account and time (employers only see a count); chats started; job views (only a hash of a browser identifier).",
@@ -80,7 +80,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
           list: [
             "Everyone: jobs, business pages, and any CV share link you create (showing only what you tick).",
             "Signed-in job seekers: contact details an employer chooses to make public on a job. Each view is recorded.",
-            "Employers: what you send when you apply, and interview arrangements. Employers do not see the email you sign in with.",
+            "Employers: what you send when you apply, and interview arrangements; a CV you send them in a chat, which everyone in the business's team can see. Employers do not see the email you sign in with.",
             'Candidate recommendations: only if you tick "Let employers find my profile in Suggested candidates", employers can see the public part of your profile, without your email or contact details.',
             "Members of the same business's team: the business's chats, its jobs and who posted them.",
             "Moderators: the content involved when they handle reports and review jobs and business verification. Only moderators can see the chat messages and screenshots attached to a report, and each time one opens them we record which moderator and when; the employer cannot see this evidence and is not told who reported.",

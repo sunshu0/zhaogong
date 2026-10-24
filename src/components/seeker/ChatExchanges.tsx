@@ -9,6 +9,8 @@ import { visibleExchange, type Exchange, type ExchangeKind } from "@/lib/chat-co
 import { CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
 import { ExchangeAction } from "@/components/seeker/ExchangeAction";
 import { PayloadView } from "@/components/seeker/ExchangePayload";
+import { SendResume } from "@/components/seeker/SendResume";
+import { useSession } from "@/components/seeker/session-client";
 
 const TOOLS: { kind: ExchangeKind; icon: typeof FileText }[] = [
   { kind: "resume", icon: FileText },
@@ -16,12 +18,13 @@ const TOOLS: { kind: ExchangeKind; icon: typeof FileText }[] = [
 ];
 
 /**
- * ＋ beside the message input: 交换资料 and 交换联系方式. The panel stays open while one of its dialogs is open (the
+ * ＋ beside the message input: 交换资料 and 交换联系方式, and a job seeker's 发送我的简历 (#379). The panel stays open while one of its dialogs is open (the
  * dialog lives inside it); a tap outside or Escape closes it otherwise.
  */
 export function ChatExchangeMenu({ conversationId }: { conversationId: string }) {
   const t = useMessages(chatMessages).exchangeMenu;
   const { exchanges } = useChat();
+  const isEmployer = useSession()?.activeRole === "employer";
   const items = exchanges[conversationId] ?? [];
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -77,6 +80,12 @@ export function ChatExchangeMenu({ conversationId }: { conversationId: string })
             </div>
           );
         })}
+        {/* #379: a job seeker's chat with a business on the platform (not a demo chat). */}
+        {!isEmployer && conversationId.startsWith("employer:") && (
+          <div className="*:w-full *:justify-start">
+            <SendResume conversationId={conversationId} />
+          </div>
+        )}
       </div>
     </div>
   );

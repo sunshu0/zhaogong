@@ -15,7 +15,7 @@ import { EMPTY_CHAT, addSentMessage, chatView, type ChatRecord } from "@/compone
 import { addApplication } from "@/db/job-applications";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { teamChatScope } from "@/lib/chat-server/identity";
-import { SHARED_MESSAGES_MAX } from "@/db/conversations";
+import { SHARED_MESSAGES_MAX, resumeInChat } from "@/db/conversations";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
 import { insertsInChunks } from "@/db/write-if";
@@ -560,6 +560,48 @@ describe("chats both sides share (#110)", () => {
     // An answer already given is not given again.
     await change({ type: "answer", conversationId: seekerId, exchangeId, status: "cancelled" });
     expect((await my())!.exchanges[seekerId][0].status).toBe("accepted");
+  });
+
+  it("a job seeker sends their 中英文简历: the team gets a card, and only the two sides open the page as sent (#379)", async () => {
+    const { shop, boss, staff, job } = await business("resume");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    const page = {
+      zh: { name: " 林晓 ", headline: "前厅" },
+      contact: { phone: "021 555 0003", email: "lin@example.com", wechat: "" },
+    };
+    // Sent before anything else, it starts the conversation, like a first message.
+    await signedIn("resume.seeker@example.com");
+    await change({ type: "resume", conversationId: seekerId, resume: page });
+    await change({ type: "resume", conversationId: seekerId, resume: { zh: { name: " " } } }); // no name: nothing
+    await change({ type: "resume", conversationId: "north-tea", resume: page }); // never to a demo chat
+    const [mine] = (await my())!.added[seekerId];
+    expect(mine).toMatchObject({ from: "me", text: "[简历] 林晓" });
+    expect(mine.resume).toEqual({ id: expect.any(Number), name: "林晓", contact: ["phone", "email"] });
+    expect((await my())!.added["north-tea"]).toBeUndefined();
+
+    await signedIn(staff, "employer");
+    const seen = (await my())!;
+    const id = seen.extra.find((c) => c.job === job.id)!.id;
+    expect(seen.added[id]).toEqual([expect.objectContaining({ from: "them", resume: mine.resume })]);
+    expect(JSON.stringify(seen)).not.toContain("021 555 0003"); // the card, not the page
+    // A business sends no résumé into the chat.
+    await change({ type: "resume", conversationId: id, resume: page });
+    expect((await my())!.added[id]).toHaveLength(1);
+
+    // The page as sent, contact details as ticked (the email too), for the job seeker and the whole team only.
+    const sent = await resumeInChat({ side: "employer", employerId: shop.id }, mine.resume!.id);
+    expect(sent?.resume.zh.name).toBe("林晓");
+    expect(sent?.resume.contact).toEqual({ phone: "021 555 0003", email: "lin@example.com" });
+    expect(sent?.employerName).toBe(shop.name);
+    expect(await resumeInChat({ side: "seeker", email: "RESUME.seeker@example.com" }, mine.resume!.id)).toBeTruthy();
+    expect(await resumeInChat({ side: "seeker", email: "someone@example.com" }, mine.resume!.id)).toBeUndefined();
+    const other = await createEmployer({ name: "别家简历", regionId: "akl-cbd" });
+    expect(await resumeInChat({ side: "employer", employerId: other.id }, mine.resume!.id)).toBeUndefined();
+    // A message that is not a résumé, or no message at all, is nothing.
+    await signedIn(boss, "employer");
+    await change({ type: "send", conversationId: id, text: "收到" });
+    expect(await resumeInChat({ side: "employer", employerId: shop.id }, mine.resume!.id + 1)).toBeUndefined();
+    expect(await resumeInChat({ side: "employer", employerId: shop.id }, 0)).toBeUndefined();
   });
 
   it("a 推荐人才 candidate with a page on their account shares the chat; a demo candidate stays the business's own", async () => {

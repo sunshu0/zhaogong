@@ -6,6 +6,7 @@ import {
   LEGACY_READ_AT,
   addExchangeRequest,
   addSentMessage,
+  addSentResume,
   answerExchange,
   chatView,
   markConversationRead,
@@ -51,6 +52,25 @@ describe("stored chats", () => {
     expect(JSON.parse(raw)).toEqual({ version: LOCAL_DATA_VERSION, identities: { [seekerScope]: record } });
     expect(raw).not.toContain(seekerDemo.messages["north-tea"][0].text);
     expect(parseChats(raw, fullDemo)[seekerScope]).toEqual(record);
+  });
+
+  it("keep a sent 中英文简历's card, and drop a card that is not one (#379)", () => {
+    const id = "employer:e1:j1";
+    const card = { id: 9, name: "林晓", contact: ["phone" as const] };
+    const record = addSentResume(EMPTY_CHAT, id, card, "[简历] 林晓", at);
+    expect(record.added[id]).toEqual([
+      { from: "me", text: "[简历] 林晓", time: "刚刚", sentAt: at, resume: { ...card, id: 0 } },
+    ]);
+    const raw = (resume: unknown) =>
+      stringifyStoredIdentities({
+        [seekerScope]: { ...EMPTY_CHAT, added: { [id]: [{ ...record.added[id][0], resume }] } },
+      });
+    expect(parseChats(raw(card), fullDemo)[seekerScope].added[id][0].resume).toEqual(card);
+    expect(
+      parseChats(raw({ ...card, contact: ["email", "fax", "phone"] }), fullDemo)[seekerScope].added[id][0].resume,
+    ).toEqual({ ...card, contact: ["phone", "email"] });
+    for (const bad of [{ ...card, id: -1 }, { ...card, name: "" }, { ...card, contact: "phone" }, "card"])
+      expect(parseChats(raw(bad), fullDemo)[seekerScope].added[id][0]).not.toHaveProperty("resume");
   });
 
   it("keep a business's chat with someone who applied (#84)", () => {

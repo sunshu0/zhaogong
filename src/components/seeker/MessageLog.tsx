@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { TriangleAlert } from "lucide-react";
+import { FileUser, TriangleAlert } from "lucide-react";
 import { useChat, useChatDelivery, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { ChatExchangeList, ChatReportButton } from "@/components/seeker/ChatInteractions";
 import { incomingWarnings } from "@/components/seeker/chat-warnings";
@@ -10,7 +11,7 @@ import { teamSignature } from "@/components/employer/team";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
-import { shownTime } from "@/components/seeker/chat-store";
+import { shownTime, type ResumeCard } from "@/components/seeker/chat-store";
 
 /** How close to the bottom counts as reading the newest (#282): about two lines of messages. */
 const NEAR_BOTTOM_PX = 80;
@@ -66,6 +67,41 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
   );
 }
 
+/**
+ * A sent 中英文简历 (#379, ADR 0037): whose it is and which contact details it carries; 查看简历 opens the page as sent.
+ * Until the server has it (id 0) it says 发送中.
+ */
+function ResumeCardView({ card, mine }: { card: ResumeCard; mine: boolean }) {
+  const t = useMessages(chatMessages);
+  const words = t.resumeCard;
+  const names = t.resumeSend;
+  return (
+    <div data-resume-card="" className="flex items-start gap-3" aria-label={words.label(card.name)} role="group">
+      <FileUser aria-hidden="true" className="mt-1 size-6 shrink-0" />
+      <div className="min-w-0 space-y-0.5">
+        <p className="font-semibold">
+          {words.heading} · <span lang={contentLang(card.name)}>{card.name}</span>
+        </p>
+        <p className={`text-meta ${mine ? "text-white" : "text-muted"}`}>
+          {card.contact.length
+            ? words.carries(card.contact.map((key) => names.contactNames[key]).join(names.listJoin))
+            : words.carriesNone}
+        </p>
+        {card.id ? (
+          <Link
+            href={`/messages/resume/${card.id}`}
+            className={`inline-flex min-h-11 items-center font-medium underline underline-offset-4 ${mine ? "text-white" : "text-brand"}`}
+          >
+            {words.open}
+          </Link>
+        ) : (
+          <p className="text-meta">{words.sending}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MessageBubble({
   message,
   index,
@@ -83,7 +119,7 @@ function MessageBubble({
   const lang = useLang();
   const mine = message.from === "me";
   const readLabel = messageReadLabel(message, lang);
-  const warnings = mine ? [] : incomingWarnings(message.text, lang);
+  const warnings = mine || message.resume ? [] : incomingWarnings(message.text, lang);
   // 「店名 · 名字」 (#110) or the team name: all of it is what people wrote, so one lang for the whole line.
   const by = message.by ? (mine ? message.by : teamSignature(conversation?.person ?? "", message.by)) : undefined;
   return (
@@ -91,7 +127,11 @@ function MessageBubble({
       <div
         className={`max-w-[85%] animate-pop-in rounded-card px-4 py-2.5 text-body leading-relaxed break-words lg:max-w-[75%] ${mine ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm bg-surface shadow-card"}`}
       >
-        <p lang={contentLang(message.text)}>{message.text}</p>
+        {message.resume ? (
+          <ResumeCardView card={message.resume} mine={mine} />
+        ) : (
+          <p lang={contentLang(message.text)}>{message.text}</p>
+        )}
         <p
           className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta ${mine ? "text-white" : "text-muted"}`}
         >

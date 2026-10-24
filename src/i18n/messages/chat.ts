@@ -224,6 +224,48 @@ const chatZh = {
     ask: "发送交换请求",
   },
 
+  /** SendResume.tsx (#379): 发送我的简历 behind ＋, and the dialog that says what goes with it. */
+  resumeSend: {
+    tool: "发送我的简历",
+    title: "发送我的简历",
+    note: "对方会收到一张简历卡片，点开是你的中英文简历，和「中英文简历」页上打印出来的一样。",
+    /** Read with the contact details after it: 「这份简历会带上：电话、微信」. */
+    carries: (list: string) => `这份简历会带上：${list}`,
+    carriesNone: "这份简历不带联系方式",
+    listJoin: "、",
+    contactNames: { phone: "电话", wechat: "微信", email: "邮箱" },
+    change: "去改",
+    keepNote: "店里团队的人都能看到这份简历，对方可能保存。发出后再改简历，这一份不会变；改完可以再发一次。",
+    noResume: "你还没有可以发的简历：先在主页写好称呼，再生成中英文简历。",
+    makeResume: "去生成简历",
+    cancel: "取消",
+    send: "发送简历",
+  },
+
+  /** MessageLog.tsx (#379): a sent 中英文简历 in the message log. */
+  resumeCard: {
+    /** What the chat list and a report show of it. */
+    text: (name: string) => `[简历] ${name}`,
+    label: (name: string) => `${name}的中英文简历`,
+    heading: "中英文简历",
+    carries: (list: string) => `带联系方式：${list}`,
+    carriesNone: "不带联系方式",
+    open: "查看简历",
+    sending: "发送中…",
+  },
+
+  /** app/messages/resume/[id] (#379): a résumé sent in a chat, as sent. */
+  resumePage: {
+    title: "聊天里收到的简历",
+    loading: "正在加载简历",
+    back: "回到聊天",
+    /** Read with the business's name after it. */
+    sentTo: (date: string) => `${date}在聊天里发给：`,
+    notFound: "看不到这份简历",
+    notFoundBody: "只有发简历的求职者和收简历的企业团队能看。请先用对的身份登录，或者回到聊天里打开。",
+    toChat: "去聊天",
+  },
+
   /** lib/chat-report.ts: why someone reports a chat. */
   reportReasons: {
     harassment: "骚扰、辱骂或威胁",

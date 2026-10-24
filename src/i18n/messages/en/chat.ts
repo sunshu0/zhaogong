@@ -210,6 +210,44 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     ask: "Send the request",
   },
 
+  resumeSend: {
+    tool: "Send my CV",
+    title: "Send my CV",
+    note: "They get a CV card that opens your CV in Chinese and English, the same one your CV (Chinese and English) page prints.",
+    carries: (list) => `This CV includes: ${list}`,
+    carriesNone: "This CV has no contact details",
+    listJoin: ", ",
+    contactNames: { phone: "phone", wechat: "WeChat", email: "email" },
+    change: "Change",
+    keepNote:
+      "Everyone in the business's team can see it, and they may keep it. Changing your CV afterwards does not change this one; you can send it again.",
+    noResume: "You have no CV to send yet: add your name on your profile, then make your CV.",
+    makeResume: "Make my CV",
+    cancel: "Cancel",
+    send: "Send CV",
+  },
+
+  resumeCard: {
+    text: (name) => `[CV] ${name}`,
+    label: (name) => `CV of ${name}`,
+    heading: "CV",
+    carries: (list) => `Contact details: ${list}`,
+    carriesNone: "No contact details",
+    open: "View CV",
+    sending: "Sending…",
+  },
+
+  resumePage: {
+    title: "A CV from a chat",
+    loading: "Loading the CV",
+    back: "Back to the chat",
+    sentTo: (date) => `Sent in a chat on ${date} to `,
+    notFound: "You cannot see this CV",
+    notFoundBody:
+      "Only the job seeker who sent it and the business team that got it can see it. Sign in as the right one, or open it from the chat.",
+    toChat: "Go to chat",
+  },
+
   reportReasons: {
     harassment: "Harassment, abuse or threats",
     fraud: "A scam or false information",

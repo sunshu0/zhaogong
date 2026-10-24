@@ -59,8 +59,20 @@ describe("shared conversations (#110)", () => {
       (c) => c.id === row.id,
     );
     expect(seekerSide.messages).toEqual([
-      { from: "seeker", text: "你好，还招人吗？", sentAt: later(1).toISOString(), byName: null },
-      { from: "employer", text: "还招，明天来面试吧", sentAt: later(2).toISOString(), byName: "王经理" },
+      {
+        id: expect.any(Number),
+        from: "seeker",
+        text: "你好，还招人吗？",
+        sentAt: later(1).toISOString(),
+        byName: null,
+      },
+      {
+        id: expect.any(Number),
+        from: "employer",
+        text: "还招，明天来面试吧",
+        sentAt: later(2).toISOString(),
+        byName: "王经理",
+      },
     ]);
     expect(employerSide?.messages).toEqual(seekerSide.messages);
     expect(seekerSide).toMatchObject({ employerId: "e1", jobId: "j1", seekerName: "小李" });

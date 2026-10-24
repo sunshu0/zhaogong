@@ -13,6 +13,7 @@ import {
   type ExchangePayload,
 } from "@/lib/chat-consent";
 import { parseChatReport, type ChatReport } from "@/lib/chat-report";
+import { CONTACT_KEYS, type ResumeContactKey } from "@/components/seeker/resume-doc";
 import type { Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -24,6 +25,11 @@ import { chatMessages } from "@/i18n/messages/chat";
 export const JUST_NOW = "刚刚";
 /** The longest message the server keeps (messages/actions.ts); the composer stops there too (#259). */
 export const MESSAGE_MAX = 2000;
+/**
+ * The text a sent 中英文简历 (#379) is stored with: what a report's evidence and /admin show of it. Each side reads the
+ * card with its own words (shared-view.ts).
+ */
+export const RESUME_MESSAGE_TEXT = "[简历]";
 /** From how many characters the composer shows its count against MESSAGE_MAX. */
 export const MESSAGE_COUNT_FROM = MESSAGE_MAX - 200;
 
@@ -55,7 +61,15 @@ export type Message = {
    * Kept for the shared conversations of #110, where the job seeker sees 「店名 · 名字」.
    */
   by?: string;
+  /** A 中英文简历 the job seeker sent (#379, ADR 0037), as a card; `text` is the reader's words for it. */
+  resume?: ResumeCard;
 };
+
+/**
+ * What a chat shows of a sent 中英文简历: the message's row (0 until the server has it), the name on it and which
+ * contact details it carries. The page itself opens at /messages/resume/<id>.
+ */
+export type ResumeCard = { id: number; name: string; contact: ResumeContactKey[] };
 
 export type Conversation = {
   id: string;
@@ -138,6 +152,12 @@ export function markConversationRead(record: ChatRecord, id: string, now: string
 
 export function addSentMessage(record: ChatRecord, id: string, text: string, now: string, by?: string): ChatRecord {
   const message: Message = { from: "me", text, time: JUST_NOW, sentAt: now, ...(by ? { by } : {}) };
+  return { ...record, added: { ...record.added, [id]: [...(record.added[id] ?? []), message] } };
+}
+
+/** A 中英文简历 just sent (#379), shown as its card until the server's answer gives it its row. */
+export function addSentResume(record: ChatRecord, id: string, card: ResumeCard, text: string, now: string): ChatRecord {
+  const message: Message = { from: "me", text, time: JUST_NOW, sentAt: now, resume: { ...card, id: 0 } };
   return { ...record, added: { ...record.added, [id]: [...(record.added[id] ?? []), message] } };
 }
 
@@ -259,9 +279,23 @@ function parseMessage(value: unknown): Message[] {
       ...(validTimestamp(m.sentAt) ? { sentAt: m.sentAt } : {}),
       ...(validTimestamp(m.readAt) ? { readAt: m.readAt } : {}),
       ...(typeof m.by === "string" && m.by.length <= 40 ? { by: m.by } : {}),
+      ...optionalField("resume", parseResumeCard(m.resume)),
     },
   ];
 }
+
+function parseResumeCard(value: unknown): ResumeCard | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const card = value as Record<string, unknown>;
+  if (!Number.isSafeInteger(card.id) || (card.id as number) < 0) return undefined;
+  if (typeof card.name !== "string" || !card.name || card.name.length > 40 || !Array.isArray(card.contact))
+    return undefined;
+  const contact = CONTACT_KEYS.filter((key) => (card.contact as unknown[]).includes(key));
+  return { id: card.id as number, name: card.name, contact };
+}
+
+const optionalField = <K extends string, T>(key: K, value: T | undefined) =>
+  (value === undefined ? {} : { [key]: value }) as Partial<Record<K, T>>;
 
 function parseConversation(value: unknown): Conversation[] {
   if (!value || typeof value !== "object") return [];

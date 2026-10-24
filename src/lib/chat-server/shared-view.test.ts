@@ -9,6 +9,7 @@ import {
   type SharedExchange,
 } from "@/lib/chat-server/shared-view";
 import type { ChatRecord } from "@/components/seeker/chat-store";
+import { parseResumeDoc } from "@/components/seeker/resume-doc";
 
 const now = Date.parse("2026-10-17T01:00:00.000Z"); // 14:00 in Auckland
 const OFFER = { title: "联系方式", fields: [{ label: "电话", value: "021 000 000" }] };
@@ -84,8 +85,8 @@ describe("chatTime", () => {
 
 describe("sharedPart", () => {
   const messages = [
-    { from: "seeker" as const, text: "你好", sentAt: "2026-10-17T00:01:00.000Z", byName: null },
-    { from: "employer" as const, text: "你好，明天来吧", sentAt: "2026-10-17T00:02:00.000Z", byName: "王经理" },
+    { id: 1, from: "seeker" as const, text: "你好", sentAt: "2026-10-17T00:01:00.000Z", byName: null },
+    { id: 2, from: "employer" as const, text: "你好，明天来吧", sentAt: "2026-10-17T00:02:00.000Z", byName: "王经理" },
   ];
 
   it("each side sees the other's name, its own messages as me, and when the other read them", () => {
@@ -121,6 +122,22 @@ describe("sharedPart", () => {
     ]);
   });
 
+  it("shows a sent 中英文简历 as a card in each reader's words, without the page itself (#379)", () => {
+    const resume = parseResumeDoc(
+      { zh: { name: "林晓" }, contact: { wechat: "linxiao", email: "lin@example.com" } },
+      { withEmail: true },
+    )!;
+    const sent = row({
+      messages: [{ id: 7, from: "seeker", text: "[简历]", sentAt: "2026-10-17T00:01:00.000Z", byName: null, resume }],
+    });
+    const [mine] = sharedPart([sent], "seeker", now).added["employer:e1:j1"];
+    expect(mine).toMatchObject({ from: "me", text: "[简历] 林晓" });
+    expect(mine.resume).toEqual({ id: 7, name: "林晓", contact: ["wechat", "email"] });
+    const [theirs] = sharedPart([sent], "employer", now, "en").added["chat:c0ffee00-1111"];
+    expect(theirs).toMatchObject({ from: "them", text: "[CV] 林晓" });
+    expect(JSON.stringify(theirs)).not.toContain("linxiao");
+  });
+
   it("a message the other side has not read yet has no read time", () => {
     const part = sharedPart([row({ messages, seekerReadAt: "2026-10-17T00:01:30.000Z" })], "employer", now);
     expect(part.added["chat:c0ffee00-1111"][1].readAt).toBeUndefined();
@@ -130,7 +147,7 @@ describe("sharedPart", () => {
     expect(sharedPart([row()], "seeker", now).conversations).toHaveLength(1);
     expect(sharedPart([row()], "employer", now).conversations).toEqual([]);
     const said = row({
-      messages: [{ from: "seeker", text: "你好", sentAt: "2026-10-17T00:01:00.000Z", byName: null }],
+      messages: [{ id: 1, from: "seeker", text: "你好", sentAt: "2026-10-17T00:01:00.000Z", byName: null }],
     });
     expect(sharedPart([said], "employer", now).conversations).toHaveLength(1);
     expect(
@@ -182,7 +199,7 @@ describe("withShared", () => {
       readAt: { "candidate-lin": "2026-10-16T00:00:00.000Z" },
     };
     const part = sharedPart(
-      [row({ messages: [{ from: "seeker", text: "新的", sentAt: "2026-10-17T00:01:00.000Z", byName: null }] })],
+      [row({ messages: [{ id: 1, from: "seeker", text: "新的", sentAt: "2026-10-17T00:01:00.000Z", byName: null }] })],
       "seeker",
       now,
     );

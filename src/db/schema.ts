@@ -324,6 +324,11 @@ export const messages = sqliteTable("messages", {
   readAt: text("read_at"),
   /** Who in the business's team sent it (ADR 0012); null for the job seeker's. */
   byName: text("by_name"),
+  /**
+   * A 中英文简历 the job seeker sent in the chat (#379, ADR 0037): the page as it was when sent, with the contact details
+   * they ticked. Null for a message.
+   */
+  resume: text("resume", { mode: "json" }).$type<ResumeDoc>(),
 });
 
 /** A request to swap contact details or profiles: the side that asks offers its own first (A24). */

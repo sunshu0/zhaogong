@@ -12,6 +12,7 @@ import { chatCandidateInsert } from "@/db/job-applications";
 import { normalizeEmail } from "@/components/seeker/session";
 import type { SharedConversation, SharedExchange, Side } from "@/lib/chat-server/shared-view";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
+import type { ResumeDoc } from "@/components/seeker/resume-doc";
 
 export type ConversationRow = typeof t.conversations.$inferSelect;
 
@@ -77,7 +78,14 @@ export async function listSharedConversations(reader: SharedReader): Promise<Sha
       updatedAt: c.updatedAt ?? c.createdAt,
       messages: messages
         .filter((m) => m.conversationId === c.id)
-        .map((m) => ({ from: m.from, text: m.text, sentAt: m.sentAt, byName: m.byName })),
+        .map((m) => ({
+          id: m.id,
+          from: m.from,
+          text: m.text,
+          sentAt: m.sentAt,
+          byName: m.byName,
+          ...(m.resume ? { resume: m.resume } : {}),
+        })),
       exchanges: exchanges
         .filter((x) => x.conversationId === c.id)
         .map((x): SharedExchange => ({
@@ -141,6 +149,32 @@ export async function findSharedConversation(
     return row?.employerId === reader.employerId ? row : undefined;
   }
   return undefined;
+}
+
+/**
+ * A 中英文简历 sent in one of the reader's conversations (#379, ADR 0037): the page as sent, when, and the business it
+ * went to; undefined when the message is not one, or not in a conversation of theirs.
+ */
+export async function resumeInChat(
+  reader: SharedReader,
+  messageId: number,
+): Promise<{ resume: ResumeDoc; sentAt: string; employerName: string } | undefined> {
+  if (!Number.isSafeInteger(messageId) || messageId < 1) return undefined;
+  const db = await database();
+  const [row] = await db
+    .select({ message: t.messages, conversation: t.conversations, employerName: t.employers.name })
+    .from(t.messages)
+    .innerJoin(t.conversations, eq(t.conversations.id, t.messages.conversationId))
+    .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
+    .where(eq(t.messages.id, messageId));
+  if (!row?.message.resume) return undefined;
+  const theirs =
+    reader.side === "seeker"
+      ? row.conversation.seekerEmail === normalizeEmail(reader.email)
+      : row.conversation.employerId === reader.employerId;
+  return theirs
+    ? { resume: row.message.resume, sentAt: row.message.sentAt, employerName: row.employerName }
+    : undefined;
 }
 
 /**
@@ -212,14 +246,16 @@ export async function addSharedMessage(
   text: string,
   byName: string | undefined,
   now = new Date(),
+  resume?: ResumeDoc,
 ): Promise<boolean> {
   const db = await database();
   const at = now.toISOString();
+  const row = { conversationId, from: side, text, sentAt: at, byName: byName ?? null, resume: resume ?? null };
   const { applied } = await guardedBatch(
     db,
     sql`(${db.select({ n: count() }).from(t.messages).where(eq(t.messages.conversationId, conversationId))}) < ${SHARED_MESSAGES_MAX}`,
     (allowed) => [
-      insertIf(db, t.messages, { conversationId, from: side, text, sentAt: at, byName: byName ?? null }, allowed),
+      insertIf(db, t.messages, row, allowed),
       chatCandidateInsert(db, conversationId, at, allowed),
       db
         .update(t.conversations)

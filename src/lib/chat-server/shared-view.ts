@@ -5,6 +5,7 @@
 import type { ChatRecord, Conversation, Message } from "@/components/seeker/chat-store";
 import { visibleExchange, type Exchange, type ExchangeKind, type ExchangePayload } from "@/lib/chat-consent";
 import type { AccountRole } from "@/lib/types";
+import { contactKeys, type ResumeDoc } from "@/components/seeker/resume-doc";
 import { formatDate } from "@/i18n/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -37,7 +38,8 @@ export type SharedConversation = {
   seekerReadAt: string | null;
   employerReadAt: string | null;
   updatedAt: string;
-  messages: { from: Side; text: string; sentAt: string; byName: string | null }[];
+  /** `resume`: a 中英文简历 the job seeker sent (#379), the page as sent. */
+  messages: { id: number; from: Side; text: string; sentAt: string; byName: string | null; resume?: ResumeDoc }[];
   exchanges: SharedExchange[];
 };
 
@@ -142,6 +144,12 @@ export function sharedPart(rows: SharedConversation[], side: Side, now: number, 
         text: m.text,
         time: chatTime(m.sentAt, now, lang),
       };
+      // A sent 中英文简历 (#379) reads as a card: its name and the contact details it carries, not the whole page (it
+      // opens at /messages/resume/<id>); the text is the reader's words for it, for the list and a report.
+      if (m.resume) {
+        message.resume = { id: m.id, name: m.resume.zh.name, contact: contactKeys(m.resume.contact) };
+        message.text = pick(chatMessages, lang).resumeCard.text(m.resume.zh.name);
+      }
       message.sentAt = m.sentAt;
       if (message.from === "me" && theirs && theirs >= m.sentAt) message.readAt = theirs;
       if (m.from === "employer" && m.byName) message.by = m.byName;

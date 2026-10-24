@@ -135,6 +135,7 @@
 | --- | --- | --- |
 | `open` | `conversation`：`{ kind: "employer", jobId }`（求职者找雇主）、`{ kind: "applicant", jobId, applicationId }`（雇主找申请人）或 `{ kind: "candidate", jobId, candidateId, name }`（雇主找候选人） | 职位须在招且没过期；雇主没被封禁，不能和自己的企业聊；找申请人、候选人只能用自己企业的职位。对方是账号时（求职者找雇主、申请人、主页在账号上的候选人 `local-…`）打开双方共用的对话（#110），名字以服务器为准；演示候选人的对话记在企业自己的记录里，已有 100 段时新的打不开，回答带 `notice`。回答的 `opened` 是要进的对话编号，打不开时没有 |
 | `send` | `conversationId`、`text` | 对话须存在；去掉首尾空白后 1–2000 字；自己记录里的对话已有 200 条新消息时不收，回答带 `notice`；共用对话已有 500 条消息时也不收（ADR 0015）。求职者在从职位页发起的对话（`employer:<企业>:<职位>`）里发消息时，给那个职位记一次「发起聊天」，每人每职位只记一次（#55） |
+| `resume` | `conversationId`、`resume`：浏览器按「中英文简历」页打印出来的那一份（`ResumeDoc`） | 求职者发自己的中英文简历（#379，ADR 0037）：只在和企业共用的对话里（`employer:<企业>:<职位>`，和 `send` 一样可以是第一句、会给职位记一次「发起聊天」），演示对话、企业一方发的都不收。服务器照分享链接的规则重新解析，没有称呼不收；联系方式照求职者勾的带上（邮箱也带，分享链接不带）。存成一条消息（`messages.resume`，文字 `[简历]`），占共用对话 500 条里的一条。双方看到的是卡片：`Message.resume` = `{ id, name, contact }`，`text` 是读的人语言里的「[简历] 名字」；整份只在 `/messages/resume/[id]` 给双方看 |
 | `read` | `conversationId` | 把这个对话标为已读（共用对话记在自己这一侧；企业一方团队里谁读都算） |
 | `request` | `conversationId`、`kind`：`contact` 或 `resume`、`payload` | 发起交换，发起方先附上自己的资料（ADR 0002） |
 | `answer` | `conversationId`、`exchangeId`、`status`：`accepted`、`rejected`、`cancelled`，同意时带 `payload` | 同意时必须附上自己的资料 |
@@ -386,6 +387,7 @@
 | `/about`、`/privacy`、`/terms` | 关于找工（#324）、隐私说明和使用条款（#323）；三页都从页脚进 | — |
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
 | `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |
+| `/messages/resume/[id]` | 聊天里发的中英文简历，发出时的样子，只读、可打印，不收录（#379，ADR 0037）；`id` 是那条消息的编号 | 登录；只给发简历的求职者和收简历的企业团队，别人看到 404 |
 | `/account/data` | 数据与账号：导出自己的数据、删除账号（#54，ADR 0009） | 登录 |
 | `/me/alerts` | 职位提醒：查看、改名、暂停、删除（#53） | 登录，求职者身份 |
 | `/profile/resume` | 中英文简历：预览、打印 / 存为 PDF、补填英文、签证、联系方式、分享链接（#86） | 登录，求职者身份 |
