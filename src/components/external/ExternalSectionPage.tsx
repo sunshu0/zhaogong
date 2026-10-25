@@ -18,7 +18,7 @@ import {
 import { externalWords, payLabel, sourceLine } from "@/lib/external-jobs/labels";
 import { SoftTag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
-import { cardClass, linkCardClass } from "@/components/ui/Card";
+import { linkCardClass, sheetClass } from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { TakedownNote } from "@/components/external/TakedownNote";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
@@ -111,7 +111,7 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
           <SaveAlert key={externalFilterToQuery(filter)} query={externalFilterToQuery(filter)} section={section} />
         </div>
         {jobs.length === 0 ? (
-          <div className={`space-y-2 text-body ${cardClass()}`}>
+          <div className={`space-y-2 text-body ${sheetClass()}`}>
             <p>{filtered ? t.noMatch : t.none}</p>
             {filtered && (
               <Link href={SECTION_PATHS[section]} className="text-brand underline underline-offset-2">

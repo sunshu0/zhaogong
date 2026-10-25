@@ -18,6 +18,15 @@ export function cardClass({ interactive = false, padded = true } = {}) {
 }
 
 /**
+ * Visual A (V2, ADR 0036): a block that opens nothing (an introduction, facts, an empty list) is a sheet: white with a
+ * thin line round it and no shadow, so the cards that do open something stand out. Split its parts with lines
+ * (`divide-y divide-border`), not with cards inside it.
+ */
+export function sheetClass({ padded = true } = {}) {
+  return ["rounded-card bg-surface ring-1 ring-border", padded && "p-4 lg:p-5"].filter(Boolean).join(" ");
+}
+
+/**
  * A card that one link opens (a job in a list): give it `group relative`, and stretch the link over it
  * (`after:absolute after:inset-0`); other buttons in it need `relative z-10`. It gives a little while the link is
  * pressed, its shadow deepens on hover, and it shows the link's focus ring.

@@ -22,7 +22,7 @@ import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay, placeName } from "@/components/seeker/format";
 import { requestTime } from "@/components/seeker/request-time";
 import { FULL_BLEED, SITE_CONTAINER } from "@/components/ui/wide";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { Skeleton, SkeletonList } from "@/components/ui/Skeleton";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { contentLang } from "@/i18n/lang";
@@ -103,7 +103,7 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
                 />
                 <button
                   type="submit"
-                  className="pressable h-full shrink-0 rounded-control bg-brand px-4 font-bold text-white hover:bg-brand-strong active:bg-brand-strong"
+                  className="pressable h-full shrink-0 rounded-control bg-accent px-4 font-bold text-white hover:bg-accent-strong active:bg-accent-strong"
                 >
                   {t.hero.submit}
                 </button>
@@ -179,7 +179,7 @@ async function NoScriptLanding() {
   return (
     <noscript>
       <div className={`${SITE_CONTAINER} py-4`}>
-        <div className={`text-body ${cardClass()}`}>
+        <div className={`text-body ${sheetClass()}`}>
           {stats.length > 0 && (
             <section aria-labelledby="no-js-stats-heading">
               <h2 id="no-js-stats-heading" className="font-semibold">
@@ -381,7 +381,7 @@ async function FeaturesBand() {
           {t.features.title}
         </h2>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <article aria-labelledby="ai-feature-heading" className={cardClass()}>
+          <article aria-labelledby="ai-feature-heading" className={sheetClass()}>
             <div className="flex items-start gap-3">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand text-white">
                 <FeatureIconSvg name="chat" />
@@ -397,10 +397,10 @@ async function FeaturesBand() {
               <ChatReplay messages={replay} />
             </div>
           </article>
-          {/* Round 19: each feature a card of its own. */}
-          <ul className="space-y-3">
+          {/* Visual A (V2): the features open nothing, so they are one sheet split by lines, not cards. */}
+          <ul className={`divide-y divide-border ${sheetClass({ padded: false })}`}>
             {features(lang).map((feature) => (
-              <li key={feature.title} className={`flex items-start gap-3 ${cardClass()}`}>
+              <li key={feature.title} className="flex items-start gap-3 p-4 lg:p-5">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
                   <FeatureIconSvg name={feature.icon} />
                 </span>

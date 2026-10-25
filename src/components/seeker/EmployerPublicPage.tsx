@@ -9,6 +9,7 @@ import { useSession } from "@/components/seeker/session-client";
 import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { verificationNote } from "@/components/seeker/job-facts";
 import { JobCard } from "@/components/seeker/JobCard";
+import { sheetClass } from "@/components/ui/Card";
 import type { EmployerActivity } from "@/lib/employer-activity";
 import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
 import { EmployerActivitySummary } from "@/components/seeker/ChatActivity";
@@ -39,8 +40,9 @@ export function EmployerPublicPage({
   const name = profile?.name.trim() || employer.name;
   const industries = [...new Set(jobs.map((job) => INDUSTRY_LABELS[job.industry][lang]))];
   const isOwnEmployer = session?.activeRole === "employer" && session.employerId === employer.id;
-  // Round 19: the page wears the sample's type and cards — a header card, the introduction and the credentials as
-  // cards side by side from 1024 px, and the jobs as the job list's cards.
+  // Visual A (V2): only the jobs are cards (they open the job); the header, the introduction and the credentials
+  // open nothing, so they are sheets (side by side from 1024 px). One main button: 选择职位沟通 in the header; each
+  // job's 立即沟通 is a secondary button, so a screen of jobs does not show a row of orange buttons.
   return (
     <PageTransition>
       <div className="type-app space-y-3">
@@ -159,7 +161,7 @@ export function EmployerPublicPage({
                     activity={activity}
                     headingLevel={3}
                     lang={lang}
-                    action={<StartEmployerChat employer={employer} job={job} />}
+                    action={<StartEmployerChat employer={employer} job={job} variant="secondary" />}
                   />
                 </li>
               ))}
@@ -173,7 +175,8 @@ export function EmployerPublicPage({
   );
 }
 
-const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
+/** A block that opens nothing (visual A, V2): a sheet, not a card. */
+const CARD = `${sheetClass({ padded: false })} p-4 lg:p-6`;
 
 function Info({ term, value, empty }: { term: string; value?: string; empty: string }) {
   return (

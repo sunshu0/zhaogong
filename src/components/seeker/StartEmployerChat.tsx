@@ -21,20 +21,24 @@ import { track } from "@/lib/events/track";
 export type ChatJob = Pick<Job, "id" | "employerId" | "titleZh" | "titleEn" | "status" | "expiresAt">;
 /**
  * 立即沟通: the job page's main action. `size="lg"` in the job page's action bar (Round 19); the label never wraps.
+ * `variant="secondary"` where it repeats on every job of a list (an employer's page), so the screen keeps one main
+ * button (visual A).
  */
 export function StartEmployerChat({
   employer,
   job,
   closed = false,
   size = "md",
+  variant = "primary",
 }: {
   employer: Pick<Employer, "id" | "name">;
   job: ChatJob;
   closed?: boolean;
   size?: ButtonSize;
+  variant?: "primary" | "secondary";
 }) {
   const t = useMessages(seekerJobsMessages).chat;
-  const chatButton = `${buttonClass("primary", { size })} font-semibold whitespace-nowrap`;
+  const chatButton = `${buttonClass(variant, { size })} font-semibold whitespace-nowrap`;
   const session = useSession();
   const hydrated = useHydrated();
   const router = useRouter();

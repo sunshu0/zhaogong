@@ -39,7 +39,9 @@ const decode = (id: string) => {
   }
 };
 
-const CARD = "rounded-card bg-surface p-4 shadow-card lg:p-6";
+/** Visual A (V2, like the job page): the job is one sheet, its parts split by thin lines; nothing here is a card. */
+const SHEET = "divide-y divide-border rounded-card bg-surface ring-1 ring-border";
+const SHEET_PART = "p-4 lg:px-7 lg:py-5";
 
 export default function ExternalJobPage({ params }: PageProps<"/[lang]/external/[id]">) {
   return (
@@ -64,8 +66,8 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
   const lang = await serverLang();
   const w = externalWords(lang);
   const t = w.job;
-  // Round 19, like the job page: a title card, the facts in a card, and the one action in a bar above the bottom
-  // navigation on phones (at the foot of the title card from 768 px), with room for it at the end of the page.
+  // Like the job page: one sheet with the title and the facts, and the one action in a bar above the bottom
+  // navigation on phones (at the foot of the title from 768 px), with room for it at the end of the page.
   return (
     <article aria-labelledby="external-title" className="space-y-3 pb-24 md:pb-0 lg:max-w-3xl">
       <TrackView event={{ name: "external_view", path: "/external/[id]", jobId: job.id }} />
@@ -80,54 +82,60 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
           {t.back(w.sections[section])}
         </Link>
       </p>
-      <header className={CARD}>
-        <div className="flex items-start justify-between gap-2">
-          <ul aria-label={w.list.tags} className="flex flex-wrap gap-1.5">
-            <li>
-              <SoftTag tone="neutral">{w.name}</SoftTag>
-            </li>
-            <li>
-              <SoftTag tone="brand">{w.fields[job.field]}</SoftTag>
-            </li>
-          </ul>
-          <SaveJobButton jobId={externalSaveKey(job.id)} title={job.title} />
-        </div>
-        <h1 id="external-title" lang="en" className="mt-2 text-title font-semibold break-words">
-          {job.title}
-        </h1>
-        <p className="mt-1 text-subtitle" lang="en">
-          {job.companyName}
-        </p>
-        <p className="mt-1 text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt, lang)}</p>
-        <div className="fixed inset-x-0 bottom-above-nav z-10 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
-          {isDemoCompany(job.companyId) ? (
-            <DemoApply label={t.demoApply} note={t.demoNote} jobId={job.id} />
-          ) : (
-            <ExternalApplyLink
-              href={job.url}
-              jobId={job.id}
-              className={`${buttonClass("primary", { block: true, size: "lg" })} font-semibold whitespace-nowrap md:w-auto`}
-            >
-              {t.apply}
-            </ExternalApplyLink>
-          )}
-        </div>
-      </header>
-      <section aria-labelledby="facts-heading" className={CARD}>
-        <h2 id="facts-heading" className="mb-3 text-subtitle font-semibold">
-          {t.factsHeading}
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
-          {factLines(job, lang).map((line) => (
-            <div key={line.label} className="min-w-0">
-              <dt className="text-meta text-muted">{line.label}</dt>
-              <dd className="mt-0.5 text-body font-medium break-words">{line.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-4 border-t border-border pt-3 text-meta text-muted">{t.factsNote}</p>
-        <p className="mt-1 text-meta text-muted">{t.applyNote}</p>
-      </section>
+      <div className={SHEET}>
+        <header className={SHEET_PART}>
+          <div className="flex items-start justify-between gap-2">
+            <ul aria-label={w.list.tags} className="flex flex-wrap gap-1.5">
+              <li>
+                <SoftTag tone="neutral">{w.name}</SoftTag>
+              </li>
+              <li>
+                <SoftTag tone="brand">{w.fields[job.field]}</SoftTag>
+              </li>
+            </ul>
+            <SaveJobButton jobId={externalSaveKey(job.id)} title={job.title} />
+          </div>
+          <h1
+            id="external-title"
+            lang="en"
+            className="mt-2 text-[1.75rem] leading-tight font-black break-words lg:text-[2.125rem]"
+          >
+            {job.title}
+          </h1>
+          <p className="mt-1 text-subtitle" lang="en">
+            {job.companyName}
+          </p>
+          <p className="mt-1 text-meta text-muted">{sourceLine(job.companyName, job.lastSeenAt, lang)}</p>
+          <div className="fixed inset-x-0 bottom-above-nav z-10 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md md:static md:z-auto md:mt-5 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
+            {isDemoCompany(job.companyId) ? (
+              <DemoApply label={t.demoApply} note={t.demoNote} jobId={job.id} />
+            ) : (
+              <ExternalApplyLink
+                href={job.url}
+                jobId={job.id}
+                className={`${buttonClass("primary", { block: true, size: "lg" })} font-semibold whitespace-nowrap md:w-auto`}
+              >
+                {t.apply}
+              </ExternalApplyLink>
+            )}
+          </div>
+        </header>
+        <section aria-labelledby="facts-heading" className={SHEET_PART}>
+          <h2 id="facts-heading" className="mb-3 text-subtitle font-semibold">
+            {t.factsHeading}
+          </h2>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
+            {factLines(job, lang).map((line) => (
+              <div key={line.label} className="min-w-0">
+                <dt className="text-meta text-muted">{line.label}</dt>
+                <dd className="mt-0.5 text-body font-medium break-words">{line.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 border-t border-border pt-3 text-meta text-muted">{t.factsNote}</p>
+          <p className="mt-1 text-meta text-muted">{t.applyNote}</p>
+        </section>
+      </div>
     </article>
   );
 }
