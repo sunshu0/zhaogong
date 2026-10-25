@@ -67,7 +67,7 @@ export function CandidatePublicPage() {
       ) : (
         <BackToChat href={chatHref} />
       )}
-      <Section look="app">
+      <Section look="sheet">
         <Group>
           <header className="flex items-start gap-4">
             <AvatarImage avatar={candidate.avatar} fallback={candidate.name} alt={t.avatar.alt(candidate.name)} large />
@@ -102,14 +102,14 @@ export function CandidatePublicPage() {
           </dl>
         </Group>
       </Section>
-      <Section look="app" id="candidate-about" title={c.about}>
+      <Section look="sheet" id="candidate-about" title={c.about}>
         <Group>
           <p lang={contentLang(candidate.bio)} className="whitespace-pre-line break-words text-body leading-relaxed">
             {candidate.bio || c.noBio}
           </p>
         </Group>
       </Section>
-      <Section look="app" id="candidate-preferences" title={c.preferences}>
+      <Section look="sheet" id="candidate-preferences" title={c.preferences}>
         <Group>
           <dl className="grid gap-4 text-body sm:grid-cols-2">
             <Fact term={c.skills} value={candidate.resume.skills} empty={c.toFill} />
@@ -158,7 +158,7 @@ function JobBar({ job, candidate, chatHref }: { job: Job; candidate: Candidate; 
   const { openCandidateChat } = useChat();
   const [opening, setOpening] = useState(false);
   return (
-    <Section look="app">
+    <Section look="sheet">
       <div className="flex flex-wrap items-center justify-between gap-3 py-group">
         <div className="min-w-0">
           <p className="text-meta text-muted">{c.forJob}</p>

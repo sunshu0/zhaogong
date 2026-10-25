@@ -135,7 +135,7 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
           <section
             key={item.id}
             aria-label={t.label(kinds[item.kind])}
-            className="mx-auto max-w-2xl space-y-3 rounded-card bg-surface p-4 text-body shadow-card"
+            className="mx-auto max-w-2xl space-y-3 rounded-card bg-surface p-4 text-body ring-1 ring-border"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">

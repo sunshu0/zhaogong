@@ -246,7 +246,7 @@ function MessageComposer({
         ref={send}
         type="submit"
         disabled={!draft.trim()}
-        className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-brand px-5 py-2 text-body font-medium text-white hover:bg-brand-strong active:bg-brand-strong disabled:opacity-50"
+        className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 py-2 text-body font-semibold text-white hover:bg-accent-strong active:bg-accent-strong disabled:opacity-50"
       >
         <Send aria-hidden="true" className="size-4" />
         {t.send}

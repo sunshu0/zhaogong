@@ -127,7 +127,7 @@ function MessageBubble({
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[85%] animate-pop-in rounded-card px-4 py-2.5 text-body leading-relaxed break-words lg:max-w-[75%] ${mine ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm bg-surface shadow-card"}`}
+        className={`max-w-[85%] animate-pop-in rounded-card px-4 py-2.5 text-body leading-relaxed break-words lg:max-w-[75%] ${mine ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm bg-surface ring-1 ring-border"}`}
       >
         {message.resume ? (
           <ResumeCardView card={message.resume} mine={mine} />

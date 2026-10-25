@@ -122,7 +122,7 @@ export function ChatPost({
                   <p
                     className={`animate-pop-in rounded-card px-3.5 py-2.5 text-body leading-relaxed whitespace-pre-line ${
                       m.from === "assistant"
-                        ? "rounded-tl-sm bg-surface shadow-card"
+                        ? "rounded-tl-sm bg-surface ring-1 ring-border"
                         : "rounded-tr-sm bg-brand text-white"
                     }`}
                   >

@@ -102,7 +102,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const done = !canAnimate || shown === messages.length;
 
   return (
-    <div ref={root} className="overflow-hidden rounded-card bg-background shadow-card">
+    <div ref={root} className="overflow-hidden rounded-card bg-background ring-1 ring-border">
       <div className="flex items-center justify-between gap-3 bg-surface px-4 py-2.5 shadow-[0_1px_0_var(--border)]">
         <p className="text-sm font-medium">{t.assistant}</p>
         <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">{t.tag}</span>
@@ -136,7 +136,9 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
             <div className="max-w-[85%]">
               <p
                 className={`rounded-card px-3.5 py-2.5 text-body leading-relaxed whitespace-pre-line ${
-                  m.from === "employer" ? "rounded-br-sm bg-brand text-white" : "rounded-bl-sm bg-surface shadow-card"
+                  m.from === "employer"
+                    ? "rounded-br-sm bg-brand text-white"
+                    : "rounded-bl-sm bg-surface ring-1 ring-border"
                 }`}
               >
                 {m.text}
@@ -155,7 +157,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
         ))}
         {typing && (
           <div className="flex justify-start">
-            <p className="flex gap-1 rounded-card rounded-bl-sm bg-surface px-3.5 py-3 shadow-card">
+            <p className="flex gap-1 rounded-card rounded-bl-sm bg-surface px-3.5 py-3 ring-1 ring-border">
               {[0, 150, 300].map((delay) => (
                 <span
                   key={delay}

@@ -10,8 +10,8 @@ type Heading = "h2" | "h3";
  * `look="app"` (Round 19): a card at every width — 16px corners and a soft shadow, no border, inside the page's
  * padding rather than edge to edge. Stack them with `space-y-section` as before.
  * `look="sheet"` (visual A, V2, ADR 0036): the same shape with a thin line instead of the shadow — a section opens
- * nothing, so it does not look like a card. The seekers' pages, 我的 (#377), the employers' pages, 防骗指南 and
- * 关于 (#392) use it; `app` is left on the moderators' pages and a candidate's page until their turn.
+ * nothing, so it does not look like a card. The seekers' pages, 我的 (#377), the employers' pages, 防骗指南,
+ * 关于 (#392) and a candidate's page use it; `app` is left on the moderators' pages until their turn.
  */
 export function Section({
   title,

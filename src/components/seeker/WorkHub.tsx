@@ -36,7 +36,7 @@ export function WorkHubFrame({ look, children }: { look?: "app"; children: React
       className={`${width} space-y-4 lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:items-start lg:gap-5 lg:space-y-0`}
     >
       <aside className="hidden lg:sticky lg:top-[4.5rem] lg:block">
-        <div className="rounded-card bg-surface p-3 shadow-card">
+        <div className="rounded-card bg-surface p-3 ring-1 ring-border">
           <div className="border-b border-border px-2 pb-3">
             <p className="text-xs font-medium text-brand">找工</p>
             <h2 className="mt-1 text-lg font-semibold">{t.title}</h2>

@@ -47,7 +47,7 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
 
       <div
         data-chat-workspace=""
-        className="grid h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] overflow-hidden rounded-card bg-surface shadow-card lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]"
+        className="grid h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] overflow-hidden rounded-card bg-surface ring-1 ring-border lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]"
       >
         <ConversationList
           conversations={conversations}
