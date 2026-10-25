@@ -43,7 +43,7 @@ function Edit({ jobId, me, country }: { jobId: string; me: EmployerIdentity; cou
   if (job === undefined) return <SkeletonList count={2} />;
   if (!job || !canEdit(job)) {
     return (
-      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 ring-1 ring-border text-center text-body text-muted">
         {job ? t.takenDown : t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           {t.backToJobs}

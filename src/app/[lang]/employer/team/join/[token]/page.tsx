@@ -62,7 +62,7 @@ async function Join({ params }: Pick<PageProps<"/[lang]/employer/team/join/[toke
 
   const here = `${JOIN_PATH}${token}`;
   return (
-    <section aria-labelledby="team-join-title" className="space-y-3 rounded-card bg-surface p-4 shadow-card">
+    <section aria-labelledby="team-join-title" className="space-y-3 rounded-card bg-surface p-4 ring-1 ring-border">
       <h1 id="team-join-title" className="text-title font-semibold">
         {t.title}
       </h1>

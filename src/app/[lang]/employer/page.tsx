@@ -33,7 +33,7 @@ export default async function EmployerHome() {
         </div>
       </section>
 
-      <Section look="app">
+      <Section look="sheet">
         <LinkList
           label={t.linksLabel}
           items={[

@@ -67,7 +67,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (
-      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 ring-1 ring-border text-center text-body text-muted">
         {t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           {t.backToManage}
@@ -93,7 +93,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </p>
       </div>
 
-      <Section look="app">
+      <Section look="sheet">
         <dl className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
@@ -110,7 +110,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section look="app" title={t.funnelTitle} description={t.funnelDescription}>
+      <Section look="sheet" title={t.funnelTitle} description={t.funnelDescription}>
         <dl aria-label={t.funnelTitle} className="grid grid-cols-3 gap-3 py-group text-center">
           {(
             [
@@ -127,7 +127,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
         </dl>
       </Section>
 
-      <Section look="app" title={t.byDayTitle} description={t.byDayDescription}>
+      <Section look="sheet" title={t.byDayTitle} description={t.byDayDescription}>
         <table className="w-full text-body">
           <caption className="sr-only">{t.tableCaption}</caption>
           <thead>

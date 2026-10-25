@@ -181,9 +181,9 @@ export function PreviewStep({
         <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.previewNeedsReview}</p>
       )}
       <DuplicateJobNote titleZh={preview.titleZh} />
-      {roles && <div className="rounded-card bg-surface p-4 shadow-card">{roles}</div>}
+      {roles && <div className="rounded-card bg-surface p-4 ring-1 ring-border">{roles}</div>}
       <JobDetail job={preview} employer={employer} now={previewAt} lang={lang}>
-        <section className="rounded-card bg-surface p-4 shadow-card">
+        <section className="rounded-card bg-surface p-4 ring-1 ring-border">
           <h2 className="text-subtitle font-semibold">{t.previewContactTitle}</h2>
           <p className="mt-1 text-body text-muted">
             {preview.contactPublic ? t.previewContactPublic(kinds) : t.previewContactPrivate}

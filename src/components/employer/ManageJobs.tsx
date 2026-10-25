@@ -12,7 +12,7 @@ import { useEmployerProfile } from "@/components/employer/use-employer";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useMyJobs } from "@/components/employer/use-my-jobs";
 import { NO_NUMBERS } from "@/components/employer/job-card";
-import { APP_CARD, noticeClass } from "@/components/employer/app-style";
+import { APP_SHEET, noticeClass } from "@/components/employer/app-style";
 import { ButtonLink } from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
@@ -202,7 +202,7 @@ function JobsInTab({
   const shown = ready.jobs.filter((job: Job) => tab === "all" || jobPhase(job, ready.now) === tab);
   if (shown.length === 0) {
     return (
-      <p className={`${APP_CARD} py-10 text-center text-body text-muted`}>
+      <p className={`${APP_SHEET} py-10 text-center text-body text-muted`}>
         {query.trim()
           ? ready.jobs.length === 0
             ? t.noMatch(query.trim())
@@ -215,10 +215,10 @@ function JobsInTab({
   }
 
   return (
-    // Round 19: each job is a card of its own (16px corners, soft shadow), 12px apart.
+    // Visual A (ADR 0036): each job is a sheet of its own, 12px apart; it opens nothing as a whole.
     <ul className="space-y-3">
       {shown.map((job) => (
-        <li key={job.id} className={APP_CARD}>
+        <li key={job.id} className={APP_SHEET}>
           <ManagedJob
             job={job}
             employer={employer}

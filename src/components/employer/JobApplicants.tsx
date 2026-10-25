@@ -110,7 +110,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
   if (loaded?.email !== me.email) return <SkeletonList count={2} />;
   if (!loaded.data) {
     return (
-      <div className="rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted">
+      <div className="rounded-card bg-surface px-4 py-8 ring-1 ring-border text-center text-body text-muted">
         {t.notFound}
         <Link href="/employer/jobs" className="mt-3 block text-brand underline">
           {t.backToJobs}
@@ -186,7 +186,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
       )}
 
       {applicants.length === 0 ? (
-        <Section look="app">
+        <Section look="sheet">
           <p className="py-group text-center text-body text-muted">{t.empty}</p>
         </Section>
       ) : (
@@ -194,7 +194,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           <ApplicantFilterTabs applicants={applicants} value={filter} onChange={setFilter} />
           <TabPanel idBase={FILTER_ID_BASE} value={filter}>
             {filterApplicants(applicants, filter).length === 0 ? (
-              <Section look="app">
+              <Section look="sheet">
                 <p className="py-group text-center text-body text-muted">{t.emptyInFilter}</p>
               </Section>
             ) : (
@@ -270,7 +270,7 @@ function ApplicantCard({
   const name = a.name || t.someone;
   const when = formatDate(a.appliedAt, lang, appliedAtOptions(lang));
   return (
-    <article aria-label={t.cardLabel(name)} className="rounded-card bg-surface p-4 shadow-card lg:p-5">
+    <article aria-label={t.cardLabel(name)} className="rounded-card bg-surface p-4 ring-1 ring-border lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
@@ -312,9 +312,10 @@ function ApplicantCard({
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* ADR 0036: the same button on every applicant, so a secondary one (one main button a screen). */}
         <button
           type="button"
-          className={buttonClass("primary")}
+          className={buttonClass("secondary")}
           {...busyProps(opening)}
           onClick={async () => {
             // The conversation is the one the job seeker has too (#110); its id comes from the server.

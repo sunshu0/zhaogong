@@ -123,7 +123,7 @@ function InviteCard({
     <form
       onSubmit={submit}
       aria-label={t.cardLabel(invite.employerName)}
-      className="space-y-2 rounded-card bg-surface p-4 shadow-card"
+      className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border"
     >
       {/* One sentence from the dictionary (ADR 0023): the business's name leads it, in its own lang. */}
       <p className="text-body">

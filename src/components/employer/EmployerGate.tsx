@@ -6,7 +6,7 @@ import { employerSignUpHref } from "@/components/seeker/identity";
 import { setIdentity, useHydrated, useSession } from "@/components/seeker/session-client";
 import { Button } from "@/components/ui/Button";
 import { SkeletonList } from "@/components/ui/Skeleton";
-import { APP_CARD } from "@/components/employer/app-style";
+import { APP_SHEET } from "@/components/employer/app-style";
 import { useMessages } from "@/i18n/client";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
 
@@ -46,7 +46,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   if (!hydrated) return skeleton;
   if (!me) {
     return (
-      <p role="status" className={`${APP_CARD} py-6 text-center text-body text-muted`}>
+      <p role="status" className={`${APP_SHEET} py-6 text-center text-body text-muted`}>
         {t.needsEmployer}
         <Link href={signUp} className="ml-1 text-brand underline">
           {t.noRedirect}
@@ -56,7 +56,7 @@ export function EmployerGate({ next, children }: { next: string; children: (me: 
   }
   if (seekerNow) {
     return (
-      <div className={`${APP_CARD} py-6 text-center text-body`}>
+      <div className={`${APP_SHEET} py-6 text-center text-body`}>
         <p>{t.seekerNow}</p>
         <Button
           loading={switching}

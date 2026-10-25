@@ -23,7 +23,7 @@ import { inputClass } from "@/components/ui/input-class";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { employerCommonMessages } from "@/i18n/messages/employer-common";
 import { Section } from "@/components/ui/Section";
-import { APP_CARD } from "@/components/employer/app-style";
+import { APP_SHEET } from "@/components/employer/app-style";
 import { Pay } from "@/components/ui/Pay";
 import { formatEmploymentTypes } from "@/lib/employment-types";
 import { regionById } from "@/config/countries";
@@ -93,7 +93,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
         <p className="mt-1 text-body text-muted">{t.intro}</p>
       </header>
       {!job ? (
-        <Section look="app">
+        <Section look="sheet">
           <div className="space-y-3 py-10 text-center">
             <h2 className="text-subtitle font-semibold">{t.noOpenJobs}</h2>
             <ButtonLink href="/employer/post">{t.postJob}</ButtonLink>
@@ -106,7 +106,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
         </Section>
       ) : (
         <>
-          <section aria-label={t.filtersLabel} className={`${APP_CARD} space-y-4`}>
+          <section aria-label={t.filtersLabel} className={`${APP_SHEET} space-y-4`}>
             <Select
               name="job"
               label={t.jobLabel}
@@ -157,7 +157,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
           </section>
           {directory.failed && <LoadFailed what={names.candidates} onRetry={directory.reload} />}
           <Section
-            look="app"
+            look="sheet"
             title={t.listTitle(matches.length)}
             action={<span className="text-meta text-muted">{t.sortNote}</span>}
           >

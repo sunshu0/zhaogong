@@ -56,7 +56,7 @@ export function TeamLinks({
       <h2 id="team-links" className="font-semibold">
         {t.heading}
       </h2>
-      <div className="space-y-2 rounded-card bg-surface p-4 shadow-card">
+      <div className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border">
         <p className="text-meta text-muted">{t.hint(LINK_DAYS)}</p>
         {error && (
           <p role="alert" className="text-body text-danger">
@@ -97,7 +97,7 @@ export function TeamLinks({
           <h3 id="team-open-links" className="text-body font-medium">
             {t.openHeading}
           </h3>
-          <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
+          <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
             {team.links.map((link) => (
               <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span className="text-body break-all">

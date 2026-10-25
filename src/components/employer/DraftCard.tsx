@@ -40,7 +40,7 @@ export function DraftCard({
     .join(" · ");
 
   return (
-    <section aria-label={t.cardLabel} className="rounded-card bg-surface p-4 shadow-card text-body">
+    <section aria-label={t.cardLabel} className="rounded-card bg-surface p-4 ring-1 ring-border text-body">
       <DraftTitle draft={draft} />
       {summary && <p className="mt-1 text-muted">{summary}</p>}
       <DraftRoles draft={draft} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTION_BUTTON, APP_CARD, BACK_LINK, BAR_TEXT_ACTION, CHOICE_PILL, noticeClass } from "./app-style";
+import { ACTION_BUTTON, APP_SHEET, BACK_LINK, BAR_TEXT_ACTION, CHOICE_PILL, noticeClass } from "./app-style";
 import { pillTab } from "./Tabs";
 
 const classes = (s: string) => s.split(/\s+/);
@@ -7,9 +7,9 @@ const classes = (s: string) => s.split(/\s+/);
 // Round 19 rules for the employer pages (docs/design-system.md): cards with 16px corners and a shadow but no border,
 // controls with 12px corners (pills round), 44px targets that answer a press.
 describe("the employer pages' Round 19 classes", () => {
-  it("draw a card with 16px corners and a shadow, no border", () => {
-    expect(classes(APP_CARD)).toEqual(expect.arrayContaining(["rounded-card", "shadow-card", "bg-surface"]));
-    expect(APP_CARD).not.toMatch(/\bborder\b/);
+  it("draw a block that opens nothing as a sheet: 16px corners and a thin line, no shadow (ADR 0036)", () => {
+    expect(classes(APP_SHEET)).toEqual(expect.arrayContaining(["rounded-card", "ring-1", "ring-border", "bg-surface"]));
+    expect(APP_SHEET).not.toMatch(/shadow/);
   });
 
   it("give every small action, choice and link a 44px target that answers a press", () => {

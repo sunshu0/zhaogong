@@ -116,7 +116,7 @@ function Team({ me }: { me: EmployerIdentity }) {
         <h2 id="team-members" className="font-semibold">
           {t.membersHeading(team.members.length)}
         </h2>
-        <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
+        <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
           {team.members.map((member) => {
             const who = member.name ?? member.email;
             // 已把 <name> 设为管理员。 — the name is the person's own, so it carries its own lang.
@@ -189,7 +189,7 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
     <form
       onSubmit={submit}
       aria-labelledby="team-my-name"
-      className="space-y-2 rounded-card bg-surface p-4 shadow-card"
+      className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border"
     >
       <h2 id="team-my-name" className="font-semibold">
         {t.heading}
@@ -322,7 +322,7 @@ function Invite({
       <h2 id="team-invite" className="font-semibold">
         {t.heading}
       </h2>
-      <form onSubmit={submit} className="space-y-2 rounded-card bg-surface p-4 shadow-card">
+      <form onSubmit={submit} className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border">
         <p className="text-meta text-muted">{t.hint}</p>
         <label className="block space-y-1 text-body">
           <span>{t.emailLabel}</span>
@@ -362,7 +362,7 @@ function Invite({
           <h3 id="team-pending" className="text-body font-medium">
             {t.pendingHeading}
           </h3>
-          <ul className="divide-y divide-border rounded-card bg-surface shadow-card">
+          <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
             {team.invites.map((invite) => (
               <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span className="text-body break-all">

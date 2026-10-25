@@ -3,8 +3,11 @@
  * shared components (Button, Card, Select, Checkbox) cover most; these are for the pieces they do not.
  */
 
-/** A block of a page: 16px corners and a soft shadow on white, no border. */
-export const APP_CARD = "rounded-card bg-surface p-4 shadow-card lg:p-5";
+/**
+ * A block of a page that opens nothing (a form, an empty list, a job's own panel): a sheet (visual A, ADR 0036) —
+ * 16px corners, white with a thin line round it and no shadow, as `sheetClass()` draws it.
+ */
+export const APP_SHEET = "rounded-card bg-surface p-4 ring-1 ring-border lg:p-5";
 
 /** A small outlined action in a card (查看, 续期, 保存): 44px high, 12px corners, answers a press. */
 export const ACTION_BUTTON =

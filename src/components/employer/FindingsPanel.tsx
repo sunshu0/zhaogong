@@ -72,7 +72,7 @@ export function FindingsPanel({ findings, missing }: { findings: Finding[]; miss
   const labels = t.fields as Partial<Record<keyof JobDraft, string>>;
   const clean = findings.length === 0 && missing.length === 0;
   return (
-    <section className="rounded-card bg-surface p-4 shadow-card">
+    <section className="rounded-card bg-surface p-4 ring-1 ring-border">
       <h2 className="font-medium">{t.title}</h2>
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {clean

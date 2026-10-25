@@ -117,7 +117,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
       <BadgeMeaning />
 
       {canApply && isMember && (
-        <p className="rounded-card bg-surface p-4 text-body shadow-card">
+        <p className="rounded-card bg-surface p-4 text-body ring-1 ring-border">
           {t.adminOnlyBefore}
           {/* The admins' names are their own words. */}
           <span lang={contentLang(admins)}>{admins}</span>
@@ -260,7 +260,14 @@ function ApplyForm({
             className={`${inputClass()} min-w-0 flex-1`}
           />
           {/* #202: disabled only while there is nothing to search for; a search on its way keeps the focus. */}
-          <Button type="submit" loading={pending && !chosen} disabled={!query.trim()} {...busyProps(pending)}>
+          {/* ADR 0036: one main button a screen — the details form's 提交 once a business is chosen. */}
+          <Button
+            type="submit"
+            variant={chosen ? "secondary" : "primary"}
+            loading={pending && !chosen}
+            disabled={!query.trim()}
+            {...busyProps(pending)}
+          >
             {t.search}
           </Button>
         </div>
@@ -283,7 +290,7 @@ function ApplyForm({
       {listed && found && (
         <ul className="space-y-2">
           {found.results.map((entry) => (
-            <li key={entry.nzbn} className="rounded-card bg-surface p-4 shadow-card">
+            <li key={entry.nzbn} className="rounded-card bg-surface p-4 ring-1 ring-border">
               <p className="font-medium" lang="en">
                 {entry.legalName}
               </p>
@@ -312,7 +319,7 @@ function ApplyForm({
       )}
 
       {chosen && (
-        <form onSubmit={submit} className="space-y-3 rounded-card bg-surface p-4 shadow-card">
+        <form onSubmit={submit} className="space-y-3 rounded-card bg-surface p-4 ring-1 ring-border">
           <h2 ref={detailsHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
             {t.whoTitle}
           </h2>
@@ -417,7 +424,7 @@ function Field({
 function BadgeMeaning() {
   const t = useMessages(employerVerifyMessages).meaning;
   return (
-    <section className="space-y-3 rounded-card bg-surface p-4 shadow-card text-body leading-relaxed">
+    <section className="space-y-3 rounded-card bg-surface p-4 ring-1 ring-border text-body leading-relaxed">
       <div>
         <h2 className="font-medium text-ok">{t.isTitle}</h2>
         <p className="mt-1">{t.isBody}</p>

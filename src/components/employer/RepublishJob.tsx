@@ -26,7 +26,7 @@ import { formatDate } from "@/i18n/format";
 import { contentLang } from "@/i18n/lang";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
-const BOX = "rounded-card bg-surface px-4 py-8 shadow-card text-center text-body text-muted";
+const BOX = "rounded-card bg-surface px-4 py-8 ring-1 ring-border text-center text-body text-muted";
 
 /**
  * 重新发布 (#69): a job that closed more than 14 days ago, as a new draft with its content; 复制为新职位 (#190): the

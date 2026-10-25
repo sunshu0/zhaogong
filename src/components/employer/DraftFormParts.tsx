@@ -55,7 +55,7 @@ const numberOrUndefined = (value: string) => (value === "" ? undefined : Number(
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-4 rounded-card bg-surface p-4 shadow-card lg:p-5">
+    <section className="space-y-4 rounded-card bg-surface p-4 ring-1 ring-border lg:p-5">
       <h2 className="text-subtitle font-semibold">{title}</h2>
       {children}
     </section>
