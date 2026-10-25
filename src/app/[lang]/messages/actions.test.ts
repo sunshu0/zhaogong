@@ -15,6 +15,7 @@ import { EMPTY_CHAT, addSentMessage, chatView, type ChatRecord } from "@/compone
 import { addApplication } from "@/db/job-applications";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { teamChatScope } from "@/lib/chat-server/identity";
+import { mergeSharedChanges } from "@/lib/chat-server/shared-view";
 import { SHARED_MESSAGES_MAX, resumeInChat } from "@/db/conversations";
 import { database } from "@/db/ready";
 import * as t from "@/db/schema";
@@ -29,7 +30,7 @@ const jar: CookieJar = {
 };
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 
-const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myNotificationReads } =
+const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myChatChanges, myNotificationReads } =
   await import("@/app/[lang]/messages/actions");
 type ChatChange = Parameters<typeof changeMyChat>[0];
 const { myAlertNotifications } = await import("@/app/[lang]/me/alerts/actions");
@@ -756,5 +757,136 @@ describe("chats both sides share (#110)", () => {
     const seen = (await my())!;
     expect(seen.extra.map((c) => c.job)).toEqual([job.id]);
     expect(seen.added[seen.extra[0].id].map((m) => m.text)).toEqual(["先到的消息"]);
+  });
+
+  describe("the chat page's read every 10 seconds sends only what changed (#369, ADR 0040)", () => {
+    type Changes = Extract<Awaited<ReturnType<typeof myChatChanges>>, { shared: unknown }>;
+    type Whole = Extract<Awaited<ReturnType<typeof myChatChanges>>, { record: unknown }>;
+    const at = (minute: number) => vi.setSystemTime(new Date(Date.UTC(2026, 9, 25, 2, minute))); // 15:xx in Auckland
+
+    /** One browser's copy, read and kept as chat-client.ts does. */
+    function browser() {
+      let record: ChatRecord | undefined;
+      let sync: { cursor?: Whole["cursor"]; own?: ChatRecord; ownTag?: string } = {};
+      return {
+        get record() {
+          return record!;
+        },
+        async read(): Promise<Changes | Whole> {
+          const since = sync.cursor ? { cursor: sync.cursor, ownTag: sync.ownTag } : null;
+          const answer = (await myChatChanges(since))!;
+          if ("record" in answer) {
+            record = answer.record;
+            sync = { ...sync, cursor: answer.cursor };
+          } else {
+            const own = answer.own ?? sync.own!;
+            record = mergeSharedChanges(record!, own, answer.shared);
+            sync = { cursor: answer.cursor, own, ownTag: answer.ownTag };
+          }
+          return answer;
+        },
+      };
+    }
+
+    async function talking(tag: string) {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      at(0);
+      const { shop, boss, job } = await business(tag);
+      const seeker = `${tag}.seeker@example.com`;
+      const seekerId = `employer:${shop.id}:${job.id}`;
+      await signedIn(seeker);
+      await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+      await change({ type: "send", conversationId: seekerId, text: "你好，还招人吗？" });
+      // Another chat of the job seeker's, with another job, that stays as it is.
+      const other = await business(`${tag}2`);
+      await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: other.job.id } });
+      await change({ type: "send", conversationId: `employer:${other.shop.id}:${other.job.id}`, text: "在吗" });
+      await signedIn(boss, "employer");
+      const id = (await my())!.extra.find((c) => c.job === job.id)!.id;
+      return { boss, seeker, seekerId, id, job };
+    }
+
+    it("a new device's first read gets everything, with a cursor; then a quiet chat answers with almost nothing", async () => {
+      const { seeker } = await talking("sync1");
+      await signedIn(seeker);
+      const page = browser();
+      at(2);
+      const first = (await page.read()) as Whole;
+      expect(first.record).toEqual(await my());
+      expect(first.cursor).toEqual({ messageId: expect.any(Number), at: expect.any(String) });
+
+      at(5); // past the cursor's time, nothing new
+      const second = (await page.read()) as Changes;
+      expect(second.shared.part.conversations).toEqual([]);
+      expect(second.own).toEqual(EMPTY_CHAT); // the first changes name the own record
+      const third = (await page.read()) as Changes;
+      expect(third.own).toBeUndefined(); // the browser has it
+      expect(third.shared.order).toHaveLength(2);
+      expect(JSON.stringify(third).length).toBeLessThan(400);
+      expect(page.record).toEqual(await my());
+    });
+
+    it("a message in between comes alone, with the business's read; the copy is then what a full read gives", async () => {
+      const { boss, seeker, seekerId, id } = await talking("sync2");
+      await signedIn(seeker);
+      const page = browser();
+      at(2);
+      await page.read();
+      at(5);
+      await page.read();
+
+      await signedIn(boss, "employer");
+      at(6);
+      await change({ type: "read", conversationId: id });
+      await change({ type: "send", conversationId: id, text: "还招，明天来面试吧" });
+      await signedIn(seeker);
+      at(7);
+      const changes = (await page.read()) as Changes;
+      expect(changes.shared.part.conversations.map((c) => c.id)).toEqual([seekerId]);
+      expect(changes.shared.part.added[seekerId].map((m) => m.text)).toEqual(["还招，明天来面试吧"]);
+      expect(page.record).toEqual(await my());
+      expect(page.record.added[seekerId][0].readAt).toBeTruthy(); // the business read the first one
+
+      at(9);
+      expect(((await page.read()) as Changes).shared.part.conversations).toEqual([]);
+    });
+
+    it("an exchange answered and the other side's own chats come through too", async () => {
+      const { boss, seeker, seekerId, id, job } = await talking("sync3");
+      await signedIn(seeker);
+      const offer = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0003" }] };
+      await change({ type: "request", conversationId: seekerId, kind: "contact", payload: offer });
+
+      await signedIn(boss, "employer");
+      const page = browser();
+      at(2);
+      await page.read();
+      at(5);
+      await page.read();
+      await signedIn(seeker);
+      at(6);
+      const exchangeId = (await my())!.exchanges[seekerId][0].id;
+      await change({ type: "answer", conversationId: seekerId, exchangeId, status: "cancelled" });
+      await signedIn(boss, "employer");
+      at(7);
+      await page.read();
+      expect(page.record).toEqual(await my());
+      expect(page.record.exchanges[id][0].status).toBe("cancelled");
+      expect(page.record.extra.find((c) => c.job === job.id)?.id).toBe(id);
+    });
+
+    it("reads everything again for a cursor that is not this database's, or one that is not a cursor", async () => {
+      const { seeker } = await talking("sync4");
+      await signedIn(seeker);
+      for (const since of [
+        { cursor: { messageId: Number.MAX_SAFE_INTEGER, at: "2026-10-25T02:00:00.000Z" } },
+        { cursor: { messageId: -1, at: "2026-10-25T02:00:00.000Z" } },
+        { cursor: { messageId: 1, at: "昨天" } },
+        "everything",
+      ]) {
+        const answer = await myChatChanges(since);
+        expect(answer && "record" in answer && answer.record).toEqual(await my());
+      }
+    });
   });
 });

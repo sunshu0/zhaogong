@@ -6,7 +6,7 @@
 // the server's clock and ids. A chat between a job seeker account and a business is one conversation both sides
 // read and write (#110, ADR 0015): the server puts it into each side's record as it answers, and writes changes to
 // it into the conversations tables; demo chats and reports stay in the identity's own record.
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { getEmployer, getJob } from "@/lib/data";
 import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
@@ -18,14 +18,23 @@ import {
   addSharedMessage,
   answerSharedExchange,
   findSharedConversation,
+  listSharedChanges,
   listSharedConversations,
   markSharedRead,
+  newestMessageId,
   openSharedConversation,
   SHARED_MESSAGES_MAX,
   type ConversationRow,
   type SharedReader,
 } from "@/db/conversations";
-import { parseSharedId, sharedConversationId, sharedPart, withShared } from "@/lib/chat-server/shared-view";
+import {
+  parseSharedId,
+  sharedChanges,
+  sharedConversationId,
+  sharedPart,
+  withShared,
+  type SharedChanges,
+} from "@/lib/chat-server/shared-view";
 import { serverNotifications } from "@/app/[lang]/messages/server-notifications";
 import { requestLang } from "@/i18n/server";
 import { pick } from "@/i18n/messages";
@@ -100,10 +109,40 @@ export type ChatChange =
  * What the server answers with: the records and the identity they belong to (the browser's copy may name another
  * identity while a switch or sign-in is under way; it keeps an answer only under the scope it is for). After an
  * `open`, `opened` is the id of the conversation to show. `notice`, in the visitor's language, says why a message
- * or an import or a report was not taken (a size: SHARED_MESSAGES_MAX, own-limits.ts).
+ * or an import or a report was not taken (a size: SHARED_MESSAGES_MAX, own-limits.ts). `cursor`, in an answer to
+ * myChatChanges, is where the next read of changes starts.
  */
-export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string; notice?: string };
+export type ChatSnapshot = { scope: string; record: ChatRecord; opened?: string; notice?: string; cursor?: ChatCursor };
 export type ReadsSnapshot = { scope: string; ids: string[] };
+
+/**
+ * Where a read of changes starts (#369, ADR 0040): the newest message id the browser has, and a time a little before
+ * its last read began; conversations read or written to after it count as changed.
+ */
+export type ChatCursor = { messageId: number; at: string };
+
+/**
+ * The changes since a cursor: the shared conversations' (SharedChanges), and the own record only when it is not the
+ * one the browser has (`ownTag` names it).
+ */
+export type ChatChanges = {
+  scope: string;
+  cursor: ChatCursor;
+  ownTag: string;
+  own?: ChatRecord;
+  shared: SharedChanges;
+};
+
+/**
+ * How far before a read its cursor's time is: a write that took its time before the read began but was not in the
+ * database yet when it read is still after the cursor. A changed conversation may come twice; that does no harm.
+ */
+const CURSOR_SLACK_MS = 30_000;
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const TAG = /^[A-Za-z0-9_-]{1,64}$/;
+
+const cursorAt = () => new Date(Date.now() - CURSOR_SLACK_MS).toISOString();
+const tagOf = (own: ChatRecord) => createHash("sha256").update(JSON.stringify(own)).digest("base64url").slice(0, 22);
 
 /** Whose shared conversations the identity sees: its own as a job seeker, its business's as an employer. */
 function readerOf(me: ChatIdentity): SharedReader | null {
@@ -111,13 +150,13 @@ function readerOf(me: ChatIdentity): SharedReader | null {
   return me.session.employer ? { side: "employer", employerId: me.session.employer.id } : null;
 }
 
-/** The identity's own record with the conversations it shares in it. */
-async function withSharedOf(me: ChatIdentity, own: ChatRecord): Promise<ChatRecord> {
+/** The identity's own record with the conversations it shares in it; with `upTo`, their messages up to that id. */
+async function withSharedOf(me: ChatIdentity, own: ChatRecord, upTo?: number): Promise<ChatRecord> {
   const reader = readerOf(me);
   if (!reader) return own;
   return withShared(
     own,
-    sharedPart(await listSharedConversations(reader), reader.side, Date.now(), await requestLang()),
+    sharedPart(await listSharedConversations(reader, upTo), reader.side, Date.now(), await requestLang()),
   );
 }
 
@@ -140,6 +179,47 @@ export async function myChat(): Promise<ChatSnapshot | null> {
   const me = await currentChatIdentity();
   if (!me) return null;
   return snapshot(me, (await readChat(me)) ?? EMPTY_CHAT);
+}
+
+/**
+ * The chat page's read every 10 seconds (#369, ADR 0040): what changed since `since` (the last answer's cursor, and
+ * the tag of the own record the browser has), so a quiet chat answers with almost nothing however many conversations
+ * it has. Without a cursor the browser has (a new page, a new device, a full answer kept since), the whole records,
+ * with a cursor to go on from.
+ */
+export async function myChatChanges(since: unknown): Promise<ChatSnapshot | ChatChanges | null> {
+  const me = await currentChatIdentity();
+  if (!me) return null;
+  const own = (await readChat(me)) ?? EMPTY_CHAT;
+  const at = cursorAt();
+  const upTo = await newestMessageId();
+  const asked = parseSince(since);
+  // A cursor past the newest message is not from this database (one reset since): read everything.
+  if (!asked || asked.cursor.messageId > upTo)
+    return { scope: me.scope, record: await withSharedOf(me, own, upTo), cursor: { messageId: upTo, at } };
+  const reader = readerOf(me);
+  const { heads, changed } = reader ? await listSharedChanges(reader, asked.cursor, upTo) : { heads: [], changed: [] };
+  const ownTag = tagOf(own);
+  return {
+    scope: me.scope,
+    cursor: { messageId: upTo, at },
+    ownTag,
+    ...(asked.ownTag === ownTag ? {} : { own }),
+    shared: sharedChanges(heads, changed, reader?.side ?? "seeker", Date.now(), await requestLang()),
+  };
+}
+
+function parseSince(since: unknown): { cursor: ChatCursor; ownTag?: string } | undefined {
+  if (!since || typeof since !== "object") return undefined;
+  const { cursor, ownTag } = since as { cursor?: Partial<ChatCursor>; ownTag?: unknown };
+  if (!cursor || typeof cursor !== "object") return undefined;
+  const { messageId, at } = cursor;
+  if (!Number.isSafeInteger(messageId) || messageId! < 0) return undefined;
+  if (typeof at !== "string" || !ISO_TIME.test(at) || Number.isNaN(Date.parse(at))) return undefined;
+  return {
+    cursor: { messageId: messageId!, at },
+    ...(typeof ownTag === "string" && TAG.test(ownTag) ? { ownTag } : {}),
+  };
 }
 
 /** The browser's outbox entry for a change (chat-outbox.ts): its id, and the identity it was made in. */

@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
-import { changeMyChat, importMyChat, myChat, type ChatChange, type ChatSnapshot } from "@/app/[lang]/messages/actions";
+import {
+  changeMyChat,
+  importMyChat,
+  myChatChanges,
+  type ChatChange,
+  type ChatChanges,
+  type ChatCursor,
+  type ChatSnapshot,
+} from "@/app/[lang]/messages/actions";
+import { mergeSharedChanges } from "@/lib/chat-server/shared-view";
 import { createLocalStore } from "@/components/seeker/local-store";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope, stringifyStoredIdentities } from "@/components/seeker/identity-scope";
@@ -79,8 +88,16 @@ function setUnreached(scope: string, on: boolean) {
 }
 
 /**
+ * Per identity, where the next read of changes starts (#369, ADR 0040), for the copy kept last, and the own record
+ * the last changes came with (and its tag). Only for this page: a new page reads everything once.
+ */
+type Sync = { cursor?: ChatCursor; own?: ChatRecord; ownTag?: string };
+const syncs = new Map<string, Sync>();
+
+/**
  * Keeps the server's answer as the copy of the identity it is for. The cookie decides which identity the server
- * answers for; during a switch or sign-in that may not be the one asked about, so the answer names its scope.
+ * answers for; during a switch or sign-in that may not be the one asked about, so the answer names its scope. Its
+ * cursor goes with it; an answer without one (to a change) means the next read is a whole one.
  */
 function keep(snapshot: ChatSnapshot | null) {
   if (!snapshot) return;
@@ -88,6 +105,24 @@ function keep(snapshot: ChatSnapshot | null) {
     const current = parseChats(storage.getItem(CHAT_KEY));
     storage.setItem(CHAT_KEY, stringifyStoredIdentities({ ...current, [snapshot.scope]: snapshot.record }));
   });
+  syncs.set(snapshot.scope, { ...syncs.get(snapshot.scope), cursor: snapshot.cursor });
+}
+
+/** Applies changes to the kept copy; false when there is none to apply them to, or no own record to go with. */
+function keepChanges(changes: ChatChanges, sync: Sync | undefined): boolean {
+  const own = changes.own ?? sync?.own;
+  if (!own) return false;
+  const kept =
+    store.update((storage) => {
+      const current = parseChats(storage.getItem(CHAT_KEY));
+      const cached = current[changes.scope];
+      if (!cached) return false;
+      const record = mergeSharedChanges(cached, own, changes.shared);
+      storage.setItem(CHAT_KEY, stringifyStoredIdentities({ ...current, [changes.scope]: record }));
+      return true;
+    }) === true;
+  if (kept) syncs.set(changes.scope, { cursor: changes.cursor, own, ownTag: changes.ownTag });
+  return kept;
 }
 
 const isEmpty = (record: ChatRecord) =>
@@ -107,8 +142,9 @@ function syncScope(scope: string) {
   syncedScopes.add(scope);
   (async () => {
     await sendWaitingChanges(scope);
-    const server = await myChat();
-    if (!server || server.scope !== scope) return syncedScopes.delete(scope); // signed out, or another identity
+    const server = await myChatChanges(null);
+    // Signed out, or another identity; a whole answer, as asked for without a cursor.
+    if (!server || server.scope !== scope || !("record" in server)) return syncedScopes.delete(scope);
     const local = store.update((storage) => parseChats(storage.getItem(CHAT_KEY))[scope]);
     const kept = isEmpty(server.record) && local && !isEmpty(local) ? await importMyChat(local) : server;
     keep(kept);
@@ -146,15 +182,25 @@ export async function sendWaitingChanges(scope: string): Promise<void> {
 }
 
 /**
- * Reads the identity's chat again, for messages the other side sent since (#110: there is no push). What this
- * browser has not sent yet goes first; an answer that comes back while more is waiting is not kept, so a message
- * just shown does not blink away.
+ * Reads the identity's chat again, for messages the other side sent since (#110: there is no push): only what changed
+ * since the last answer kept (#369, ADR 0040). What this browser has not sent yet goes first; an answer that comes
+ * back while more is waiting is not kept, so a message just shown does not blink away, and neither is one when
+ * another answer was kept meanwhile (its changes may be in the copy already; the next read has them).
  */
 async function refreshChat(scope: string): Promise<void> {
   await sendWaitingChanges(scope);
-  const server = await myChat();
+  const sync = syncs.get(scope);
+  const since = sync?.cursor ? { cursor: sync.cursor, ...(sync.ownTag ? { ownTag: sync.ownTag } : {}) } : null;
+  const server = await myChatChanges(since);
   setUnreached(scope, false);
-  if (server?.scope === scope && !outboxFor(localStorage, scope).length) keep(server);
+  if (server?.scope !== scope || outboxFor(localStorage, scope).length || syncs.get(scope) !== sync) return;
+  if ("record" in server) return keep(server);
+  if (!keepChanges(server, sync)) {
+    // Nothing to apply them to: read everything.
+    syncs.delete(scope);
+    const whole = await myChatChanges(null);
+    if (whole?.scope === scope && "record" in whole && !outboxFor(localStorage, scope).length) keep(whole);
+  }
 }
 
 /** How often an open chat page reads again while it is in front. */

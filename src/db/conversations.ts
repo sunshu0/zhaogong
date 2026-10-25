@@ -2,7 +2,7 @@
 // with its messages and exchanges. Both sides read and write the same rows; src/lib/chat-server/shared-view.ts turns
 // them into what each side sees. Server only.
 import { randomUUID } from "node:crypto";
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, lte, max, sql, type SQL } from "drizzle-orm";
 import { guardedBatch } from "@/db/guarded-batch";
 import { inList } from "@/db/in-list";
 import { insertIf } from "@/db/write-if";
@@ -23,13 +23,95 @@ const NAME_MAX = 40;
 
 /**
  * Messages one shared conversation holds, both sides and the whole team together (review of security review F): about
- * one job, so a few hundred is weeks of daily talk, and every read sends the whole thread (the chat page reads again
- * every 10 seconds), so it must stay bounded. A message past it is not added; the sender is told.
+ * one job, so a few hundred is weeks of daily talk, and a full read sends the whole thread, so it must stay bounded.
+ * (The chat page's read every 10 seconds sends only what changed, #369, ADR 0040.) A message past it is not added;
+ * the sender is told.
  */
 export const SHARED_MESSAGES_MAX = 500;
 
-/** The reader's conversations with their messages and exchanges, oldest message first. */
-export async function listSharedConversations(reader: SharedReader): Promise<SharedConversation[]> {
+const ofReader = (reader: SharedReader) =>
+  reader.side === "seeker"
+    ? eq(t.conversations.seekerEmail, normalizeEmail(reader.email))
+    : eq(t.conversations.employerId, reader.employerId);
+
+/**
+ * The id of the newest message of anyone's (0 when there is none). Read before the conversations, it is where a read
+ * stops: a message written meanwhile has a higher id, so the next read since it gets it (ADR 0040).
+ */
+export async function newestMessageId(): Promise<number> {
+  const db = await database();
+  const [row] = await db.select({ id: max(t.messages.id) }).from(t.messages);
+  return row?.id ?? 0;
+}
+
+/**
+ * The reader's conversations with their messages and exchanges, oldest message first. With `upTo`, only the messages
+ * up to that id (newestMessageId, read first).
+ */
+export async function listSharedConversations(reader: SharedReader, upTo?: number): Promise<SharedConversation[]> {
+  return readShared(ofReader(reader), upTo === undefined ? undefined : { after: 0, upTo });
+}
+
+/** One of the reader's conversations as the list of them gives it, without its messages and exchanges. */
+export type SharedHead = Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt">;
+
+/**
+ * What changed in the reader's conversations since a read (#369, ADR 0040): every conversation's head, for the order
+ * of the list and to tell which are gone; and the conversations with a message after `messageId` (up to `upTo`), or
+ * read by either side or written to after `at`, each with those new messages only and all its exchanges.
+ */
+export async function listSharedChanges(
+  reader: SharedReader,
+  since: { messageId: number; at: string },
+  upTo: number,
+): Promise<{ heads: SharedHead[]; changed: SharedConversation[] }> {
+  const db = await database();
+  // The same conversations the full list has (its joins), without the job seeker's page.
+  const heads = (
+    await db
+      .select({ conversation: t.conversations })
+      .from(t.conversations)
+      .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
+      .innerJoin(t.jobs, eq(t.jobs.id, t.conversations.jobId))
+      .where(ofReader(reader))
+  ).map((r) => r.conversation);
+  if (!heads.length) return { heads: [], changed: [] };
+  // The newest messages only: the id range keeps this to them, whatever the conversations hold.
+  const written = await db
+    .selectDistinct({ id: t.messages.conversationId })
+    .from(t.messages)
+    .where(
+      and(
+        inList(
+          t.messages.conversationId,
+          heads.map((h) => h.id),
+        ),
+        gt(t.messages.id, since.messageId),
+        lte(t.messages.id, upTo),
+      ),
+    );
+  const withNew = new Set(written.map((m) => m.id));
+  const changed = heads
+    .filter(
+      (h) =>
+        withNew.has(h.id) || [h.updatedAt, h.seekerReadAt, h.employerReadAt].some((at) => at !== null && at > since.at),
+    )
+    .map((h) => h.id);
+  return {
+    heads: heads.map((h) => ({
+      id: h.id,
+      employerId: h.employerId,
+      jobId: h.jobId!,
+      updatedAt: h.updatedAt ?? h.createdAt,
+    })),
+    changed: changed.length
+      ? await readShared(inList(t.conversations.id, changed), { after: since.messageId, upTo })
+      : [],
+  };
+}
+
+/** The conversations `where` picks, with their messages (those in the id range, all without one) and exchanges. */
+async function readShared(where: SQL, range?: { after: number; upTo: number }): Promise<SharedConversation[]> {
   const db = await database();
   const rows = await db
     .select({
@@ -42,17 +124,18 @@ export async function listSharedConversations(reader: SharedReader): Promise<Sha
     .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
     .innerJoin(t.jobs, eq(t.jobs.id, t.conversations.jobId))
     .leftJoin(t.seekerProfiles, eq(t.seekerProfiles.email, t.conversations.seekerEmail))
-    .where(
-      reader.side === "seeker"
-        ? eq(t.conversations.seekerEmail, normalizeEmail(reader.email))
-        : eq(t.conversations.employerId, reader.employerId),
-    );
+    .where(where);
   if (!rows.length) return [];
   const ids = rows.map((r) => r.conversation.id);
   const messages = await db
     .select()
     .from(t.messages)
-    .where(inList(t.messages.conversationId, ids))
+    .where(
+      and(
+        inList(t.messages.conversationId, ids),
+        range ? and(gt(t.messages.id, range.after), lte(t.messages.id, range.upTo)) : undefined,
+      ),
+    )
     .orderBy(asc(t.messages.id));
   const exchanges = await db
     .select()

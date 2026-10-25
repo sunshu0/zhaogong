@@ -119,46 +119,125 @@ export function sharedPart(rows: SharedConversation[], side: Side, now: number, 
   const newestFirst = [...rows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   for (const row of newestFirst) {
     // Opening a chat writes nothing to the other side until something is said in it.
-    if (row.startedBy !== side && !row.messages.length && !row.exchanges.length) continue;
-    const id = sharedConversationId(row, side);
-    const mine = side === "seeker" ? row.seekerReadAt : row.employerReadAt;
-    const theirs = side === "seeker" ? row.employerReadAt : row.seekerReadAt;
-    const person =
-      side === "seeker"
-        ? row.employerName
-        : row.seekerName === chatMessages.zh.times.seekerName
-          ? pick(chatMessages, lang).times.seekerName
-          : row.seekerName;
-    part.conversations.push({
-      id,
-      person,
-      title: row.jobTitle,
-      time: chatTime(row.updatedAt, now, lang),
-      avatar: person.slice(0, 1),
-      job: row.jobId,
-      ...(side === "seeker" ? { employerId: row.employerId } : row.candidateId ? { candidateId: row.candidateId } : {}),
-    });
-    part.added[id] = row.messages.map((m): Message => {
-      const message: Message = {
-        from: m.from === side ? "me" : "them",
-        text: m.text,
-        time: chatTime(m.sentAt, now, lang),
-      };
-      // A sent 中英文简历 (#379) reads as a card: its name and the contact details it carries, not the whole page (it
-      // opens at /messages/resume/<id>); the text is the reader's words for it, for the list and a report.
-      if (m.resume) {
-        message.resume = { id: m.id, name: m.resume.zh.name, contact: contactKeys(m.resume.contact) };
-        message.text = pick(chatMessages, lang).resumeCard.text(m.resume.zh.name);
-      }
-      message.sentAt = m.sentAt;
-      if (message.from === "me" && theirs && theirs >= m.sentAt) message.readAt = theirs;
-      if (m.from === "employer" && m.byName) message.by = m.byName;
-      return message;
-    });
-    if (mine) part.readAt[id] = mine;
-    if (row.exchanges.length) part.exchanges[id] = row.exchanges.map((item) => exchangeFor(item, side, lang));
+    if (quiet(row, side)) continue;
+    addRow(part, row, side, now, lang);
   }
   return part;
+}
+
+/** A chat the other side opened in which nothing is said (as far as the row's messages and exchanges go). */
+const quiet = (row: SharedConversation, side: Side) =>
+  row.startedBy !== side && !row.messages.length && !row.exchanges.length;
+
+const theirReadAt = (row: SharedConversation, side: Side) =>
+  side === "seeker" ? row.employerReadAt : row.seekerReadAt;
+
+function addRow(part: SharedPart, row: SharedConversation, side: Side, now: number, lang: Lang) {
+  const id = sharedConversationId(row, side);
+  const mine = side === "seeker" ? row.seekerReadAt : row.employerReadAt;
+  const theirs = theirReadAt(row, side);
+  const person =
+    side === "seeker"
+      ? row.employerName
+      : row.seekerName === chatMessages.zh.times.seekerName
+        ? pick(chatMessages, lang).times.seekerName
+        : row.seekerName;
+  part.conversations.push({
+    id,
+    person,
+    title: row.jobTitle,
+    time: chatTime(row.updatedAt, now, lang),
+    avatar: person.slice(0, 1),
+    job: row.jobId,
+    ...(side === "seeker" ? { employerId: row.employerId } : row.candidateId ? { candidateId: row.candidateId } : {}),
+  });
+  part.added[id] = row.messages.map((m): Message => {
+    const message: Message = {
+      from: m.from === side ? "me" : "them",
+      text: m.text,
+      time: chatTime(m.sentAt, now, lang),
+    };
+    // A sent 中英文简历 (#379) reads as a card: its name and the contact details it carries, not the whole page (it
+    // opens at /messages/resume/<id>); the text is the reader's words for it, for the list and a report.
+    if (m.resume) {
+      message.resume = { id: m.id, name: m.resume.zh.name, contact: contactKeys(m.resume.contact) };
+      message.text = pick(chatMessages, lang).resumeCard.text(m.resume.zh.name);
+    }
+    message.sentAt = m.sentAt;
+    if (message.from === "me" && theirs && theirs >= m.sentAt) message.readAt = theirs;
+    if (m.from === "employer" && m.byName) message.by = m.byName;
+    return message;
+  });
+  if (mine) part.readAt[id] = mine;
+  if (row.exchanges.length) part.exchanges[id] = row.exchanges.map((item) => exchangeFor(item, side, lang));
+}
+
+/**
+ * What changed in the shared conversations since a read, for the side reading (#369, ADR 0040). `order`: the ids of
+ * all its shared conversations, newest first (a browser drops the ones that are not in it); `part`: the changed ones,
+ * with only their new messages; `quiet`: changed ones the other side opened with no new message and no exchange,
+ * shown only if the browser has them already (they had messages before); `theirReadAt`: how far the other side has
+ * read each changed one, for the messages the browser has.
+ */
+export type SharedChanges = {
+  order: string[];
+  part: SharedPart;
+  quiet: string[];
+  theirReadAt: Record<string, string>;
+};
+
+export function sharedChanges(
+  heads: Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt">[],
+  changed: SharedConversation[],
+  side: Side,
+  now: number,
+  lang: Lang = DEFAULT_LANG,
+): SharedChanges {
+  const changes: SharedChanges = {
+    order: [...heads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((h) => sharedConversationId(h, side)),
+    part: { conversations: [], added: {}, readAt: {}, exchanges: {} },
+    quiet: [],
+    theirReadAt: {},
+  };
+  for (const row of changed) {
+    const id = sharedConversationId(row, side);
+    addRow(changes.part, row, side, now, lang);
+    if (quiet(row, side)) changes.quiet.push(id);
+    const theirs = theirReadAt(row, side);
+    if (theirs) changes.theirReadAt[id] = theirs;
+  }
+  return changes;
+}
+
+/**
+ * The browser's copy with what changed applied: the record a full read gives, but for the times shown on what it had
+ * already (they move on from 10:42 to 昨天 at the next full read, as when the page loads). `cached` is the copy as the
+ * last answer left it; `own`, the identity's own record (withShared put its messages from before #110 ahead of the
+ * shared ones, and those do not change).
+ */
+export function mergeSharedChanges(cached: ChatRecord, own: ChatRecord, changes: SharedChanges): ChatRecord {
+  const fresh = new Map(changes.part.conversations.map((c) => [c.id, c]));
+  const had = new Map(cached.extra.map((c) => [c.id, c]));
+  const quietIds = new Set(changes.quiet);
+  const part: SharedPart = { conversations: [], added: {}, readAt: {}, exchanges: {} };
+  for (const id of changes.order) {
+    const before = had.get(id);
+    const now = fresh.get(id);
+    // Not shown before and nothing said in it since: the other side's chat with nothing in it, or none at all.
+    if (!before && (!now || quietIds.has(id))) continue;
+    part.conversations.push(now ?? before!);
+    const kept = before ? (cached.added[id] ?? []).slice(own.added[id]?.length ?? 0) : [];
+    const theirs = changes.theirReadAt[id];
+    part.added[id] = [
+      ...kept.map((m) => (theirs && m.from === "me" && m.sentAt && m.sentAt <= theirs ? { ...m, readAt: theirs } : m)),
+      ...(changes.part.added[id] ?? []),
+    ];
+    const readAt = now ? changes.part.readAt[id] : cached.readAt[id];
+    if (readAt) part.readAt[id] = readAt;
+    const exchanges = now ? changes.part.exchanges[id] : cached.exchanges[id];
+    if (exchanges) part.exchanges[id] = exchanges;
+  }
+  return withShared(own, part);
 }
 
 /**
