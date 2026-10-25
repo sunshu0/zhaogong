@@ -173,7 +173,10 @@ export function addExchangeRequest(
   const next = requestExchange(current, kind, payload, exchangeId);
   if (next === current) return record;
   const created = next[next.length - 1];
-  return { ...record, exchanges: { ...record.exchanges, [id]: [...(record.exchanges[id] ?? []), created] } };
+  // The record keeps what was added to the demo's: without the closed requests the new one leaves out (#366).
+  const ids = new Set(next.map((item) => item.id));
+  const kept = (record.exchanges[id] ?? []).filter((item) => ids.has(item.id));
+  return { ...record, exchanges: { ...record.exchanges, [id]: [...kept, created] } };
 }
 
 export function answerExchange(

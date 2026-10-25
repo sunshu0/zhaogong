@@ -359,13 +359,18 @@ async function applyShared(
       const next = requestExchange(current, change.kind, payload, randomUUID());
       if (next === current) return;
       const created = next[next.length - 1];
-      await addSharedExchange(row.id, {
-        id: created.id,
-        kind: created.kind,
-        requestedBy: side,
-        offered: created.offered,
-        createdAt: created.createdAt,
-      });
+      await addSharedExchange(
+        row.id,
+        {
+          id: created.id,
+          kind: created.kind,
+          requestedBy: side,
+          offered: created.offered,
+          createdAt: created.createdAt,
+        },
+        // The oldest closed requests of the kind the new one leaves out (#366).
+        current.filter((item) => !next.includes(item)).map((item) => item.id),
+      );
       return;
     }
     case "answer": {

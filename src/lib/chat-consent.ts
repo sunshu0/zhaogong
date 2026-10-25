@@ -109,6 +109,19 @@ export function parseExchange(value: unknown): Exchange | undefined {
   };
 }
 
+/**
+ * Requests of one kind a conversation keeps (#366): a request turned down or withdrawn may be made again, and each
+ * new one would stay as well. Normal use (asking again once or twice) shows every one; past that, a new request
+ * drops the oldest closed ones of its kind, so with it there are at most this many.
+ */
+export const EXCHANGES_PER_KIND_MAX = 3;
+
+const closed = (item: Exchange) => item.status === "rejected" || item.status === "cancelled";
+
+/**
+ * The exchanges with a new request from me (oldest first, as kept); the same list when one of the kind is pending or
+ * accepted, or the offer is not one. The oldest closed requests of the kind past EXCHANGES_PER_KIND_MAX are left out.
+ */
 export function requestExchange(
   items: Exchange[],
   kind: ExchangeKind,
@@ -120,7 +133,12 @@ export function requestExchange(
     items.some((item) => item.kind === kind && ["pending", "accepted"].includes(item.status))
   )
     return items;
-  return [...items, { id, kind, offered, from: "me", status: "pending", createdAt: new Date().toISOString() }];
+  const ofKind = items.filter((item) => item.kind === kind && closed(item));
+  const dropped = new Set(ofKind.slice(0, Math.max(0, ofKind.length - (EXCHANGES_PER_KIND_MAX - 1))));
+  return [
+    ...items.filter((item) => !dropped.has(item)),
+    { id, kind, offered, from: "me", status: "pending", createdAt: new Date().toISOString() },
+  ];
 }
 
 export function respondExchange(

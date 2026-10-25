@@ -87,3 +87,17 @@ it("demo requests carry the asker's own details and never ask for an address", (
   expect(employer["candidate-chen"][0].offered.fields).toContainEqual({ label: "称呼", value: "陈雨" });
   expect(seeker["clean-home"]).toBeUndefined();
 });
+
+it("asked again after a refusal or a withdrawal, a conversation keeps at most three requests of a kind (#366)", () => {
+  let items: Exchange[] = [];
+  for (let i = 1; i <= 6; i++) {
+    items = requestExchange(items, "contact", payload, `ask-${i}`);
+    items = items.map((item) => (item.status === "pending" ? respondExchange(item, "me", "cancelled") : item));
+  }
+  expect(items.map((item) => item.id)).toEqual(["ask-4", "ask-5", "ask-6"]);
+  // The other kind and the other side's refused request count for themselves; a pending one blocks a new one.
+  const refused = respondExchange({ ...incoming, id: "theirs", kind: "resume" }, "me", "rejected");
+  items = requestExchange([...items, refused], "contact", payload, "ask-7");
+  expect(items.map((item) => item.id)).toEqual(["ask-5", "ask-6", "theirs", "ask-7"]);
+  expect(requestExchange(items, "contact", payload, "ask-8")).toBe(items);
+});

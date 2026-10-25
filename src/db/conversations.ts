@@ -349,12 +349,26 @@ export async function addSharedMessage(
   return applied;
 }
 
+/**
+ * A new request, and the closed ones of the conversation it leaves out (#366, requestExchange): only requests turned
+ * down or withdrawn are taken out, in the same batch.
+ */
 export async function addSharedExchange(
   conversationId: string,
   item: { id: string; kind: ExchangeKind; requestedBy: Side; offered: ExchangePayload; createdAt: string },
+  dropped: string[] = [],
 ): Promise<void> {
   const db = await database();
   await db.batch([
+    db
+      .delete(t.exchanges)
+      .where(
+        and(
+          eq(t.exchanges.conversationId, conversationId),
+          inList(t.exchanges.id, dropped),
+          inList(t.exchanges.status, ["rejected", "cancelled"]),
+        ),
+      ),
     db.insert(t.exchanges).values({ ...item, conversationId, status: "pending" }),
     db.update(t.conversations).set({ updatedAt: item.createdAt }).where(eq(t.conversations.id, conversationId)),
   ]);

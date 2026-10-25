@@ -257,6 +257,26 @@ describe("exchanges", () => {
     expect(view.exchanges["clean-home"]).toEqual([]);
     expect(answerExchange(record, seekerDemo, "north-tea", "nope", "rejected")).toBe(record);
   });
+
+  it("withdrawn and asked again over and over, the record keeps at most three of a kind (#366)", () => {
+    let record = EMPTY_CHAT;
+    for (let i = 1; i <= 10; i++) {
+      record = addExchangeRequest(record, seekerDemo, "clean-home", "resume", offered, `ask-${i}`);
+      record = answerExchange(record, seekerDemo, "clean-home", `ask-${i}`, "cancelled");
+    }
+    expect(record.exchanges["clean-home"].map((x) => [x.id, x.status])).toEqual([
+      ["ask-8", "cancelled"],
+      ["ask-9", "cancelled"],
+      ["ask-10", "cancelled"],
+    ]);
+    // Asked once more, it is the newest two withdrawn and the new one.
+    record = addExchangeRequest(record, seekerDemo, "clean-home", "resume", offered, "ask-11");
+    expect(chatView(record, seekerDemo).exchanges["clean-home"].map((x) => x.id)).toEqual([
+      "ask-9",
+      "ask-10",
+      "ask-11",
+    ]);
+  });
 });
 
 describe("shownTime", () => {

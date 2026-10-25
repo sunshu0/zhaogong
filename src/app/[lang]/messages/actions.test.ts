@@ -581,6 +581,34 @@ describe("chats both sides share (#110)", () => {
     expect((await my())!.exchanges[seekerId][0].status).toBe("accepted");
   });
 
+  it("a request withdrawn and made again over and over keeps at most three of a kind in the conversation (#366)", async () => {
+    const { shop, boss, job } = await business("again");
+    const seekerId = `employer:${shop.id}:${job.id}`;
+    await signedIn("again.seeker@example.com");
+    await changeMyChat({ type: "open", conversation: { kind: "employer", jobId: job.id } });
+    const offer = { title: "联系方式", fields: [{ label: "电话", value: "021 555 0004" }] };
+    for (let i = 0; i < 6; i++) {
+      const asked = await change({ type: "request", conversationId: seekerId, kind: "contact", payload: offer });
+      const pending = asked!.exchanges[seekerId].find((x) => x.status === "pending")!;
+      await change({ type: "answer", conversationId: seekerId, exchangeId: pending.id, status: "cancelled" });
+    }
+    const db = await database();
+    const conversation = (await db.select().from(t.conversations).where(eq(t.conversations.employerId, shop.id)))[0];
+    const rows = await db.select().from(t.exchanges).where(eq(t.exchanges.conversationId, conversation.id));
+    expect(rows.map((r) => r.status)).toEqual(["cancelled", "cancelled", "cancelled"]);
+
+    // Both sides still see a withdrawn request as before, and a new one can be made.
+    await change({ type: "request", conversationId: seekerId, kind: "contact", payload: offer });
+    // (Requests made in the same millisecond have no order between them: compared sorted.)
+    const statuses = (list: { status: string }[]) => list.map((x) => x.status).sort();
+    expect(statuses((await my())!.exchanges[seekerId])).toEqual(["cancelled", "cancelled", "pending"]);
+    await signedIn(boss, "employer");
+    const seen = (await my())!;
+    const id = seen.extra.find((c) => c.job === job.id)!.id;
+    expect(statuses(seen.exchanges[id])).toEqual(["cancelled", "cancelled", "pending"]);
+    expect(seen.exchanges[id].every((x) => x.from === "them")).toBe(true);
+  });
+
   it("a job seeker sends their 中英文简历: the team gets a card, and only the two sides open the page as sent (#379)", async () => {
     const { shop, boss, staff, job } = await business("resume");
     const seekerId = `employer:${shop.id}:${job.id}`;
