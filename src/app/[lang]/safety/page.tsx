@@ -19,7 +19,7 @@ const LINK = "text-brand underline underline-offset-2";
 
 function Part({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <Section look="app" id={id} title={title}>
+    <Section look="sheet" id={id} title={title}>
       <Group className="space-y-2 text-body">{children}</Group>
     </Section>
   );
