@@ -105,6 +105,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/login/actions.ts` | 登录与身份 |
 | `src/app/[lang]/me/alerts/actions.ts` | 职位提醒 |
 | `src/app/[lang]/me/interview-actions.ts` | 约面试 |
+| `src/app/[lang]/me/reports/actions.ts` | 我的举报（ADR 0041） |
 | `src/app/[lang]/me/saved/actions.ts` | 收藏和进度 |
 | `src/app/[lang]/messages/actions.ts` | 聊天、交换和通知 |
 | `src/app/[lang]/messages/phrases-actions.ts` | 聊天常用语和开场白（ADR 0035） |

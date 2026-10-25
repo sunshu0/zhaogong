@@ -30,7 +30,13 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
 
   const reports = page.getByRole("region", { name: /我发出的举报/ });
   await expect(reports).toContainText("仓库拣货员");
-  await expect(reports).toContainText("虚假职位 · 已提交，等待核查");
+  await expect(reports).toContainText("虚假职位 · 已提交");
+
+  // S2 (#390): sent before signing in, so it carries the visitor's key; signed in, 我的举报 still finds it open.
+  await reports.getByRole("link", { name: "看处理进度" }).click();
+  await expect(page).toHaveURL("/me/reports");
+  await expect(page.getByRole("region", { name: "职位举报" }).getByRole("listitem")).toContainText("虚假职位 · 处理中");
+  await page.goto("/me");
 
   await viewed.getByRole("button", { name: "清除浏览记录" }).click();
   await expect(viewed).toContainText("还没有看过职位。");

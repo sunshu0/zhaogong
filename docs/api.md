@@ -166,6 +166,14 @@
 
 未登录点「收藏」会去 `/login?next=<原页面>?save=<职位编号>`，登录后回到原页面，由页面完成收藏并去掉 `save` 参数。
 
+## 我的举报 — `src/app/[lang]/me/reports/actions.ts`
+
+S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，状态从这里来。开着的举报带着发的人的编号（`reporterKey`，ADR 0034），关掉时清空，所以只能说「还开着」或「不在了」。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myOpenReports()` | | 这个浏览器发的、还开着的举报编号：登录了按账号和访客编号两个算，没登录只按访客编号；两样都没有时 `[]`。不回别的字段，也不按编号查（编号是顺序的） | — |
+
 ## 申请职位和聊过的人 — `src/app/[lang]/jobs/[id]/apply-actions.ts`、`src/app/[lang]/employer/applicant-actions.ts`
 
 **2026-10-20 用户定删掉职位页和职位块上的「申请」**：求职者这边只剩读（`myAppliedJobIds`、`myApplicationViews`）。**候选人改成「这个职位聊过的人」（ADR 0030，迁移 0030）**：`job_applications` 加 `source`（`apply` / `chat`），双方共享的对话里第一条消息发出时插一行 `chat`（`note`、`profile` 都是 `null`，建的时候就算看过）；申请和撤回的函数、`POST /api/dev/apply` 都删了。
@@ -387,6 +395,8 @@
 | `/employers/[id]` | 企业公开主页 | — |
 | `/internships`、`/professional`、`/external/[id]` | 实习、专业职位两个分区和外部职位详情（见上面那一节，#113）；详情页不收录 | — |
 | `/about`、`/privacy`、`/terms` | 关于找工（#324）、隐私说明和使用条款（#323）；三页都从页脚进 | — |
+| `/safety` | 防骗指南：先交钱、花钱买签证或担保、刷单返利、要护照原件或银行卡密码、工资低于最低时薪（时薪从国家设置读，#390，ADR 0041） | — |
+| `/me/reports` | 我的举报：这台设备发过的职位举报，处理中 / 已结束；聊天里的举报照列、没有状态（#390，ADR 0041）；不收录 | —（没登录时在这台设备发的也列） |
 | `/login` | 注册或登录（`?role=employer` 开通雇主身份，`?next=` 回到原页面） | — |
 | `/account`、`/workspace`、`/messages`、`/notifications`、`/profile`、`/me`、`/me/saved` | 我的、待办、聊天、通知、主页编辑、浏览与举报、收藏和进度 | 登录 |
 | `/messages/resume/[id]` | 聊天里发的中英文简历，发出时的样子，只读、可打印，不收录（#379，ADR 0037）；`id` 是那条消息的编号 | 登录；只给发简历的求职者和收简历的企业团队，别人看到 404 |

@@ -47,6 +47,8 @@ const aboutZh = {
   footer: {
     label: "关于和法律信息",
     about: "关于找工",
+    /** S2 (#390): /safety. */
+    safety: "防骗指南",
     privacy: "隐私说明",
     terms: "使用条款",
     // #376: the desktop footer's columns.

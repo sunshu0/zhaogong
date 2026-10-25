@@ -17,8 +17,12 @@ export interface CountryConfig {
   nameEn: string;
   currency: "NZD" | "AUD";
   currencySymbol: string;
-  /** Adult minimum hourly wage and the date it took effect. */
-  minimumWage: { hourly: number; effectiveFrom: string; source: string };
+  /**
+   * Adult minimum hourly wage and the date it took effect; `startingOut` is the lower rate some young workers and
+   * trainees may be paid (New Zealand's starting-out and training wages, the same number), from the same date.
+   * countries.test.ts fails a year after `effectiveFrom`, when the rates are due to change.
+   */
+  minimumWage: { hourly: number; startingOut: number; effectiveFrom: string; source: string };
   businessNumberLabel: string; // NZBN / ABN
   visaTypes: VisaAccepted[];
   regions: Region[];
@@ -34,6 +38,8 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     currencySymbol: "$",
     minimumWage: {
       hourly: 23.95,
+      // Checked on employment.govt.nz/pay-and-hours/pay-and-wages/minimum-wage/minimum-wage-rates-and-types, 2026-10-25.
+      startingOut: 19.16,
       effectiveFrom: "2026-04-01",
       source: "https://www.employment.govt.nz/news-and-updates/minimum-wage-is-increasing-on-1-april-2026",
     },
@@ -68,7 +74,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     currency: "AUD",
     currencySymbol: "$",
     // Placeholder until the AU market opens; check Fair Work before enabling.
-    minimumWage: { hourly: 0, effectiveFrom: "", source: "" },
+    minimumWage: { hourly: 0, startingOut: 0, effectiveFrom: "", source: "" },
     businessNumberLabel: "ABN",
     visaTypes: ["citizen_resident", "open_work", "student", "working_holiday"],
     regions: [],

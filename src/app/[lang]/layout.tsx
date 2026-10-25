@@ -146,6 +146,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
                   <Link href="/about" className={FOOTER_LEGAL_LINK}>
                     {footer.about}
                   </Link>
+                  <Link href="/safety" className={FOOTER_LEGAL_LINK}>
+                    {footer.safety}
+                  </Link>
                   <Link href="/privacy" className={FOOTER_LEGAL_LINK}>
                     {footer.privacy}
                   </Link>

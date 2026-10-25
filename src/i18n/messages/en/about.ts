@@ -48,6 +48,7 @@ export const aboutEn: Messages<(typeof aboutMessages)["zh"]> = {
   footer: {
     label: "About and legal",
     about: "About 找工",
+    safety: "Staying safe",
     privacy: "Privacy",
     terms: "Terms of use",
     tagline: "Jobs in Chinese in Auckland, with the pay up front.",

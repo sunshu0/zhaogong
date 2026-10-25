@@ -32,7 +32,9 @@ const seekerMeZh = {
     browse: "去看看",
     reports: "我发出的举报",
     noReports: "还没有举报过职位。",
-    reportStatus: (reason: string) => `${reason} · 已提交，等待核查`,
+    // Whether it is still being handled is on /me/reports (S2, #390).
+    reportStatus: (reason: string) => `${reason} · 已提交`,
+    progress: "看处理进度",
     demoNote: "演示版：这些记录只保存在这台设备上。",
   },
   // MyApplications.tsx, applications.ts

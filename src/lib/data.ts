@@ -176,6 +176,20 @@ export async function hasOpenReport(jobId: string, reporter: string): Promise<bo
   return !!row;
 }
 
+/**
+ * The ids of the open reports any of `reporters` (reporterKeys) sent, for 我的举报 (S2, ADR 0041). Only open ones
+ * still carry the key, so a closed report is never found: the page calls it 已结束 without knowing how it ended.
+ */
+export async function openReportIds(reporters: readonly string[]): Promise<string[]> {
+  if (!reporters.length) return [];
+  const db = await database();
+  const rows = await db
+    .select({ id: t.reports.id })
+    .from(t.reports)
+    .where(and(inList(t.reports.reporter, reporters), eq(t.reports.status, "open")));
+  return rows.map((row) => row.id);
+}
+
 /** Whether a failed submitReport hit the one-open-report-per-person index: two of the same person's at once. */
 export function isOpenReportClash(error: unknown): boolean {
   for (let e: unknown = error; e; e = (e as { cause?: unknown }).cause) {

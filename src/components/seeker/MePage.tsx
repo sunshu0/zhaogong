@@ -96,7 +96,20 @@ export function MePage() {
         </Panel>
       )}
 
-      <Panel title={h.reports} count={reports.length}>
+      <Panel
+        title={h.reports}
+        count={reports.length}
+        action={
+          reports.length > 0 && (
+            <Link
+              href="/me/reports"
+              className="pressable inline-flex min-h-11 items-center text-meta text-brand underline underline-offset-2"
+            >
+              {h.progress}
+            </Link>
+          )
+        }
+      >
         {reports.length === 0 ? (
           <Empty>{h.noReports}</Empty>
         ) : (
