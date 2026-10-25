@@ -80,7 +80,7 @@ export function WorkspaceDashboard() {
         <SkeletonList count={2} label={t.loadingTodos} />
       ) : todos.length || interviewsFailed ? (
         todos.length > 0 && (
-          <Section look="app" id="todos" title={t.todos}>
+          <Section look="sheet" id="todos" title={t.todos}>
             <LinkList
               label={t.todos}
               items={todos.map((todo) => ({ href: todo.href, label: todo.title, detail: todo.detail }))}
@@ -88,7 +88,7 @@ export function WorkspaceDashboard() {
           </Section>
         )
       ) : (
-        <Section look="app">
+        <Section look="sheet">
           <div className="py-10 text-center">
             <p className="text-subtitle">{t.allDone}</p>
             <p className="mt-1 text-meta text-muted">{isEmployer ? t.employerEmpty : t.seekerEmpty}</p>

@@ -73,7 +73,7 @@ export function MyDataPanel() {
 
   return (
     <div className="space-y-section">
-      <Section look="app" id="export-data" title={t.exportTitle} description={t.exportDescription}>
+      <Section look="sheet" id="export-data" title={t.exportTitle} description={t.exportDescription}>
         <div className="space-y-3 py-group">
           <p className="text-meta text-muted">{t.exportDeviceNote}</p>
           <Button variant="secondary" onClick={() => void exportData()} loading={exporting}>
@@ -87,7 +87,7 @@ export function MyDataPanel() {
         </div>
       </Section>
 
-      <Section look="app" id="delete-account" title={t.deleteTitle}>
+      <Section look="sheet" id="delete-account" title={t.deleteTitle}>
         <form
           className="space-y-3 py-group"
           onSubmit={(e) => {
@@ -143,7 +143,7 @@ export function AccountDeleted() {
     if (hydrated && session) router.replace("/account/data");
   }, [hydrated, session, router]);
   return (
-    <Section look="app">
+    <Section look="sheet">
       <div role="status" className="space-y-2 py-group">
         <p className="text-title font-semibold">{t.deleted}</p>
         <p className="text-body">{t.deletedText}</p>

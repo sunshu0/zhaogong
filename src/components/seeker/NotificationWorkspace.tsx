@@ -66,7 +66,7 @@ export function NotificationWorkspace() {
         )}
       </header>
       {alerts.failed && <LoadFailed what={found} onRetry={alerts.reload} />}
-      <section className="overflow-hidden rounded-card bg-surface shadow-card" aria-label={t.listLabel}>
+      <section className="overflow-hidden rounded-card bg-surface ring-1 ring-border" aria-label={t.listLabel}>
         <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:px-5">
           <h2 ref={listHeading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
             {t.all}

@@ -87,7 +87,7 @@ export function ResumePage() {
 
       <ResumeSheet doc={doc} />
 
-      <Section look="app" id="resume-english" title={t.english} description={t.englishHint}>
+      <Section look="sheet" id="resume-english" title={t.english} description={t.englishHint}>
         <Group className="space-y-4">
           {RESUME_TEXT_FIELDS.map((field) => (
             <EnglishField
@@ -103,13 +103,13 @@ export function ResumePage() {
         </Group>
       </Section>
 
-      <Section look="app" id="resume-visa" title={t.visa} description={t.visaHint}>
+      <Section look="sheet" id="resume-visa" title={t.visa} description={t.visaHint}>
         <Group>
           <VisaFields profile={profile} onChange={(workRights) => change({ workRights })} />
         </Group>
       </Section>
 
-      <Section look="app" id="resume-contact" title={t.contact} description={t.contactHint}>
+      <Section look="sheet" id="resume-contact" title={t.contact} description={t.contactHint}>
         <Group>
           <ContactChoice profile={profile} onChange={(resumeContact) => change({ resumeContact })} />
         </Group>
@@ -346,7 +346,7 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const outdated = share && JSON.stringify(share.resume) !== sharedForm(doc);
 
   return (
-    <Section look="app" id="resume-share" title={t.share} description={t.shareHint}>
+    <Section look="sheet" id="resume-share" title={t.share} description={t.shareHint}>
       <Group className="space-y-3">
         {share === undefined && loadFailed ? (
           <LoadFailed

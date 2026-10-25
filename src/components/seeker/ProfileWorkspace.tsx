@@ -86,7 +86,7 @@ export function ProfileWorkspace() {
       <ProfileChoice />
 
       <Section
-        look="app"
+        look="sheet"
         id="profile-preview"
         title={w.preview}
         description={isEmployer ? w.employerPreviewHint : w.seekerPreviewHint}
@@ -119,7 +119,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section look="app" id="profile-progress" title={w.progress(progress.done, progress.total)}>
+      <Section look="sheet" id="profile-progress" title={w.progress(progress.done, progress.total)}>
         <Group>
           <div
             role="progressbar"
@@ -148,7 +148,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section look="app" id="profile-required" title={w.required} description={w.requiredHint}>
+      <Section look="sheet" id="profile-required" title={w.required} description={w.requiredHint}>
         <Group className="space-y-4">
           {isEmployer ? (
             <>
@@ -178,7 +178,7 @@ export function ProfileWorkspace() {
         </Group>
       </Section>
 
-      <Section look="app">
+      <Section look="sheet">
         <details className="group py-group">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-subtitle font-semibold [&::-webkit-details-marker]:hidden">
             <span>
@@ -219,7 +219,7 @@ export function ProfileWorkspace() {
       </Section>
 
       {!isEmployer && (
-        <Section look="app" id="profile-recommend" title={w.recommend} description={w.recommendHint}>
+        <Section look="sheet" id="profile-recommend" title={w.recommend} description={w.recommendHint}>
           <Group>
             <DiscoverableToggle value={profile.resume} onChange={(resume) => update("resume", resume)} />
           </Group>
@@ -227,7 +227,7 @@ export function ProfileWorkspace() {
       )}
 
       <Section
-        look="app"
+        look="sheet"
         id="profile-private"
         title={w.private}
         description={`${w.privateHint}${isEmployer ? w.privateHintTeam : ""}`}

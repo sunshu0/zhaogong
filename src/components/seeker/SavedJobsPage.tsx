@@ -11,7 +11,7 @@ import { formatJobDate } from "@/components/seeker/job-facts";
 import { Pay } from "@/components/ui/Pay";
 import { SoftTag } from "@/components/ui/Tag";
 import { ButtonLink } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { cardClass, sheetClass } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useAppliedJobIds } from "@/components/seeker/applied-client";
@@ -61,7 +61,7 @@ export function SavedJobsPage() {
 
   if (!session) {
     return (
-      <div className={`py-10 text-center ${cardClass()}`}>
+      <div className={`py-10 text-center ${sheetClass()}`}>
         <p className="text-body font-medium">{s.signInFor}</p>
         <ButtonLink href="/login?next=%2Fme%2Fsaved" className="mt-4">
           {t.pages.signIn}
@@ -90,7 +90,7 @@ export function SavedJobsPage() {
 
   if (!jobs || jobs.length === 0) {
     return (
-      <div className={`py-10 text-center ${cardClass()}`}>
+      <div className={`py-10 text-center ${sheetClass()}`}>
         <p className="text-body font-medium">{s.emptyTitle}</p>
         <p className="mt-1 text-body text-muted">{s.emptyHint}</p>
         <ButtonLink href="/jobs" variant="secondary" className="mt-4">

@@ -8,7 +8,7 @@ import { formatJobDate } from "@/components/seeker/job-facts";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { ManageJobs } from "@/components/employer/ManageJobs";
 import { ButtonLink } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { useLang, useMessages } from "@/i18n/client";
 import { seekerMeMessages } from "@/i18n/messages/seeker-me";
@@ -31,7 +31,7 @@ export function MePage() {
 
   if (!session) {
     return (
-      <div className={`py-10 text-center ${cardClass()}`}>
+      <div className={`py-10 text-center ${sheetClass()}`}>
         <p className="text-body font-medium">{h.signInFor}</p>
         <ButtonLink href="/login?next=%2Fme" className="mt-4">
           {t.pages.signIn}
@@ -138,7 +138,7 @@ function Panel({
 }) {
   const headingId = useId();
   return (
-    <section aria-labelledby={headingId} className={cardClass()}>
+    <section aria-labelledby={headingId} className={sheetClass()}>
       <div className="mb-1 flex min-h-11 items-center justify-between gap-3">
         <h2 id={headingId} className="text-subtitle font-semibold">
           {title}

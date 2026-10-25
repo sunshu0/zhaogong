@@ -20,8 +20,8 @@ import { contentLang } from "@/i18n/lang";
 import { accountMessages } from "@/i18n/messages/account";
 
 /**
- * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Round 19: cards
- * (Section look="app") whose rows darken while pressed.
+ * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Sheets (Section
+ * look="sheet", visual A) whose rows darken while pressed.
  */
 export function AccountHome() {
   const router = useRouter();
@@ -59,7 +59,7 @@ export function AccountHome() {
   return (
     <div className="space-y-section">
       <h1 className="sr-only">{t.title}</h1>
-      <Section look="app">
+      <Section look="sheet">
         <div className="flex items-center gap-3 py-group">
           <AvatarImage avatar={profile.avatar} fallback={name} large />
           <div className="min-w-0">
@@ -91,15 +91,15 @@ export function AccountHome() {
         )}
       </Section>
       {!employer && <TeamInvites email={session.email} />}
-      <Section look="app">
+      <Section look="sheet">
         <LinkList items={rows} />
       </Section>
-      <Section look="app">
+      <Section look="sheet">
         <div className="py-group">
           <LangSwitch look="row" />
         </div>
       </Section>
-      <Section look="app" className="overflow-hidden">
+      <Section look="sheet" className="overflow-hidden">
         <button
           type="button"
           className="pressable-row -mx-4 flex min-h-14 w-[calc(100%_+_2rem)] items-center justify-center text-subtitle font-medium text-danger hover:bg-danger-soft focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-danger sm:-mx-5 sm:w-[calc(100%_+_2.5rem)]"

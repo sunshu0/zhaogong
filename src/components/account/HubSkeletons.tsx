@@ -13,7 +13,11 @@ export function HubPageSkeleton({ label, cards = [1, 5] }: { label: string; card
         <span className="sr-only">{label}</span>
         <Skeleton className="h-8 w-36" />
         {cards.map((rows, card) => (
-          <div key={card} aria-hidden="true" className="divide-y divide-border rounded-card bg-surface shadow-card">
+          <div
+            key={card}
+            aria-hidden="true"
+            className="divide-y divide-border rounded-card bg-surface ring-1 ring-border"
+          >
             {Array.from({ length: rows }, (_, row) => (
               <div key={row} className="flex items-center gap-3 px-4 py-3.5 lg:px-5">
                 <Skeleton className="size-10 shrink-0 rounded-full" />

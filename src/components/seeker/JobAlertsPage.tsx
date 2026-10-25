@@ -10,7 +10,7 @@ import { RetryLine } from "@/components/seeker/RetryLine";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Group, Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { inputClass } from "@/components/ui/input-class";
 import { busyProps } from "@/components/ui/busy";
 import { SkeletonList } from "@/components/ui/Skeleton";
@@ -73,7 +73,7 @@ export function JobAlertsPage() {
 
   if (!session) {
     return (
-      <div className={`py-10 text-center ${cardClass()}`}>
+      <div className={`py-10 text-center ${sheetClass()}`}>
         <p className="text-body font-medium">{a.signInFor}</p>
         <ButtonLink href={`/login?next=${encodeURIComponent(ALERTS_PATH)}`} className="mt-4">
           {t.pages.signIn}
@@ -102,7 +102,7 @@ export function JobAlertsPage() {
         </p>
       )}
       {alerts && alerts.length > 0 ? (
-        <Section look="app" title={a.mine(alerts.length, ALERT_LIMIT)}>
+        <Section look="sheet" title={a.mine(alerts.length, ALERT_LIMIT)}>
           {alerts.map((alert) => (
             <AlertRow
               key={alert.id}
@@ -118,7 +118,7 @@ export function JobAlertsPage() {
         </Section>
       ) : (
         alerts && (
-          <div className={`py-10 text-center ${cardClass()}`}>
+          <div className={`py-10 text-center ${sheetClass()}`}>
             <p className="text-body font-medium">{a.emptyTitle}</p>
             <p className="mt-1 text-body text-muted">{a.emptyHint}</p>
             <ButtonLink href="/jobs" className="mt-4">

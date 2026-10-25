@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useSitePathname } from "@/i18n/client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { buttonClass } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
@@ -20,7 +20,7 @@ export function SignInGate({ message, children }: { message: string; children: R
   const session = useSession();
   if (hydrated && session) return children;
   return (
-    <div className={`${cardClass({ padded: false })} px-6 py-12 text-center`}>
+    <div className={`${sheetClass({ padded: false })} px-6 py-12 text-center`}>
       <p className="text-subtitle font-medium">{message}</p>
       <Link
         href={`/login?next=${encodeURIComponent(pathname)}`}

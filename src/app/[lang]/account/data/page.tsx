@@ -16,7 +16,7 @@ export default async function AccountData({ searchParams }: PageProps<"/[lang]/a
     <WorkHubFrame look="app">
       {/* Round 19 (操作质感): a large title. */}
       <h1 className="mb-4 text-[1.75rem] leading-tight font-black">{t.data.title}</h1>
-      <Suspense fallback={<div className="h-40 animate-shimmer rounded-card bg-surface shadow-card" />}>
+      <Suspense fallback={<div className="h-40 animate-shimmer rounded-card bg-surface ring-1 ring-border" />}>
         <Content searchParams={searchParams} />
       </Suspense>
     </WorkHubFrame>

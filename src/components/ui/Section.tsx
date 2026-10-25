@@ -9,6 +9,9 @@ type Heading = "h2" | "h3";
  * padding (main has it), so do not put it inside another padded box.
  * `look="app"` (Round 19): a card at every width — 16px corners and a soft shadow, no border, inside the page's
  * padding rather than edge to edge. Stack them with `space-y-section` as before.
+ * `look="sheet"` (visual A, V2, ADR 0036): the same shape with a thin line instead of the shadow — a section opens
+ * nothing, so it does not look like a card. The seekers' pages and 我的 use it (#377); `app` stays until the
+ * employer pages move over.
  */
 export function Section({
   title,
@@ -27,14 +30,16 @@ export function Section({
   as?: Heading;
   /** Names the section after its title for screen readers (the heading gets `${id}-title`). */
   id?: string;
-  look?: "panel" | "app";
+  look?: "panel" | "app" | "sheet";
   className?: string;
   children: ReactNode;
 }) {
   const box =
-    look === "app"
-      ? "rounded-card bg-surface px-4 shadow-card sm:px-5"
-      : "-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-md sm:border sm:px-5";
+    look === "sheet"
+      ? "rounded-card bg-surface px-4 ring-1 ring-border sm:px-5"
+      : look === "app"
+        ? "rounded-card bg-surface px-4 shadow-card sm:px-5"
+        : "-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-md sm:border sm:px-5";
   const headingId = id && title ? `${id}-title` : undefined;
   return (
     <section id={id} aria-labelledby={headingId} className={`${box} ${className}`.trim()}>
