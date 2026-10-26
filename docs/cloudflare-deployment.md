@@ -158,7 +158,7 @@ Cloudflare 从 GitHub 拉代码、在它的 Linux 机器上构建和部署（[Wo
 9. www 跳转（见上面「www」）
 10. 打开 `https://zhaogongnz.com`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页 `/en`、`/admin` 是 404；`https://www.zhaogongnz.com` 跳到 `https://zhaogongnz.com`
 
-**部署前在本机先过一遍（最终集成验收）：** `npm run cf:build`，量 `.open-next/worker.js` 打包压缩后的大小（Workers 免费方案上限 3 MiB），再 `npm run cf:preview` 用本地 D1 打开第 11 步那几页。
+**部署前在本机先过一遍（最终集成验收）：** `npm run cf:build`，再 `npx wrangler deploy --dry-run` 看 `Total Upload`（没压缩的大小，免费和付费方案上限都是 64 MiB；后面的 gzip 只是参考、不算限额，见 Cloudflare [Workers 限制](https://developers.cloudflare.com/workers/platform/limits/#worker-size)，2026-10-12 版；10-27 量到 19.6 MiB / gzip 4.41 MiB），再 `npm run cf:preview` 用本地 D1 打开第 11 步那几页。
 
 ## 4a. 上线前必须过 cf:build（#332）
 
