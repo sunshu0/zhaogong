@@ -20,7 +20,9 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
     .getByRole("complementary", { name: "聊天列表" })
     .getByRole("button", { name: /北岸早茶酒家/ })
     .click();
-  await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");
+  // T1: a phone's open conversation hides the bottom bar; the tab's title carries the same count (#291).
+  if (testInfo.project.name === "desktop") await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");
+  else await expect(page).toHaveTitle(/^\(1\) /);
   const input = page.getByLabel("输入消息");
   await expect(input).toBeVisible();
   await input.fill("你好，我今天下午可以面谈。");
@@ -55,7 +57,8 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
     .getByRole("complementary", { name: "聊天列表" })
     .getByRole("button", { name: /Mt Eden/ })
     .click();
-  await expect(entry).toHaveAttribute("title", "聊天");
+  if (testInfo.project.name === "desktop") await expect(entry).toHaveAttribute("title", "聊天");
+  else await expect(page).not.toHaveTitle(/^\(\d+\) /);
   // A new message arrives from the employer (#10: written on the server, shown after a reload).
   await page.goto("/jobs");
   await counterpartActs(page, "north-tea", { reply: "新的回复" });

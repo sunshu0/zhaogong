@@ -113,7 +113,10 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
           {/* Phones: the law note, the legal links, the language switch and 统计设置, centred. From 1024 px four
               columns (V6, #376): the site and its law note, 求职者, 雇主, 法律; the switches under them. */}
-          <footer className="border-t border-border px-4 py-6 text-center text-meta text-muted lg:bg-surface lg:py-10 lg:text-left">
+          <footer
+            data-site-footer=""
+            className="border-t border-border px-4 py-6 text-center text-meta text-muted lg:bg-surface lg:py-10 lg:text-left"
+          >
             <div className="mx-auto lg:grid lg:max-w-[min(72rem,_100vw_-_3rem)] lg:grid-cols-[2fr_1fr_1fr_1fr] lg:gap-8">
               <div>
                 <Link

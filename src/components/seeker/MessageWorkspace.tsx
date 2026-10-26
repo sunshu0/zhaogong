@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { MessageSquare } from "lucide-react";
 import { useChat, useChatRefresh, type Conversation, type Message } from "@/components/seeker/chat-client";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
@@ -15,10 +15,12 @@ import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
 import { shownTime } from "@/components/seeker/chat-store";
 import { isDemoAccount } from "@/lib/demo-accounts";
+import { useOpenConversation, useVisibleViewport } from "@/components/seeker/fullscreen-chat";
 
-export function MessageWorkspace({ initialId }: { initialId: string | null }) {
+export function MessageWorkspace() {
   const t = useMessages(chatMessages).workspace;
-  const [selectedId, setSelectedId] = useState<string | null>(initialId);
+  // T1 (ADR 0042): the open conversation is in the address, so the phone's back key closes it.
+  const { selectedId, open, close } = useOpenConversation();
   const { messages, unread, totalUnread, conversations, markRead } = useChat();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
@@ -29,15 +31,20 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
   useChatRefresh();
   useUnreadInTitle(totalUnread);
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
+  const board = useRef<HTMLDivElement>(null);
+  useVisibleViewport(board, Boolean(selected));
 
   function select(id: string) {
-    setSelectedId(id);
+    if (id !== selectedId) open(id);
     markRead(id);
   }
 
+  // Below 1024 px an open conversation fills the screen (fixed over the page; globals.css hides the site's header,
+  // footer and bottom bar while [data-chat-open] is on the page), so the heading and notes here step aside too.
+  const besideChat = selected ? "max-lg:hidden" : "";
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-3">
+      <header className={`flex items-center justify-between gap-3 ${besideChat}`}>
         <h1 className="text-title font-semibold">{isEmployer ? t.headingEmployer : t.headingSeeker}</h1>
         <p role="status" className="text-meta text-muted">
           {totalUnread ? t.unreadCount(totalUnread) : t.allRead}
@@ -46,8 +53,14 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
       </header>
 
       <div
+        ref={board}
         data-chat-workspace=""
-        className="grid h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] overflow-hidden rounded-card bg-surface ring-1 ring-border lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]"
+        data-chat-open={selected ? "" : undefined}
+        className={`grid overflow-hidden bg-surface lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:rounded-card lg:ring-1 lg:ring-border lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)] ${
+          selected
+            ? "max-lg:fixed max-lg:inset-x-0 max-lg:top-(--chat-top,0px) max-lg:z-30 max-lg:h-(--chat-height,100dvh) max-lg:pt-[env(safe-area-inset-top)] max-lg:pb-[env(safe-area-inset-bottom)]"
+            : "h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] rounded-card ring-1 ring-border"
+        }`}
       >
         <ConversationList
           conversations={conversations}
@@ -65,14 +78,14 @@ export function MessageWorkspace({ initialId }: { initialId: string | null }) {
               isEmployer={isEmployer}
               draft={draft}
               onDraftChange={setDraft}
-              onBack={() => setSelectedId(null)}
+              onBack={close}
             />
           </RetryBoundary>
         ) : (
           <NoConversationSelected totalUnread={totalUnread} />
         )}
       </div>
-      <p className="text-meta text-muted">{demoAccount ? t.demoFooter : t.footer}</p>
+      <p className={`text-meta text-muted ${besideChat}`}>{demoAccount ? t.demoFooter : t.footer}</p>
     </div>
   );
 }

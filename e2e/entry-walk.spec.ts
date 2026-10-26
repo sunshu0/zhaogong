@@ -1,5 +1,13 @@
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { chatEntry, chooseOption, fillSignInCode, freshEmail, openFromList, siteNav } from "./helpers";
+import {
+  chatEntry,
+  chooseOption,
+  fillSignInCode,
+  freshEmail,
+  leaveFullscreenChat,
+  openFromList,
+  siteNav,
+} from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/auckland-time";
 import {
   adminPage,
@@ -237,6 +245,7 @@ async function postAndChatByClicks(page: Page, browser: Browser, testInfo: TestI
   const seeker = await (await browser.newContext({ ...testInfo.project.use })).newPage();
   await seeker.goto("/");
   await signInByClicks(seeker, testInfo, freshEmail("demo.walk")); // starts with 林晓's demo page (#125)
+  await leaveFullscreenChat(seeker);
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   const hero = seeker.getByRole("region", { name: /^奥克兰的中文工作/ });
   await hero.getByRole("searchbox", { name: "搜索职位" }).fill(title);
@@ -310,6 +319,7 @@ test("已录用和职位结束: the employer 职位管理 → 聊过的人 → �
   await expect(page.getByRole("status")).toHaveText(`${title}：已结束招聘，已招到 1 人`);
 
   // The job seeker: home → 通知 → 「…录用了你」 → 我的申请, where the job is under 已结束.
+  await leaveFullscreenChat(seeker);
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await openMine(seeker, testInfo, "通知");
   await seeker
@@ -643,6 +653,7 @@ test("约面试: the employer 职位管理 → 聊过的人 → 约面试; the j
   await expect(applicant.getByRole("status", { name: /的面试$/ })).toContainText("已发邀约，等对方确认");
 
   // The job seeker: home → 收藏和进度 → 我的申请 → the time → 确认这个时间.
+  await leaveFullscreenChat(seeker);
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await openMine(seeker, testInfo, "收藏和进度");
   const invitation = seeker
@@ -684,6 +695,7 @@ test("双方聊天: a job seeker 立即沟通; the employer 聊天 → 回复 �
   await expect(log).toContainText("好的，明天来面试");
 
   // The job seeker: home → 聊天 → the job's conversation → the answer.
+  await leaveFullscreenChat(seeker);
   await seeker.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await expect(seeker).toHaveURL("/");
   await chatEntry(seeker).click();

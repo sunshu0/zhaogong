@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
 import { useSitePathname } from "@/i18n/client";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
@@ -77,10 +76,9 @@ export function WorkspaceOverview() {
 
 export function MessagesPage() {
   const t = useMessages(seekerMeMessages).workspace;
-  const conversationId = useSearchParams().get("conversation");
   return (
     <SignInGate message={t.gateChat}>
-      <MessageWorkspace key={conversationId ?? "list"} initialId={conversationId} />
+      <MessageWorkspace />
     </SignInGate>
   );
 }

@@ -45,7 +45,7 @@ export function ChatCandidateMarks({ conversationId, jobId }: { conversationId: 
   }
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2 lg:px-6">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-1.5 lg:px-6 lg:py-2">
       <div role="group" aria-label={t.chatMarks.label} className="flex gap-2">
         {(["fit", "hired"] as const).map((d) => (
           <button

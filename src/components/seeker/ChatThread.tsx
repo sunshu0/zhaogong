@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { crashForTests } from "@/lib/test-crash";
 import { ArrowLeft, Send } from "lucide-react";
 import { conversationProfileHref, useChat, useChatDelivery, type Conversation } from "@/components/seeker/chat-client";
@@ -16,6 +16,7 @@ import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { outgoingWarningParts } from "@/components/seeker/chat-warnings";
 import { MESSAGE_COUNT_FROM, MESSAGE_MAX } from "@/components/seeker/chat-store";
+import { FULLSCREEN_CHAT_QUERY } from "@/components/seeker/fullscreen-chat";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -72,7 +73,7 @@ export function ChatThread({
 
       <MessageLog conversationId={conversation.id} thread={messages[conversation.id]} />
 
-      <div className="shrink-0 border-t border-border px-4 py-3 lg:px-6 lg:py-4">
+      <div className="shrink-0 border-t border-border px-4 py-2 lg:px-6 lg:py-4">
         <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} />
         <MessageComposer
           draft={draft}
@@ -125,7 +126,7 @@ function ThreadHeader({
     { label: t.report, danger: true, onSelect: () => setReporting(true) },
   ];
   return (
-    <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+    <div className="flex items-center gap-3 border-b border-border px-4 py-2 lg:py-3">
       <button
         type="button"
         onClick={onBack}
@@ -208,6 +209,9 @@ function MessageComposer({
   const warning = outgoingWarningParts(draft, lang);
   const box = useRef<HTMLTextAreaElement>(null);
   const send = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    if (box.current) fitToText(box.current);
+  }, [draft]);
   // #202: the draft empties and 发送 turns disabled; after a press on it the focus goes back to the box.
   const submit = (event: FormEvent) => {
     const pressed = document.activeElement === send.current;
@@ -229,7 +233,7 @@ function MessageComposer({
         value={draft}
         onChange={(event) => onDraftChange(event.target.value)}
         placeholder={t.composerPlaceholder}
-        rows={3}
+        rows={1}
         maxLength={MESSAGE_MAX}
         aria-describedby={describedBy || undefined}
         // #260: Ctrl+Enter (⌘+Enter on a Mac) sends, as 发送 does; Enter alone is a new line, and not while an input
@@ -240,7 +244,7 @@ function MessageComposer({
           event.preventDefault();
           event.currentTarget.form?.requestSubmit();
         }}
-        className="min-h-11 min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20"
+        className={`${GROWING_BOX} min-w-0 flex-1 resize-none rounded-control border border-border bg-background px-3.5 py-2.5 text-base outline-none focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand/20`}
       />
       <button
         ref={send}
@@ -265,4 +269,20 @@ function MessageComposer({
       )}
     </form>
   );
+}
+
+/**
+ * T1 (ADR 0042): on a phone the box starts at one line and grows with what is typed up to about five (9rem: five
+ * 1.5rem lines, the padding and the border), then scrolls inside. From 1024 px it keeps the three lines it always had.
+ */
+const GROWING_BOX =
+  "min-h-11 max-h-36 overflow-y-auto [field-sizing:content] lg:h-[5.875rem] lg:max-h-none lg:[field-sizing:fixed]";
+
+/** Where `field-sizing: content` is missing (Firefox, older Safari), the box is sized to its text on each change. */
+function fitToText(element: HTMLTextAreaElement) {
+  if (CSS.supports("field-sizing", "content")) return;
+  element.style.height = "";
+  if (!window.matchMedia(FULLSCREEN_CHAT_QUERY).matches) return;
+  // max-h-36 caps it; the border is outside scrollHeight.
+  element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
 }

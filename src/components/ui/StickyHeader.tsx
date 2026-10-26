@@ -19,6 +19,7 @@ export function StickyHeader({ children }: { children: ReactNode }) {
   );
   return (
     <header
+      data-site-header=""
       data-scrolled={scrolled || undefined}
       className="sticky top-0 z-20 [view-transition-name:site-header] border-b border-transparent bg-surface/80 backdrop-blur-md backdrop-saturate-150 transition-colors duration-(--duration-ui) data-scrolled:border-border/70"
     >

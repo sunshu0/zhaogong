@@ -1,5 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { chatEntry, exchangeTool, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "./helpers";
+import {
+  chatEntry,
+  exchangeTool,
+  expectChatUnread,
+  expectProfileSaved,
+  freshEmail,
+  leaveFullscreenChat,
+  openOptionalProfile,
+  signIn,
+} from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
@@ -12,6 +21,7 @@ async function switchRole(page: Page, name: string) {
   // Every page load checks the account with a Server Function; a navigation started while that is in flight can
   // be dropped by Next (the page stays put under load), so let it finish first.
   await page.waitForLoadState("networkidle");
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })
@@ -47,7 +57,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(await exchangeTool(page, "交换资料")).toBeVisible();
   await page.getByLabel("输入消息").fill("雇主专属消息：周五来面试。");
   await page.getByRole("button", { name: "发送", exact: true }).click();
-  await expect(entry).toHaveAttribute("title", "聊天，3 条未读消息");
+  await expectChatUnread(page, "聊天，3 条未读消息");
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name: "招聘通知", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "全部标为已读" }).click();
@@ -75,7 +85,7 @@ test("one account keeps separate employer and seeker homes, messages, notificati
   await expect(page.getByRole("log")).not.toContainText("雇主专属消息");
   await page.getByLabel("输入消息").fill("求职专属消息：我可以上晚班。");
   await page.getByRole("button", { name: "发送", exact: true }).click();
-  await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");
+  await expectChatUnread(page, "聊天，1 条未读消息");
   await page.goto("/notifications");
   await expect(page.getByRole("region", { name: "通知列表" })).toContainText("2 条未读");
   await page.getByRole("link", { name: /北岸早茶酒家回复了你/ }).click();

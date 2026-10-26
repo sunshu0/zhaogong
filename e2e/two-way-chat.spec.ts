@@ -24,7 +24,8 @@ test("a job seeker writes from the job page, the business answers, each sees the
   await signIn(seeker, `/jobs/${jobId}`, freshEmail("e2e.two.way"));
   await seeker.getByRole("button", { name: "立即沟通" }).click();
   await expect(seeker).toHaveURL(/\/messages\?conversation=employer%3A/);
-  await expect(seeker.getByText("消息保存在服务器上，双方都能看到")).toBeVisible();
+  // Under the chat on desktop; the first line of the full-screen conversation's messages on a phone (T1, ADR 0042).
+  await expect(seeker.getByText("消息保存在服务器上，双方都能看到").filter({ visible: true })).toBeVisible();
   await seeker.getByLabel("输入消息").fill("你好，这个职位还招人吗？");
   await seeker.getByRole("button", { name: "发送", exact: true }).click();
   await expect(log(seeker)).toContainText("你好，这个职位还招人吗？");

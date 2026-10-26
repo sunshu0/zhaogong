@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chatEntry, freshEmail, openWorkspacePage, signIn } from "./helpers";
+import { chatEntry, expectChatUnread, freshEmail, openWorkspacePage, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
@@ -20,7 +20,7 @@ test("seeker notifications open related threads and persist both read states", a
     await list.getByRole("link", { name: new RegExp(title) }).click();
     await expect(page).toHaveURL(`/messages?conversation=${id}`);
     await expect(page.getByRole("region", { name: `与${person}的聊天` })).toBeVisible();
-    await expect(entry).toHaveAttribute("title", remaining === "0" ? "聊天" : `聊天，${remaining} 条未读消息`);
+    await expectChatUnread(page, remaining === "0" ? "聊天" : `聊天，${remaining} 条未读消息`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`notification-${id}.png`), fullPage: true });
     await openWorkspacePage(page, "通知");

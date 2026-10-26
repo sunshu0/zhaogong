@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chatMenuItem, counterpartActs, freshEmail, signIn } from "./helpers";
+import { chatMenuItem, counterpartActs, freshEmail, leaveFullscreenChat, signIn } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { signUpEmployer } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
@@ -61,6 +61,7 @@ test("employer sees candidate activity and counts distinct daily replies rather 
   await send("收到你的应聘资料");
   await expect(activity).toContainText("你今日已回复 2 位求职者");
   await page.screenshot({ path: testInfo.outputPath("employer-chat-activity.png"), fullPage: true });
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

@@ -12,6 +12,8 @@ import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
 import { shownTime, type ResumeCard } from "@/components/seeker/chat-store";
+import { useSession } from "@/components/seeker/session-client";
+import { isDemoAccount } from "@/lib/demo-accounts";
 
 /** How close to the bottom counts as reading the newest (#282): about two lines of messages. */
 const NEAR_BOTTOM_PX = 80;
@@ -19,6 +21,8 @@ const NEAR_BOTTOM_PX = 80;
 /** The messages of one conversation, then its exchange requests; keeps the newest in view while it is being read. */
 export function MessageLog({ conversationId, thread }: { conversationId: string; thread: Message[] | undefined }) {
   const t = useMessages(chatMessages).log;
+  const keptNote = useMessages(chatMessages).workspace.footer;
+  const demoAccount = isDemoAccount(useSession()?.email);
   const { exchanges, conversations } = useChat();
   const { unsent } = useChatDelivery(conversationId);
   const conversation = conversations.find((item) => item.id === conversationId);
@@ -38,12 +42,28 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
     shown.current = count;
     if (element && (nearBottom.current || sentNow)) element.scrollTop = element.scrollHeight;
   }, [thread, exchanges]);
+  // T1 (ADR 0042): the log shrinks when the phone's keyboard comes up or the box grows; whoever was reading the
+  // newest keeps seeing it. Chrome moves the scroll position as the log shrinks and fires a scroll event before the
+  // observer runs; read at the new height that looks like reading older messages, so a scroll at a height the
+  // observer has not seen yet does not change `nearBottom`.
+  const seenHeight = useRef<number | null>(null);
+  useEffect(() => {
+    const element = log.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const follow = new ResizeObserver(() => {
+      if (nearBottom.current) element.scrollTop = element.scrollHeight;
+      seenHeight.current = element.clientHeight;
+    });
+    follow.observe(element);
+    return () => follow.disconnect();
+  }, []);
 
   return (
     <div
       ref={log}
       onScroll={(event) => {
         const element = event.currentTarget;
+        if (seenHeight.current !== null && element.clientHeight !== seenHeight.current) return;
         nearBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM_PX;
       }}
       role="log"
@@ -52,6 +72,9 @@ export function MessageLog({ conversationId, thread }: { conversationId: string;
       className="h-80 min-h-0 flex-1 space-y-4 overflow-y-auto bg-background/60 px-4 py-5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand lg:h-auto lg:px-6"
       aria-live="polite"
     >
+      {/* T1 (ADR 0042): how messages are kept, said under the panel on desktop; a phone's full-screen conversation
+          has no room under it, so it opens the log there and scrolls away with the messages. */}
+      {!demoAccount && <p className="text-center text-meta text-muted lg:hidden">{keptNote}</p>}
       {!thread?.length && <p className="text-center text-body text-muted">{t.empty}</p>}
       {thread?.map((message, index) => (
         <MessageBubble

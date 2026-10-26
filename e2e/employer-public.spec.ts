@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { chatMenuItem, expectProfileSaved, fillSignInCode, openOptionalProfile } from "./helpers";
+import { chatMenuItem, expectProfileSaved, fillSignInCode, leaveFullscreenChat, openOptionalProfile } from "./helpers";
 import AxeBuilder from "@axe-core/playwright";
 import { publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
@@ -105,6 +105,7 @@ test("employer edits a public company home and chat remains in the seeker identi
   await page.getByRole("button", { name: "立即沟通", exact: true }).click();
   await page.getByLabel("输入消息").fill("求职者发起的主动私聊");
   await page.getByRole("button", { name: "发送", exact: true }).click();
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

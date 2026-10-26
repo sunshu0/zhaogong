@@ -76,6 +76,31 @@ export function chatEntry(page: Page) {
   return siteNav(page).getByRole("link", { name: "聊天", exact: true });
 }
 
+/**
+ * T1 (ADR 0042): on a phone an open conversation fills the screen, without the site's header, footer or bottom bar.
+ * Like a user, press ← to get back to the list (and them) first; elsewhere this does nothing.
+ */
+export async function leaveFullscreenChat(page: Page) {
+  const back = page.getByRole("button", { name: "返回会话列表", exact: true });
+  if (!(await back.isVisible())) return;
+  await back.click();
+  await expect(page.getByRole("banner")).toBeVisible();
+}
+
+/**
+ * The unread count shown on 聊天, as its title (「聊天」, 「聊天，3 条未读消息」). In a phone's open conversation the
+ * bottom bar is hidden (T1); the tab's title carries the same count there (#291, 「(3) …」, none when all are read).
+ */
+export async function expectChatUnread(page: Page, entryTitle: string) {
+  if (!(await page.getByRole("button", { name: "返回会话列表", exact: true }).isVisible())) {
+    await expect(chatEntry(page)).toHaveAttribute("title", entryTitle);
+    return;
+  }
+  const count = /，(\d+) 条未读消息$/.exec(entryTitle)?.[1];
+  if (count) await expect(page).toHaveTitle(new RegExp(`^\\(${count}\\) `));
+  else await expect(page).not.toHaveTitle(/^\(\d+\) /);
+}
+
 /** Opens a workspace page (通知, 我的主页 …) the way a user would, without reloading: the sidebar on desktop, 我的 on phones. */
 export async function openWorkspacePage(page: Page, label: string) {
   const sidebar = page.getByRole("navigation", { name: "工作台导航" }).filter({ visible: true });
@@ -83,6 +108,7 @@ export async function openWorkspacePage(page: Page, label: string) {
     await sidebar.getByRole("link", { name: label, exact: true }).click();
     return;
   }
+  await leaveFullscreenChat(page);
   await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
   await expect(page).toHaveURL("/account");
   await page

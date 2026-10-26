@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { chatMenuItem, chooseOption, exchangeTool, signIn } from "./helpers";
+import { chatMenuItem, chooseOption, exchangeTool, leaveFullscreenChat, signIn } from "./helpers";
 import { signUpEmployer } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
 
@@ -137,6 +137,7 @@ test("employers can report seekers and accepted private data stays out of public
   expect(report.evidence).toHaveLength(1);
   expect(report.evidence[0].from).toBe("them");
   await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })
@@ -147,6 +148,7 @@ test("employers can report seekers and accepted private data stays out of public
   await expect(page.getByRole("region", { name: "联系方式交换请求", exact: true })).toContainText(
     "对方已先提供自己的资料",
   );
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

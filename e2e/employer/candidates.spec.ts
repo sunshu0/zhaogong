@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { chooseOption, expectProfileSaved, freshEmail, openOptionalProfile, signIn } from "../helpers";
+import {
+  chooseOption,
+  expectProfileSaved,
+  freshEmail,
+  leaveFullscreenChat,
+  openOptionalProfile,
+  signIn,
+} from "../helpers";
 import { publishJob, signUpEmployer, uniqueTitle } from "./helpers";
 import { waitForTitle } from "../helpers/title";
 
@@ -100,6 +107,7 @@ test("recommends by selected job, explains matches and opens a persistent role-s
   );
   await page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /林晓/ }).first().click();
   await expect(log).toContainText("方便聊聊吗");
+  await leaveFullscreenChat(page);
   await page
     .getByRole("banner")
     .getByRole("button", { name: /^账号菜单/ })

@@ -251,6 +251,23 @@
   bottom: var(--bottom-nav-space);
 }
 
+/*
+ * T1 (#397, ADR 0042): below 1024 px an open conversation fills the screen, like a chat app (MessageWorkspace sets
+ * [data-chat-open] and fixes itself over the page). The site's header, footer and bottom bar go, so they are not read
+ * out or tabbed to behind it, and the page under it does not scroll.
+ */
+@media (width < 64rem) {
+  :root:has([data-chat-open]) {
+    overflow: hidden;
+  }
+  :root:has(#bottom-nav):has([data-chat-open]) {
+    --bottom-nav-space: 0px;
+  }
+  :root:has([data-chat-open]) :is([data-site-header], [data-site-footer], #bottom-nav) {
+    display: none;
+  }
+}
+
 body {
   padding-bottom: var(--bottom-nav-space);
   background: var(--background);

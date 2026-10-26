@@ -47,3 +47,4 @@
 | [0043](0043-moderator-only-accounts.md) | 审核员账号只做审核：服务器随会话告诉浏览器谁是工作人员（管理员来自配置 `ZHAOGONG_ADMIN_EMAILS`，审核员来自 `moderators`），界面只给审核后台、我的、公开页，别的页面转 `/admin`；审核员只给没有求职、招聘数据的邮箱；只有管理员能增删审核员，服务器也查；每次增删记进 `moderator_changes`（迁移 0038），只有管理员能看；审核员可以删到零；隐私页不改；审核后台分「待处理」「记录与统计」 | 已采纳 |
 
 新编号由执行 C 统一分配：要写新 ADR 时先在队列里要一个号，避免两条线撞号。
+| [0042](0042-fullscreen-chat-on-phones.md) | 手机（1024 px 以下）打开的对话占满整屏：聊天区标 `data-chat-open`、自己 fixed 盖满，样式表藏站点顶栏、页脚、底部导航；开着哪段以地址 `?conversation=` 为准，手机从列表点开 pushState（返回键回列表），「←」只在那条上 back、别处 replaceState，桌面只 replaceState；输入框 1–5 行长高（桌面照旧 3 行）；/messages 的 viewport 加 `interactive-widget=resizes-content`，`visualViewport` 兜底 | 提议 |
