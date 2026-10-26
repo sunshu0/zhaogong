@@ -86,7 +86,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
 2. 设密钥（第 2 节）：`npx wrangler secret put AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
-2a. **（用户做）举报截图的 R2 桶**（ADR 0027）：以公司名义在 Cloudflare 开 R2，建一个桶（比如 `zhaogong-report-evidence`，位置选亚太 APAC），**不要开公开访问**，也不要绑自定义域名；在 `wrangler.jsonc` 加 `"r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }]`。截图只通过 `/api/report-evidence/[id]` 给审核员看。处理完 180 天后和删号时，代码会把文件一起删掉。
+2a. **（用户做）举报截图的 R2 桶**（ADR 0027）：以公司名义在 Cloudflare 开 R2，建一个桶（比如 `zhaogong-report-evidence`，位置提示选大洋洲 `oc`，和 D1 一样离用户近；Wrangler 4.150 的 `r2 bucket create --location` 可选 weur、eeur、apac、wnam、enam、oc），**不要开公开访问**，也不要绑自定义域名；在 `wrangler.jsonc` 加 `"r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }]`。截图只通过 `/api/report-evidence/[id]` 给审核员看。处理完 180 天后和删号时，代码会把文件一起删掉。
 2b. **（用户做）登录验证码的邮件：Amazon SES（ADR 0032）。** 分步说明另给用户。要点：
    - 以公司名义开 AWS 账号，在 SES 悉尼区（`ap-southeast-2`）验证发信域名：3 条 DKIM CNAME；自定义 MAIL FROM 子域（MX 加 SPF TXT），让 SPF 对齐；`_dmarc` TXT 先用 `p=none`。
    - 申请离开沙盒（production access）。在沙盒里只能发给验证过的地址。
@@ -149,11 +149,11 @@ Cloudflare 从 GitHub 拉代码、在它的 Linux 机器上构建和部署（[Wo
 
 1. `npx wrangler login`（浏览器里用公司的 Cloudflare 账号授权）
 2. `npx wrangler d1 create zhaogong-demo --location=oc`，把打印出来的 `database_id` 发给导师；导师把它填进 `wrangler.jsonc`、合进 `main`
-3. `npx wrangler r2 bucket create zhaogong-report-evidence --location=apac`（不开公开访问，不绑域名）
+3. `npx wrangler r2 bucket create zhaogong-report-evidence --location=oc`（不开公开访问，不绑域名）
 4. `npx wrangler d1 migrations apply zhaogong-demo --remote`：要在 `wrangler.jsonc` 已经填好第 2 步 id 的那份代码里跑（Wrangler 按名字在配置里找库，再用配置里的 id 连远程库；id 还是零就连不上）
 5. 导入演示数据：`npx wrangler d1 execute zhaogong-demo --remote --file=<导师给的 SQL 文件>`（文件由 `npm run db:demo-sql` 生成、导师审过；只对全新的演示库导入一次，见本节末尾）。`DEMO_DATA=true` 不会自动填 D1
 6. 建 Workers Builds 用的 API 令牌（第 4b 节「令牌」，要有 D1 Edit）
-7. 导师把 `main` 推到 `production`；用户在 Cloudflare 后台 **Workers & Pages > Create > Import a repository** 选 `open-alternative-app/zhaogong`，名字填 `zhaogong-demo`，照第 4b 节的表设好再保存，第一次构建部署就会开始
+7. 用户先说「发布」（第一次推 `production` 也是发布）；导师把 `main` 推到 `production` 后，用户在 Cloudflare 后台 **Workers & Pages > Create application > GitHub**（有的界面叫 Import a repository） 选 `open-alternative-app/zhaogong`，名字填 `zhaogong-demo`，照第 4b 节的表设好再保存，第一次构建部署就会开始
 8. Worker 建好后设密钥：`npx wrangler secret put AUTH_SECRET`、`npx wrangler secret put ZG_EVENTS_SECRET`（各粘贴一个 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` 生成的值，两个不一样）
 9. www 跳转（见上面「www」）
 10. 打开 `https://zhaogongnz.com`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页 `/en`、`/admin` 是 404；`https://www.zhaogongnz.com` 跳到 `https://zhaogongnz.com`
@@ -272,7 +272,9 @@ npm run db:demo-sql -- --output D:/dev/zg-scratch/d1/demo.sql
 
 命令在全新的内存数据库中应用迁移、加载 `src/mock`，只导出数据 INSERT；不读取 `DATABASE_URL`、本机用户库或任何远程库，不联网抓取职位。默认输出 `data/d1-demo.sql`（已忽略），已有文件会拒绝覆盖。SQL 包含演示账号及演示审核员，不包含会话或验证码，只能用于演示库，不能用于正式站初始化。
 
-先迁移到 0031，再审阅 SQL。下面由有公司账号权限的人在部署时执行；本轮未执行远程命令：
+**日期跟着导出那天走：** `src/mock` 里的职位（j1–j19）和它们的联系方式查看记录是从 2026-10-11 往回算的固定日期，原样导出的话，演示职位 11 月中就全部过期，列表会空掉。所以导出时把这批日期按整天往后挪，让最新一条职位的发布日期就是导出那天；状态本来就是「已过期」的（j17–j19）照旧过期，演示里其余的记录（将截止、已截止、待审核等）本来就从导出时间算。文件头会写这次挪了几天、应先迁移到哪个迁移号（读 `drizzle/meta/_journal.json`）。**所以在导入前一刻再生成，生成后先审。**
+
+先迁移到文件头写的那个迁移号，再审阅 SQL。下面由有公司账号权限的人在部署时执行：
 
 ```powershell
 npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql
@@ -281,6 +283,13 @@ npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql
 数据库名必须对应配置中的演示绑定，不能指向正式库。SQL 开头检查所有应用表：任一表非空即通过约束错误拒绝导入，避免覆盖已有账号或重复填充；不要删掉这条检查。文件需整体交给 `--file` 导入，不能拆成逐条命令，外键依赖需要同一批次内延迟检查。远程文件导入的失败回滚行为见 [Cloudflare D1 入门](https://developers.cloudflare.com/d1/get-started/#populate-your-d1-database)。
 
 本轮已验证：91 条合成记录在本机 D1 成功导入；重复导入被拒绝，数据和外键保持完整；libSQL 单测逐表核对与原始演示数据一致。正式站第一位审核员使用下一节的独立流程，不能通过导入演示账号来代替。
+
+**以后演示数据要刷新（职位又快过期了，或演示库被弄乱了）：** 导入只对空库生效，所以是「换一个空库再导」，只对演示库这样做，正式站绝不能这样做（第 5 节）：
+
+1. 先留一份备份：`npx wrangler d1 export zhaogong-demo --remote --output=zhaogong-demo-<日期>.sql`（放本机，不进仓库）。
+2. 删掉旧库、建一个同名的新库：`npx wrangler d1 delete zhaogong-demo`，再 `npx wrangler d1 create zhaogong-demo --location=oc`；新库的 `database_id` 填进 `wrangler.jsonc`（一次小提交，合进 `main` 再发布）。
+3. 在填好新 id 的代码里：`npx wrangler d1 migrations apply zhaogong-demo --remote`，再当天生成一份 SQL（`npm run db:demo-sql`）、审过后 `npx wrangler d1 execute zhaogong-demo --remote --file=<文件>`。
+4. 发布（推 `production`），Worker 才会连到新库。删库到发布之间演示站读不到数据，挑没人看的时候做。
 
 
 ### 正式站第一位审核员的离线 SQL
