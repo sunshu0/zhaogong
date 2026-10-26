@@ -21,6 +21,30 @@ export function sesConfig(env: Record<string, string | undefined> = process.env)
   return { region, from, accessKeyId, secretAccessKey };
 }
 
+/**
+ * The From address as SES takes it: the address must be 7-bit ASCII, and a display name with other characters
+ * ("找工") has to be in MIME encoded-word syntax (RFC 2047) — SES's own words, under SendEmail's Source:
+ * https://docs.aws.amazon.com/ses/latest/APIReference/API_SendEmail.html. An all-ASCII From is left as it is.
+ */
+export function sesFromAddress(from: string): string {
+  const named = /^\s*"?(.*?)"?\s*<([^<>]+)>\s*$/.exec(from);
+  if (!named || /^[\x20-\x7e]*$/.test(named[1])) return from;
+  // Encoded words are at most 75 characters (RFC 2047 2): 45 bytes of the name each, cut between characters.
+  const words: string[] = [];
+  let chunk: number[] = [];
+  const flush = () => {
+    if (chunk.length) words.push(`=?UTF-8?B?${btoa(String.fromCharCode(...chunk))}?=`);
+    chunk = [];
+  };
+  for (const char of named[1]) {
+    const bytes = new TextEncoder().encode(char);
+    if (chunk.length + bytes.length > 45) flush();
+    chunk.push(...bytes);
+  }
+  flush();
+  return `${words.join(" ")} <${named[2]}>`;
+}
+
 export type SesResult = { ok: true; messageId: string } | { ok: false; status: number; error: string };
 
 /** How long one send may take before it counts as failed. */
@@ -42,7 +66,7 @@ export async function sendSesEmail(
     region: config.region,
   });
   const body = JSON.stringify({
-    FromEmailAddress: config.from,
+    FromEmailAddress: sesFromAddress(config.from),
     Destination: { ToAddresses: [mail.to] },
     Content: {
       Simple: {

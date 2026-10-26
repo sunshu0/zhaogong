@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { sendSesEmail, sesConfig, type SesConfig } from "@/lib/auth/ses";
+import { sendSesEmail, sesConfig, sesFromAddress, type SesConfig } from "@/lib/auth/ses";
 
 const config: SesConfig = {
   region: "ap-southeast-2",
@@ -23,6 +23,37 @@ describe("SES settings (#16)", () => {
   });
 });
 
+describe("the From address SES takes", () => {
+  const decode = (from: string) =>
+    new TextDecoder().decode(
+      Uint8Array.from(
+        [...from.matchAll(/=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=/g)].flatMap((m) =>
+          [...atob(m[1])].map((c) => c.charCodeAt(0)),
+        ),
+      ),
+    );
+
+  it("puts a display name with other than ASCII into MIME encoded words (RFC 2047), the address as it is", () => {
+    expect(sesFromAddress("找工 <no-reply@zhaogongnz.com>")).toBe("=?UTF-8?B?5om+5bel?= <no-reply@zhaogongnz.com>");
+    expect(sesFromAddress('"找工" <no-reply@zhaogongnz.com>')).toBe("=?UTF-8?B?5om+5bel?= <no-reply@zhaogongnz.com>");
+  });
+
+  it("leaves an all-ASCII From, or a bare address, as it is", () => {
+    expect(sesFromAddress("Zhaogong <no-reply@zhaogongnz.com>")).toBe("Zhaogong <no-reply@zhaogongnz.com>");
+    expect(sesFromAddress("no-reply@zhaogongnz.com")).toBe("no-reply@zhaogongnz.com");
+  });
+
+  it("splits a long name into words of at most 75 characters, cut between characters", () => {
+    const name = "找工 · 奥克兰华人招聘与求职平台 Auckland 演示站";
+    const from = sesFromAddress(`${name} <no-reply@zhaogongnz.com>`);
+    expect(from.endsWith(" <no-reply@zhaogongnz.com>")).toBe(true);
+    const words = from.replace(" <no-reply@zhaogongnz.com>", "").split(" ");
+    expect(words.length).toBeGreaterThan(1);
+    for (const word of words) expect(word.length).toBeLessThanOrEqual(75);
+    expect(decode(from)).toBe(name);
+  });
+});
+
 describe("sending one email through SES", () => {
   it("posts the SES v2 request to the region's endpoint, signed for ses in that region", async () => {
     const fetchImpl = vi.fn<(request: Request, init?: RequestInit) => Promise<Response>>(async () =>
@@ -40,7 +71,7 @@ describe("sending one email through SES", () => {
     );
     expect(init?.signal).toBeInstanceOf(AbortSignal);
     expect(JSON.parse(await request.text())).toEqual({
-      FromEmailAddress: "找工 <no-reply@example.com>",
+      FromEmailAddress: "=?UTF-8?B?5om+5bel?= <no-reply@example.com>",
       Destination: { ToAddresses: ["mei@example.com"] },
       Content: {
         Simple: {
