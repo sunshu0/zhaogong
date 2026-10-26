@@ -25,17 +25,19 @@ function lastMigration(): string {
 /**
  * The fixed-date fixtures (src/mock: the jobs j1–j19 and their contact views, dated back from 2026-10-11) moved
  * forward by whole days so the newest is posted on the day of the export: a demo site imported weeks later still
- * lists open jobs. What is expired by its status stays expired; the rest of the demo is dated from `now` already.
+ * lists open jobs. What is expired by its status stays expired, and its end date stays before the export (moved,
+ * it would fall days after it); the rest of the demo is dated from `now` already.
  */
 async function moveFixedDatesToNow(client: ReturnType<typeof createClient>, now: number): Promise<number> {
   const newest = Math.max(...MOCK_JOBS.map((job) => Date.parse(job.postedAt)));
   const shift = Math.max(0, Math.floor((now - newest) / DAY)) * DAY;
   if (!shift) return 0;
   const later = (value: unknown) => (value == null ? null : new Date(Date.parse(String(value)) + shift).toISOString());
+  const ended = (value: unknown) => new Date(Math.min(Date.parse(String(value)) + shift, now - DAY)).toISOString();
   const ids = MOCK_JOBS.map((job) => job.id);
   const marks = ids.map(() => "?").join(", ");
   const jobs = await client.execute({
-    sql: `SELECT id, posted_at, expires_at, hires_confirmed_at FROM jobs WHERE id IN (${marks})`,
+    sql: `SELECT id, status, posted_at, expires_at, hires_confirmed_at FROM jobs WHERE id IN (${marks})`,
     args: ids,
   });
   const views = await client.execute({
@@ -46,7 +48,12 @@ async function moveFixedDatesToNow(client: ReturnType<typeof createClient>, now:
     [
       ...jobs.rows.map((job) => ({
         sql: "UPDATE jobs SET posted_at = ?, expires_at = ?, hires_confirmed_at = ? WHERE id = ?",
-        args: [later(job.posted_at), later(job.expires_at), later(job.hires_confirmed_at), job.id],
+        args: [
+          later(job.posted_at),
+          job.status === "expired" ? ended(job.expires_at) : later(job.expires_at),
+          later(job.hires_confirmed_at),
+          job.id,
+        ],
       })),
       ...views.rows.map((view) => ({
         sql: "UPDATE contact_views SET viewed_at = ? WHERE id = ?",

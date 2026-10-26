@@ -79,6 +79,15 @@ describe("offline demo bootstrap SQL", () => {
     // What is expired stays expired: j17–j19 by their status, j21 by its date.
     const expired = await target.execute("SELECT id FROM jobs WHERE status = 'expired' ORDER BY id");
     expect(expired.rows.map((row) => row.id)).toEqual(["j17", "j18", "j19"]);
+    // ...and their end dates are before the export, though moved forward they would fall days after it.
+    const ends = await target.execute(
+      "SELECT expires_at, posted_at, hires_confirmed_at FROM jobs WHERE status = 'expired'",
+    );
+    for (const row of ends.rows) {
+      expect(Date.parse(String(row.expires_at))).toBeLessThan(now);
+      expect(Date.parse(String(row.expires_at))).toBeGreaterThan(Date.parse(String(row.posted_at)));
+      expect(Date.parse(String(row.expires_at))).toBeGreaterThan(Date.parse(String(row.hires_confirmed_at)));
+    }
     const closed = await target.execute("SELECT expires_at FROM jobs WHERE id = 'j21'");
     expect(Date.parse(String(closed.rows[0].expires_at))).toBe(now - 20 * 86_400_000);
     const views = await target.execute("SELECT min(viewed_at) AS first FROM contact_views");
