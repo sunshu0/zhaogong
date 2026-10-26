@@ -13,7 +13,7 @@ import { RecordView } from "@/components/seeker/RecordView";
 import { PayReferenceBox } from "@/components/ui/PayReferenceBox";
 import { payReference } from "@/lib/pay-reference";
 import { ReportJob } from "@/components/seeker/ReportJob";
-import { FinishSaveAfterSignIn } from "@/components/seeker/SaveJobButton";
+import { FinishSaveAfterSignIn, SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { ShareJobButton } from "@/components/seeker/ShareJob";
 import { Phone } from "lucide-react";
 import { formatPay, placeName } from "@/components/seeker/format";
@@ -137,6 +137,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
                   closed={isExpired(job, now)}
                 />
               </div>
+              {/* T8 (#405): 收藏 beside them on a phone; from 1024 px it stays in the job's header. */}
+              <SaveJobButton look="bar" jobId={job.id} title={job.titleZh} className="lg:hidden" />
               {job.contactPublic && (
                 <a
                   href="#contact"

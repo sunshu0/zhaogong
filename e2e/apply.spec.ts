@@ -59,6 +59,7 @@ test("the business marks 已录用 in the chat, and the job seeker is told", asy
   await expect(hired).toHaveAttribute("aria-pressed", "false");
   await hired.click();
   await expect(hired).toHaveAttribute("aria-pressed", "true");
+  await expect(hired).not.toHaveAttribute("aria-busy");
   await page.getByRole("link", { name: "这个职位聊过的人" }).click();
   await expect(page).toHaveURL(`/employer/jobs/${jobId}/applicants`);
   await expect(page.getByRole("article", { name: "候选人 求职者" })).toContainText("已录用");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backReachesList, conversationAddress } from "@/components/seeker/fullscreen-chat";
+import { backReachesList, conversationAddress, keyboardIsUp } from "@/components/seeker/fullscreen-chat";
 
 describe("full-screen chat on phones (T1, ADR 0042)", () => {
   it("puts the open conversation in the address and takes it out again, other parameters kept", () => {
@@ -21,5 +21,18 @@ describe("full-screen chat on phones (T1, ADR 0042)", () => {
     // Another conversation opened from elsewhere, or the same one reached again by a later navigation.
     expect(backReachesList(pushed, { ...pushed, href: "https://zhaogong.test/messages?conversation=b" })).toBe(false);
     expect(backReachesList(pushed, { ...pushed, length: 6 })).toBe(false);
+  });
+});
+
+describe("the phone's keyboard over a conversation (#405)", () => {
+  it("counts a window much shorter than it has been, while a field in the chat has the focus", () => {
+    // 375×667 with a keyboard of about 290 px.
+    expect(keyboardIsUp(667, 377, true)).toBe(true);
+    expect(keyboardIsUp(667, 667, true)).toBe(false);
+  });
+
+  it("does not count the browser's own bars, or a shorter window with nothing being typed", () => {
+    expect(keyboardIsUp(667, 611, true)).toBe(false);
+    expect(keyboardIsUp(667, 377, false)).toBe(false);
   });
 });

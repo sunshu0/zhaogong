@@ -10,6 +10,7 @@ import { formatJobDate } from "@/components/seeker/job-facts";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { useSession } from "@/components/seeker/session-client";
 import { Pay } from "@/components/ui/Pay";
+import { Skeleton, SkeletonList } from "@/components/ui/Skeleton";
 import { Tag } from "@/components/ui/Tag";
 import { cardClass } from "@/components/ui/Card";
 import { useLang, useMessages } from "@/i18n/client";
@@ -55,6 +56,14 @@ export function MyApplications() {
           setAsked((n) => n + 1);
         }}
       />
+    );
+  // T5 (#405): while the list loads, its title and a card hold the place, so 收藏 below does not jump down later.
+  if (signedIn && list === null)
+    return (
+      <div className="mb-6 space-y-3">
+        <Skeleton className="h-7 w-28" />
+        <SkeletonList count={1} />
+      </div>
     );
   if (!list?.length) return null;
 

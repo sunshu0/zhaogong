@@ -59,7 +59,7 @@ export function DescriptionTabs({ zh, en, plain = false }: { zh: string; en: str
               tabIndex={current === tab.key ? 0 : -1}
               onClick={() => setCurrent(tab.key)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className="pressable relative min-h-9 rounded-full px-4 text-muted after:absolute after:inset-x-0 after:-inset-y-1 aria-selected:bg-surface aria-selected:font-medium aria-selected:text-brand aria-selected:shadow-card"
+              className="pressable min-h-11 rounded-full px-4 text-muted aria-selected:bg-surface aria-selected:font-medium aria-selected:text-brand aria-selected:shadow-card"
             >
               <span lang={tab.lang}>{tab.key === "zh" ? t.chinese : t.english}</span>
             </button>

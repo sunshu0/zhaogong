@@ -39,10 +39,10 @@ export default async function JobsPage({ searchParams }: PageProps<"/[lang]/jobs
           <h1 className="text-title font-semibold">{t.heading}</h1>
           {/* Round 18 (#113): external jobs from companies' own sites, in sections of their own. */}
           <nav aria-label={t.sections} className="flex gap-2">
-            <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
+            <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} px-3.5`}>
               {t.internships}
             </Link>
-            <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} min-h-9 px-3.5`}>
+            <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} px-3.5`}>
               {t.professional}
             </Link>
           </nav>

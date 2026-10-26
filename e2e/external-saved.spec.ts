@@ -20,6 +20,7 @@ test("收藏 an external job signed out: sign in, back on the section with it sa
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/professional?field=software");
   await expect(saveButton(page, "Full Stack Developer")).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton(page, "Full Stack Developer")).not.toHaveAttribute("aria-busy");
 
   // On a job page too, and the list shows both, newest first, as 外部职位.
   await page.goto("/internships");
@@ -30,6 +31,7 @@ test("收藏 an external job signed out: sign in, back on the section with it sa
   await expect(page.getByRole("heading", { level: 1, name: "Graduate Software Engineer" })).toBeVisible();
   await saveButton(page, "Graduate Software Engineer").click();
   await expect(saveButton(page, "Graduate Software Engineer")).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton(page, "Graduate Software Engineer")).not.toHaveAttribute("aria-busy");
 
   await page.goto("/me/saved");
   const list = page.getByRole("list", { name: "收藏的职位" });
@@ -54,6 +56,7 @@ test("收藏 an external job signed out: sign in, back on the section with it sa
   await expect(list.getByRole("article")).toHaveCount(1);
   await page.goto("/professional");
   await expect(saveButton(page, "Full Stack Developer")).toHaveAttribute("aria-pressed", "false");
+  await expect(saveButton(page, "Full Stack Developer")).not.toHaveAttribute("aria-busy");
 });
 
 test("a section's filters become an alert, listed with its section; 看职位 opens the same filtered list", async ({

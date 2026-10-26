@@ -4,26 +4,32 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { jobSummary, type JobSummary } from "@/app/[lang]/jobs/[id]/actions";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
 
-/** The job a conversation is about, fixed above the messages so both sides know which job they are discussing. */
+/**
+ * The job a conversation is about, fixed above the messages so both sides know which job they are discussing. While
+ * the job loads, a grey shape holds the pay's place (T5, #405), so nothing moves when it comes.
+ */
 export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallbackTitle: string }) {
   const t = useMessages(chatMessages).conversationJob;
-  const [loaded, setLoaded] = useState<{ jobId: string; job: JobSummary | null } | null>(null);
+  // `job` undefined: no answer (#252).
+  const [loaded, setLoaded] = useState<{ jobId: string; job?: JobSummary | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
     // No answer (#252) is not "gone": the bar stays, with the conversation's own title for the job and no pay.
     jobSummary(jobId).then(
       (job) => !cancelled && setLoaded({ jobId, job }),
-      () => {},
+      () => !cancelled && setLoaded({ jobId }),
     );
     return () => {
       cancelled = true;
     };
   }, [jobId]);
-  const job = loaded?.jobId === jobId ? loaded.job : undefined;
+  const answered = loaded?.jobId === jobId;
+  const job = answered ? loaded.job : undefined;
   if (job === null) return null; // taken down or gone: nothing to link to
 
   return (
@@ -37,6 +43,7 @@ export function ConversationJob({ jobId, fallbackTitle }: { jobId: string; fallb
         {job?.title ?? fallbackTitle}
       </span>
       {job && <PayText pay={job.pay} />}
+      {!answered && <Skeleton className="h-6 w-16 shrink-0" />}
       {job && !job.open && <span className="shrink-0 text-meta text-muted">{t.closed}</span>}
       <ChevronRight aria-hidden="true" className="ml-auto size-4 shrink-0 text-muted" />
     </Link>

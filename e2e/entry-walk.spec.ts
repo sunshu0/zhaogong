@@ -95,6 +95,7 @@ test("收藏和进度: home → 收藏 a job → 收藏和进度", async ({ page
   const title = (await first.getByRole("heading").textContent())!.trim();
   await first.getByRole("button", { name: /^收藏：/ }).click();
   await expect(first.getByRole("button", { name: /^收藏：/ })).toHaveText("已收藏");
+  await expect(first.getByRole("button", { name: /^收藏：/ })).not.toHaveAttribute("aria-busy");
 
   await openMine(page, testInfo, "收藏和进度");
   await expect(page).toHaveURL("/me/saved");
@@ -569,6 +570,7 @@ test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 �
   const save = page.getByRole("button", { name: "收藏：Firmware Intern (Summer 2026/27)" }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveText("已收藏");
+  await expect(save).not.toHaveAttribute("aria-busy");
   await openMine(page, testInfo, "收藏和进度");
   await expect(page).toHaveURL("/me/saved");
   const saved = page.getByRole("list", { name: "收藏的职位" }).getByRole("article", {
@@ -688,6 +690,7 @@ test("双方聊天: a job seeker 立即沟通; the employer 聊天 → 回复 �
   const fit = page.getByRole("group", { name: "标记这位求职者" }).getByRole("button", { name: "合适", exact: true });
   await fit.click();
   await expect(fit).toHaveAttribute("aria-pressed", "true");
+  await expect(fit).not.toHaveAttribute("aria-busy");
   const log = page.getByRole("log", { name: "消息记录" });
   await expect(log).toContainText("入口走查：周末可以上班");
   await page.getByLabel("输入消息").fill("好的，明天来面试");

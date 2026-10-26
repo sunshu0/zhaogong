@@ -20,7 +20,7 @@ export function BackLink() {
         e.preventDefault();
         router.push(lastListHref(), { transitionTypes: BACK });
       }}
-      className="inline-flex items-center gap-1 py-1 text-sm text-muted hover:text-brand"
+      className="-my-2 inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-brand"
     >
       <span aria-hidden="true">←</span> {t.back}
     </Link>

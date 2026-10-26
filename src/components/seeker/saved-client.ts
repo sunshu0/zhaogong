@@ -1,11 +1,12 @@
 "use client";
 
 // Which jobs the signed-in account saved (#52), for the 收藏 buttons on a page. The server's list is the truth:
-// fetched once per page load and replaced by each answer. A click shows 已收藏 only once the server has it (the
-// button is busy until then), so leaving the page right after never shows a save that was lost.
+// fetched once per page load and replaced by each answer. A click shows 已收藏 at once (操作手感 T2, #405) and the
+// button is busy until the server answers; no answer takes it back and says so.
 import { useEffect, useSyncExternalStore } from "react";
 import { mySavedJobIds, saveMyJob, unsaveMyJob } from "@/app/[lang]/me/saved/actions";
 import { useSession } from "@/components/seeker/session-client";
+import { showThenSend } from "@/components/ui/optimistic";
 import { toast } from "@/components/ui/Toast";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
@@ -72,21 +73,30 @@ function setBusy(jobId: string, on: boolean) {
   for (const listener of listeners) listener();
 }
 
+/** `saved` with `jobId` in it or not. */
+function withSavedJob(saved: ReadonlySet<string> | null, jobId: string, on: boolean): ReadonlySet<string> {
+  const next = new Set(saved);
+  if (on) next.add(jobId);
+  else next.delete(jobId);
+  return next;
+}
+
 /**
- * Saves or removes a job; the buttons follow the server's answer, and a toast says what happened (Round 19), in the
- * page's language (`lang`, from the caller's useLang()).
+ * Saves or removes a job: the buttons change at once and then follow the server's answer; no answer puts the job back
+ * as it was (#405). A toast says what happened (Round 19), in the page's language (`lang`, from the caller's
+ * useLang()).
  */
 export async function toggleSaved(jobId: string, save: boolean, lang: Lang = DEFAULT_LANG): Promise<void> {
   const t = pick(seekerJobsMessages, lang).save;
   setBusy(jobId, true);
-  try {
-    const answer = await (save ? saveMyJob(jobId) : unsaveMyJob(jobId));
-    set(answer ? new Set(answer) : null);
-    if (answer) toast(save ? t.savedToast : t.unsavedToast);
-  } catch {
-    // Unchanged: the button still shows what the server has.
-    toast(save ? t.saveFailed : t.unsaveFailed);
-  } finally {
-    setBusy(jobId, false);
-  }
+  const sent = await showThenSend({
+    show: () => set(withSavedJob(ids, jobId, save)),
+    // Only this job goes back: another one pressed meanwhile keeps its own change.
+    undo: () => set(withSavedJob(ids, jobId, !save)),
+    send: () => (save ? saveMyJob(jobId) : unsaveMyJob(jobId)),
+  });
+  setBusy(jobId, false);
+  if (!sent.ok) return toast(save ? t.saveFailed : t.unsaveFailed);
+  set(sent.answer ? new Set(sent.answer) : null);
+  if (sent.answer) toast(save ? t.savedToast : t.unsavedToast);
 }

@@ -12,9 +12,20 @@ import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 /**
  * 收藏 on a job (#52): a toggle for job seekers. Signed out, it goes to sign-in and comes back to this page, which
  * then finishes saving (FinishSaveAfterSignIn). Not shown in the employer identity. Sits above the row's stretched
- * title link.
+ * title link. It changes the moment it is pressed (#405, saved-client). `look="bar"`: an icon the size of the job
+ * page's other actions, in its bar fixed at the bottom of a phone (T8). `className` is added to the button.
  */
-export function SaveJobButton({ jobId, title }: { jobId: string; title: string }) {
+export function SaveJobButton({
+  jobId,
+  title,
+  look = "inline",
+  className = "",
+}: {
+  jobId: string;
+  title: string;
+  look?: "inline" | "bar";
+  className?: string;
+}) {
   const hydrated = useHydrated();
   const session = useSession();
   const saved = useSavedJobIds();
@@ -26,7 +37,15 @@ export function SaveJobButton({ jobId, title }: { jobId: string; title: string }
   const on = Boolean(session && saved?.has(jobId));
 
   // While the server answers, the button is aria-disabled, not disabled: a disabled button loses the focus in
-  // Chromium, so a keyboard user would be thrown to the top of the page after each 收藏 (#179).
+  // Chromium, so a keyboard user would be thrown to the top of the page after each 收藏 (#179). It does not look
+  // dimmed then: the change already shows (#405).
+  // T9 (#405): 44 px to press. The inline one keeps the row's height with negative margins.
+  const shape =
+    look === "bar"
+      ? "pressable flex size-12 shrink-0 justify-center rounded-control border border-brand/40 bg-surface hover:bg-brand-soft"
+      : `relative z-10 inline-flex -my-1.5 min-h-11 min-w-11 gap-1 rounded-control px-1.5 text-meta hover:text-brand ${
+          on ? "text-brand" : "text-muted"
+        }`;
   return (
     <button
       type="button"
@@ -35,17 +54,20 @@ export function SaveJobButton({ jobId, title }: { jobId: string; title: string }
       aria-busy={busy || undefined}
       aria-pressed={session ? on : undefined}
       aria-label={t.label(title)}
+      title={look === "bar" ? (on ? t.saved : t.save) : undefined}
       onClick={() => {
         if (busy) return;
         if (!session) router.push(saveAfterSignInHref(`${location.pathname}${location.search}`, jobId));
         else void toggleSaved(jobId, !on, lang);
       }}
-      className={`relative z-10 inline-flex min-h-8 items-center gap-1 rounded-control px-1.5 text-meta after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-brand disabled:opacity-60 aria-disabled:opacity-60 ${
-        on ? "text-brand" : "text-muted"
-      }`}
+      className={`${shape} items-center disabled:opacity-60 ${look === "bar" ? "text-brand" : ""} ${className}`.trim()}
     >
-      <Bookmark aria-hidden="true" className="size-4" fill={on ? "currentColor" : "none"} />
-      {on ? t.saved : t.save}
+      <Bookmark
+        aria-hidden="true"
+        className={look === "bar" ? "size-5" : "size-4"}
+        fill={on ? "currentColor" : "none"}
+      />
+      {look === "inline" && (on ? t.saved : t.save)}
     </button>
   );
 }

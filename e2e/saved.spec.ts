@@ -18,11 +18,13 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(page).toHaveURL("/jobs?industry=retail");
   await expect(saveButton(page, "超市理货员")).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton(page, "超市理货员")).not.toHaveAttribute("aria-busy");
 
   // On a job page.
   await page.goto("/jobs/j3");
   await saveButton(page, "点心师傅").click();
   await expect(saveButton(page, "点心师傅")).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton(page, "点心师傅")).not.toHaveAttribute("aria-busy");
 
   // 收藏和进度: newest first, 已收藏 to start with; a stage set stays after a reload.
   await page.goto("/me/saved");
@@ -44,6 +46,7 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
   await expect(list.getByRole("article")).toHaveCount(1);
   await page.goto("/jobs?industry=retail");
   await expect(saveButton(page, "超市理货员")).toHaveAttribute("aria-pressed", "false");
+  await expect(saveButton(page, "超市理货员")).not.toHaveAttribute("aria-busy");
 });
 
 test("a job whose chat swapped contact details shows 已联系; other accounts see none of it", async ({ page }) => {
@@ -52,6 +55,7 @@ test("a job whose chat swapped contact details shows 已联系; other accounts s
   await page.goto("/jobs/j3");
   await saveButton(page, "点心师傅").click();
   await expect(saveButton(page, "点心师傅")).toHaveAttribute("aria-pressed", "true");
+  await expect(saveButton(page, "点心师傅")).not.toHaveAttribute("aria-busy");
 
   // The demo chat about j3 has the employer's contact details waiting; agree to swap.
   await page.goto("/messages?conversation=north-tea");

@@ -127,7 +127,8 @@ export function JobDetail({
             <span />
           )}
           <div className="-mt-1 -mr-1 flex shrink-0 items-center gap-1">
-            <SaveJobButton jobId={job.id} title={job.titleZh} />
+            {/* T8 (#405): on a phone 收藏 is in the fixed bar with the page's actions, when it has them. */}
+            <SaveJobButton jobId={job.id} title={job.titleZh} className={actions ? "max-lg:hidden" : ""} />
             {share}
           </div>
         </div>

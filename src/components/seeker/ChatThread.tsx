@@ -16,7 +16,8 @@ import { MessageLog } from "@/components/seeker/MessageLog";
 import { CounterpartAvatar } from "@/components/seeker/ProfileAvatar";
 import { outgoingWarningParts } from "@/components/seeker/chat-warnings";
 import { MESSAGE_COUNT_FROM, MESSAGE_MAX } from "@/components/seeker/chat-store";
-import { FULLSCREEN_CHAT_QUERY } from "@/components/seeker/fullscreen-chat";
+import { FULLSCREEN_CHAT_QUERY, useKeyboardUp } from "@/components/seeker/fullscreen-chat";
+import { useMediaQuery } from "@/components/ui/use-media-query";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
@@ -38,6 +39,8 @@ export function ChatThread({
   const t = useMessages(chatMessages).thread;
   const lang = useLang();
   const { messages, conversations, send } = useChat();
+  const thread = useRef<HTMLElement>(null);
+  const keyboardUp = useKeyboardUp(thread, useMediaQuery(FULLSCREEN_CHAT_QUERY, false));
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -55,13 +58,17 @@ export function ChatThread({
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
+    <section ref={thread} className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
-      {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
-      {/* ADR 0030: the business marks the job seeker here too. */}
-      {isEmployer && conversation.job && conversation.id.startsWith("chat:") && (
-        <ChatCandidateMarks conversationId={conversation.id} jobId={conversation.job} />
-      )}
+      {/* #405: while the phone's keyboard is up, the job bar and the marks fold away (kept, not reloaded) so the
+          messages keep the room; they are back when it goes down. */}
+      <div className={keyboardUp ? "hidden" : "contents"} data-folded={keyboardUp || undefined}>
+        {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
+        {/* ADR 0030: the business marks the job seeker here too. */}
+        {isEmployer && conversation.job && conversation.id.startsWith("chat:") && (
+          <ChatCandidateMarks conversationId={conversation.id} jobId={conversation.job} />
+        )}
+      </div>
       <DeliveryNote conversationId={conversation.id} />
 
       <ChatActivity

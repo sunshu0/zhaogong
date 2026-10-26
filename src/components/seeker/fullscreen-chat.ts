@@ -2,7 +2,7 @@
 
 // T1 (#397, ADR 0042): below 1024 px an open conversation fills the screen, like a chat app. Which one is open lives in
 // the address (?conversation=), so the phone's back key closes it and a reload keeps it open.
-import { useCallback, useEffect, type RefObject } from "react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useSearchParams } from "next/navigation";
 
 /** Where the list and the open conversation stop sitting side by side (Tailwind's lg). */
@@ -83,4 +83,53 @@ export function useVisibleViewport(element: RefObject<HTMLElement | null>, activ
       box.style.removeProperty("--chat-top");
     };
   }, [element, active]);
+}
+
+/** How much shorter than the tallest it has been the visible window must get before it counts as a keyboard. */
+export const KEYBOARD_MIN_PX = 150;
+
+/**
+ * Whether the phone's keyboard is up (#405): a field in the chat has the focus and the visible window is at least
+ * KEYBOARD_MIN_PX shorter than the tallest it has been at this width. Without the focus a shorter window is the
+ * browser's own bars, not a keyboard.
+ */
+export function keyboardIsUp(tallest: number, height: number, typing: boolean): boolean {
+  return typing && tallest - height >= KEYBOARD_MIN_PX;
+}
+
+/**
+ * Whether the keyboard is up over the open conversation inside `element` (#405), while `active` (a phone, a
+ * conversation open). The chat folds its job bar then, so the messages keep the room.
+ */
+export function useKeyboardUp(element: RefObject<HTMLElement | null>, active: boolean): boolean {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    const box = element.current;
+    const viewport = window.visualViewport;
+    if (!active || !box || !viewport) return;
+    let width = viewport.width;
+    let tallest = viewport.height;
+    const check = () => {
+      // Turning the phone starts over.
+      if (Math.abs(viewport.width - width) > 1) {
+        width = viewport.width;
+        tallest = viewport.height;
+      }
+      tallest = Math.max(tallest, viewport.height);
+      const field = document.activeElement;
+      const typing = field instanceof HTMLElement && box.contains(field) && field.matches("textarea, input");
+      setUp(keyboardIsUp(tallest, viewport.height, typing));
+    };
+    check();
+    viewport.addEventListener("resize", check);
+    box.addEventListener("focusin", check);
+    box.addEventListener("focusout", check);
+    return () => {
+      viewport.removeEventListener("resize", check);
+      box.removeEventListener("focusin", check);
+      box.removeEventListener("focusout", check);
+      setUp(false);
+    };
+  }, [element, active]);
+  return active && up;
 }

@@ -107,6 +107,7 @@ test("an account with a job seeker's data cannot be made a moderator (ADR 0043)"
   const save = page.getByRole("button", { name: "收藏：点心师傅", exact: true }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveAttribute("aria-pressed", "true");
+  await expect(save).not.toHaveAttribute("aria-busy");
 
   const admin = await adminPage(browser, testInfo);
   await admin.goto("/admin");

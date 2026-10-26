@@ -28,6 +28,7 @@ test("收藏和进度: empty, with a saved job, and with 进度 open", async ({ 
   const save = page.getByRole("button", { name: "收藏：点心师傅", exact: true }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveAttribute("aria-pressed", "true");
+  await expect(save).not.toHaveAttribute("aria-busy");
   await page.goto("/me/saved");
   const job = page.getByRole("list", { name: "收藏的职位" }).getByRole("article", { name: "点心师傅" });
   await expect(selectTrigger(job, "进度")).toHaveAccessibleName("进度 已收藏");
