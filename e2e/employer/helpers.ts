@@ -15,6 +15,35 @@ export async function moderatorPage(browser: Browser, testInfo: TestInfo): Promi
   return context.newPage();
 }
 
+/**
+ * The demo admin (ADR 0043: ZHAOGONG_ADMIN_EMAILS, which scripts/e2e-server.mjs sets to this address), signed in once by
+ * e2e/moderator.setup.ts. Only an admin adds and removes moderators.
+ */
+export const ADMIN_EMAIL = "admin@example.com";
+export const ADMIN_STATE = "e2e/.auth/admin.json";
+
+/** Like moderatorPage, signed in as the demo admin. */
+export async function adminPage(browser: Browser, testInfo: TestInfo): Promise<Page> {
+  const context = await browser.newContext({ ...testInfo.project.use, storageState: ADMIN_STATE });
+  return context.newPage();
+}
+
+/** The two groups of 审核后台 (ADR 0043): 待处理 opens first; the others are under 记录与统计. */
+const RECORD_TABS = /^(操作记录|审核数据|查看记录|审核员|Log|Moderation stats|Access log|Moderator)/;
+
+/**
+ * Opens a tab of 审核后台 the way a moderator would: first its group (待处理 or 记录与统计), then the tab. `name` as for
+ * getByRole("tab"): a string matches the tab's name exactly, so give the count-free ones (审核员, 审核数据) as strings.
+ */
+export async function openAdminTab(page: Page, name: string | RegExp) {
+  const records = typeof name === "string" ? RECORD_TABS.test(name) : RECORD_TABS.test(name.source.replace(/^\^/, ""));
+  await page
+    .getByRole("tablist", { name: /^(审核后台分组|Moderation sections)$/ })
+    .getByRole("tab", { name: records ? /^(记录与统计|Records and numbers)$/ : /^(待处理|To do)/ })
+    .click();
+  await page.getByRole("tab", { name, exact: typeof name === "string" }).click();
+}
+
 /** A job message with nothing for the checks to object to. Its parsed title is a demo job's (前厅服务员), so give every published job a uniqueTitle(). */
 export const CLEAN_MESSAGE =
   "Mt Eden 川菜馆招前厅服务员，时薪 $25-27，每周 15-25 小时，包工作餐，学签可做，需会普通话。微信 demo_e2e_b";

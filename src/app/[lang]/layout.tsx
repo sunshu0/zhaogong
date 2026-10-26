@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lang as rootLang } from "next/root-params";
 import { Suspense, type ReactNode } from "react";
+import { NotForStaff, StaffRedirect } from "@/components/account/staff";
 import { AccountMenu, HeaderPostJob, PostJobLink } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
@@ -127,17 +128,19 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
                 <p className="hidden text-body text-foreground lg:mt-2 lg:block">{footer.tagline}</p>
                 <p className="lg:mt-2">{site.lawNote}</p>
               </div>
-              <FooterColumn label={footer.seekers}>
-                <FooterLink href="/jobs">{nav.findJobs}</FooterLink>
-                <FooterLink href="/internships">{nav.internships}</FooterLink>
-                <FooterLink href="/professional">{nav.professional}</FooterLink>
-              </FooterColumn>
-              <FooterColumn label={footer.employers}>
-                <li>
-                  <PostJobLink className={FOOTER_LINK} />
-                </li>
-                <FooterLink href="/employer/candidates">{nav.candidates}</FooterLink>
-              </FooterColumn>
+              <NotForStaff>
+                <FooterColumn label={footer.seekers}>
+                  <FooterLink href="/jobs">{nav.findJobs}</FooterLink>
+                  <FooterLink href="/internships">{nav.internships}</FooterLink>
+                  <FooterLink href="/professional">{nav.professional}</FooterLink>
+                </FooterColumn>
+                <FooterColumn label={footer.employers}>
+                  <li>
+                    <PostJobLink className={FOOTER_LINK} />
+                  </li>
+                  <FooterLink href="/employer/candidates">{nav.candidates}</FooterLink>
+                </FooterColumn>
+              </NotForStaff>
               <div>
                 <p aria-hidden="true" className="hidden font-semibold text-foreground lg:block">
                   {footer.legal}
@@ -165,6 +168,10 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           </footer>
           <Suspense fallback={<BottomNavShell />}>
             <BottomNav />
+          </Suspense>
+          {/* ADR 0043: a staff account is sent to 审核后台 from pages it has no use for; reads the path. */}
+          <Suspense fallback={null}>
+            <StaffRedirect />
           </Suspense>
           <Toaster />
           {/* Clarity behind consent (#313, ADR 0025): reads the path, so inside a Suspense like the navs. */}

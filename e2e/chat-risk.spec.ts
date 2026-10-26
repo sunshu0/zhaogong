@@ -3,7 +3,7 @@
 // /admin 聊天风险; the messages open behind a button, the opening is in 查看记录, and 看过，关闭 takes it off.
 import { expect, test, type Page } from "@playwright/test";
 import { freshEmail, signIn } from "./helpers";
-import { moderatorPage, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
+import { moderatorPage, openAdminTab, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 const log = (page: Page) => page.getByRole("log", { name: "消息记录" });
 
@@ -53,12 +53,12 @@ test("both sides are told, only the business's messages count, and a moderator l
   // The moderator: the business, the kinds and the count, without the words until opened.
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /^聊天风险/ }).click();
+  await openAdminTab(admin, /^聊天风险/);
   const card = admin.getByRole("article", { name: `${shop}的聊天风险` });
   await expect(card).toContainText("收费用词");
   await expect(card).toContainText("刷单用词");
   await expect(card).toContainText("3 条消息");
-  await expect(admin.getByRole("tabpanel")).not.toContainText(run);
+  await expect(admin.getByRole("tabpanel").first()).not.toContainText(run);
   await card.getByRole("button", { name: "查看这 3 条消息" }).click();
   const messages = card.getByRole("list", { name: "触发规则的聊天消息" });
   for (const text of words) await expect(messages).toContainText(text);
@@ -68,7 +68,7 @@ test("both sides are told, only the business's messages count, and a moderator l
   await expect(admin.getByRole("status")).toContainText(`看过并关闭「${shop}」的聊天风险`);
   await expect(card).toHaveCount(0);
 
-  await admin.getByRole("tab", { name: /^查看记录/ }).click();
+  await openAdminTab(admin, /^查看记录/);
   const views = admin.getByRole("region", { name: "审核员看过谁的个人信息" });
   await expect(views.getByRole("row").nth(1)).toContainText("聊天");
   await admin.context().close();

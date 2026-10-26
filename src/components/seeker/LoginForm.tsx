@@ -36,6 +36,7 @@ import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { inputClass } from "@/components/ui/input-class";
+import { staffNext } from "@/components/ui/nav";
 
 export interface DemoBusiness {
   id: string;
@@ -143,8 +144,10 @@ export function LoginForm({
   }, [counting]);
 
   const signedInEmail = session?.email;
+  // ADR 0043: a staff account skips the identities altogether and goes on to 审核后台.
+  const staff = !!session?.staff;
   useEffect(() => {
-    if (role !== "employer" || !signedInEmail || checkedFor === signedInEmail) return;
+    if (role !== "employer" || staff || !signedInEmail || checkedFor === signedInEmail) return;
     let cancelled = false;
     accountStatus(signedInEmail).then(
       (status) => {
@@ -164,11 +167,11 @@ export function LoginForm({
     return () => {
       cancelled = true;
     };
-  }, [role, signedInEmail, checkedFor, next, router, checkTry]);
+  }, [role, staff, signedInEmail, checkedFor, next, router, checkTry]);
 
   if (!hydrated) return <Placeholder />;
 
-  if (session && role === "employer") {
+  if (session && role === "employer" && !staff) {
     if (checkFailed === session.email)
       return (
         <LoadFailed
@@ -201,10 +204,10 @@ export function LoginForm({
           {t.signedIn.as}
           <span className="font-medium break-all">{session.email}</span>
         </p>
-        <Button size="lg" block onClick={() => router.replace(next)}>
+        <Button size="lg" block onClick={() => router.replace(staff ? staffNext(next) : next)}>
           {t.signedIn.continue}
         </Button>
-        {!session.employerId && (
+        {!session.employerId && !staff && (
           <button type="button" onClick={() => setRole("employer")} className={linkButtonClass}>
             {t.signedIn.setUpHiring}
           </button>
@@ -263,6 +266,14 @@ export function LoginForm({
 
   /** `reload`: the account's language differs from the page's, so the next page loads whole, in it (Round 20). */
   function finishSignIn(account: AccountStatus, reload?: boolean) {
+    if (account.staff) {
+      // ADR 0043: no identity to choose; straight on to 审核后台 (or a page a staff account may stay on).
+      startSession(account.email, reconcileIdentity("seeker", account));
+      const to = staffNext(next);
+      if (reload) location.assign(to);
+      else router.replace(to);
+      return;
+    }
     if (role === "employer" && !account.employer) {
       // Signed in; the business step comes next.
       startSession(account.email, { activeRole: "seeker" });

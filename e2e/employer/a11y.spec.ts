@@ -9,7 +9,8 @@ import {
   uniqueTitle,
   openReportForm,
   cardMenuItem,
-  moderatorPage,
+  adminPage,
+  openAdminTab,
   setJobClosing,
 } from "./helpers";
 import { chatAboutJob, freshEmail, signIn } from "../helpers";
@@ -225,11 +226,11 @@ test("moderation queue, each tab", async ({ browser, page }, testInfo) => {
   await expect(page.getByText("只有审核员能使用审核后台。", { exact: true })).toBeVisible();
   await expectNoViolations(page, "/admin refused");
 
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await adminPage(browser, testInfo);
   await admin.goto("/admin");
   await expect(admin.getByRole("article").first()).toBeVisible();
   await expectNoViolations(admin, "/admin flagged");
-  await admin.getByRole("tab", { name: /被举报/ }).click();
+  await openAdminTab(admin, /被举报/);
   await admin
     .getByRole("article")
     .filter({ has: admin.getByRole("heading", { name: title }) })
@@ -237,9 +238,9 @@ test("moderation queue, each tab", async ({ browser, page }, testInfo) => {
     .click();
   await expect(admin.getByRole("status")).toContainText("已处理");
   await expectNoViolations(admin, "/admin after an action");
-  await admin.getByRole("tab", { name: /操作记录/ }).click();
+  await openAdminTab(admin, /操作记录/);
   await expectNoViolations(admin, "/admin log");
-  await admin.getByRole("tab", { name: "审核员" }).click();
+  await openAdminTab(admin, "审核员");
   await expect(admin.getByLabel("邮箱")).toBeVisible();
   await expectNoViolations(admin, "/admin moderators");
   await admin.context().close();

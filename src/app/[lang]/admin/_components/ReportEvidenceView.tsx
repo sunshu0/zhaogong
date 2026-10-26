@@ -57,7 +57,7 @@ function Evidence({ reportId }: { reportId: string }) {
   const messages = value.evidence.flatMap((e) => (e.kind === "message" ? [e] : []));
   const images = value.evidence.flatMap((e) => (e.kind === "image" ? [e] : []));
   return (
-    <div className="mt-1 space-y-3 rounded-control bg-surface p-3 shadow-card">
+    <div className="mt-1 space-y-3 rounded-control bg-surface p-3 ring-1 ring-border">
       <p className="text-meta text-muted">{t.note}</p>
       {messages.length > 0 && (
         <ol aria-label={t.messagesLabel} className="space-y-2">

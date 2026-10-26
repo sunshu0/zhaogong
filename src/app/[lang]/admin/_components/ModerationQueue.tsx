@@ -27,6 +27,7 @@ import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
+import { ModeratorChanges } from "@/app/[lang]/admin/_components/ModeratorChanges";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
 import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
 import { ReportEvidenceView } from "@/app/[lang]/admin/_components/ReportEvidenceView";
@@ -44,7 +45,8 @@ import {
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import { pick } from "@/i18n/messages";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
-import { TabList, TabPanel, UNDERLINE_TABS, underlineTab } from "@/components/employer/Tabs";
+import { PILL_TABS, TabList, TabPanel, UNDERLINE_TABS, pillTab, underlineTab } from "@/components/employer/Tabs";
+import { useSession } from "@/components/seeker/session-client";
 
 export const TITLE = "text-[1.75rem] leading-tight font-black";
 
@@ -53,13 +55,20 @@ const adminTab = (selected: boolean) => `${underlineTab(selected)} pressable-row
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { StatusTag } from "@/components/employer/StatusTag";
 import { Button } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { Pay } from "@/components/ui/Pay";
 import { Section } from "@/components/ui/Section";
 import { Tag } from "@/components/ui/Tag";
 import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 
-type Tab = "flagged" | "reported" | "chatRisk" | "verification" | "external" | "log" | "views" | "stats" | "moderators";
+/**
+ * ADR 0043: the page in two groups, as a moderator works through it — 待处理 (what waits for a decision, each with how
+ * many) and 记录与统计 (what was done, the numbers, who saw whose details, the moderators).
+ */
+type TodoTab = "flagged" | "reported" | "chatRisk" | "verification" | "external";
+type RecordTab = "log" | "stats" | "views" | "moderators" | "changes";
+type Tab = TodoTab | RecordTab;
+type Group = "todo" | "records";
 
 // When a job was posted, a report made, a decision taken: day and time, New Zealand time (format.ts).
 const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
@@ -68,7 +77,12 @@ export function ModerationQueue() {
   const lang = useLang();
   const t = useMessages(adminMessages);
   const tv = useMessages(adminViewsMessages);
-  const [tab, setTab] = useState<Tab>("flagged");
+  const admin = useSession()?.staff === "admin";
+  const [group, setGroup] = useState<Group>("todo");
+  // Each group remembers its tab while the other is open.
+  const [todoTab, setTodoTab] = useState<TodoTab>("flagged");
+  const [recordTab, setRecordTab] = useState<RecordTab>("log");
+  const tab: Tab = group === "todo" ? todoTab : recordTab;
   const [result, setResult] = useState<AdminResult>();
   const resultRef = useFocusOnChange<HTMLParagraphElement>(result);
   const [version, setVersion] = useState(0);
@@ -97,7 +111,7 @@ export function ModerationQueue() {
   const queue = ready(answer);
   const statsNow = ready(stats);
 
-  const tabs: { key: Tab; label: string; count?: number }[] = [
+  const todoTabs: { key: TodoTab; label: string; count?: number }[] = [
     { key: "flagged", label: t.tabs.flagged, count: queue?.flagged.length },
     { key: "reported", label: t.tabs.reported, count: queue?.reported.length },
     { key: "chatRisk", label: tv.chatRisk.tab, count: ready(chatRisk)?.items.length },
@@ -111,97 +125,133 @@ export function ModerationQueue() {
       label: t.tabs.external,
       count: ready(external)?.pending.length,
     },
-    { key: "log", label: t.tabs.log, count: queue?.log.length },
-    { key: "views", label: tv.tab },
-    { key: "stats", label: t.tabs.stats },
-    { key: "moderators", label: t.tabs.moderators },
   ];
+  const recordTabs: { key: RecordTab; label: string; count?: number }[] = [
+    { key: "log", label: t.tabs.log, count: queue?.log.length },
+    { key: "stats", label: t.tabs.stats },
+    { key: "views", label: tv.tab },
+    { key: "moderators", label: t.tabs.moderators },
+    ...(admin ? [{ key: "changes" as const, label: t.tabs.changes }] : []),
+  ];
+  // What waits, on the group's own entry: known once every queue has answered.
+  const counts = todoTabs.map((x) => x.count);
+  const waiting = counts.every((n): n is number => n !== undefined) ? counts.reduce((a, b) => a + b, 0) : undefined;
+  const labelled = <K extends Tab>(list: { key: K; label: string; count?: number }[]) =>
+    list.map((x) => ({ key: x.key, label: `${x.label} ${x.count ?? ""}` }));
 
   return (
     <div className="space-y-4">
       <h1 className={TITLE}>{t.title}</h1>
-      <ModerationSummary stats={stats} onRetry={reload} />
       <TabList
-        label={t.tabs.label}
-        idBase="admin"
-        tabs={tabs.map((tab) => ({ key: tab.key, label: `${tab.label} ${tab.count ?? ""}` }))}
-        value={tab}
-        onChange={setTab}
-        className={UNDERLINE_TABS}
-        tabClassName={adminTab}
+        label={t.groups.label}
+        idBase="admin-group"
+        tabs={[
+          { key: "todo", label: `${t.groups.todo} ${waiting ?? ""}` },
+          { key: "records", label: t.groups.records },
+        ]}
+        value={group}
+        onChange={setGroup}
+        className={PILL_TABS}
+        tabClassName={pillTab}
       />
-
-      {result && (
-        <p
-          ref={resultRef}
-          tabIndex={-1}
-          role="status"
-          className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
-        >
-          {result.ok ? t.queue.done(result.text) : result.error_zh}
-        </p>
-      )}
-
-      <TabPanel idBase="admin" value={tab}>
-        {tab === "moderators" ? (
-          <ModeratorList onDone={setResult} />
-        ) : tab === "views" ? (
-          <PersonalInfoViews />
-        ) : tab === "chatRisk" ? (
-          <ChatRiskQueue queue={chatRisk} onDone={done} onRetry={reload} />
-        ) : tab === "verification" ? (
-          <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
-        ) : tab === "external" ? (
-          <ExternalReview queue={external} onDone={done} onRetry={reload} />
-        ) : tab === "stats" ? (
-          statsNow ? (
-            <div className="space-y-section">
-              <ModerationWeeks stats={statsNow} />
-              <ModeratorWeeks stats={statsNow} />
-              <AiPostingUsage stats={statsNow} />
-              <Funnels />
-            </div>
-          ) : isFailed(stats) ? (
-            <LoadFailed what={t.queue.statsName} onRetry={reload} />
-          ) : (
-            <Loading />
-          )
-        ) : isFailed(answer) ? (
-          <LoadFailed what={t.queue.queueName} onRetry={reload} />
-        ) : !queue ? (
-          <Loading />
-        ) : tab === "log" ? (
-          queue.log.length === 0 ? (
-            <Empty>{t.queue.noLog}</Empty>
-          ) : (
-            <Section look="app">
-              <ol className="divide-y divide-border">
-                {queue.log.map((e) => (
-                  <li key={e.id} className="flex gap-3 py-3 text-body">
-                    <time dateTime={e.at} className="w-24 shrink-0 text-muted">
-                      {formatDate(e.at, lang, TIME)}
-                    </time>
-                    <span className="min-w-0">
-                      {e.text}
-                      <span className="block text-meta text-muted">
-                        {t.queue.by(moderatorLabel(e.moderator, lang))}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </Section>
-          )
+      <TabPanel idBase="admin-group" value={group} className="space-y-4">
+        {group === "todo" && <ModerationSummary stats={stats} onRetry={reload} />}
+        {group === "todo" ? (
+          <TabList
+            label={t.tabs.label}
+            idBase="admin"
+            tabs={labelled(todoTabs)}
+            value={todoTab}
+            onChange={setTodoTab}
+            className={UNDERLINE_TABS}
+            tabClassName={adminTab}
+          />
         ) : (
-          <>
-            {tab === "reported" && <p className="mb-3 text-meta text-muted">{t.queue.reportsOnlyJobs}</p>}
-            <QueueList
-              items={tab === "flagged" ? queue.flagged : queue.reported}
-              empty={tab === "flagged" ? t.queue.noFlagged : t.queue.noReports}
-              onDone={done}
-            />
-          </>
+          <TabList
+            label={t.groups.records}
+            idBase="admin"
+            tabs={labelled(recordTabs)}
+            value={recordTab}
+            onChange={setRecordTab}
+            className={UNDERLINE_TABS}
+            tabClassName={adminTab}
+          />
         )}
+
+        {result && (
+          <p
+            ref={resultRef}
+            tabIndex={-1}
+            role="status"
+            className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+          >
+            {result.ok ? t.queue.done(result.text) : result.error_zh}
+          </p>
+        )}
+
+        <TabPanel idBase="admin" value={tab}>
+          {tab === "changes" ? (
+            <ModeratorChanges />
+          ) : tab === "moderators" ? (
+            <ModeratorList onDone={setResult} />
+          ) : tab === "views" ? (
+            <PersonalInfoViews />
+          ) : tab === "chatRisk" ? (
+            <ChatRiskQueue queue={chatRisk} onDone={done} onRetry={reload} />
+          ) : tab === "verification" ? (
+            <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
+          ) : tab === "external" ? (
+            <ExternalReview queue={external} onDone={done} onRetry={reload} />
+          ) : tab === "stats" ? (
+            statsNow ? (
+              <div className="space-y-section">
+                <ModerationWeeks stats={statsNow} />
+                <ModeratorWeeks stats={statsNow} />
+                <AiPostingUsage stats={statsNow} />
+                <Funnels />
+              </div>
+            ) : isFailed(stats) ? (
+              <LoadFailed what={t.queue.statsName} onRetry={reload} />
+            ) : (
+              <Loading />
+            )
+          ) : isFailed(answer) ? (
+            <LoadFailed what={t.queue.queueName} onRetry={reload} />
+          ) : !queue ? (
+            <Loading />
+          ) : tab === "log" ? (
+            queue.log.length === 0 ? (
+              <Empty>{t.queue.noLog}</Empty>
+            ) : (
+              <Section look="sheet">
+                <ol className="divide-y divide-border">
+                  {queue.log.map((e) => (
+                    <li key={e.id} className="flex gap-3 py-3 text-body">
+                      <time dateTime={e.at} className="w-24 shrink-0 text-muted">
+                        {formatDate(e.at, lang, TIME)}
+                      </time>
+                      <span className="min-w-0">
+                        {e.text}
+                        <span className="block text-meta text-muted">
+                          {t.queue.by(moderatorLabel(e.moderator, lang))}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </Section>
+            )
+          ) : (
+            <>
+              {tab === "reported" && <p className="mb-3 text-meta text-muted">{t.queue.reportsOnlyJobs}</p>}
+              <QueueList
+                items={tab === "flagged" ? queue.flagged : queue.reported}
+                empty={tab === "flagged" ? t.queue.noFlagged : t.queue.noReports}
+                onDone={done}
+              />
+            </>
+          )}
+        </TabPanel>
       </TabPanel>
     </div>
   );
@@ -269,7 +319,7 @@ function QueueCard({
   const { opener: banOpenerRef } = useSwapFocus<HTMLSpanElement>(confirmBan);
 
   return (
-    <article className={cardClass()}>
+    <article className={sheetClass()}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 lang={contentLang(job.titleZh)} className="break-words text-subtitle font-semibold">
@@ -344,6 +394,7 @@ function QueueCard({
           </Button>
         ) : (
           <Button
+            variant="secondary"
             disabled={another("approve") || !!cannotApprove}
             loading={busy("approve")}
             aria-describedby={cannotApprove ? whyNotId : undefined}

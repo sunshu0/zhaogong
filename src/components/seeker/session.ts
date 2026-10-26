@@ -13,6 +13,12 @@ export interface StorageLike {
 
 export type ActiveRole = "seeker" | "employer";
 
+/**
+ * A staff account (ADR 0043): an admin (named in the server's configuration) or a moderator. It is for moderating
+ * only, so the interface offers it nothing else.
+ */
+export type StaffRole = "admin" | "moderator";
+
 export interface DemoSession {
   email: string;
   signedInAt: string;
@@ -22,12 +28,16 @@ export interface DemoSession {
   employerName?: string;
   /** Set while a switch to this identity has not been confirmed by the server; the next page load sends it again. */
   switching?: ActiveRole;
+  /** A staff account, as the server last said (ADR 0043); corrected on every page load like the rest. */
+  staff?: StaffRole;
 }
 
 /** What the server says about an account, and which identity to use. */
 export interface SessionIdentity {
   activeRole: ActiveRole;
   employer?: { id: string; name: string };
+  /** What the server says about the staff role: null for none; left out to keep what the copy has. */
+  staff?: StaffRole | null;
 }
 
 export const SESSION_KEY = "zhaogong:session";
@@ -89,7 +99,10 @@ export function parseSession(raw: string | null): DemoSession | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (typeof value !== "object" || value === null) return null;
-    const { email, signedInAt, activeRole, employerId, employerName, switching } = value as Record<string, unknown>;
+    const { email, signedInAt, activeRole, employerId, employerName, switching, staff } = value as Record<
+      string,
+      unknown
+    >;
     if (typeof email !== "string" || !isValidEmail(email) || typeof signedInAt !== "string") return null;
     const session: DemoSession = { email, signedInAt, activeRole: "seeker" };
     if (typeof employerId === "string" && employerId && typeof employerName === "string") {
@@ -99,6 +112,7 @@ export function parseSession(raw: string | null): DemoSession | null {
       if (activeRole === "employer") session.activeRole = "employer";
     }
     if (switching === session.activeRole) session.switching = session.activeRole;
+    if (staff === "admin" || staff === "moderator") session.staff = staff;
     return session;
   } catch {
     return null;
@@ -121,15 +135,20 @@ export function writeSession(
     session.employerName = identity.employer.name;
     session.activeRole = identity.activeRole;
   }
+  if (identity.staff) session.staff = identity.staff;
   storage.setItem(SESSION_KEY, JSON.stringify(session));
   return session;
 }
 
-/** Changes the identity of the signed-in session, keeping the email and sign-in time. */
+/**
+ * Changes the identity of the signed-in session, keeping the email and sign-in time, and the staff role unless the
+ * identity says (from the server) what it is now.
+ */
 export function updateIdentity(storage: StorageLike, identity: SessionIdentity): DemoSession | null {
   const current = readSession(storage);
   if (!current) return null;
-  return writeSession(storage, current.email, new Date(current.signedInAt), identity);
+  const staff = identity.staff === undefined ? current.staff : identity.staff;
+  return writeSession(storage, current.email, new Date(current.signedInAt), { ...identity, staff });
 }
 
 /** Changes the identity at once and marks it unconfirmed until the server's answer is written (setIdentity). */

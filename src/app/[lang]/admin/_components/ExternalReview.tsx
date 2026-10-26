@@ -58,7 +58,7 @@ export function ExternalReview({
     <div className="space-y-4">
       <p className="text-meta text-muted">{t.intro}</p>
       {queue.demoJobs > 0 && <p className="rounded-control bg-warn-soft p-3 text-body">{t.demoJobs(queue.demoJobs)}</p>}
-      <Section look="app" title={t.pending(queue.pending.length)}>
+      <Section look="sheet" title={t.pending(queue.pending.length)}>
         {queue.pending.length === 0 ? (
           <p className="py-group text-body text-muted">{t.noPending}</p>
         ) : (
@@ -71,7 +71,7 @@ export function ExternalReview({
           </ul>
         )}
       </Section>
-      <Section look="app" title={t.approvedHeading(queue.approved.length)}>
+      <Section look="sheet" title={t.approvedHeading(queue.approved.length)}>
         {queue.approved.length === 0 ? (
           <p className="py-group text-body text-muted">{t.noApproved}</p>
         ) : (
@@ -84,7 +84,7 @@ export function ExternalReview({
           </ul>
         )}
       </Section>
-      <Section look="app" title={t.companies.title} description={t.companies.description}>
+      <Section look="sheet" title={t.companies.title} description={t.companies.description}>
         <ul className="divide-y divide-border">
           {queue.companies.map((company) => (
             <li key={company.id}>
@@ -215,6 +215,7 @@ function ExternalJobCard({ job, onDone }: { job: ExternalJobItem; onDone: (resul
         <div ref={hideOpenerRef} className="flex flex-wrap items-center gap-2">
           {!approved && (
             <Button
+              variant="secondary"
               disabled={job.flags.length > 0 && !flagsChecked}
               loading={pending}
               onClick={() => run(() => approveExternalJob(job.id, flagsChecked))}

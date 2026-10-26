@@ -32,6 +32,7 @@
 | `SITE_URL` | 变量 | 用自己的域名时要 | 绝对链接、robots、sitemap 的地址；不设就照请求的 host | `src/lib/site.ts`、`src/app/robots.ts` |
 | `DEMO_DATA` | 变量 | 演示站设 `true` | 生产构建默认 false。设成 true 时，空库在第一次用的时候灌演示数据，首页的数字旁边会标「演示数据」 | `src/db/ready.ts`、`src/config/landing.ts` |
 | `ADMIN_ENABLED` | 变量，**构建时和运行时都要** | 演示站不设 | 设成 `1` 才有 `/admin`；还必须登录并具备审核员权限（`requireModerator()`）。正式站启用前先初始化审核员并验收登录 | `src/app/[lang]/admin/enabled.ts` |
+| `ZHAOGONG_ADMIN_EMAILS` | 变量（运行时） | 开审核后台时设 | 管理员的邮箱，逗号分隔（ADR 0043）。管理员也是审核员，只有管理员能在审核后台添加、移除审核员；网页上改不了。用专门的邮箱（没有求职、招聘数据的）。不设的话网页上没人能增删审核员，只能用 `npm run admin:grant` | `src/db/admins.ts` |
 | `ANTHROPIC_API_KEY` | 密钥 | 要「对话发布」用模型就要 | 生产环境有它就用 Claude，没有就说这个功能现在用不了 | `src/lib/ai-post/model/` |
 | `AI_POST_MODEL` | 变量 | 可以不设 | 换模型；不设用代码里的默认值 | `src/lib/ai-post/model/index.ts` |
 | `AI_POST_BASE_URL` | 变量 | 可以不设 | 默认 `https://api.anthropic.com` | `src/lib/ai-post/model/client.ts` |
@@ -114,6 +115,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 | `EVIDENCE_BUCKET` | R2 桶（第 4 节第 2a 步） | 举报截图；不绑的话登录不了也用不上，但代码在 Worker 里会拒收截图 |
 | `DATABASE_URL`、`DATABASE_AUTH_TOKEN` | **不设** | 线上用 D1 绑定，不用 libSQL 地址和令牌 |
 | `ADMIN_ENABLED` | **不设** | 演示站不开审核后台 |
+| `ZHAOGONG_ADMIN_EMAILS` | **不设** | 同上 |
 | `ANTHROPIC_API_KEY` | **不设** | 对话发布显示「现在用不了」 |
 | `EXTERNAL_JOBS` | **不设** | 不去公司网站导入真实职位 |
 | `NEXT_PUBLIC_CLARITY_ID` | **不设** | 演示站不录 Clarity |
@@ -269,6 +271,6 @@ npx wrangler d1 execute zhaogong --remote --file=data/d1-moderator.sql
 
 将示例邮箱和数据库名替换成真实目标，不要直接照抄。生成文件不需要 Cloudflare 登录，也不会授予权限或联网；默认文件位于被忽略的 `data/`，已有文件拒绝覆盖，可用 `--output <路径>` 另存。SQL 文件包含审核员邮箱，作为运维文件保存，不提交仓库。
 
-导入文件才会创建缺失的账号并授予审核员权限；已有账号的雇主身份、语言、创建时间等资料保留，重复导入保留原授权时间。它不创建会话、不发送验证码，也不打开 `/admin`。正式后台启用前，仍需准备登录邮件服务，并在构建时与运行时设置 `ADMIN_ENABLED=1`，然后检查非审核员无法进入。后续审核员增删继续在受鉴权保护的 `/admin` 里操作。
+导入文件才会创建缺失的账号并授予审核员权限；已有账号的雇主身份、语言、创建时间等资料保留，重复导入保留原授权时间。它不创建会话、不发送验证码，也不打开 `/admin`。正式后台启用前，仍需准备登录邮件服务，并在构建时与运行时设置 `ADMIN_ENABLED=1`，然后检查非审核员无法进入。后续审核员增删由管理员（`ZHAOGONG_ADMIN_EMAILS`，ADR 0043）在受鉴权保护的 `/admin` 里操作；导入的这位审核员如果不在管理员名单里，只能处理审核，不能增删审核员。
 
 本轮只在本机 D1 验证了生成、导入、重复执行及外键；远程数据库尚未执行这些命令。

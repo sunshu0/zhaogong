@@ -40,6 +40,11 @@ export interface ServerAccountData {
    */
   teamLinks: { employerId: string; made: boolean; status: string; createdAt: string; usedAt: string | null }[];
   moderator: { grantedAt: string; grantedBy: string | null } | null;
+  /**
+   * The record of moderators added and removed (ADR 0043) where this account is one side: its own role given or taken
+   * (`email`), or, as an admin, someone else's (`by`; null from the command line).
+   */
+  moderatorChanges: { at: string; action: "grant" | "revoke"; email: string; by: string | null }[];
   /** The moderation decisions this account made as a moderator (#60). */
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
   /** Whose personal information /admin showed this account as a moderator (#336): when, which kind, which record. */
@@ -145,6 +150,16 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.moderationLog)
     .where(eq(t.moderationLog.moderator, address))
     .orderBy(asc(t.moderationLog.at));
+  const roleChanges = await db
+    .select({
+      at: t.moderatorChanges.at,
+      action: t.moderatorChanges.action,
+      email: t.moderatorChanges.email,
+      by: t.moderatorChanges.by,
+    })
+    .from(t.moderatorChanges)
+    .where(or(eq(t.moderatorChanges.email, address), eq(t.moderatorChanges.by, address)))
+    .orderBy(asc(t.moderatorChanges.at), asc(t.moderatorChanges.id));
   const shown = await db
     .select({ at: t.personalInfoViews.at, kind: t.personalInfoViews.kind, subjectId: t.personalInfoViews.subjectId })
     .from(t.personalInfoViews)
@@ -273,6 +288,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       usedAt: l.usedAt,
     })),
     moderator: moderator ? { grantedAt: moderator.grantedAt, grantedBy: moderator.grantedBy } : null,
+    moderatorChanges: roleChanges,
     moderationActions: actions.map((a) => ({
       id: a.id,
       at: a.at,
@@ -423,6 +439,15 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           .update(t.moderators)
           .set({ grantedBy: DELETED_ACCOUNT })
           .where(and(eq(t.moderators.grantedBy, address), allowed)),
+        // ADR 0043: the record of moderators added and removed stays, without the person in it.
+        db
+          .update(t.moderatorChanges)
+          .set({ email: DELETED_ACCOUNT })
+          .where(and(eq(t.moderatorChanges.email, address), allowed)),
+        db
+          .update(t.moderatorChanges)
+          .set({ by: DELETED_ACCOUNT })
+          .where(and(eq(t.moderatorChanges.by, address), allowed)),
         db
           .update(t.moderationLog)
           .set({ moderator: DELETED_ACCOUNT })

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMessages, useSitePathname } from "@/i18n/client";
-import { Briefcase, ClipboardList, MessageSquare, Plus, UserRound, type LucideIcon } from "lucide-react";
+import { Briefcase, ClipboardList, MessageSquare, Plus, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useChat } from "@/components/seeker/chat-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
@@ -15,6 +15,7 @@ const ICONS: Partial<Record<NavKey, LucideIcon>> = {
   manage: ClipboardList,
   chat: MessageSquare,
   mine: UserRound,
+  admin: ShieldCheck,
 };
 
 /**
@@ -37,8 +38,8 @@ function BottomNavBar({ pathname }: { pathname: string | null }) {
   const session = useSession();
   const { totalUnread } = useChat();
   const w = useMessages(uiMessages).nav;
-  if (pathname !== null && hidesBottomNav(pathname)) return null;
   const role = navRole(hydrated ? session : null);
+  if (pathname !== null && hidesBottomNav(pathname, role)) return null;
   const active = pathname === null ? null : activeBottomKey(pathname);
   return (
     <nav

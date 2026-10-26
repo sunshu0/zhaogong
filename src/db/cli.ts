@@ -1,9 +1,9 @@
 // npm run db:migrate — apply the migrations in drizzle/ to the database DATABASE_URL points at.
 // npm run db:seed — migrate, then load the demo data (src/mock) if the database is still empty, and import the real
 // external jobs into it (demo-import.ts; offline, or with EXTERNAL_JOBS=demo, the made-up ones stay).
-// npm run admin:grant <email> — make the account a moderator (creating the account if needed): how the first
-// moderator comes about; after that moderators add each other in /admin. npm run admin:revoke <email> takes it away
-// (never from the last one).
+// npm run admin:grant <email> — make the account a moderator (creating the account if needed; never one with a job
+// seeker's or employer's data); after that the admins (ZHAOGONG_ADMIN_EMAILS, ADR 0043) add them in /admin.
+// npm run admin:revoke <email> takes it away. Both go into the record of moderator changes as done from here.
 // npm run import:external [-- --dry-run] [company ids] — read the public job feeds of the companies in
 // src/config/external-companies.ts and store the facts (Round 18, #111, ADR 0014). --dry-run prints the facts
 // and stores nothing; it may read a company whose terms are not checked yet, to judge the facts before asking.
@@ -41,12 +41,16 @@ async function moderator(command: "admin:grant" | "admin:revoke", email: string 
       console.error("The account was removed before permission could be granted; try again.");
       return 1;
     }
+    if (result === "has_data") {
+      console.error(`${email} has a job seeker's or employer's data; use an address kept for moderating only.`);
+      return 1;
+    }
     console.log(result === "already" ? `${email} is already a moderator.` : `${email} is now a moderator.`);
     return 0;
   }
-  const result = await revokeModerator(email);
-  if (result === "last") {
-    console.error(`${email} is the last moderator; grant someone else first.`);
+  const result = await revokeModerator(email, null);
+  if (result === "admin") {
+    console.error(`${email} is an admin (ZHAOGONG_ADMIN_EMAILS); take it out of that setting instead.`);
     return 1;
   }
   console.log(result === "not_moderator" ? `${email} is not a moderator.` : `${email} is no longer a moderator.`);

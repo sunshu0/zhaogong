@@ -13,6 +13,8 @@ export function moderatorBootstrapSql(email: string, now = new Date()): { sql: s
   const account = literal(address);
   const statements = [
     `INSERT INTO "accounts" ("email", "created_at", "last_role") VALUES (${account}, ${at}, 'seeker') ON CONFLICT ("email") DO NOTHING;`,
+    // The record of moderator changes (ADR 0043), as from the command line: only when the grant is new.
+    `INSERT INTO "moderator_changes" ("at", "action", "email", "by") SELECT ${at}, 'grant', ${account}, NULL WHERE NOT EXISTS (SELECT 1 FROM "moderators" WHERE "email" = ${account});`,
     `INSERT INTO "moderators" ("email", "granted_at", "granted_by") VALUES (${account}, ${at}, NULL) ON CONFLICT ("email") DO NOTHING;`,
   ];
   return {

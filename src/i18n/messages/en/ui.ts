@@ -19,6 +19,7 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     post: "Post",
     candidates: "Suggested candidates",
     workspace: "Workspace",
+    admin: "Moderation",
     main: "Main navigation",
     bottom: "Bottom bar",
     more: "More",

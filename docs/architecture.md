@@ -40,6 +40,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `team_invite_links` | 团队邀请链接：只存令牌的哈希，7 天、一次、可撤销，只能加入为成员（`src/db/team-links.ts`） | ADR 0028 |
 | `write_guards` | D1 原子批量写入的临时守卫，只在 batch 中存在，完成或失败后不留记录（`src/db/guarded-batch.ts`）；团队快照与重试见 `team-state.ts` 和 `optimistic.ts` | ADR 0031 |
 | `moderators` | 审核员名单（`npm run admin:grant` 加第一位） | ADR 0007 补充 |
+| `moderator_changes` | 每次加、删审核员的记录：时间、加还是删、对谁、哪位管理员做的（命令行是空）；只有管理员能看，和 `moderators` 那一行同一批写 | ADR 0043 |
 | `verification_requests` | 企业验证的申请和审核员的核对、驳回理由 | ADR 0011 |
 | `saved_jobs` | 收藏和进度，只有账号自己读 | |
 | `job_renewals` | 雇主每次延长截止日期的记录 | |
@@ -88,7 +89,6 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/admin/actions.ts` | 审核后台 |
 | `src/app/[lang]/admin/evidence-actions.ts` | 举报附的聊天和截图，仅审核员可读，交出聊天前记录查看记录（ADR 0027） |
 | `src/app/[lang]/admin/chat-risk-actions.ts` | 审核后台「聊天风险」（#384）：列出、交出消息前记录查看记录、关闭（ADR 0039） |
-| `src/app/[lang]/admin/entry-actions.ts` | 审核后台的入口：账号能不能打开 /admin（#73） |
 | `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
 | `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |

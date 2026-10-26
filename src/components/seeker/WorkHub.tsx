@@ -31,6 +31,16 @@ export function WorkHubFrame({ look, children }: { look?: "app"; children: React
   const isEmployer = session?.activeRole === "employer";
   const width = pathname === "/messages" ? CHAT_WIDTH : WIDE_ON_DESKTOP;
 
+  // ADR 0043: a staff account's 我的 is its role, 审核后台 and 退出登录 only, so no job seeker's or employer's side bar.
+  if (session?.staff)
+    return (
+      <div className={width}>
+        <div className={`min-w-0 ${look === "app" ? "type-app" : ""}`}>
+          <div key={identityScope(session)}>{children}</div>
+        </div>
+      </div>
+    );
+
   return (
     <div
       className={`${width} space-y-4 lg:grid lg:grid-cols-[10rem_minmax(0,1fr)] lg:items-start lg:gap-5 lg:space-y-0`}

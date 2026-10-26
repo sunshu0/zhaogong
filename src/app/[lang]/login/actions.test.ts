@@ -276,3 +276,45 @@ describe("the sign-in funnel's events (#314, ADR 0025)", () => {
     expect(JSON.stringify(rows)).not.toContain("funnel.new");
   });
 });
+
+describe("a staff account (ADR 0043)", () => {
+  it("says so with the session while /admin is on, admin from the settings, and follows a role taken away", async () => {
+    const { grantModerator, revokeModerator } = await import("@/db/moderators");
+    vi.stubEnv("ADMIN_ENABLED", "1");
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", "staff.admin@example.com");
+    try {
+      const signedIn = await signIn("staff.admin@example.com");
+      expect(signedIn).toMatchObject({ ok: true, account: { staff: "admin" } });
+      expect(await accountStatus()).toMatchObject({ email: "staff.admin@example.com", staff: "admin" });
+      expect(await switchIdentity("seeker")).toMatchObject({ staff: "admin" });
+
+      await signIn("staff.mod@example.com");
+      expect((await accountStatus())?.staff).toBeUndefined();
+      expect(await grantModerator("staff.mod@example.com", "staff.admin@example.com")).toBe("granted");
+      expect(await accountStatus()).toMatchObject({ staff: "moderator" });
+      // The next answer after the role goes reads the database again.
+      expect(await revokeModerator("staff.mod@example.com", "staff.admin@example.com")).toBe("revoked");
+      expect((await accountStatus())?.staff).toBeUndefined();
+
+      vi.stubEnv("ADMIN_ENABLED", "");
+      expect((await accountStatus())?.staff).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("cannot open an employer identity", async () => {
+    vi.stubEnv("ADMIN_ENABLED", "1");
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", "staff.hiring@example.com");
+    try {
+      await signIn("staff.hiring@example.com");
+      expect(await openEmployerForAccount("staff.hiring@example.com", { kind: "existing", employerId: "e4" })).toEqual({
+        ok: false,
+        error: "审核员账号只用来审核，不能开通雇主身份。",
+      });
+      expect(await getAccountEmployer("staff.hiring@example.com")).toBeUndefined();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});

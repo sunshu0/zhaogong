@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
-import { ADMIN_HREF, useCanModerate } from "@/components/account/moderator-entry";
+import { ADMIN_HREF } from "@/components/account/moderator-entry";
 import { useNotifications, useProfile } from "@/components/seeker/hub-client";
 import { employerSignUpHref } from "@/components/seeker/identity";
 import { ALERTS_PATH } from "@/components/seeker/job-alerts";
@@ -29,68 +29,81 @@ export function AccountHome() {
   const { profile } = useProfile();
   const { unread } = useNotifications();
   const { employer, toEmployer, toSeeker, notice } = useIdentitySwitch();
-  const moderator = useCanModerate();
   const t = useMessages(accountMessages);
   if (!session) return null;
   const isEmployer = session.activeRole === "employer";
-  const name = (isEmployer ? session.employerName : profile.name) || session.email;
+  const staff = session.staff;
+  // A staff account is its email: a job seeker's name or photo on it (the demo moderator has the demo one) is not its.
+  const name = staff ? session.email : (isEmployer ? session.employerName : profile.name) || session.email;
 
-  const rows: LinkListItem[] = [
-    { href: "/workspace", label: t.rows.workspace, detail: t.rows.workspaceDetail },
-    { href: "/notifications", label: t.rows.notifications, badge: unread },
-    isEmployer
-      ? { href: "/profile", label: t.rows.businessPage, detail: t.rows.businessPageDetail }
-      : { href: "/profile", label: t.rows.profile, detail: t.rows.profileDetail },
-    ...(isEmployer
-      ? [
-          { href: "/employer/candidates", label: t.rows.candidates },
-          { href: "/employer/verify", label: t.rows.verify, detail: t.rows.verifyDetail },
-          { href: "/employer/team", label: t.rows.team, detail: t.rows.teamDetail },
-        ]
-      : [
-          { href: "/me/saved", label: t.rows.saved, detail: t.rows.savedDetail },
-          { href: ALERTS_PATH, label: t.rows.alerts, detail: t.rows.alertsDetail },
-          { href: "/me", label: t.rows.history, detail: t.rows.historyDetail },
-        ]),
-    ...(moderator ? [{ href: ADMIN_HREF, label: t.rows.admin, detail: t.rows.adminDetail }] : []),
-    { href: ACCOUNT_DATA_PATH, label: t.rows.data, detail: t.rows.dataDetail },
-  ];
+  // ADR 0043: a staff account has 审核后台, the language and 退出登录 here, nothing of a job seeker or an employer.
+  const rows: LinkListItem[] = staff
+    ? [{ href: ADMIN_HREF, label: t.rows.admin, detail: t.rows.adminDetail }]
+    : [
+        { href: "/workspace", label: t.rows.workspace, detail: t.rows.workspaceDetail },
+        { href: "/notifications", label: t.rows.notifications, badge: unread },
+        isEmployer
+          ? { href: "/profile", label: t.rows.businessPage, detail: t.rows.businessPageDetail }
+          : { href: "/profile", label: t.rows.profile, detail: t.rows.profileDetail },
+        ...(isEmployer
+          ? [
+              { href: "/employer/candidates", label: t.rows.candidates },
+              { href: "/employer/verify", label: t.rows.verify, detail: t.rows.verifyDetail },
+              { href: "/employer/team", label: t.rows.team, detail: t.rows.teamDetail },
+            ]
+          : [
+              { href: "/me/saved", label: t.rows.saved, detail: t.rows.savedDetail },
+              { href: ALERTS_PATH, label: t.rows.alerts, detail: t.rows.alertsDetail },
+              { href: "/me", label: t.rows.history, detail: t.rows.historyDetail },
+            ]),
+        { href: ACCOUNT_DATA_PATH, label: t.rows.data, detail: t.rows.dataDetail },
+      ];
 
   return (
     <div className="space-y-section">
       <h1 className="sr-only">{t.title}</h1>
       <Section look="sheet">
         <div className="flex items-center gap-3 py-group">
-          <AvatarImage avatar={profile.avatar} fallback={name} large />
+          <AvatarImage avatar={staff ? undefined : profile.avatar} fallback={name} large />
           <div className="min-w-0">
             <p lang={contentLang(name)} className="break-words text-title font-semibold">
               {name}
             </p>
-            <p className="break-all text-meta text-muted">{session.email}</p>
+            {!staff && <p className="break-all text-meta text-muted">{session.email}</p>}
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 py-group">
-          <p className="text-body">
-            {t.role.current}
-            <span className="font-medium">{isEmployer ? t.role.employer : t.role.seeker}</span>
-          </p>
-          {employer ? (
-            <Button variant="secondary" onClick={isEmployer ? toSeeker : () => void toEmployer()}>
-              {isEmployer ? t.role.toSeeker : t.role.toEmployer(employer.name)}
-            </Button>
-          ) : (
-            <ButtonLink variant="secondary" href={employerSignUpHref()}>
-              {t.role.setUpHiring}
-            </ButtonLink>
-          )}
-        </div>
+        {staff ? (
+          <div className="py-group">
+            <p className="text-body">
+              {t.role.current}
+              <span className="font-medium">{t.role[staff]}</span>
+            </p>
+            <p className="mt-0.5 text-meta text-muted">{t.role.staffNote}</p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2 py-group">
+            <p className="text-body">
+              {t.role.current}
+              <span className="font-medium">{isEmployer ? t.role.employer : t.role.seeker}</span>
+            </p>
+            {employer ? (
+              <Button variant="secondary" onClick={isEmployer ? toSeeker : () => void toEmployer()}>
+                {isEmployer ? t.role.toSeeker : t.role.toEmployer(employer.name)}
+              </Button>
+            ) : (
+              <ButtonLink variant="secondary" href={employerSignUpHref()}>
+                {t.role.setUpHiring}
+              </ButtonLink>
+            )}
+          </div>
+        )}
         {notice && (
           <p role="status" className="pb-group text-meta text-warn">
             {notice}
           </p>
         )}
       </Section>
-      {!employer && <TeamInvites email={session.email} />}
+      {!employer && !staff && <TeamInvites email={session.email} />}
       <Section look="sheet">
         <LinkList items={rows} />
       </Section>

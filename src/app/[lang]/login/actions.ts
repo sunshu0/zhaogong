@@ -14,6 +14,8 @@ import {
 import { CODE_TTL_MS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { cookies, headers } from "next/headers";
 import { langOnSignIn } from "@/db/account-lang";
+import { staffRole } from "@/db/moderators";
+import { adminEnabled } from "@/app/[lang]/admin/enabled";
 import { demoDataWanted } from "@/db/ready";
 import { langCookieOptions } from "@/i18n/cookie";
 import { LANG_COOKIE } from "@/i18n/lang";
@@ -23,13 +25,30 @@ import { loginMessages } from "@/i18n/messages/login";
 import { recordRequestEvent } from "@/lib/events/record";
 import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
-import { isValidCode, isValidEmail, normalizeCode, normalizeEmail, type ActiveRole } from "@/components/seeker/session";
+import {
+  isValidCode,
+  isValidEmail,
+  normalizeCode,
+  normalizeEmail,
+  type ActiveRole,
+  type StaffRole,
+} from "@/components/seeker/session";
 
 /**
  * What the server knows about this browser's session. The real session is the httpOnly cookie (src/lib/auth); the
  * browser's copy in localStorage is filled from these answers and corrected by them, never the other way round.
  */
-export type AccountStatus = SessionView;
+export type AccountStatus = SessionView & { staff?: StaffRole };
+
+/**
+ * The session with its staff role (ADR 0043), which the interface follows: a moderator's account is offered only
+ * /admin. Asked of the database each time, so a role taken away shows on the next page load; only while /admin is on.
+ */
+async function withStaff(session: SessionView): Promise<AccountStatus> {
+  if (!adminEnabled()) return session;
+  const staff = await staffRole(session.email);
+  return staff ? { ...session, staff } : session;
+}
 
 type Failure = { ok: false; error: string };
 
@@ -111,7 +130,7 @@ export async function signInAccount(
   }
   const isNew = !(await getAccount(address));
   await ensureAccount(address);
-  const account = await createSession(address, role === "employer" ? "employer" : "seeker");
+  const account = await withStaff(await createSession(address, role === "employer" ? "employer" : "seeker"));
   await recordRequestEvent({ name: "signin_success", path: "/login", detail: isNew ? "new" : "returning" }); // #314
   // The account's language (Round 20, ADR 0023 §5): it comes back on a new device; an account that never chose takes
   // this browser's. When it differs from the page's, the page has to load again in it (`reload`).
@@ -129,7 +148,7 @@ export async function accountStatus(email?: string): Promise<AccountStatus | nul
   const session = await getCurrentSession();
   if (!session) return null;
   if (email !== undefined && validEmail(email) !== session.email) return null;
-  return session;
+  return withStaff(session);
 }
 
 /**
@@ -145,6 +164,7 @@ export async function openEmployerForAccount(
   const lang = await requestLang();
   const session = await accountStatus(typeof email === "string" ? email : "");
   if (!session) return { ok: false, error: pick(loginMessages, lang).errors.signInFirst };
+  if (session.staff) return { ok: false, error: pick(loginMessages, lang).identity.staffOnly };
   const address = session.email;
 
   const current = await getAccountEmployer(address);
@@ -172,7 +192,7 @@ export async function openEmployerForAccount(
 /** Switches the active identity on the server; employer only if the account has a business. Null when signed out. */
 export async function switchIdentity(role: ActiveRole): Promise<AccountStatus | null> {
   try {
-    return await switchRole(role === "employer" ? "employer" : "seeker");
+    return await withStaff(await switchRole(role === "employer" ? "employer" : "seeker"));
   } catch (e) {
     if (e instanceof AuthError) return null;
     throw e;

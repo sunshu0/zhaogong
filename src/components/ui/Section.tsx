@@ -7,11 +7,10 @@ type Heading = "h2" | "h3";
  * above and below; from 640 px it is a rounded panel. Its children are Groups, split by thin lines; do not put
  * cards inside it, and no shadows. Stack sections with `space-y-section`. On phones it reaches out over the page's 16 px side
  * padding (main has it), so do not put it inside another padded box.
- * `look="app"` (Round 19): a card at every width — 16px corners and a soft shadow, no border, inside the page's
- * padding rather than edge to edge. Stack them with `space-y-section` as before.
- * `look="sheet"` (visual A, V2, ADR 0036): the same shape with a thin line instead of the shadow — a section opens
- * nothing, so it does not look like a card. The seekers' pages, 我的 (#377), the employers' pages, 防骗指南,
- * 关于 (#392) and a candidate's page use it; `app` is left on the moderators' pages until their turn.
+ * `look="sheet"` (visual A, V2, ADR 0036): 16px corners and a thin line, no shadow, inside the page's padding rather
+ * than edge to edge at every width — a section opens nothing, so it does not look like a card. Every page that went
+ * through visual A uses it, the moderators' last (ADR 0043); Round 19's `look="app"` (the same shape with a shadow)
+ * went with them.
  */
 export function Section({
   title,
@@ -30,16 +29,14 @@ export function Section({
   as?: Heading;
   /** Names the section after its title for screen readers (the heading gets `${id}-title`). */
   id?: string;
-  look?: "panel" | "app" | "sheet";
+  look?: "panel" | "sheet";
   className?: string;
   children: ReactNode;
 }) {
   const box =
     look === "sheet"
       ? "rounded-card bg-surface px-4 ring-1 ring-border sm:px-5"
-      : look === "app"
-        ? "rounded-card bg-surface px-4 shadow-card sm:px-5"
-        : "-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-md sm:border sm:px-5";
+      : "-mx-4 border-y border-border bg-surface px-4 sm:mx-0 sm:rounded-md sm:border sm:px-5";
   const headingId = id && title ? `${id}-title` : undefined;
   return (
     <section id={id} aria-labelledby={headingId} className={`${box} ${className}`.trim()}>

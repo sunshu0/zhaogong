@@ -4,7 +4,16 @@
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { matchJobAlerts } from "@/db/job-alerts";
 import { countReportEvidence, purgeExpiredEvidence } from "@/db/report-evidence";
-import { grantModerator, listModerators, revokeModerator, type Moderator } from "@/db/moderators";
+import { isAdmin } from "@/db/admins";
+import {
+  grantModerator,
+  listAdmins,
+  listModeratorChanges,
+  listModerators,
+  revokeModerator,
+  type Moderator,
+  type ModeratorChange,
+} from "@/db/moderators";
 import { checkJob, type Finding } from "@/lib/compliance";
 import {
   addModerationLog,
@@ -46,8 +55,11 @@ export interface ModerationQueue {
   log: (ModerationLogEntry & { text: string })[];
 }
 
-/** Why the queue or the moderator list is not shown: not signed in, or not a moderator. */
-export type Refused = { refused: "signed_out" | "not_moderator"; error_zh: string };
+/**
+ * Why the queue or the moderator list is not shown: not signed in, or not a moderator; for the record of moderator
+ * changes also not an admin (ADR 0043).
+ */
+export type Refused = { refused: "signed_out" | "not_moderator" | "not_admin"; error_zh: string };
 
 /** A job in the queue, with what the checks found, worded in the moderator's language. */
 async function item(job: Job, lang: Lang): Promise<QueueItem> {
@@ -197,32 +209,61 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
 
 // ---- moderators (#50) ----
 
-/** The moderators, oldest first, for a moderator. */
-export async function getModerators(): Promise<{ me: string; moderators: Moderator[] } | Refused> {
+/**
+ * The admins (from the server's configuration, ADR 0043) and the moderators, oldest first, for a moderator; `admin`
+ * says whether the one asking is an admin, who alone may add and remove moderators.
+ */
+export async function getModerators(): Promise<
+  { me: string; admin: boolean; admins: string[]; moderators: Moderator[] } | Refused
+> {
   const me = await requireModerator();
   if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
-  return { me: me.email, moderators: await listModerators() };
+  const admins = listAdmins();
+  return {
+    me: me.email,
+    admin: isAdmin(me.email),
+    admins,
+    // An admin also listed as a moderator shows once, as an admin.
+    moderators: (await listModerators()).filter((m) => !admins.includes(m.email)),
+  };
 }
 
-/** Makes a signed-up account a moderator. */
-export async function addModerator(email: string): Promise<AdminResult> {
+/** The signed-in admin, or the refusal: a moderator who is not an admin may only look (ADR 0043). */
+async function actingAdmin(): Promise<{ email: string; refused?: never } | { refused: AdminResult }> {
   const me = await requireModerator();
-  if (!me.ok) return { ok: false, error_zh: await refusedText(me.reason) };
+  if (!me.ok) return { refused: { ok: false, error_zh: await refusedText(me.reason) } };
+  if (!isAdmin(me.email)) return { refused: { ok: false, error_zh: (await words()).adminOnly } };
+  return { email: me.email };
+}
+
+/** Makes a signed-up account with no job seeker's or employer's data a moderator; admins only. */
+export async function addModerator(email: string): Promise<AdminResult> {
+  const me = await actingAdmin();
+  if (me.refused) return me.refused;
   const address = String(email ?? "").trim();
   if (!isValidEmail(address)) return { ok: false, error_zh: (await words()).invalidEmail };
   const result = await grantModerator(address, me.email);
   if (result === "no_account") return { ok: false, error_zh: (await words()).noAccount };
+  if (result === "has_data") return { ok: false, error_zh: (await words()).hasData };
   if (result === "already") return { ok: false, error_zh: (await words()).alreadyModerator };
   return { ok: true, text: pick(adminMessages, await requestLang()).added(address.toLowerCase()) };
 }
 
-/** Takes the role away from a moderator, never the last one. */
+/** Takes the role away from a moderator; admins only, and never from an admin. */
 export async function removeModerator(email: string): Promise<AdminResult> {
-  const me = await requireModerator();
-  if (!me.ok) return { ok: false, error_zh: await refusedText(me.reason) };
+  const me = await actingAdmin();
+  if (me.refused) return me.refused;
   const address = String(email ?? "").trim();
-  const result = await revokeModerator(address);
-  if (result === "last") return { ok: false, error_zh: (await words()).lastModerator };
+  const result = await revokeModerator(address, me.email);
+  if (result === "admin") return { ok: false, error_zh: (await words()).isAdmin };
   if (result === "not_moderator") return { ok: false, error_zh: (await words()).notModerator };
   return { ok: true, text: pick(adminMessages, await requestLang()).removed(address.toLowerCase()) };
+}
+
+/** Who added and removed moderators, newest first; for admins only (ADR 0043). */
+export async function getModeratorChanges(): Promise<{ changes: ModeratorChange[] } | Refused> {
+  const me = await requireModerator();
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
+  if (!isAdmin(me.email)) return { refused: "not_admin", error_zh: (await words()).adminOnly };
+  return { changes: await listModeratorChanges() };
 }

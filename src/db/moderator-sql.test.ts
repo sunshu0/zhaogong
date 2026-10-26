@@ -44,6 +44,10 @@ describe("first moderator SQL", () => {
     expect((await db.execute("SELECT * FROM accounts")).rows).toEqual(account);
     expect(account[0]).toMatchObject({ created_at: "2026-01-01", last_role: "employer", lang: "en" });
     expect((await db.execute("SELECT * FROM moderators")).rows).toEqual(grant);
+    // ADR 0043: one record of the grant, as from the command line, however often the file is imported.
+    expect((await db.execute("SELECT at, action, email, by FROM moderator_changes")).rows).toEqual([
+      { at: "2026-10-22T00:00:00.000Z", action: "grant", email: "owner@example.com", by: null },
+    ]);
   });
 
   it("quotes apostrophes and SQL-shaped email text as a single value", async () => {

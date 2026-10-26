@@ -11,7 +11,7 @@ import { inList } from "@/db/in-list";
 import { createJobAlert, listJobAlerts } from "@/db/job-alerts";
 import { renewJob } from "@/db/job-renewals";
 import { jobNumbers, recordChatStart } from "@/db/job-stats";
-import { grantModerator, listModerators, revokeModerator } from "@/db/moderators";
+import { grantModerator, listModeratorChanges, listModerators, revokeModerator } from "@/db/moderators";
 import { recordViews } from "@/db/personal-info-views";
 import { database, resetDatabaseForTests } from "@/db/ready";
 import { saveResumeShare } from "@/db/resume-shares";
@@ -60,15 +60,15 @@ describe("moderators", () => {
     expect(await grantModerator(fresh("nobody"), null)).toBe("no_account");
   });
 
-  it("never removes the last moderator, even when everyone is removed at once", async () => {
-    for (const email of [fresh("mod"), fresh("mod")]) {
-      await ensureAccount(email);
-      await grantModerator(email, null);
-    }
-    const everyone = (await listModerators()).map((m) => m.email);
-    const results = await Promise.all(everyone.map((email) => revokeModerator(email)));
-    expect(tally(results)).toEqual({ revoked: everyone.length - 1, last: 1 });
-    expect(await listModerators()).toHaveLength(1);
+  it("removes once, with one record, when the same removal arrives five times at once (ADR 0043)", async () => {
+    const email = fresh("mod");
+    await ensureAccount(email);
+    await grantModerator(email, null);
+    const results = await Promise.all(times(5).map(() => revokeModerator(email, null)));
+    expect(tally(results)).toEqual({ revoked: 1, not_moderator: 4 });
+    expect((await listModerators()).filter((m) => m.email === email)).toHaveLength(0);
+    const record = (await listModeratorChanges()).filter((c) => c.email === email).map((c) => c.action);
+    expect(record).toEqual(["revoke", "grant"]);
     expect(await revokeModerator(fresh("never"))).toBe("not_moderator");
   });
 });

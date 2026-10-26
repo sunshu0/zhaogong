@@ -7,6 +7,8 @@ import {
   hidesBottomNav,
   navRole,
   showsPostJob,
+  staffMayOpen,
+  staffNext,
 } from "./nav";
 
 const labels = (items: { label: string }[]) => items.map((item) => item.label);
@@ -95,5 +97,39 @@ describe("hidesBottomNav", () => {
     expect(hidesBottomNav("/messages")).toBe(false);
     expect(hidesBottomNav("/employer/jobs")).toBe(false);
     expect(hidesBottomNav("/jobs/j1")).toBe(false);
+  });
+});
+
+describe("a staff account (ADR 0043)", () => {
+  const moderator = { email: "m@b.co", signedInAt: "", activeRole: "seeker" as const, staff: "moderator" as const };
+
+  it("is offered 审核后台 and 我的 only, and no 发布招聘", () => {
+    expect(navRole(moderator)).toBe("staff");
+    expect(navRole({ ...moderator, activeRole: "employer", employerId: "e1", employerName: "川味小馆" })).toBe("staff");
+    expect(bottomNavItems("staff").map((item) => [item.label, item.href])).toEqual([
+      ["审核后台", "/admin"],
+      ["我的", "/account"],
+    ]);
+    expect(headerItems("staff").map((item) => item.href)).toEqual(["/admin"]);
+    expect(showsPostJob("staff")).toBe(false);
+    expect(activeNavKey("/admin")).toBe("admin");
+  });
+
+  it("keeps the bottom bar on /admin, its home; others still go without it there", () => {
+    expect(hidesBottomNav("/admin", "staff")).toBe(false);
+    expect(hidesBottomNav("/admin", "seeker")).toBe(true);
+    expect(hidesBottomNav("/admin")).toBe(true);
+    expect(hidesBottomNav("/login", "staff")).toBe(true);
+  });
+
+  it("may stay on 审核后台, 我的, sign-in and the public pages; anything else sends it to /admin", () => {
+    for (const page of ["/admin", "/account", "/login", "/about", "/safety", "/privacy", "/terms"])
+      expect(staffMayOpen(page)).toBe(true);
+    for (const page of ["/", "/jobs", "/jobs/j1", "/me", "/employer/post", "/account/data", "/messages", "/adminx"])
+      expect(staffMayOpen(page)).toBe(false);
+    expect(staffNext("/jobs")).toBe("/admin");
+    expect(staffNext("/admin")).toBe("/admin");
+    expect(staffNext("/safety?x=1")).toBe("/safety?x=1");
+    expect(staffNext("/login?next=/jobs")).toBe("/admin");
   });
 });

@@ -27,7 +27,7 @@ import { formatDate } from "@/i18n/format";
 import { adminVerificationMessages } from "@/i18n/messages/admin-verification";
 import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { Button } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { Checkbox, Radio } from "@/components/ui/Checkbox";
 import { inputClass } from "@/components/ui/input-class";
 import { Tag } from "@/components/ui/Tag";
@@ -106,7 +106,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
   const { opener: rejectOpenerRef, form: rejectFormRef } = useSwapFocus(rejecting);
 
   return (
-    <article aria-label={t.cardLabel(request.tradingName)} className={`space-y-4 ${cardClass()}`}>
+    <article aria-label={t.cardLabel(request.tradingName)} className={`space-y-4 ${sheetClass()}`}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 lang={contentLang(request.tradingName)} className="text-subtitle font-semibold">
           {request.tradingName}
@@ -201,6 +201,7 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
       ) : (
         <div ref={rejectOpenerRef} className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
           <Button
+            variant="secondary"
             disabled={missing.length > 0 || banned}
             loading={pending}
             aria-describedby={banned ? whyNotId : undefined}

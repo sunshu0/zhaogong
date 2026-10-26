@@ -89,7 +89,7 @@
 | 「我的」 | `src/components/account/AccountHome.tsx` | 两种身份共用的入口页；待办 `todos.ts`、资料完成度 `profile-checklist.ts` |
 | 切换身份 | `src/components/account/identity-switch.ts` | 账号菜单和「我的」里切换求职者 / 雇主，都落到工作台；`RedirectEmployer.tsx` 把雇主身份从求职者的页面送走 |
 | 数据与账号 | `src/app/[lang]/account/data/page.tsx`、`src/components/account/MyDataPanel.tsx` | 下载全部数据、删除账号（ADR 0009）；只在浏览器的那部分在 `my-data.ts` |
-| 审核后台入口 | `src/components/account/moderator-entry.ts` | 账号是审核员时，账号菜单和「我的」里才出现入口（`admin/entry-actions.ts`） |
+| 审核后台入口 | `src/components/account/moderator-entry.ts`、`src/components/account/staff.tsx` | 管理员、审核员的账号（会话里的 `staff`，服务器在 `login/actions.ts` 的 `withStaff` 里给）只有审核后台和「我的」；`StaffRedirect` 把它从别的页面送到 `/admin`（ADR 0043） |
 
 通知页在上面「工作台」的表里（`NotificationWorkspace.tsx`）。
 

@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "../helpers";
 import {
+  ADMIN_EMAIL,
+  adminPage,
   CLEAN_MESSAGE,
   jobCard,
   moderatorPage,
@@ -9,6 +11,7 @@ import {
   searchJobList,
   signUpEmployer,
   uniqueTitle,
+  openAdminTab,
   openReportForm,
 } from "./helpers";
 
@@ -27,8 +30,9 @@ test("report a job → /admin takes it down → gone from the list and in the lo
 
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  await expect(admin.getByRole("note")).toContainText("只有审核员能使用审核后台");
-  await admin.getByRole("tab", { name: /被举报/ }).click();
+  // ADR 0043: the note on how one becomes a moderator is for others; a moderator does not get it.
+  await expect(admin.getByRole("note")).toHaveCount(0);
+  await openAdminTab(admin, /被举报/);
   await expect(admin.getByText("这里只收录对职位的举报，聊天里的举报不在这里。")).toBeVisible();
   const card = admin.getByRole("article").filter({ has: admin.getByRole("heading", { name: title }) });
   await expect(card).toContainText("1 条举报");
@@ -39,7 +43,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await expect(admin.getByRole("status")).toHaveText(`已处理：${done}`);
   await expect(card).toHaveCount(0);
 
-  await admin.getByRole("tab", { name: /操作记录/ }).click();
+  await openAdminTab(admin, /操作记录/);
   const entry = admin.getByRole("listitem").filter({ hasText: done });
   await expect(entry).toBeVisible();
   await expect(entry).toContainText(`操作人：${MODERATOR_EMAIL}`); // #60
@@ -77,19 +81,25 @@ test("a job flagged at posting waits for review, then /admin approves it onto th
   await expect(jobCard(page, title)).toBeVisible();
 });
 
-test("a moderator adds another account as a moderator, then removes it (#50)", async ({ browser, page }, testInfo) => {
+test("an admin adds another account as a moderator, then removes it (#50, ADR 0043)", async ({
+  browser,
+  page,
+}, testInfo) => {
   // Someone signs in; /admin is not for them yet.
   const email = await signIn(page, "/admin");
   await expect(page.getByText("只有审核员能使用审核后台。", { exact: true })).toBeVisible();
 
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await adminPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: "审核员" }).click();
-  await expect(admin.getByText(`${MODERATOR_EMAIL}（你）`)).toBeVisible();
+  await openAdminTab(admin, "审核员");
+  await expect(admin.getByText(`${ADMIN_EMAIL}（你）`)).toBeVisible();
+  // An admin is set in the server's settings: marked, and no 移除.
+  await expect(admin.getByText("在服务器配置里设定，不能在这里移除").first()).toBeVisible();
+  await expect(admin.getByRole("button", { name: `移除审核员 ${ADMIN_EMAIL}` })).toHaveCount(0);
   await admin.getByLabel("邮箱").fill(email);
   await admin.getByRole("button", { name: "添加", exact: true }).click();
   await expect(admin.getByRole("status")).toHaveText(`已处理：添加审核员 ${email}`);
-  await expect(admin.getByText(`由${MODERATOR_EMAIL}添加`).first()).toBeVisible();
+  await expect(admin.getByText(`由${ADMIN_EMAIL}添加`).first()).toBeVisible();
 
   // Now they are a moderator.
   await page.reload();
@@ -103,15 +113,6 @@ test("a moderator adds another account as a moderator, then removes it (#50)", a
   await expect(confirm.getByRole("button", { name: "确认移除" })).toBeFocused();
   await confirm.getByRole("button", { name: "取消" }).click();
   await expect(remove).toBeFocused();
-  // One's own row says what follows.
-  await admin.getByRole("button", { name: `移除审核员 ${MODERATOR_EMAIL}` }).click();
-  await expect(admin.getByRole("group", { name: `确认移除审核员 ${MODERATOR_EMAIL}` })).toContainText(
-    "移除后你就不能再进审核后台",
-  );
-  await admin
-    .getByRole("group", { name: `确认移除审核员 ${MODERATOR_EMAIL}` })
-    .getByRole("button", { name: "取消" })
-    .click();
 
   await remove.click();
   await confirm.getByRole("button", { name: "确认移除" }).click();

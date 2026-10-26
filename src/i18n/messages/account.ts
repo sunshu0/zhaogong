@@ -12,6 +12,10 @@ const accountZh = {
     current: "当前身份：",
     seeker: "求职者",
     employer: "雇主",
+    // ADR 0043: a staff account.
+    admin: "管理员",
+    moderator: "审核员",
+    staffNote: "这个账号只用来审核，找工作、招聘的功能都不在这里。",
     toSeeker: "切换为求职者",
     toEmployer: (business: string) => `切换为雇主（${business}）`,
     setUpHiring: "开通雇主身份",

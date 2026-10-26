@@ -2,9 +2,11 @@ import { expect, test, type Browser, type Page, type TestInfo } from "@playwrigh
 import { chatEntry, chooseOption, fillSignInCode, freshEmail, openFromList, siteNav } from "./helpers";
 import { instantToAuckland } from "../src/components/seeker/auckland-time";
 import {
+  adminPage,
   CLEAN_MESSAGE,
   cardMenuItem,
   moderatorPage,
+  openAdminTab,
   openReportForm,
   lastAssistant,
   openTheForm,
@@ -404,22 +406,7 @@ test("企业验证: home → 工作台 → 企业验证 → 提交审核; a mode
   // The demo moderator, from the home page as well (signed in once by the setup project).
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/");
-  if (isPhone(testInfo)) {
-    // Until the page has read the session, 我的 goes through sign-in (nav.ts); wait for the signed-in link.
-    const mine = siteNav(admin).getByRole("link", { name: "我的", exact: true });
-    await expect(mine).toHaveAttribute("href", "/account");
-    await mine.click();
-    await admin
-      .getByRole("main")
-      .getByRole("link", { name: /^审核后台/ })
-      .click();
-  } else {
-    await admin
-      .getByRole("banner")
-      .getByRole("button", { name: /^账号菜单/ })
-      .click();
-    await admin.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
-  }
+  // ADR 0043: a moderator's account has no home page of its own; it lands on 审核后台.
   await expect(admin).toHaveURL("/admin");
   await admin.getByRole("tab", { name: /^企业验证/ }).click();
   await expect(admin.getByRole("article", { name: /^企业验证：走查店/ }).first()).toBeVisible();
@@ -473,36 +460,25 @@ test("团队: home → 团队 → 邀请; the invited: home → 通知 → 接�
 });
 
 test("审核后台和审核数据: a moderator signs in → 审核后台 → 审核数据 (#73)", async ({ page, browser }, testInfo) => {
-  // A fresh account, made a moderator by the demo one (its code can be asked for once a minute, so it is not
-  // signed in again here).
+  // A fresh account, made a moderator by the demo admin (ADR 0043; its code can be asked for once a minute, so it is
+  // not signed in again here).
   const email = await signInByClicks(page, testInfo);
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await adminPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: "审核员" }).click();
+  await openAdminTab(admin, "审核员");
   await admin.getByLabel("邮箱").fill(email);
   await admin.getByRole("button", { name: "添加", exact: true }).click();
   await expect(admin.getByRole("status")).toHaveText(`已处理：添加审核员 ${email}`);
   await admin.context().close();
 
-  // Home by the logo in the header (on 我的 another link's name also holds 找工).
-  await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
-  await expect(page).toHaveURL("/");
-  if (isPhone(testInfo)) {
-    await siteNav(page).getByRole("link", { name: "我的", exact: true }).click();
-    await page
-      .getByRole("main")
-      .getByRole("link", { name: /^审核后台/ })
-      .click();
-  } else {
-    await page
-      .getByRole("banner")
-      .getByRole("button", { name: /^账号菜单/ })
-      .click();
-    await page.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
-  }
+  // Its next page load knows: the home page leads to 审核后台, and so does 审核后台 in the navigation.
+  await page.goto("/");
   await expect(page).toHaveURL("/admin");
-  await page.getByRole("tab", { name: "审核数据" }).click();
+  await siteNav(page).getByRole("link", { name: "审核后台", exact: true }).click();
+  await expect(page).toHaveURL("/admin");
+  // The four waiting numbers head 待处理, the group /admin opens on (ADR 0043 §8); 审核数据 is under 记录与统计.
   await expect(page.getByLabel("审核数据：现在")).toBeVisible();
+  await openAdminTab(page, "审核数据");
   // AI 发帖用量 (#102), below the weeks and the moderators.
   await expect(page.getByRole("heading", { name: "AI 发帖用量" })).toBeVisible();
   await expect(page.getByRole("rowheader", { name: "7 天合计" })).toBeVisible();
@@ -511,21 +487,7 @@ test("审核后台和审核数据: a moderator signs in → 审核后台 → 审
 test("外部职位: a moderator: home → 审核后台 → 外部职位 → 通过 / 不显示 (#112)", async ({ browser }, testInfo) => {
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/");
-  if (isPhone(testInfo)) {
-    const mine = siteNav(admin).getByRole("link", { name: "我的", exact: true });
-    await expect(mine).toHaveAttribute("href", "/account");
-    await mine.click();
-    await admin
-      .getByRole("main")
-      .getByRole("link", { name: /^审核后台/ })
-      .click();
-  } else {
-    await admin
-      .getByRole("banner")
-      .getByRole("button", { name: /^账号菜单/ })
-      .click();
-    await admin.locator("#account-menu").getByRole("link", { name: "审核后台" }).click();
-  }
+  // ADR 0043: a moderator's account has no home page of its own; it lands on 审核后台.
   await expect(admin).toHaveURL("/admin");
   await admin.getByRole("tab", { name: /^外部职位/ }).click();
   await expect(admin.getByRole("heading", { name: /^待审核/ })).toBeVisible();

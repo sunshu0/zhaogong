@@ -3,7 +3,7 @@
 // so in its place, with 重试. The tests cut the network for /admin's Server Function calls (POSTs to /admin).
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { moderatorPage, signUpEmployer } from "./employer/helpers";
+import { moderatorPage, openAdminTab, signUpEmployer } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
 
 test.use({ reducedMotion: "reduce" });
@@ -48,7 +48,7 @@ test("a rejection that gets no answer says 没成功，请重试 in its card and
   const admin = await moderatorPage(browser, testInfo);
   const cut = await cutCalls(admin);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /^企业验证/ }).click();
+  await openAdminTab(admin, /^企业验证/);
   const card = admin.getByRole("article", { name: `企业验证：${shop}` });
   // The checklist's links open a new window and say so (#293).
   await expect(card.getByRole("link", { name: "去查 NZBN 登记（新窗口）" })).toHaveAttribute("target", "_blank");
@@ -87,7 +87,7 @@ test("lists that get no answer say so in their place, and 重试 asks again", as
   const queueFailed = admin.getByRole("alert").filter({ hasText: "审核队列没取到" });
   await expect(queueFailed).toBeVisible();
   await expect(admin.getByRole("alert").filter({ hasText: "审核数据没取到" })).toBeVisible();
-  await admin.getByRole("tab", { name: /^外部职位/ }).click();
+  await openAdminTab(admin, /^外部职位/);
   await expect(admin.getByRole("alert").filter({ hasText: "外部职位没取到" })).toBeVisible();
   await expectNoViolations(admin);
 
@@ -96,8 +96,8 @@ test("lists that get no answer say so in their place, and 重试 asks again", as
   await expect(admin.getByRole("heading", { name: /^待审核 \d+$/ })).toBeVisible();
   // One 重试 asks for every list again: the summary and the first tab are back too.
   await expect(admin.getByLabel("审核数据：现在")).toBeVisible();
-  await admin.getByRole("tab", { name: /^发布时被标记/ }).click();
+  await openAdminTab(admin, /^发布时被标记/);
   await expect(queueFailed).toHaveCount(0);
-  await expect(admin.getByRole("tabpanel")).not.toContainText("没取到");
+  await expect(admin.getByRole("tabpanel").first()).not.toContainText("没取到");
   await admin.context().close();
 });

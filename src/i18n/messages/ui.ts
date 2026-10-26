@@ -21,6 +21,7 @@ const uiZh = {
     post: "发布",
     candidates: "推荐人才",
     workspace: "工作台",
+    admin: "审核后台",
     main: "主导航",
     bottom: "底部导航",
     more: "更多",

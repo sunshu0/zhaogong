@@ -10,9 +10,10 @@ const adminZh = {
   loading: "正在加载",
   signInFor: "登录后进入审核后台",
   // Around the command (kept as it is): 只有审核员能使用审核后台。第一位审核员在服务器上用 <code> 添加，…
-  whoBefore: "只有审核员能使用审核后台。第一位审核员在服务器上用",
+  whoBefore:
+    "只有审核员能使用审核后台。管理员在服务器配置里设定，由管理员在「审核员」一页里增删审核员；也可以在服务器上用",
   whoCommand: "npm run admin:grant 邮箱",
-  whoAfter: "添加，之后由审核员在「审核员」一页里增删。",
+  whoAfter: "添加。",
   access: {
     signedOut: "请先登录。",
     notModerator: "只有审核员能使用审核后台。",
@@ -22,6 +23,12 @@ const adminZh = {
   notLoaded: (what: string) => `${what}没取到，可能是网络断了。`,
   retry: "重试",
   cancel: "取消",
+  // ADR 0043: the page in two groups, what waits first.
+  groups: {
+    label: "审核后台分组",
+    todo: "待处理",
+    records: "记录与统计",
+  },
   tabs: {
     label: "审核队列",
     flagged: "发布时被标记",
@@ -31,6 +38,7 @@ const adminZh = {
     log: "操作记录",
     stats: "审核数据",
     moderators: "审核员",
+    changes: "审核员变动记录",
   },
   queue: {
     done: (what: string) => `已处理：${what}`,
@@ -57,24 +65,41 @@ const adminZh = {
   moderators: {
     listName: "审核员名单",
     heading: (n: number) => `审核员 · ${n} 位`,
-    description: "审核员可以处理被标记和被举报的职位、封禁雇主，也可以增删审核员。",
+    description:
+      "审核员处理被标记和被举报的职位，可以封禁雇主。管理员在服务器配置里设定，只有管理员能添加、移除审核员。",
+    descriptionViewOnly:
+      "审核员处理被标记和被举报的职位，可以封禁雇主。只有管理员能添加、移除审核员，这里只能查看名单。",
     you: "（你）",
-    keepOne: "至少要留一位审核员",
+    adminTag: "管理员",
+    adminFromSettings: "在服务器配置里设定，不能在这里移除",
+    noModerators: "还没有管理员以外的审核员。",
     removeLabel: (email: string) => `移除审核员 ${email}`,
     remove: "移除",
     // #249: 移除 asks first; for one's own row it says what follows.
     confirmLabel: (email: string) => `确认移除审核员 ${email}`,
     confirm: (email: string) => `移除 ${email} 的审核员身份？`,
-    confirmSelf: "移除你自己的审核员身份？移除后你就不能再进审核后台，要请别的审核员重新添加。",
     confirmRemove: "确认移除",
     addHeading: "添加审核员",
     emailLabel: "邮箱",
     emailPlaceholder: "对方登录用的邮箱",
     add: "添加",
-    addNote: "对方要先用这个邮箱登录过一次。",
+    addNote:
+      "对方要先用这个邮箱登录过一次。请用专门的审核员邮箱：已经有简历、申请、收藏、职位提醒或雇主身份的邮箱不能添加。",
     addedOnServer: "在服务器上添加",
     addedByDeleted: "由已删除的账号添加",
     addedBy: (email: string) => `由${email}添加`,
+  },
+  // ModeratorChanges.tsx (ADR 0043): who added and removed moderators, for the admins.
+  changes: {
+    listName: "审核员变动记录",
+    title: "审核员变动记录",
+    description: "每次添加、移除审核员都记在这里，只有管理员能看。",
+    empty: "还没有添加或移除过审核员。",
+    grant: (email: string) => `添加审核员 ${email}`,
+    revoke: (email: string) => `移除审核员 ${email}`,
+    by: (who: string) => `操作人：${who}`,
+    commandLine: "命令行",
+    deleted: "已删除的账号",
   },
   // actions.ts: answers to the moderator's buttons.
   errors: {
@@ -88,8 +113,11 @@ const adminZh = {
     invalidEmail: "请输入正确的邮箱地址。",
     noAccount: "这个邮箱还没有注册。请对方先用这个邮箱登录一次。",
     alreadyModerator: "这个账号已经是审核员。",
-    lastModerator: "至少要留一位审核员，不能移除最后一位。",
     notModerator: "这个账号不是审核员。",
+    // ADR 0043: admins only, a clean address, and admins come from the configuration.
+    adminOnly: "只有管理员能添加、移除审核员。",
+    hasData: "这个邮箱已经有求职或招聘的数据。请用一个专门的审核员邮箱。",
+    isAdmin: "管理员在服务器配置里设定，不能在这里移除。",
   },
   added: (email: string) => `添加审核员 ${email}`,
   removed: (email: string) => `移除审核员 ${email}`,

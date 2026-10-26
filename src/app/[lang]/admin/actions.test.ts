@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { createSession, sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 import {
@@ -32,6 +32,7 @@ const {
   banJobEmployer,
   dismissReports,
   getModerationQueue,
+  getModeratorChanges,
   getModerators,
   removeModerator,
   takeDownJob,
@@ -146,19 +147,48 @@ describe("admin switch", () => {
   });
 });
 
-describe("moderators (#50)", () => {
-  it("lists the moderators and says which one is asking", async () => {
+describe("moderators (#50; ADR 0043: only admins add and remove them)", () => {
+  const ADMIN = "the.admin@example.com";
+  const asAdmin = async () => {
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", ADMIN);
+    await signIn(ADMIN);
+  };
+  afterEach(async () => {
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", "");
+    await signIn();
+  });
+
+  it("lists the admins and the moderators, and says who is asking and whether they are an admin", async () => {
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", ADMIN);
     const answer = await getModerators();
     if ("refused" in answer) throw new Error(answer.refused);
-    expect(answer.me).toBe(MODERATOR);
+    expect(answer).toMatchObject({ me: MODERATOR, admin: false, admins: [ADMIN] });
     expect(answer.moderators.map((m) => m.email)).toContain(MODERATOR);
   });
 
-  it("adds a signed-up account by email, and only that", async () => {
+  it("lets a moderator who is not an admin only look: the server refuses the rest", async () => {
+    vi.stubEnv("ZHAOGONG_ADMIN_EMAILS", ADMIN);
+    const adminOnly = { ok: false, error_zh: "只有管理员能添加、移除审核员。" };
+    await ensureAccount("would.be@example.com");
+    expect(await addModerator("would.be@example.com")).toEqual(adminOnly);
+    expect(await removeModerator(MODERATOR)).toEqual(adminOnly);
+    expect(await isModerator("would.be@example.com")).toBe(false);
+    expect(await isModerator(MODERATOR)).toBe(true);
+    expect(await getModeratorChanges()).toMatchObject({ refused: "not_admin" });
+  });
+
+  it("lets an admin add a signed-up account with no job seeker's or employer's data, and only that", async () => {
+    await asAdmin();
     expect(await addModerator("not an email")).toEqual({ ok: false, error_zh: "请输入正确的邮箱地址。" });
     expect(await addModerator("never.signed.in@example.com")).toEqual({
       ok: false,
       error_zh: "这个邮箱还没有注册。请对方先用这个邮箱登录一次。",
+    });
+    await ensureAccount("job.hunter@example.com");
+    await createJobAlert("job.hunter@example.com", { name: "厨房", country: "NZ", query: "industry=hospitality" });
+    expect(await addModerator("job.hunter@example.com")).toEqual({
+      ok: false,
+      error_zh: "这个邮箱已经有求职或招聘的数据。请用一个专门的审核员邮箱。",
     });
     await ensureAccount("helper.mod@example.com");
     expect(await addModerator(" Helper.Mod@example.com ")).toEqual({
@@ -166,21 +196,27 @@ describe("moderators (#50)", () => {
       text: "添加审核员 helper.mod@example.com",
     });
     expect(await addModerator("helper.mod@example.com")).toEqual({ ok: false, error_zh: "这个账号已经是审核员。" });
-    expect((await listModerators()).find((m) => m.email === "helper.mod@example.com")?.grantedBy).toBe(MODERATOR);
+    expect((await listModerators()).find((m) => m.email === "helper.mod@example.com")?.grantedBy).toBe(ADMIN);
   });
 
-  it("removes a moderator, but never the last one", async () => {
+  it("lets an admin remove moderators, down to none but never an admin, and records each change", async () => {
+    await asAdmin();
     expect(await removeModerator("helper.mod@example.com")).toEqual({
       ok: true,
       text: "移除审核员 helper.mod@example.com",
     });
     expect(await removeModerator("helper.mod@example.com")).toEqual({ ok: false, error_zh: "这个账号不是审核员。" });
-    for (const m of await listModerators()) if (m.email !== MODERATOR) await removeModerator(m.email);
-    expect(await removeModerator(MODERATOR)).toEqual({
-      ok: false,
-      error_zh: "至少要留一位审核员，不能移除最后一位。",
-    });
-    expect(await isModerator(MODERATOR)).toBe(true);
+    expect(await removeModerator(ADMIN)).toEqual({ ok: false, error_zh: "管理员在服务器配置里设定，不能在这里移除。" });
+    const answer = await getModeratorChanges();
+    if ("refused" in answer) throw new Error(answer.refused);
+    expect(answer.changes.slice(0, 2)).toMatchObject([
+      { action: "revoke", email: "helper.mod@example.com", by: ADMIN },
+      { action: "grant", email: "helper.mod@example.com", by: ADMIN },
+    ]);
+    for (const m of await listModerators()) await removeModerator(m.email);
+    expect(await listModerators()).toEqual([]);
+    expect(await isModerator(ADMIN)).toBe(true);
+    await grantModerator(MODERATOR, null); // for the tests below
   });
 });
 

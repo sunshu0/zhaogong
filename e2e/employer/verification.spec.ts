@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { moderatorPage, signUpEmployer } from "./helpers";
+import { moderatorPage, openAdminTab, signUpEmployer } from "./helpers";
 import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
@@ -31,7 +31,7 @@ async function apply(page: Page, nzbn: string, phone = "09 055 0123") {
 /** The moderator's card for the shop on the 企业验证 tab of /admin. */
 async function cardFor(admin: Page, shop: string) {
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /^企业验证/ }).click();
+  await openAdminTab(admin, /^企业验证/);
   return admin.getByRole("article", { name: `企业验证：${shop}` });
 }
 
@@ -123,7 +123,7 @@ test("opening an application is recorded in 查看记录 with its number, not it
   const card = await cardFor(admin, shop);
   const number = (await card.getByText(/^编号 v\d+$/).textContent())!.replace("编号 ", "");
 
-  await admin.getByRole("tab", { name: /^查看记录/ }).click();
+  await openAdminTab(admin, /^查看记录/);
   const log = admin.getByRole("region", { name: "审核员看过谁的个人信息" });
   const row = log.getByRole("row").filter({ has: admin.getByRole("cell", { name: number, exact: true }) });
   await expect(row).toHaveCount(1);

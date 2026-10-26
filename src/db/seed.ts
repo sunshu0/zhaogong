@@ -3,7 +3,7 @@
 import { count } from "drizzle-orm";
 import { getDb, type Db } from "@/db/client";
 import { DEMO_SEEKER, demoShowcase } from "@/db/demo-showcase";
-import { DEMO_MODERATOR } from "@/lib/demo-accounts";
+import { DEMO_ADMIN, DEMO_MODERATOR } from "@/lib/demo-accounts";
 import { fromEmployer, fromJob } from "@/db/rows";
 import * as schema from "@/db/schema";
 import { insertsInChunks } from "@/db/write-if";
@@ -15,7 +15,8 @@ import { demoExternalJobs } from "@/mock/external-jobs";
 /**
  * The demo moderator (#50): in the demo data only, so a developer (and the browser tests) can open /admin by signing
  * in with this address; outside production the sign-in page shows the code. A real database starts with no
- * moderator: npm run admin:grant makes the first one.
+ * moderator: npm run admin:grant makes the first one. The demo admin (ADR 0043) gets an account here too; what makes it
+ * an admin is the server's ZHAOGONG_ADMIN_EMAILS.
  */
 export { DEMO_MODERATOR };
 
@@ -58,6 +59,7 @@ export async function seedDemoData(
     ),
     ...insertsInChunks(db, schema.accounts, [
       { email: DEMO_MODERATOR, createdAt: at, lastRole: "seeker" },
+      { email: DEMO_ADMIN, createdAt: at, lastRole: "seeker" },
       { email: DEMO_SEEKER, createdAt: showcase.alert.createdAt, lastRole: "seeker" },
     ]),
     db.insert(schema.moderators).values({ email: DEMO_MODERATOR, grantedAt: at, grantedBy: null }),

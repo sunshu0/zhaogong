@@ -35,7 +35,7 @@ export function Funnels() {
   const cell = (count: Cell) => (count === "few" ? t.few : formatNumber(count, lang));
 
   return (
-    <Section look="app" title={t.title} description={t.description}>
+    <Section look="sheet" title={t.title} description={t.description}>
       <div className="flex flex-wrap gap-x-8 gap-y-2 py-group">
         <fieldset className="flex flex-wrap gap-x-5 text-body">
           <legend className="mb-1 text-meta text-muted">{t.period}</legend>

@@ -48,7 +48,7 @@ export function ModerationSummary({
   const waited = (since?: string) =>
     since ? t.now.oldestWaited(waitText(stats.at - Date.parse(since), lang)) : t.now.noneWaiting;
   return (
-    <Section look="app">
+    <Section look="sheet">
       <dl aria-label={t.now.label} className="grid grid-cols-2 gap-3 py-group sm:grid-cols-4">
         <div>
           <dt className="text-meta text-muted">{t.now.jobs}</dt>
@@ -81,7 +81,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
   const t = useMessages(adminStatsMessages).weeks;
   const most = Math.max(1, ...stats.weeks.map((w) => w.reported));
   return (
-    <Section look="app" title={t.title(WEEKS)} description={t.description}>
+    <Section look="sheet" title={t.title(WEEKS)} description={t.description}>
       <div role="region" aria-label={t.title(WEEKS)} tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-body">
           <caption className="sr-only">{t.caption(WEEKS)}</caption>
@@ -146,7 +146,7 @@ export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {
   const lang = useLang();
   const t = useMessages(adminStatsMessages).byModerator;
   return (
-    <Section look="app" title={t.title} description={t.description(WEEKS)}>
+    <Section look="sheet" title={t.title} description={t.description(WEEKS)}>
       {stats.byModerator.length === 0 ? (
         <p className="py-group text-body text-muted">{t.none(WEEKS)}</p>
       ) : (
@@ -200,7 +200,7 @@ export function AiPostingUsage({ stats }: { stats: ModerationStats }) {
     { ...total, label: t.total(AI_DAYS) },
   ];
   return (
-    <Section look="app" title={t.title} description={t.description(AI_DAYS)}>
+    <Section look="sheet" title={t.title} description={t.description(AI_DAYS)}>
       <div role="region" aria-label={t.title} tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-body">
           <caption className="sr-only">{t.caption(AI_DAYS)}</caption>

@@ -107,6 +107,8 @@ const loginZh = {
     suspended: "这家企业已被停用，不能再绑定。",
     notFound: "找不到这家企业，请重新选择。",
     alreadyBound: "这个账号已经绑定了另一家企业。",
+    // ADR 0043: a moderator's account is for moderating only.
+    staffOnly: "审核员账号只用来审核，不能开通雇主身份。",
   },
   // The sign-in code email (lib/auth/delivery.ts), in the language of the request that asked for it.
   mail: {

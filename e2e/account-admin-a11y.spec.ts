@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { fillSignInCode, freshEmail, signIn } from "./helpers";
-import { moderatorPage } from "./employer/helpers";
+import { moderatorPage, openAdminTab } from "./employer/helpers";
 import { waitForTitle } from "./helpers/title";
 
 // #187: axe on line C's pages that no spec scanned yet, in the states people see: each step of /login, 我的 and
@@ -72,7 +72,7 @@ test("审核后台 · 外部职位: the lists, a flagged job's tick, the 不显�
 }, testInfo) => {
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /^外部职位/ }).click();
+  await openAdminTab(admin, /^外部职位/);
   await expect(admin.getByRole("heading", { name: /^待审核 \d+$/ })).toBeVisible();
   // The test database has only the made-up jobs, and 审核后台 says so (导师 10-19).
   await expect(admin.getByText(/^这里有 \d+ 个演示用的假外部职位/)).toBeVisible();

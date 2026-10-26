@@ -306,8 +306,15 @@ describe("deleteAccount (#54)", () => {
     expect((await exportAccountData(first))?.personalInfoViews).toEqual([
       { at: "2026-10-20T01:02:03Z", kind: "verification", subjectId: "vr-export" },
     ]);
+    // ADR 0043: the record of moderator changes, where the account is either side.
+    expect((await exportAccountData(first))?.moderatorChanges).toMatchObject([
+      { action: "grant", email: first, by: null },
+      { action: "grant", email: second, by: first },
+    ]);
 
     expect(await deleteAccount(first)).toBe("deleted");
+    const { listModeratorChanges } = await import("@/db/moderators");
+    expect(JSON.stringify(await listModeratorChanges())).not.toContain(first);
     expect(await isModerator(first)).toBe(false);
     expect((await listModerators()).find((m) => m.email === second)?.grantedBy).toBe(DELETED_ACCOUNT);
     // The decision stays, without the email (#60).
@@ -351,6 +358,7 @@ describe("deleteAccount (#54)", () => {
       "personal_info_views.moderator_email",
       "report_evidence.reporter_email",
       "moderators.email",
+      "moderator_changes.email",
       "conversations.seeker_email",
       "verification_requests.submitted_by_email",
       "verification_requests.decided_by_email",

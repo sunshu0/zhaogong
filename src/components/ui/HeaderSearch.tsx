@@ -16,7 +16,9 @@ export function HeaderSearch() {
   const f = useMessages(seekerJobsMessages).filter;
   const hydrated = useHydrated();
   const session = useSession();
-  if (pathname === "/" || pathname === "/jobs" || navRole(hydrated ? session : null) === "employer") return null;
+  const role = navRole(hydrated ? session : null);
+  // A staff account looks for no job (ADR 0043).
+  if (pathname === "/" || pathname === "/jobs" || role === "employer" || role === "staff") return null;
   return (
     <form action="/jobs" role="search" className="relative hidden xl:block">
       <Search aria-hidden="true" className="pointer-events-none absolute top-3 left-3.5 size-4 text-muted" />

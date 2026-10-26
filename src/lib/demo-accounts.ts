@@ -8,6 +8,11 @@ export const DEMO_SEEKER = "seeker@example.com";
 export const DEMO_EMPLOYER = "boss@example.com";
 /** The demo moderator (#50). */
 export const DEMO_MODERATOR = "moderator@example.com";
+/**
+ * The demo admin (ADR 0043): an admin through ZHAOGONG_ADMIN_EMAILS, which .env.development and the browser tests set
+ * to this address. Not one of the FIXED demo people below: an admin's account meets nobody made up.
+ */
+export const DEMO_ADMIN = "admin@example.com";
 
 const FIXED = new Set([DEMO_SEEKER, DEMO_EMPLOYER, DEMO_MODERATOR]);
 

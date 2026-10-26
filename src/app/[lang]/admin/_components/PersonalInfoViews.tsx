@@ -36,7 +36,7 @@ export function PersonalInfoViews() {
   if (list && list.moderators.join() !== moderators.join()) setModerators(list.moderators);
 
   return (
-    <Section look="app" title={t.title} description={t.description}>
+    <Section look="sheet" title={t.title} description={t.description}>
       <div className="flex flex-wrap items-end gap-x-8 gap-y-3 py-group">
         <div className="w-full max-w-xs">
           <Select

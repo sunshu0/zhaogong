@@ -411,6 +411,22 @@ export const moderators = sqliteTable("moderators", {
 });
 
 /**
+ * Every moderator added or removed (ADR 0043), for the admins: who it was, when, and by whom — an admin's email, or
+ * null from the command line. Rows stay as the record; a deleted account's email becomes deleted-account here.
+ */
+export const moderatorChanges = sqliteTable(
+  "moderator_changes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    at: text("at").notNull(),
+    action: text("action").$type<"grant" | "revoke">().notNull(),
+    email: text("email").notNull(),
+    by: text("by"),
+  },
+  (table) => [index("moderator_changes_at_idx").on(table.at)],
+);
+
+/**
  * 收藏和进度 (#52): jobs an account saved, with how far it got. Only the account itself reads it, never the
  * employer. `stage` is null until the account picks one (then the chat decides between 已收藏 and 已联系).
  */

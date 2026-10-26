@@ -1,6 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { MODERATOR_EMAIL, moderatorPage, openReportForm, publishJob, signUpEmployer, uniqueTitle } from "./helpers";
+import {
+  MODERATOR_EMAIL,
+  moderatorPage,
+  openAdminTab,
+  openReportForm,
+  publishJob,
+  signUpEmployer,
+  uniqueTitle,
+} from "./helpers";
 import { waitForTitle } from "../helpers/title";
 
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
@@ -19,7 +27,7 @@ async function summary(admin: Page, label: string): Promise<number> {
 
 /** This week's row of the 审核数据 tab: [新举报, 处理, 用时, 下架, 封禁]. */
 async function thisWeek(admin: Page): Promise<string[]> {
-  await admin.getByRole("tab", { name: /审核数据/ }).click();
+  await openAdminTab(admin, /审核数据/);
   const row = admin.getByRole("row", { name: /^本周/ });
   await expect(row).toBeVisible();
   return (await row.getByRole("cell").allTextContents()).map((text) => text.trim());
@@ -57,7 +65,7 @@ test("审核数据: a report waits in the summary, and taking the job down count
   // This week's 新举报 only grows, so it must count this report (#90).
   expect(Number((await thisWeek(admin))[0])).toBeGreaterThanOrEqual(Number(reportedBefore) + 1);
 
-  await admin.getByRole("tab", { name: /被举报/ }).click();
+  await openAdminTab(admin, /被举报/);
   const card = admin.getByRole("article").filter({ has: admin.getByRole("heading", { name: title }) });
   await card.getByRole("button", { name: "下架" }).click();
   await expect(card).toHaveCount(0);
@@ -83,7 +91,7 @@ test("审核数据's 漏斗 shows the four flows' steps, for 7 or 30 days, split
 
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /审核数据/ }).click();
+  await openAdminTab(admin, /审核数据/);
   const post = admin.getByRole("region", { name: "雇主：发布职位" });
   await expect(post.getByRole("rowheader", { name: "打开发布页" })).toBeVisible();
   for (const flow of ["求职：从职位到联系雇主", "求职：外部职位", "登录"]) {

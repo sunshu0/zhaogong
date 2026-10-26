@@ -9,9 +9,10 @@ import { uiMessages } from "@/i18n/messages/ui";
 export type NavWords = Messages<typeof uiMessages.zh>["nav"];
 const ZH: NavWords = uiMessages.zh.nav;
 
-export type NavRole = "out" | "seeker" | "employer";
+/** `staff`: an admin's or a moderator's account (ADR 0043), offered only 审核后台 and 我的. */
+export type NavRole = "out" | "seeker" | "employer" | "staff";
 export type NavKey =
-  "jobs" | "internships" | "professional" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine";
+  "jobs" | "internships" | "professional" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine" | "admin";
 export type NavItem = { key: NavKey; href: string; label: string };
 
 export const ACCOUNT_PATH = "/account";
@@ -19,9 +20,27 @@ export const ACCOUNT_PATH = "/account";
 export const ACCOUNT_DATA_PATH = "/account/data";
 export const MANAGE_JOBS_PATH = "/employer/jobs";
 
+export const ADMIN_PATH = "/admin";
+
 export function navRole(session: DemoSession | null): NavRole {
   if (!session) return "out";
+  if (session.staff) return "staff";
   return session.activeRole === "employer" ? "employer" : "seeker";
+}
+
+/**
+ * Pages a staff account may stay on (ADR 0043): 审核后台, 我的 (the account, language, signing out), signing in, and
+ * the public pages anyone can read. Every other page sends it to 审核后台 (StaffRedirect).
+ */
+export function staffMayOpen(pathname: string): boolean {
+  if (under(pathname, ADMIN_PATH)) return true;
+  return [ACCOUNT_PATH, "/login", "/about", "/safety", "/privacy", "/terms"].includes(pathname);
+}
+
+/** Where a staff account goes after signing in: `next` if it may stay there (a path, checked with safeNext), else 审核后台. */
+export function staffNext(next: string): string {
+  const path = next.split(/[?#]/)[0];
+  return path !== "/login" && staffMayOpen(path) ? next : ADMIN_PATH;
 }
 
 const signInFirst = (next: string) => `/login?next=${encodeURIComponent(next)}`;
@@ -46,6 +65,11 @@ export function bottomNavItems(role: NavRole, w: NavWords = ZH): NavItem[] {
         { key: "manage", href: MANAGE_JOBS_PATH, label: w.manage },
         { key: "post", href: POST_JOB_PATH, label: w.post },
         { key: "chat", href: "/messages", label: w.chat },
+        { key: "mine", href: ACCOUNT_PATH, label: w.mine },
+      ];
+    case "staff":
+      return [
+        { key: "admin", href: ADMIN_PATH, label: w.admin },
         { key: "mine", href: ACCOUNT_PATH, label: w.mine },
       ];
   }
@@ -79,12 +103,14 @@ export function headerItems(role: NavRole, w: NavWords = ZH): NavItem[] {
         { key: "chat", href: "/messages", label: w.chat },
         { key: "workspace", href: "/workspace", label: w.workspace },
       ];
+    case "staff":
+      return [{ key: "admin", href: ADMIN_PATH, label: w.admin }];
   }
 }
 
 /** Whether the header shows the 发布招聘 button: signed out (it leads to employer sign-up) and for employers. */
 export function showsPostJob(role: NavRole): boolean {
-  return role !== "seeker";
+  return role === "out" || role === "employer";
 }
 
 const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(`${base}/`);
@@ -97,6 +123,7 @@ const JOB_PAGES = ["/external", "/employers"];
 
 /** Which entry a page belongs to. In the bottom bar, workspace pages count as 我的. */
 export function activeNavKey(pathname: string): NavKey | null {
+  if (under(pathname, ADMIN_PATH)) return "admin";
   if (under(pathname, "/jobs") || JOB_PAGES.some((base) => under(pathname, base))) return "jobs";
   if (under(pathname, "/internships")) return "internships";
   if (under(pathname, "/professional")) return "professional";
@@ -132,9 +159,10 @@ export function activeBottomKey(pathname: string): NavKey | null {
 
 /**
  * Focused flows hide the bottom bar: they have their own bar at the bottom (posting, editing a job) or are a step
- * on the way somewhere (sign-in).
+ * on the way somewhere (sign-in). /admin too, except for a staff account, whose home it is (ADR 0043).
  */
-export function hidesBottomNav(pathname: string): boolean {
-  if (pathname === "/login" || under(pathname, "/admin") || under(pathname, POST_JOB_PATH)) return true;
+export function hidesBottomNav(pathname: string, role?: NavRole): boolean {
+  if (under(pathname, ADMIN_PATH)) return role !== "staff";
+  if (pathname === "/login" || under(pathname, POST_JOB_PATH)) return true;
   return /^\/employer\/jobs\/[^/]+$/.test(pathname);
 }

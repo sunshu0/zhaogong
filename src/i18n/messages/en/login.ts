@@ -109,6 +109,7 @@ export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
     suspended: "This business has been suspended and can't be added.",
     notFound: "We couldn't find this business. Choose again.",
     alreadyBound: "This account already belongs to another business.",
+    staffOnly: "A moderator's account is for moderating only and can't open an employer identity.",
   },
   mail: {
     subject: (code) => `Your 找工 sign-in code: ${code}`,

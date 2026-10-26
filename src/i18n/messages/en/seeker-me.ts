@@ -260,6 +260,8 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     signIn: "Sign in or sign up",
     label: (role) => `Account menu, signed in as ${role}`,
     seeker: "Job seeker",
+    admin: "Admin",
+    moderator: "Moderator",
     employer: "Employer",
     current: "Signed in as: ",
     workspace: "Workspace",

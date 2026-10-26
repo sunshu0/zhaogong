@@ -14,6 +14,7 @@ import {
   type ActiveRole,
   type DemoSession,
   type SessionIdentity,
+  type StaffRole,
   type StorageLike,
 } from "@/components/seeker/session";
 
@@ -103,9 +104,10 @@ export function openErrorMessage(
 /** The identity to use, given what the server says about the account: the business always comes from the server. */
 export function reconcileIdentity(
   wanted: ActiveRole,
-  server: { email?: string; employer?: { id: string; name: string } },
+  server: { email?: string; employer?: { id: string; name: string }; staff?: StaffRole },
 ): SessionIdentity {
-  return server.employer ? { activeRole: wanted, employer: server.employer } : { activeRole: "seeker" };
+  const staff = server.staff ?? null; // ADR 0043: also from the server, every time
+  return server.employer ? { activeRole: wanted, employer: server.employer, staff } : { activeRole: "seeker", staff };
 }
 
 /** Apply an account lookup to the current session without undoing a newer identity choice or sign-in. */
@@ -133,7 +135,12 @@ export function syncSessionIdentity(
 }
 
 /** The browser's view of the server's session (login actions' AccountStatus). */
-export type ServerSession = { email: string; activeRole: ActiveRole; employer?: { id: string; name: string } };
+export type ServerSession = {
+  email: string;
+  activeRole: ActiveRole;
+  employer?: { id: string; name: string };
+  staff?: StaffRole;
+};
 
 /**
  * After a page load: the identity to ask the server for again, when the copy holds a switch the server has not made
@@ -167,5 +174,9 @@ export function applyServerSession(
     return null;
   }
   const since = current?.email === server.email ? new Date(current.signedInAt) : now;
-  return writeSession(storage, server.email, since, { activeRole: server.activeRole, employer: server.employer });
+  return writeSession(storage, server.email, since, {
+    activeRole: server.activeRole,
+    employer: server.employer,
+    staff: server.staff,
+  });
 }

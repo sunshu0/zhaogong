@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { freshEmail } from "./helpers";
-import { moderatorPage } from "./employer/helpers";
+import { moderatorPage, openAdminTab } from "./employer/helpers";
 import { expectEnglishPage, useEnglish } from "./helpers/english";
 
 // Round 20 step 2, line C (#236): line C's pages with zg_lang=en — <html lang>, axe, nothing wider than the screen,
@@ -105,14 +105,14 @@ test("moderation in English: every tab", async ({ browser, baseURL }, testInfo) 
     ["Moderation stats", /^Last \d+ weeks$/, []],
     ["Moderators", /^Moderators · \d+$/, []],
   ] as const) {
-    await admin.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+    await openAdminTab(admin, new RegExp(`^${tab}`));
     await expect(admin.getByRole("tab", { name: new RegExp(`^${tab}`) })).toHaveAttribute("aria-selected", "true");
     await expect(admin.getByRole("tabpanel").getByText(ready).first()).toBeVisible();
     await expectEnglishPage(admin, `/admin ${tab}`, { allow });
   }
 
   // A form opened: the reasons for not showing an external job, then 取消.
-  await admin.getByRole("tab", { name: /^External jobs/ }).click();
+  await openAdminTab(admin, /^External jobs/);
   const job = admin.getByRole("article", { name: /^External job: / }).first();
   if ((await job.count()) > 0) {
     await job.getByRole("button", { name: /^(Don't show|Take it down)$/ }).click();

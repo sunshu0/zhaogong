@@ -10,7 +10,7 @@ import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import type { ChatRiskItem, ChatRiskMessage } from "@/db/chat-risk";
 import { Button } from "@/components/ui/Button";
-import { cardClass } from "@/components/ui/Card";
+import { sheetClass } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
 import { useServerLoad } from "@/components/ui/use-server-load";
 import { useLang, useMessages } from "@/i18n/client";
@@ -79,7 +79,7 @@ function ChatRiskCard({ item, onDone }: { item: ChatRiskItem; onDone: (result: A
     });
   };
   return (
-    <article aria-label={t.cardLabel(item.employerName)} className={cardClass()}>
+    <article aria-label={t.cardLabel(item.employerName)} className={sheetClass()}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 lang={contentLang(item.employerName)} className="text-subtitle font-semibold">
           {item.employerName}
@@ -133,7 +133,7 @@ function Messages({ employerId }: { employerId: string }) {
   if ("refused" in value) return <p className="text-body text-muted">{value.error_zh}</p>;
   if (value.messages.length === 0) return <p className="text-body text-muted">{t.none}</p>;
   return (
-    <div className="mt-1 space-y-3 rounded-control bg-surface p-3 shadow-card">
+    <div className="mt-1 space-y-3 rounded-control bg-surface p-3 ring-1 ring-border">
       <p className="text-meta text-muted">{t.note}</p>
       <ol aria-label={t.messagesLabel} className="space-y-2">
         {value.messages.map((m) => (

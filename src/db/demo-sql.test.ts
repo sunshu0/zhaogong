@@ -77,7 +77,7 @@ describe("offline demo bootstrap SQL", () => {
     const target = await freshDatabase();
     await target.batch(artifact.statements, "write");
     await expect(target.batch(artifact.statements, "write")).rejects.toThrow(/NOT NULL/);
-    expect((await target.execute("SELECT count(*) AS n FROM accounts")).rows[0].n).toBe(2);
+    expect((await target.execute("SELECT count(*) AS n FROM accounts")).rows[0].n).toBe(3);
     expect((await target.execute("SELECT * FROM write_guards")).rows).toEqual([]);
   });
 });

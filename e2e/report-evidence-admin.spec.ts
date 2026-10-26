@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { freshEmail, signIn } from "./helpers";
-import { moderatorPage } from "./employer/helpers";
+import { moderatorPage, openAdminTab } from "./employer/helpers";
 
 // 举报证据 in /admin (#353, ADR 0027 §3): the queue says how much evidence a report carries; 查看证据 shows the
 // messages (each marked who sent it) and the screenshot, and opening it is recorded in 查看记录 (ADR 0026).
@@ -39,12 +39,12 @@ test("a moderator opens a report's message and screenshot, and the opening is in
 
   const admin = await moderatorPage(browser, testInfo);
   await admin.goto("/admin");
-  await admin.getByRole("tab", { name: /^被举报/ }).click();
+  await openAdminTab(admin, /^被举报/);
   // The job's card is a list item too; the report's own item is the innermost one with the note.
   const report = admin.getByRole("listitem").filter({ hasText: note }).last();
   await expect(report).toBeVisible();
   // The queue holds only the counts: the words come when the evidence is opened.
-  await expect(admin.getByRole("tabpanel")).not.toContainText(words);
+  await expect(admin.getByRole("tabpanel").first()).not.toContainText(words);
   await report.getByRole("button", { name: "查看证据：1 条聊天消息、1 张截图" }).click();
   const messages = report.getByRole("list", { name: "举报附的聊天消息" });
   await expect(messages).toContainText(words);
@@ -54,7 +54,7 @@ test("a moderator opens a report's message and screenshot, and the opening is in
   await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await expect(report.getByRole("button", { name: "收起证据" })).toHaveAttribute("aria-expanded", "true");
 
-  await admin.getByRole("tab", { name: /^查看记录/ }).click();
+  await openAdminTab(admin, /^查看记录/);
   const log = admin.getByRole("region", { name: "审核员看过谁的个人信息" });
   await expect(log.getByRole("row").nth(1)).toContainText("聊天");
   await expect(log).not.toContainText(words);

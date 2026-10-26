@@ -278,6 +278,9 @@ const seekerMeZh = {
     signIn: "登录 / 注册",
     label: (role: string) => `账号菜单，当前身份：${role}`,
     seeker: "求职者",
+    // ADR 0043: a staff account is named after its staff role.
+    admin: "管理员",
+    moderator: "审核员",
     employer: "雇主",
     current: "当前身份：",
     workspace: "工作台",

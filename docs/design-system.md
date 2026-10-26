@@ -167,9 +167,11 @@
 | 未登录 | 职位 · 聊天（先登录）· 我的（先登录） |
 | 求职者 | 职位 · 聊天 · 我的 |
 | 雇主 | 职位管理 · 发布（中间突出）· 聊天 · 我的 |
+| 管理员、审核员（ADR 0043） | 审核后台 · 我的 |
 
+- 管理员、审核员的账号只做审核：桌面顶栏只有「审核后台」和账号菜单（没有职位搜索、发布招聘），页脚不列求职者、雇主的链接；登录后直接进 `/admin`，打开别的页面会转到 `/admin`（关于、防骗指南、隐私、条款、我的照旧）。
 - 聊天显示未读数（强调色圆点，#375 起），最多「99+」，数目也写在 `title` 里；当前项 `aria-current="page"`，主色加粗，图标填浅主色，名字下面一条 3 px 的短线。雇主中间突出的「发布」是强调色圆钮。
-- 登录、发帖、编辑职位、`/admin` 这些专注流程隐藏底部导航。
+- 登录、发帖、编辑职位、`/admin` 这些专注流程隐藏底部导航（`/admin` 是管理员、审核员的首页，他们在那里照常有底部导航）。
 - 页面底部自动留出导航的高度（`--bottom-nav-space`，含 iOS 安全区）。贴在页面底部的栏用 `bottom-above-nav`，不要用 `bottom-0`。
 - 手机顶栏只放 logo 和身份切换。桌面顶栏按身份显示，聊天只在聊天页高亮；1024 px 起导航居中，当前项是浅主色底的圆角块、主色加粗（#375），右边「发布招聘」是主色实心按钮（雇主和未登录时显示）。顶栏左边的 logo 和「找工」比正文大一档（图标 32 px、字 20 px 加粗）。
 
@@ -255,7 +257,7 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 | --- | --- | --- |
 | `Button` | 按下、`loading`（转圈、`aria-busy`、不能重复点）、禁用；`danger`、`danger-secondary`；`pill` | 提交到服务器的按钮都传 `loading`，防止点两次。圆角默认 12 px，`className` 里不用再写 `rounded-control` |
 | `inputClass()`、`fieldBorder()` | 输入框和多行输入框（`multiline`）：高 44 px、12 px 圆角、16 px 字（手机聚焦不放大）、聚焦时品牌色描边 | `tone: "warn"`（缺项、没识别到）或 `"danger"`（不合规）把边框变黄 / 红；`Select` 的 `tone` 也是这个 |
-| `Section look="app"` | 白底卡片（`rounded-card shadow-card`），没有边框，手机上也是卡片，不贴边 | 改版页面用它；里面照旧放 `Group`、`LinkList`，不再套卡片 |
+| `Section look="sheet"` | 纸：白底、一圈细线（`ring-1 ring-border`），没有阴影，手机上也是圆角块，不贴边 | 改版页面用它；里面照旧放 `Group`、`LinkList`，不再套卡片。第 19 轮的 `look="app"`（同样的形状带阴影）在视觉 A 做完后删掉了（#398） |
 | `LinkList` | 一行一个入口（我的、待办） | 按下整行变暗，伸到 `Section` 的左右边 |
 | `Card`、`CardLink`、`cardClass()`、`rowClass()` | 卡片；`interactive` 的整张可点 | `CardLink` 里不要再放链接和按钮 |
 | `BottomSheet` | 手机从底部滑上来，768 px 起是居中面板 | 原生 `<dialog>`：焦点不出面板；点遮罩、下拉把手、Esc、「关闭」都能关；内容里 `data-autofocus` 的元素先拿到焦点 |
@@ -300,7 +302,7 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 ### 雇主后台（第三步，#148）
 
 - **整个 `/employer`** 由 `src/app/[lang]/employer/layout.tsx` 套上 `type-app`，每个路由有 `loading.tsx`（列表用 `ListPageSkeleton`，其余用 `DetailPageSkeleton`）；布局里放了 `NoScriptStreams`，没有 JavaScript 时内容照常显示。
-- **页面里的块：** ui `Section look="app"`（#152）。其余零件在 `src/components/employer/app-style.ts`：`APP_CARD`、`ACTION_BUTTON`（卡片里的小操作，44 高）、`STICKY_BAR`（表单底部的半透明操作栏）、`BAR_TEXT_ACTION`（栏里的「取消」「上一步」）、`BACK_LINK`（标题上面的「← 职位管理」）、`noticeClass()`（保存成功 / 失败的提示行）。
+- **页面里的块：** ui `Section`（#152 起是 `look="app"`，视觉 A 改成 `look="sheet"`，#392）。其余零件在 `src/components/employer/app-style.ts`：`APP_CARD`、`ACTION_BUTTON`（卡片里的小操作，44 高）、`STICKY_BAR`（表单底部的半透明操作栏）、`BAR_TEXT_ACTION`（栏里的「取消」「上一步」）、`BACK_LINK`（标题上面的「← 职位管理」）、`noticeClass()`（保存成功 / 失败的提示行）。
 - **状态切换**（职位管理的「全部 / 招聘中…」、发布方式、发到哪个平台）：一排胶囊 `PILL_TABS` + `pillTab()`，选中的填品牌色。
 - **短选项**（工作类型、签证、语言、岗位类别、续期多久、招到了吗）：`ChoicePill`，圆角胶囊里是新样式的单选圆点或复选框，选中填浅品牌色；长一点的单选（联系方式怎么给、面试时间、身份）用 ui `Radio`。
 - **下拉框** 一律是 ui `Select`；发布表单的「行业」「地区」是受控的（`value`），标签由表单画（`id` + `hideLabel`），缺项 / 不合规时 `tone` 变黄 / 红（`selectTone()`）。
@@ -323,4 +325,10 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 - ~~求职者第二批：「我的」、账号、收藏和进度、简历、职位提醒、通知~~（#377 第二批）。
 - ~~雇主后台：发职位、职位管理、申请人、职位数据、团队、企业验证、候选人推荐；防骗指南、关于找工~~（#392）。
 - ~~聊天和工作台、候选人主页~~。
-- 审核后台（还在用 `Section look="app"`，等用户点名）。
+- ~~审核后台~~（#398）。视觉 A 做完，`Section look="app"` 删掉了。
+
+### 审核后台（#398，ADR 0043）
+
+- **分两组：** 「待处理」（发布时被标记、被举报、聊天风险、企业验证、外部职位，每项带数字，组的入口上是总数，上面是「现在等着的」四个数字）和「记录与统计」（操作记录、审核数据、查看记录、审核员，管理员还有审核员变动记录）。组用胶囊（`PILL_TABS`，控件），组里用下划线标签；默认打开「待处理 · 发布时被标记」。
+- **纸：** 队列的每一项、名单、记录、数据都是纸（`Section look="sheet"`、`sheetClass()`），加载中的占位也是细线，不带阴影。
+- **一屏一个主按钮：** 每一项都有的「没问题，通过」「通过」（企业验证、外部职位）是次按钮；确认封禁、驳回、下架这一步照旧是红色实心。「审核员」一页只有管理员看到的「添加」是主按钮。

@@ -24,9 +24,9 @@
 | --- | --- | --- | --- |
 | `requestSignInCode(email)` | 邮箱 | `{ ok: true }`，验证码 10 分钟有效。开发和测试环境另带 `devCode`（登录页直接显示），生产环境永远不带 | `{ ok: false, error }`：「请输入正确的邮箱地址」「验证码刚发过，请 N 秒后再获取」（每个邮箱每分钟一次）「邮件服务还没有配置，暂时无法发送验证码」（生产环境，#16） |
 | `signInAccount(email, code, role?)` | 邮箱；6 位数字验证码；想要的身份，默认 `seeker`，账号有企业时才能是 `employer` | `{ ok: true, account: AccountStatus, reload? }`，首次使用时创建账号，并设置会话 cookie（30 天）。账号存过界面语言、又和这个浏览器的不一样时，改写 cookie `zg_lang` 并带 `reload: true`（登录页整页跳转进去）；账号没存过时记下这个浏览器的语言（第 20 轮，ADR 0023） | `{ ok: false, error }`：「请输入正确的邮箱地址」「请输入 6 位数字验证码」「请先获取验证码」「验证码已过期，请重新获取」「验证码不对，还可以再试 N 次」「错误次数太多，请重新获取验证码」（错 5 次作废） |
-| `accountStatus(email?)` | 可选：浏览器副本里的邮箱 | 当前会话的 `AccountStatus`；浏览器每次加载页面用它校正本机副本 | 没有会话、或会话属于另一个邮箱时 `null` |
+| `accountStatus(email?)` | 可选：浏览器副本里的邮箱 | 当前会话的 `AccountStatus`；浏览器每次加载页面用它校正本机副本。`ADMIN_ENABLED=1` 时带 `staff: "admin" \| "moderator"`（ADR 0043，每次查数据库），界面按它只给审核后台；`signInAccount`、`switchIdentity` 的回答也带 | 没有会话、或会话属于另一个邮箱时 `null` |
 | `switchIdentity(role)` | `"seeker"` 或 `"employer"` | 切换后的 `AccountStatus`；账号没有企业时留在求职者身份 | 没有会话时 `null` |
-| `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }`（只在打开演示数据时，`demoDataWanted()`；否则服务器拒绝，回「请选择一家店」，登录页也不列演示店，#348）或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业 |
+| `openEmployerForAccount(email, choice)` | 邮箱须和会话一致；`choice`：`{ kind: "existing", employerId: "e1" \| "e2" \| "e4" }`（只在打开演示数据时，`demoDataWanted()`；否则服务器拒绝，回「请选择一家店」，登录页也不列演示店，#348）或 `{ kind: "new", name, regionId }` | `{ ok: true, employer: { id, name } }`，并把会话切到雇主身份；已有企业的账号直接返回原企业 | `{ ok: false, error }`：「请先登录」「请选择一家店」「请填写店名」「店名最多 40 个字」「请选择地区」、已被其他账号绑定、企业已停用、找不到企业；「审核员账号只用来审核，不能开通雇主身份。」（ADR 0043） |
 | `signOutAccount()` | | 删除服务器上的会话和 cookie | — |
 
 ## 界面语言 — `src/i18n/actions.ts`、`src/proxy.ts`（第 20 轮，ADR 0023）
@@ -352,9 +352,10 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 | `takeDownJob(jobId)` | | 下架，未处理的举报标为已处理，记日志 | 「找不到这个职位。」 |
 | `dismissReports(jobId)` | | 驳回这个职位的举报，职位不变，记日志 | 「找不到这个职位。」「这个职位没有待处理的举报。」 |
 | `banJobEmployer(jobId)` | | 封禁职位的雇主，下架其所有职位并关闭相关举报，记日志 | 「找不到这个雇主。」「这个雇主已经被封禁。」 |
-| `getModerators()` | | `{ me, moderators: [{ email, grantedAt, grantedBy }] }`，从早到晚；`grantedBy` 为 `null` 表示在服务器上添加（命令行或演示数据） | `{ refused, error_zh }` |
-| `addModerator(email)` | 已经登录过的账号的邮箱 | `{ ok: true, text }` | 「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个账号已经是审核员。」 |
-| `removeModerator(email)` | 审核员的邮箱 | `{ ok: true, text }` | 「至少要留一位审核员，不能移除最后一位。」「这个账号不是审核员。」 |
+| `getModerators()` | | `{ me, admin, admins, moderators: [{ email, grantedAt, grantedBy }] }`：`admin` 是问的人是不是管理员，`admins` 是配置里的管理员（ADR 0043），`moderators` 从早到晚、不重复列管理员；`grantedBy` 为 `null` 表示在服务器上添加（命令行或演示数据） | `{ refused, error_zh }` |
+| `addModerator(email)` | 已经登录过、没有求职或招聘数据的账号的邮箱；**只有管理员** | `{ ok: true, text }`，并记进审核员变动记录 | 「只有管理员能添加、移除审核员。」「请输入正确的邮箱地址。」「这个邮箱还没有注册。请对方先用这个邮箱登录一次。」「这个邮箱已经有求职或招聘的数据。请用一个专门的审核员邮箱。」「这个账号已经是审核员。」 |
+| `removeModerator(email)` | 审核员的邮箱；**只有管理员** | `{ ok: true, text }`，并记进审核员变动记录；审核员可以删到一个不剩 | 「只有管理员能添加、移除审核员。」「管理员在服务器配置里设定，不能在这里移除。」「这个账号不是审核员。」 |
+| `getModeratorChanges()` | **只有管理员** | `{ changes: [{ id, at, action: "grant" \| "revoke", email, by }] }`，新的在前，最多 200 条；`by` 为 `null` 是命令行 | `{ refused: "not_admin", error_zh: "只有管理员能添加、移除审核员。" }`，或同上的 `refused` |
 
 企业验证（#78，PRD R-16，ADR 0011）在 `src/app/[lang]/admin/verification-actions.ts`，同样先 `requireModerator()`：
 
@@ -380,11 +381,7 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 | --- | --- | --- | --- |
 | `getPersonalInfoViews(moderator, days)` | `moderator`：审核员邮箱，空或不在记录里就是全部；`days`：7、30 或 365，别的值按 7 | `{ days, moderator, views, more, moderators }`：`views` 新的在前，每条 `{ at, moderator, kind, subjectId }`，最多 200 条，`more` 表示还有更多；`moderators` 是有记录的审核员，给筛选用。读这份清单本身不记 | `{ refused, error_zh }` |
 
-审核后台的入口（#73）在 `src/app/[lang]/admin/entry-actions.ts`：
-
-| 函数 | 参数 | 成功 | 失败 |
-| --- | --- | --- | --- |
-| `canModerate()` | | `true`：`ADMIN_ENABLED=1`，已登录，并且是审核员（和 `requireModerator()` 同一套判断）。账号菜单（768 px 起）和「我的」只在这时显示「审核后台」 | `false`：开关没开、没登录或不是审核员；开关没开时也不抛错 |
+审核后台的入口（#73）：以前是 `canModerate()`，ADR 0043 起并进了会话：`accountStatus()` 等回答里的 `staff`（见上面「登录」一节）。
 
 ## 页面路由
 

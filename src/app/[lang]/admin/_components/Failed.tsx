@@ -19,7 +19,7 @@ export function TryAgain() {
 export function LoadFailed({ what, onRetry }: { what: string; onRetry: () => void }) {
   const t = useMessages(adminMessages);
   return (
-    <Section look="app">
+    <Section look="sheet">
       <div role="alert" className="flex flex-col items-center gap-3 py-8 text-center">
         <p className="text-body text-muted">{t.notLoaded(what)}</p>
         <Button variant="secondary" onClick={onRetry}>

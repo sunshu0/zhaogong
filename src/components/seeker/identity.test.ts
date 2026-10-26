@@ -19,12 +19,22 @@ import {
   readSession,
   requestIdentity,
   updateIdentity,
+  SESSION_KEY,
   writeSession,
   type DemoSession,
 } from "@/components/seeker/session";
 
 const seeker: DemoSession = { email: "a@example.com", signedInAt: "2026-10-12T00:00:00Z", activeRole: "seeker" };
 const both: DemoSession = { ...seeker, employerId: "e4", employerName: "悦美发型工作室" };
+
+function memoryStorage() {
+  const data = new Map<string, string>();
+  return {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => void data.set(key, value),
+    removeItem: (key: string) => void data.delete(key),
+  };
+}
 
 describe("parseRole", () => {
   it("reads ?role=employer and treats anything else as a job seeker", () => {
@@ -137,12 +147,32 @@ describe("reconcileIdentity", () => {
   const server = { email: "a@example.com", employer: { id: "e4", name: "悦美发型工作室" } };
 
   it("takes the business from the server and keeps the identity the user chose", () => {
-    expect(reconcileIdentity("employer", server)).toEqual({ activeRole: "employer", employer: server.employer });
-    expect(reconcileIdentity("seeker", server)).toEqual({ activeRole: "seeker", employer: server.employer });
+    expect(reconcileIdentity("employer", server)).toEqual({
+      activeRole: "employer",
+      employer: server.employer,
+      staff: null,
+    });
+    expect(reconcileIdentity("seeker", server)).toEqual({
+      activeRole: "seeker",
+      employer: server.employer,
+      staff: null,
+    });
   });
 
   it("falls back to job seeker when the server has no business (never opened, banned, or edited in the browser)", () => {
-    expect(reconcileIdentity("employer", { email: "a@example.com" })).toEqual({ activeRole: "seeker" });
+    expect(reconcileIdentity("employer", { email: "a@example.com" })).toEqual({ activeRole: "seeker", staff: null });
+  });
+
+  it("takes the staff role from the server too, and a copy that had one loses it when the server says none (ADR 0043)", () => {
+    const storage = memoryStorage();
+    writeSession(storage, "mod@example.com", new Date(), reconcileIdentity("seeker", { staff: "moderator" }));
+    expect(readSession(storage)?.staff).toBe("moderator");
+    // A switch made in the browser keeps it until the server answers.
+    expect(requestIdentity(storage, { activeRole: "seeker" })?.staff).toBe("moderator");
+    expect(updateIdentity(storage, reconcileIdentity("seeker", { email: "mod@example.com" }))?.staff).toBeUndefined();
+    // Edited into the copy by hand: only the two known values are read.
+    storage.setItem(SESSION_KEY, JSON.stringify({ ...readSession(storage), staff: "owner" }));
+    expect(readSession(storage)?.staff).toBeUndefined();
   });
 });
 

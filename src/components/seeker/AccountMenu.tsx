@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useIdentitySwitch } from "@/components/account/identity-switch";
-import { adminEntry, useCanModerate } from "@/components/account/moderator-entry";
+import { adminEntry } from "@/components/account/moderator-entry";
 import { employerSignUpHref, postJobHref } from "@/components/seeker/identity";
 import { setIdentity, signOut, syncWithServer, useHydrated, useSession } from "@/components/seeker/session-client";
 import { ACCOUNT_DATA_PATH, navRole, showsPostJob } from "@/components/ui/nav";
@@ -28,7 +28,6 @@ export function AccountMenu() {
   const hydrated = useHydrated();
   const session = useSession();
   const [open, setOpen] = useState(false);
-  const moderator = useCanModerate(open);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const router = useRouter();
@@ -65,7 +64,13 @@ export function AccountMenu() {
   }
 
   const isEmployer = session.activeRole === "employer";
-  const label = isEmployer && session.employerName ? `${t.employer} · ${session.employerName}` : t.seeker;
+  // ADR 0043: a staff account is only its staff role, with 审核后台 and 退出登录.
+  const staff = session.staff;
+  const label = staff
+    ? t[staff]
+    : isEmployer && session.employerName
+      ? `${t.employer} · ${session.employerName}`
+      : t.seeker;
   const item = "block w-full rounded-md px-2 py-2 text-left text-body hover:bg-background";
   const pageItem = `${item} hidden md:block`;
   const close = () => setOpen(false);
@@ -85,7 +90,7 @@ export function AccountMenu() {
         className="flex min-h-11 max-w-[9rem] items-center gap-1 px-1 hover:text-brand md:max-w-[14rem]"
       >
         <span className="truncate">
-          <span className="md:hidden">{isEmployer ? t.employer : t.seeker}</span>
+          <span className="md:hidden">{staff ? t[staff] : isEmployer ? t.employer : t.seeker}</span>
           <span lang={contentLang(session.employerName)} className="hidden md:inline">
             {label}
           </span>
@@ -111,44 +116,47 @@ export function AccountMenu() {
             <span className="font-medium">{label}</span>
           </p>
           <div className="border-t border-border pt-1">
-            <Link href="/workspace" className={`${pageItem} font-medium text-brand`} onClick={close}>
-              {t.workspace}
-            </Link>
-            <Link href="/notifications" className={pageItem} onClick={close}>
-              {t.notifications}
-            </Link>
-            <Link href="/profile" className={pageItem} onClick={close}>
-              {isEmployer ? t.businessPage : t.profile}
-            </Link>
-            {!isEmployer && (
-              <Link href="/me" className={pageItem} onClick={close}>
-                {t.history}
-              </Link>
-            )}
-            <Link href={ACCOUNT_DATA_PATH} className={pageItem} onClick={close}>
-              {t.data}
-            </Link>
-            {moderator && (
-              <Link href={adminEntry(lang).href} className={pageItem} onClick={close}>
+            {staff ? (
+              <Link href={adminEntry(lang).href} className={`${item} font-medium text-brand`} onClick={close}>
                 {adminEntry(lang).label}
               </Link>
-            )}
-            {employer ? (
-              <button
-                type="button"
-                className={item}
-                onClick={() => {
-                  close();
-                  if (isEmployer) toSeeker();
-                  else void toEmployer();
-                }}
-              >
-                {isEmployer ? t.toSeeker : t.toEmployer(employer.name)}
-              </button>
             ) : (
-              <Link href={employerSignUpHref()} className={item} onClick={close}>
-                {t.setUpHiring}
-              </Link>
+              <>
+                <Link href="/workspace" className={`${pageItem} font-medium text-brand`} onClick={close}>
+                  {t.workspace}
+                </Link>
+                <Link href="/notifications" className={pageItem} onClick={close}>
+                  {t.notifications}
+                </Link>
+                <Link href="/profile" className={pageItem} onClick={close}>
+                  {isEmployer ? t.businessPage : t.profile}
+                </Link>
+                {!isEmployer && (
+                  <Link href="/me" className={pageItem} onClick={close}>
+                    {t.history}
+                  </Link>
+                )}
+                <Link href={ACCOUNT_DATA_PATH} className={pageItem} onClick={close}>
+                  {t.data}
+                </Link>
+                {employer ? (
+                  <button
+                    type="button"
+                    className={item}
+                    onClick={() => {
+                      close();
+                      if (isEmployer) toSeeker();
+                      else void toEmployer();
+                    }}
+                  >
+                    {isEmployer ? t.toSeeker : t.toEmployer(employer.name)}
+                  </button>
+                ) : (
+                  <Link href={employerSignUpHref()} className={item} onClick={close}>
+                    {t.setUpHiring}
+                  </Link>
+                )}
+              </>
             )}
             <button
               type="button"

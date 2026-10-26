@@ -2,7 +2,7 @@
 //   npm run e2e:build          builds it (again after every code change)
 //   npm run e2e:start -- 8702  starts it on the clone's port; stop it after the run
 // ZG_E2E=1 keeps the development helpers the tests use (src/lib/test-build.ts). Build and start also set what
-// .env.development sets for `next dev` (ADMIN_ENABLED, the demo data); the start adds a sign-in secret for this
+// .env.development sets for `next dev` (ADMIN_ENABLED, the demo admin, the demo data); the start adds a sign-in secret for this
 // machine only.
 // Never use this build for anything but tests.
 import { spawn } from "node:child_process";
@@ -23,6 +23,8 @@ const env = {
   // `npm run db:reset` only fills with the demo data when DEMO_DATA asks for it (#144).
   ADMIN_ENABLED: "1",
   DEMO_DATA: "true",
+  // The demo admin (ADR 0043), as .env.development has it: the tests add and remove moderators as this account.
+  ZHAOGONG_ADMIN_EMAILS: "admin@example.com",
   ...(mode === "start" && {
     AUTH_SECRET: process.env.AUTH_SECRET || "zhaogong-browser-tests-only",
   }),
