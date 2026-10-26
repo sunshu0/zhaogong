@@ -143,7 +143,8 @@ async function run(): Promise<number> {
       "d1",
       "migrations",
       "apply",
-      "zhaogong",
+      // The binding, not the database's name: wrangler finds either, and the name is the deployment's (zhaogong-demo).
+      "DB",
       "--local",
       "--persist-to",
       path.resolve(persistTo),
