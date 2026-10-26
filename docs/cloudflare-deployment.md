@@ -98,11 +98,34 @@ npx wrangler d1 migrations apply zhaogong --remote
 5. 部署：`npm run cf:deploy`。
 6. 验收：首页、职位列表和筛选、职位页、登录（要有第 2b 步的 SES）、发布职位、聊天、英文页；`/admin` 应该是 404（`ADMIN_ENABLED` 没设）。
 
-以后改用 Workers Builds 自动部署的话：构建命令 `npm run check && npm run cf:build`，部署命令 `npx opennextjs-cloudflare deploy`。构建变量要有 `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1`，以及 `NEXT_PUBLIC_CLARITY_ID`（构建时用）（[说明](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)）。
+### 4b. Workers Builds：只盯 `production` 分支（用户 10-27 02:5x 定，先用于演示站）
+
+Cloudflare 从 GitHub 拉代码、在它的 Linux 机器上构建和部署（[Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)），Windows 上建符号链接的问题（第 4a 节）就不用管了。`main` 照旧开发、合并；用户说「发布」时，导师把 `main` 推到 `production`，推上去就自动构建部署。在 Worker 的 **Settings > Build** 里设（[设置说明](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)）：
+
+| 设置 | 值 | 说明 |
+| --- | --- | --- |
+| Git 仓库 | `open-alternative-app/zhaogong` | 用户在 Cloudflare 里授权 GitHub 应用读这个私有仓库 |
+| **Branch control** 的生产分支 | `production` | 默认是 `main`，要改 |
+| **Enable Preview Builds** | **不勾** | 在 Settings > Build > Branch control。勾着的话推别的分支也会构建（[说明](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)）；我们的分支不该自动上线 |
+| Build command | `npm run cf:build` | 只构建，不重跑测试：门槛在合并进 `main` 前已跑过整套；Workers Builds 也没法等 GitHub 上的检查 |
+| Deploy command | `npx wrangler d1 migrations apply zhaogong-demo --remote && npx opennextjs-cloudflare deploy` | 先迁移、再上新代码。迁移失败就停，不上新代码。`migrations apply` 对已应用的迁移不重复跑 |
+| API token | 用户自己建的令牌（见下） | 自动生成的令牌没有 D1 权限，上面那条迁移会被拒 |
+| Root directory | 不填（仓库根目录） | |
+| 构建变量 | `NODE_VERSION=24.19.0`、`NEXT_TELEMETRY_DISABLED=1` | 构建变量只在构建时有，运行时读不到。运行时的变量写在 `wrangler.jsonc` 的 `vars`，密钥用 `wrangler secret put` |
+
+- **令牌：** Workers Builds 自动生成的令牌权限是 Account Settings 读、Workers Scripts / KV / R2 写、Workers Routes 写、User Details 和 Memberships 读，**没有 D1**（[设置说明「API token」](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#api-token)）。所以由用户在 **My Profile > API Tokens** 建一个用户令牌：在那几项之外加 **Account · D1 · Edit**，在 Workers Builds 里选它。现在只支持用户令牌（同一页）。
+- **不想给构建令牌 D1 权限的退路：** 部署命令只留 `npx opennextjs-cloudflare deploy`。这样每次发布前，只要 `drizzle/` 里有新迁移，用户都要先在本机跑 `npx wrangler d1 migrations apply zhaogong-demo --remote`；忘了的话，新代码会在旧库结构上跑。
+- **迁移只加不删**（第 5 节）：部署过程中旧代码还会在新库结构上跑一会儿。
+- 运行时的 `vars` 每次部署都照 `wrangler.jsonc` 覆盖一遍；在后台改了的变量，下次部署会被冲掉，所以只在文件里改。
+- 构建出错、部署失败，在 Worker 的 **Deployments / Builds** 里看日志；回滚见第 5 节。
 
 ## 3a. 演示站（用户 10-20 23:1x 定：先更新这个，不正式上线）
 
-`zhaogong-demo.zhaogong.workers.dev`：完整版代码，灌演示数据。下面是待执行的部署方案，本轮未查询或使用公司账号。演示站和正式站一样用 Cloudflare D1（ADR 0029），代码已在集成分支支持；要先完成最终门槛并合并，再按下一小节准备演示 SQL 文件。本轮未进行远程导入或部署。
+**`https://zhaogongnz.com`**（用户 10-27 02:5x 定；域名在用户的 Cloudflare 账号里，DNS 也在那里）：完整版代码，灌演示数据，用 Workers Builds 从 `production` 分支自动部署（第 4b 节）。演示站和正式站一样用 Cloudflare D1（ADR 0029），但库是单独的 `zhaogong-demo`。Worker 名照旧 `zhaogong-demo`，`zhaogong-demo.<账号子域>.workers.dev` 也还能打开。
+
+`wrangler.jsonc` 已经写好：自定义域名（`routes` 里 `custom_domain: true`）、D1 绑定（只差 `database_id`）、R2 绑定、`DEMO_DATA`、`SITE_URL`、`SES_REGION`、`MAIL_FROM`。用户建好库以后，把 `database_id` 那一行的零换成真的 id，是一次小提交。
+
+**www：** 只绑 `zhaogongnz.com` 一个地址。`www.zhaogongnz.com` 不绑到 Worker，用 Cloudflare 的跳转规则永久跳到 `https://zhaogongnz.com`（**Rules > Redirect Rules**，模板「Redirect from WWW to root」；`www` 要有一条开着橙色云朵代理的 DNS 记录，比如 `AAAA www 100::`，规则才接得到请求）。这样网站只有一个地址，`SITE_URL`、站点地图、分享链接都指向它。也可以把 `www` 也绑成自定义域名，但那样同一页有两个地址。
 
 **设置：**
 
@@ -120,21 +143,20 @@ npx wrangler d1 migrations apply zhaogong --remote
 | `EXTERNAL_JOBS` | **不设** | 不去公司网站导入真实职位 |
 | `NEXT_PUBLIC_CLARITY_ID` | **不设** | 演示站不录 Clarity |
 
-**只能浏览、不能登录：** 没有邮件服务（#16），验证码发不出去。登录页在发不出验证码的环境里（`canSendCodes()` 为假）不显示表单，直接说「这个演示站暂时不能登录」并给「去看职位」的链接（#332）。
+**只能浏览、不能登录（SES 还在沙盒）：** `SES_REGION`、`MAIL_FROM` 在 `wrangler.jsonc` 里，但两个 SES 访问密钥在离开沙盒前**不设**。`sesConfig()` 四个设置少一个就是 `undefined`，生产构建里 `devHelpersEnabled()` 为假（`NODE_ENV=production`，没有 `ZG_E2E`），所以 `canSendCodes()` 为假：登录页不显示表单，直接说「这个演示站暂时不能登录」并给「去看职位」的链接（#332），要验证码的请求也被拒（`no_mailer`）。`DEMO_DATA` 不影响这条路。不在沙盒里临时设密钥，是因为沙盒里只授权了发件域名，给验证过的收件人发信还要收件人身份的权限；离开沙盒后一次设好两个密钥就能登录。
 
-**用户开完账号、0031 合并后照着跑（一步一行，在仓库根目录，PowerShell 或 Git Bash）：**
+**用户的操作顺序（Windows，在仓库根目录开终端，PowerShell 或 Git Bash）：**
 
 1. `npx wrangler login`（浏览器里用公司的 Cloudflare 账号授权）
-2. `npx wrangler d1 create zhaogong-demo --location=oc`（记下打印出来的 `database_id`）
-3. `wrangler.jsonc` 的 `d1_databases` 加绑定 `DB` → `zhaogong-demo`、上一步的 `database_id`（写法见第 3 节，0031）
-4. 在 Cloudflare 后台建 R2 桶 `zhaogong-report-evidence`（不开公开访问），`wrangler.jsonc` 加 `r2_buckets` 绑定（第 4 节第 2a 步）
-5. `wrangler.jsonc` 的 `vars` 加 `"DEMO_DATA": "true"`
-6. `npx wrangler secret put AUTH_SECRET`（粘贴 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` 的结果）
-7. `npx wrangler secret put ZG_EVENTS_SECRET`（同上，另生成一个）
-8. 对库迁移：`npx wrangler d1 migrations apply zhaogong-demo --remote`（第 3 节「迁移」，0031）
-9. 生成演示 SQL：`npm run db:demo-sql`；审阅后只对全新演示库执行 `npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql`（见下方说明）。`DEMO_DATA=true` 不会自动填充 D1。
-10. `npm run cf:deploy`（Windows 上构建要用 4a 节的两个补丁，`npm install` 会自动打上）
-11. 打开 `https://zhaogong-demo.zhaogong.workers.dev`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页、`/admin` 是 404
+2. `npx wrangler d1 create zhaogong-demo --location=oc`，把打印出来的 `database_id` 发给导师；导师把它填进 `wrangler.jsonc`、合进 `main`
+3. `npx wrangler r2 bucket create zhaogong-report-evidence --location=apac`（不开公开访问，不绑域名）
+4. `npx wrangler d1 migrations apply zhaogong-demo --remote`：要在 `wrangler.jsonc` 已经填好第 2 步 id 的那份代码里跑（Wrangler 按名字在配置里找库，再用配置里的 id 连远程库；id 还是零就连不上）
+5. 导入演示数据：`npx wrangler d1 execute zhaogong-demo --remote --file=<导师给的 SQL 文件>`（文件由 `npm run db:demo-sql` 生成、导师审过；只对全新的演示库导入一次，见本节末尾）。`DEMO_DATA=true` 不会自动填 D1
+6. 建 Workers Builds 用的 API 令牌（第 4b 节「令牌」，要有 D1 Edit）
+7. 导师把 `main` 推到 `production`；用户在 Cloudflare 后台 **Workers & Pages > Create > Import a repository** 选 `open-alternative-app/zhaogong`，名字填 `zhaogong-demo`，照第 4b 节的表设好再保存，第一次构建部署就会开始
+8. Worker 建好后设密钥：`npx wrangler secret put AUTH_SECRET`、`npx wrangler secret put ZG_EVENTS_SECRET`（各粘贴一个 `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` 生成的值，两个不一样）
+9. www 跳转（见上面「www」）
+10. 打开 `https://zhaogongnz.com`：首页、`/jobs`、一个职位页、`/login`（应该是「暂时不能登录」）、英文页 `/en`、`/admin` 是 404；`https://www.zhaogongnz.com` 跳到 `https://zhaogongnz.com`
 
 **部署前在本机先过一遍（最终集成验收）：** `npm run cf:build`，量 `.open-next/worker.js` 打包压缩后的大小（Workers 免费方案上限 3 MiB），再 `npm run cf:preview` 用本地 D1 打开第 11 步那几页。
 

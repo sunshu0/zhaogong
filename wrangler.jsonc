@@ -5,6 +5,10 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "workers_dev": true,
+  // The demo site (用户 10-27 02:5x, docs/cloudflare-deployment.md 3a): the apex zhaogongnz.com is the Worker's own
+  // custom domain (Cloudflare makes its DNS record and certificate). www is not bound here: a Cloudflare redirect rule
+  // sends it to the apex, so the site has one address (see the deployment doc).
+  "routes": [{ "pattern": "zhaogongnz.com", "custom_domain": true }],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1,
@@ -20,20 +24,28 @@
       "service": "zhaogong-demo",
     },
   ],
-  // The database (ADR 0029, ADR 0031). Created once with `wrangler d1 create zhaogong --location=oc` (Oceania); put the
-  // id it prints here. Local previews and `wrangler d1 migrations apply zhaogong --local` work without it.
+  // The database (ADR 0029, ADR 0031): the demo site's own D1 database, apart from a future live one. Created once
+  // with `npx wrangler d1 create zhaogong-demo --location=oc` (Oceania); the `database_id` it prints replaces the
+  // zeros below (that one line, a small commit). Local previews and local migrations work without it.
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "zhaogong",
+      "database_name": "zhaogong-demo",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "drizzle",
     },
   ],
+  // Screenshots attached to reports (ADR 0027): a private R2 bucket, served only through /api/report-evidence/[id].
+  "r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }],
   "vars": {
     "NEXTJS_ENV": "production",
-    // #16, ADR 0032: sign-in codes go through Amazon SES in Sydney. MAIL_FROM (on the verified domain) is added at
-    // deployment; the two access keys are secrets (wrangler secret put).
+    // The demo site: demo data, its own address.
+    "DEMO_DATA": "true",
+    "SITE_URL": "https://zhaogongnz.com",
+    // #16, ADR 0032: sign-in codes go through Amazon SES in Sydney, from the verified zhaogongnz.com. Codes are sent
+    // only once the two access keys are set too (secrets, wrangler secret put): until then the sign-in page says the
+    // site cannot sign anyone in (canSendCodes(), #332).
     "SES_REGION": "ap-southeast-2",
+    "MAIL_FROM": "找工 <no-reply@zhaogongnz.com>",
   },
 }
