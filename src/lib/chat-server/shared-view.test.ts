@@ -298,3 +298,30 @@ describe("changes since a read (#369, ADR 0040)", () => {
     expect(copy.added["employer:e1:j1"].map((m) => m.text)).toEqual(["以前发的", "你好", "明天来吧"]);
   });
 });
+
+describe("a business under a ban (ADR 0044)", () => {
+  const now = Date.parse("2026-10-17T01:00:00.000Z");
+  const said = {
+    messages: [{ id: 1, from: "seeker" as const, text: "你好", sentAt: "2026-10-17T00:20:00.000Z", byName: null }],
+  };
+  const a = row({ ...said });
+  const b = row({ ...said, id: "c0ffee00-2222", employerId: "e2", jobId: "j2", updatedAt: "2026-10-17T00:20:00.000Z" });
+  const banned = new Set(["e1"]);
+
+  it("pauses the job seeker's chats with it, and nothing on the business's side", () => {
+    const seeker = sharedPart([a, b], "seeker", now, "zh", banned).conversations;
+    expect(seeker.map((c) => [c.id, c.paused])).toEqual([
+      ["employer:e1:j1", true],
+      ["employer:e2:j2", undefined],
+    ]);
+    expect(sharedPart([a, b], "employer", now, "zh", banned).conversations.every((c) => !c.paused)).toBe(true);
+  });
+
+  it("reaches a kept copy whose chat did not change, when the ban starts and when it ends", () => {
+    const kept = withShared(empty, sharedPart([a, b], "seeker", now));
+    const started = mergeSharedChanges(kept, empty, sharedChanges([a, b], [], "seeker", now, "zh", banned));
+    expect(started).toEqual(withShared(empty, sharedPart([a, b], "seeker", now, "zh", banned)));
+    const ended = mergeSharedChanges(started, empty, sharedChanges([a, b], [], "seeker", now));
+    expect(ended).toEqual(kept);
+  });
+});

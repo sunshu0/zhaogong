@@ -1,3 +1,4 @@
+import { isBanned } from "@/lib/employer-ban";
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { headers } from "next/headers";
@@ -85,6 +86,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
     listJobs({ country: job.country }, now),
     employerActivities([job.employerId], now),
   ]);
+  // A banned business's jobs are gone while the ban lasts (ADR 0044): a temporary ban leaves their status as it is.
+  if (employer && isBanned(employer, now)) notFound();
   // 时薪参考 (#85): the other open jobs of the industry, in the region or across its area.
   const reference = payReference(open, {
     country: job.country,
@@ -97,7 +100,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
     <>
       {/* The funnel's job step (#319, ADR 0025). */}
       <TrackView event={{ name: "job_view", path: "/jobs/[id]", jobId: job.id }} />
-      {employer && !employer.bannedAt && !isExpired(job, now) && <JobPostingData job={job} employer={employer} />}
+      {employer && !isExpired(job, now) && <JobPostingData job={job} employer={employer} />}
       <JobDetail
         job={job}
         employer={employer}
@@ -116,7 +119,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
         }
         share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
         actions={
-          employer && !employer.bannedAt ? (
+          employer ? (
             <>
               {/* The main action takes the room that is left; its label never wraps. */}
               <div className="min-w-0 flex-1 [&_a]:w-full [&_button]:w-full">

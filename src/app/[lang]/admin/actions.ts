@@ -1,6 +1,7 @@
 "use server";
 // Server Functions for /admin. Each one first checks the ADMIN_ENABLED switch, then the signed-in session,
 // then the moderator role (requireModerator, #50); anyone else is refused.
+import { BAN_REASON_MAX, currentBan, isPermanentBan, isTempBanDays } from "@/lib/employer-ban";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { matchJobAlerts } from "@/db/job-alerts";
 import { countReportEvidence, purgeExpiredEvidence } from "@/db/report-evidence";
@@ -23,6 +24,10 @@ import {
   listAllJobs,
   listModerationLog,
   listReports,
+  listTempBannedEmployers,
+  liftTempBan,
+  makeBanPermanent,
+  tempBanEmployer,
   updateJob,
   updateReport,
 } from "@/lib/data";
@@ -63,7 +68,7 @@ export type Refused = { refused: "signed_out" | "not_moderator" | "not_admin"; e
 
 /** A job in the queue, with what the checks found, worded in the moderator's language. */
 async function item(job: Job, lang: Lang): Promise<QueueItem> {
-  const employer = await getEmployer(job.employerId);
+  const employer = currentBan(await getEmployer(job.employerId), Date.now());
   const { contact: _contact, ...shown } = job;
   void _contact;
   return { job: shown, employer, findings: checkJob(job, job.country, employer, lang) };
@@ -113,7 +118,7 @@ async function close(reports: Report[], status: Report["status"]) {
 async function subject(jobId: unknown) {
   const job = await getJob(String(jobId));
   if (!job) return undefined;
-  const employer = await getEmployer(job.employerId);
+  const employer = currentBan(await getEmployer(job.employerId), Date.now());
   return {
     job,
     employer,
@@ -191,7 +196,7 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
   if (me.refused) return me.refused;
   const s = await subject(jobId);
   if (!s?.employer) return { ok: false, error_zh: (await words()).noEmployer };
-  if (s.employer.bannedAt) return { ok: false, error_zh: (await words()).alreadyBanned };
+  if (isPermanentBan(s.employer)) return { ok: false, error_zh: (await words()).alreadyBanned };
   const takenDown = await banEmployer(s.employer.id);
   const reports = (await listReports()).filter(
     (r) => r.status === "open" && (takenDown.includes(r.jobId) || r.jobId === s.job.id),
@@ -201,6 +206,93 @@ export async function banJobEmployer(jobId: string): Promise<AdminResult> {
     action: "ban",
     employerId: s.employer.id,
     employerName: s.employer.name,
+    takenDown: takenDown.length,
+    moderator: me.email,
+  });
+  return { ok: true, text: describeAction(entry, await requestLang()) };
+}
+
+/**
+ * Bans the employer behind a reported job for 3, 7 or 30 days (ADR 0044), with a reason their team will see. Nothing
+ * is taken down: their jobs are hidden until the ban is over. The reports on this job are closed; to take the job
+ * down as well, 下架职位 is its own step.
+ */
+export async function tempBanJobEmployer(jobId: string, days: unknown, reason: unknown): Promise<AdminResult> {
+  const me = await acting();
+  if (me.refused) return me.refused;
+  const t = await words();
+  if (!isTempBanDays(days)) return { ok: false, error_zh: t.banDays };
+  const why = typeof reason === "string" ? reason.trim() : "";
+  if (!why) return { ok: false, error_zh: t.banReasonMissing };
+  if (why.length > BAN_REASON_MAX) return { ok: false, error_zh: t.banReasonTooLong(BAN_REASON_MAX) };
+  const s = await subject(jobId);
+  if (!s?.employer) return { ok: false, error_zh: t.noEmployer };
+  const banned = await tempBanEmployer(s.employer.id, days, why);
+  if (!banned) return { ok: false, error_zh: t.alreadyBanned };
+  const reports = (await listReports()).filter((r) => r.status === "open" && r.jobId === s.job.id);
+  await close(reports, "actioned");
+  const entry = await addModerationLog({
+    action: "temp_ban",
+    employerId: s.employer.id,
+    employerName: s.employer.name,
+    banDays: days,
+    note: why,
+    moderator: me.email,
+  });
+  return { ok: true, text: describeAction(entry, await requestLang()) };
+}
+
+/** A business under a temporary ban, for 记录与统计 (ADR 0044): until when, why, and who banned it. */
+export interface TempBan {
+  employerId: string;
+  employerName: string;
+  until: string;
+  reason: string;
+  by?: string;
+}
+
+/** The temporary bans running now, soonest end first, for a moderator. */
+export async function getTempBans(): Promise<TempBan[] | Refused> {
+  const me = await requireModerator();
+  if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
+  const [banned, log] = await Promise.all([listTempBannedEmployers(Date.now()), listModerationLog()]);
+  return banned.map((e) => ({
+    employerId: e.id,
+    employerName: e.name,
+    until: e.bannedUntil!,
+    reason: e.banReason ?? "",
+    by: log.find((l) => l.action === "temp_ban" && l.employerId === e.id)?.moderator,
+  }));
+}
+
+/** Ends a temporary ban now (ADR 0044); permanent bans are not lifted here. */
+export async function liftEmployerTempBan(employerId: string): Promise<AdminResult> {
+  const me = await acting();
+  if (me.refused) return me.refused;
+  const employer = await getEmployer(String(employerId));
+  if (!employer || !(await liftTempBan(employer.id))) return { ok: false, error_zh: (await words()).notTempBanned };
+  const entry = await addModerationLog({
+    action: "unban",
+    employerId: employer.id,
+    employerName: employer.name,
+    moderator: me.email,
+  });
+  return { ok: true, text: describeAction(entry, await requestLang()) };
+}
+
+/** Turns a temporary ban into a permanent one (ADR 0044): their live jobs come down, as with 封禁雇主. */
+export async function makeEmployerBanPermanent(employerId: string): Promise<AdminResult> {
+  const me = await acting();
+  if (me.refused) return me.refused;
+  const employer = await getEmployer(String(employerId));
+  const takenDown = employer && (await makeBanPermanent(employer.id));
+  if (!employer || !takenDown) return { ok: false, error_zh: (await words()).notTempBanned };
+  const reports = (await listReports()).filter((r) => r.status === "open" && takenDown.includes(r.jobId));
+  await close(reports, "actioned");
+  const entry = await addModerationLog({
+    action: "make_permanent",
+    employerId: employer.id,
+    employerName: employer.name,
     takenDown: takenDown.length,
     moderator: me.email,
   });

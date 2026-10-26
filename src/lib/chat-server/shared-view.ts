@@ -114,16 +114,29 @@ export function chatTime(at: string, now: number, lang: Lang = DEFAULT_LANG): st
   return formatDate(then, lang, { month: "long", day: "numeric" });
 }
 
-export function sharedPart(rows: SharedConversation[], side: Side, now: number, lang: Lang = DEFAULT_LANG): SharedPart {
+/**
+ * `banned`: the businesses banned now (ADR 0044); the job seeker's chats with them are marked paused. The business's
+ * own side needs no mark: a banned business has no chat identity (getAccountEmployer).
+ */
+export function sharedPart(
+  rows: SharedConversation[],
+  side: Side,
+  now: number,
+  lang: Lang = DEFAULT_LANG,
+  banned: ReadonlySet<string> = new Set(),
+): SharedPart {
   const part: SharedPart = { conversations: [], added: {}, readAt: {}, exchanges: {} };
   const newestFirst = [...rows].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   for (const row of newestFirst) {
     // Opening a chat writes nothing to the other side until something is said in it.
     if (quiet(row, side)) continue;
-    addRow(part, row, side, now, lang);
+    addRow(part, row, side, now, lang, banned);
   }
   return part;
 }
+
+const pausedFor = (row: Pick<SharedConversation, "employerId">, side: Side, banned: ReadonlySet<string>) =>
+  side === "seeker" && banned.has(row.employerId);
 
 /** A chat the other side opened in which nothing is said (as far as the row's messages and exchanges go). */
 const quiet = (row: SharedConversation, side: Side) =>
@@ -132,7 +145,14 @@ const quiet = (row: SharedConversation, side: Side) =>
 const theirReadAt = (row: SharedConversation, side: Side) =>
   side === "seeker" ? row.employerReadAt : row.seekerReadAt;
 
-function addRow(part: SharedPart, row: SharedConversation, side: Side, now: number, lang: Lang) {
+function addRow(
+  part: SharedPart,
+  row: SharedConversation,
+  side: Side,
+  now: number,
+  lang: Lang,
+  banned: ReadonlySet<string>,
+) {
   const id = sharedConversationId(row, side);
   const mine = side === "seeker" ? row.seekerReadAt : row.employerReadAt;
   const theirs = theirReadAt(row, side);
@@ -150,6 +170,7 @@ function addRow(part: SharedPart, row: SharedConversation, side: Side, now: numb
     avatar: person.slice(0, 1),
     job: row.jobId,
     ...(side === "seeker" ? { employerId: row.employerId } : row.candidateId ? { candidateId: row.candidateId } : {}),
+    ...(pausedFor(row, side, banned) ? { paused: true as const } : {}),
   });
   part.added[id] = row.messages.map((m): Message => {
     const message: Message = {
@@ -177,13 +198,15 @@ function addRow(part: SharedPart, row: SharedConversation, side: Side, now: numb
  * all its shared conversations, newest first (a browser drops the ones that are not in it); `part`: the changed ones,
  * with only their new messages; `quiet`: changed ones the other side opened with no new message and no exchange,
  * shown only if the browser has them already (they had messages before); `theirReadAt`: how far the other side has
- * read each changed one, for the messages the browser has.
+ * read each changed one, for the messages the browser has; `paused`: all of them that are paused now (ADR 0044), changed
+ * or not, since a ban starts and ends without changing a conversation.
  */
 export type SharedChanges = {
   order: string[];
   part: SharedPart;
   quiet: string[];
   theirReadAt: Record<string, string>;
+  paused: string[];
 };
 
 export function sharedChanges(
@@ -192,16 +215,18 @@ export function sharedChanges(
   side: Side,
   now: number,
   lang: Lang = DEFAULT_LANG,
+  banned: ReadonlySet<string> = new Set(),
 ): SharedChanges {
   const changes: SharedChanges = {
     order: [...heads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map((h) => sharedConversationId(h, side)),
     part: { conversations: [], added: {}, readAt: {}, exchanges: {} },
     quiet: [],
     theirReadAt: {},
+    paused: heads.filter((h) => pausedFor(h, side, banned)).map((h) => sharedConversationId(h, side)),
   };
   for (const row of changed) {
     const id = sharedConversationId(row, side);
-    addRow(changes.part, row, side, now, lang);
+    addRow(changes.part, row, side, now, lang, banned);
     if (quiet(row, side)) changes.quiet.push(id);
     const theirs = theirReadAt(row, side);
     if (theirs) changes.theirReadAt[id] = theirs;
@@ -219,13 +244,16 @@ export function mergeSharedChanges(cached: ChatRecord, own: ChatRecord, changes:
   const fresh = new Map(changes.part.conversations.map((c) => [c.id, c]));
   const had = new Map(cached.extra.map((c) => [c.id, c]));
   const quietIds = new Set(changes.quiet);
+  const pausedIds = new Set(changes.paused);
   const part: SharedPart = { conversations: [], added: {}, readAt: {}, exchanges: {} };
   for (const id of changes.order) {
     const before = had.get(id);
     const now = fresh.get(id);
     // Not shown before and nothing said in it since: the other side's chat with nothing in it, or none at all.
     if (!before && (!now || quietIds.has(id))) continue;
-    part.conversations.push(now ?? before!);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropped, then set again from the answer
+    const { paused, ...conversation } = now ?? before!;
+    part.conversations.push(pausedIds.has(id) ? { ...conversation, paused: true } : conversation);
     const kept = before ? (cached.added[id] ?? []).slice(own.added[id]?.length ?? 0) : [];
     const theirs = changes.theirReadAt[id];
     part.added[id] = [

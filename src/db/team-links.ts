@@ -2,6 +2,7 @@
 // the team as a member. Only the token's SHA-256 is stored, so the link itself exists only in the answer that made it.
 // Used once, revocable, expires after LINK_DAYS (read time). Every check runs in the transaction that writes. Joining
 // here is an admin's invitation, as answerInvite, not 开通雇主身份 (openEmployerIdentity). Server only.
+import { isBanned } from "@/lib/employer-ban";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { guardedBatch } from "@/db/guarded-batch";
@@ -156,13 +157,21 @@ async function stateOf(
 }> {
   if (typeof token !== "string" || !token || token.length > 200) return { state: { status: "invalid" } };
   const [row] = await db
-    .select({ link: t.teamInviteLinks, name: t.employers.name, bannedAt: t.employers.bannedAt })
+    .select({
+      link: t.teamInviteLinks,
+      name: t.employers.name,
+      bannedAt: t.employers.bannedAt,
+      bannedUntil: t.employers.bannedUntil,
+    })
     .from(t.teamInviteLinks)
     .innerJoin(t.employers, eq(t.employers.id, t.teamInviteLinks.employerId))
     .where(eq(t.teamInviteLinks.tokenHash, hashLinkToken(token)));
   if (!row) return { state: { status: "invalid" } };
   const named = { employerId: row.link.employerId, employerName: row.name };
-  const status = row.bannedAt
+  const status = isBanned(
+    { bannedAt: row.bannedAt ?? undefined, bannedUntil: row.bannedUntil ?? undefined },
+    Date.now(),
+  )
     ? "banned"
     : row.link.status !== "open"
       ? row.link.status

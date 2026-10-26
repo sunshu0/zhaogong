@@ -74,13 +74,22 @@ export function ChatThread({
       <MessageLog conversationId={conversation.id} thread={messages[conversation.id]} />
 
       <div className="shrink-0 border-t border-border px-4 py-2 lg:px-6 lg:py-4">
-        <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} />
-        <MessageComposer
-          draft={draft}
-          onDraftChange={onDraftChange}
-          onSubmit={submit}
-          tools={<ChatExchangeMenu key={conversation.id} conversationId={conversation.id} />}
-        />
+        {conversation.paused ? (
+          // A business under a ban (ADR 0044): nothing goes either way until it is over; the line says so up front.
+          <p role="status" className="py-2 text-body text-muted">
+            {t.paused}
+          </p>
+        ) : (
+          <>
+            <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} />
+            <MessageComposer
+              draft={draft}
+              onDraftChange={onDraftChange}
+              onSubmit={submit}
+              tools={<ChatExchangeMenu key={conversation.id} conversationId={conversation.id} />}
+            />
+          </>
+        )}
       </div>
     </section>
   );

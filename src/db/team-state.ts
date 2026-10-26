@@ -26,7 +26,7 @@ export async function unchangedTeam(db: Db, employerId: string, targetEmail = ""
       select id, created_at, status from team_invite_links where employer_id = ${employerId} order by id
     )),
     (select json_array(email, employer_id) from accounts where email = ${targetEmail}),
-    (select json_array(banned_at) from employers where id = ${employerId})
+    (select json_array(banned_at, banned_until) from employers where id = ${employerId})
   )`;
   const row = await db.get<{ version: string }>(sql`select ${state} as version`);
   return sql`${state} = ${row!.version}`;

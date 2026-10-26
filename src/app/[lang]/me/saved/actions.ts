@@ -3,6 +3,7 @@
 // 收藏和进度 (#52, PRD R-28): the signed-in account's saved jobs and how far each got. The account comes from the
 // session cookie; nobody else, the employer included, can read another account's list. External jobs of 实习 and
 // 专业职位 (#131) are in the same list, under their save key (externalSaveKey).
+import { isBanned } from "@/lib/employer-ban";
 import { regionById } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { getEmployer, getJob } from "@/lib/data";
@@ -116,7 +117,7 @@ export async function mySavedJobs(): Promise<SavedJobView[] | null> {
         country: job.country,
         region: placeName(regionById(job.country, job.regionId), lang),
         employerName: employer?.name,
-        gone: job.status !== "active" || isExpired(job, now) || !!employer?.bannedAt,
+        gone: job.status !== "active" || isExpired(job, now) || isBanned(employer, now),
         savedAt: row.savedAt,
         stage: effectiveStage(row.stage, contacted.has(job.id)),
         picked: row.stage !== null,

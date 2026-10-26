@@ -1,5 +1,6 @@
 // What search engines get: the site's address, which pages to list in sitemap.xml and which to keep out of
 // robots.txt (R-32). Pure, so the route files stay thin and the rules are tested.
+import { isBanned } from "@/lib/employer-ban";
 import type { MetadataRoute } from "next";
 import { isOpenJob } from "@/lib/job-expiry";
 import type { Employer, Job } from "@/lib/types";
@@ -41,7 +42,9 @@ export function siteOrigin(siteUrl: string | undefined, host: string | null, for
  * business that has one. An external job's own page stays out: it is noindex (ADR 0014, 10).
  */
 export function sitemapEntries(origin: string, jobs: Job[], employers: Employer[], now: number): MetadataRoute.Sitemap {
-  const open = jobs.filter((job) => isOpenJob(job, now));
+  // A temporarily banned business's jobs stay active but are not shown (ADR 0044).
+  const banned = new Set(employers.filter((e) => isBanned(e, now)).map((e) => e.id));
+  const open = jobs.filter((job) => isOpenJob(job, now) && !banned.has(job.employerId));
   const hiring = new Set(open.map((job) => job.employerId));
   return [
     { url: `${origin}/`, changeFrequency: "daily", priority: 1 },
@@ -60,7 +63,7 @@ export function sitemapEntries(origin: string, jobs: Job[], employers: Employer[
       priority: 0.8,
     })),
     ...employers
-      .filter((employer) => !employer.bannedAt && hiring.has(employer.id))
+      .filter((employer) => !banned.has(employer.id) && hiring.has(employer.id))
       .map((employer) => ({
         url: `${origin}/employers/${employer.id}`,
         changeFrequency: "weekly" as const,

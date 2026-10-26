@@ -80,6 +80,8 @@ export type Conversation = {
   job: string | null;
   employerId?: string;
   candidateId?: string;
+  /** The job seeker's chat with a business under a ban now (ADR 0044): nothing can be sent until it is over. */
+  paused?: true;
 };
 
 export type ChatDemo = {
@@ -303,7 +305,7 @@ const optionalField = <K extends string, T>(key: K, value: T | undefined) =>
 function parseConversation(value: unknown): Conversation[] {
   if (!value || typeof value !== "object") return [];
   const c = value as Record<string, unknown>;
-  const { id, person, title, time, avatar, job, employerId, candidateId } = c;
+  const { id, person, title, time, avatar, job, employerId, candidateId, paused } = c;
   if (
     typeof id !== "string" ||
     !["recommend:", "employer:", "apply:", "chat:"].some((prefix) => id.startsWith(prefix)) ||
@@ -322,6 +324,7 @@ function parseConversation(value: unknown): Conversation[] {
       job: job as string,
       ...(employerId !== undefined ? { employerId } : {}),
       ...(candidateId !== undefined ? { candidateId } : {}),
+      ...(paused === true ? { paused } : {}),
     },
   ];
 }

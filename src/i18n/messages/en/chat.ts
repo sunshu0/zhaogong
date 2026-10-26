@@ -55,6 +55,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     viewJob: "View the job",
     report: "Report",
     back: "Back to the chat list",
+    paused: "The other side can't reply for now, so messages can't be sent here.",
     more: (person) => `More: ${person}`,
     viewProfile: (person) => `View ${person}'s page`,
     appliedFor: "Applying for: ",
@@ -82,6 +83,8 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
   limits: {
     messagesFull: (max) =>
       `This conversation already has ${max} messages, the most it can hold, so this one wasn't sent.`,
+    otherSideBanned: "The other side can't reply for now, so this wasn't sent.",
+    ownSideBanned: "Your business is restricted for now and can't send messages, so this wasn't sent.",
     conversationsFull: (max) =>
       `You already have ${max} conversations like this, the most allowed, so a new chat didn't open.`,
     importTooBig: "The older chat records on this device are too many to keep, so they weren't saved to the server.",

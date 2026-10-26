@@ -1,4 +1,5 @@
 "use client";
+import { banNotice } from "@/components/employer/ban-notice";
 // The pieces of /employer/post, one per step, plus the step list and the mode switch (bars: PostFlowBars.tsx).
 import { DuplicateJobNote } from "@/components/employer/DuplicateJobNote";
 import type { ReactNode, RefObject } from "react";
@@ -190,7 +191,11 @@ export function PreviewStep({
           </p>
         </section>
       </JobDetail>
-      {banned && <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{t.previewBanned}</p>}
+      {banned && (
+        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
+          {banNotice(employer, lang, t.previewBanned)}
+        </p>
+      )}
     </section>
   );
 }

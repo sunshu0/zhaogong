@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { banEmployer, getAccountEmployer, listEmployers } from "@/lib/data";
+import { banEmployer, getAccountEmployer, liftTempBan, listEmployers, tempBanEmployer } from "@/lib/data";
 import { sessionCookieName, type CookieJar } from "@/lib/auth";
 import { setAuthStoreForTests } from "@/lib/auth/store";
 
@@ -14,8 +14,15 @@ const jar: CookieJar = {
 let requestHeaders = new Headers();
 vi.mock("next/headers", () => ({ cookies: async () => jar, headers: async () => requestHeaders }));
 
-const { accountStatus, openEmployerForAccount, requestSignInCode, signInAccount, signOutAccount, switchIdentity } =
-  await import("@/app/[lang]/login/actions");
+const {
+  accountStatus,
+  businessBanNotice,
+  openEmployerForAccount,
+  requestSignInCode,
+  signInAccount,
+  signOutAccount,
+  switchIdentity,
+} = await import("@/app/[lang]/login/actions");
 
 /** The whole sign-in, as the page does it: ask for a code, then send it back. */
 async function signIn(email: string, role: "seeker" | "employer" = "seeker") {
@@ -217,6 +224,46 @@ describe("openEmployerForAccount", () => {
     }
     expect((await listEmployers()).length).toBe(before);
     expect(await getAccountEmployer("careful@example.com")).toBeUndefined();
+  });
+});
+
+describe("businessBanNotice (ADR 0044)", () => {
+  it("says until when and why while its business is banned for a while, and nothing once that ends", async () => {
+    expect(await businessBanNotice()).toBeNull(); // signed out
+    await signIn("banned.team@example.com", "employer");
+    expect(await businessBanNotice()).toBeNull(); // no business yet
+    const opened = await openEmployerForAccount("banned.team@example.com", {
+      kind: "new",
+      name: "押金餐厅",
+      regionId: "akl-cbd",
+    });
+    if (!opened.ok) throw new Error("no business");
+    const id = opened.employer.id;
+    expect(await businessBanNotice()).toBeNull(); // not banned
+
+    await tempBanEmployer(id, 7, "电话里要求先交押金");
+    expect(await businessBanNotice()).toMatch(/^你的企业被暂时限制到 .+，原因：电话里要求先交押金。/);
+
+    expect(await liftTempBan(id)).toBe(true);
+    expect(await businessBanNotice()).toBeNull();
+
+    // One that began eight days ago for seven has run out: nothing was written when it ended.
+    await tempBanEmployer(id, 7, "已经过期", Date.now() - 8 * 24 * 60 * 60 * 1000);
+    expect(await businessBanNotice()).toBeNull();
+  });
+
+  it("says the business is stopped when the ban is for good", async () => {
+    await signIn("stopped.team@example.com", "employer");
+    const opened = await openEmployerForAccount("stopped.team@example.com", {
+      kind: "new",
+      name: "停用餐厅",
+      regionId: "akl-cbd",
+    });
+    if (!opened.ok) throw new Error("no business");
+    await banEmployer(opened.employer.id);
+    const notice = await businessBanNotice();
+    expect(notice).toBeTruthy();
+    expect(notice).not.toMatch(/暂时/);
   });
 });
 

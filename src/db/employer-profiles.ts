@@ -1,6 +1,7 @@
 // 企业主页 on the server (ADR 0022): one per business. Everyone in the team and every visitor reads it; only an admin
 // of the business writes it, checked again in the statement that writes. Server only.
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { employerNotBannedSql } from "@/db/bans";
+import { and, eq, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { inList } from "@/db/in-list";
 import { CHANGED, keptChanging, untilSettled } from "@/db/optimistic";
@@ -31,7 +32,12 @@ export async function listPublicEmployerPages(
     })
     .from(t.employerProfiles)
     .innerJoin(t.employers, eq(t.employers.id, t.employerProfiles.employerId))
-    .where(and(inList(t.employerProfiles.employerId, employerIds), isNull(t.employers.bannedAt)));
+    .where(
+      and(
+        inList(t.employerProfiles.employerId, employerIds),
+        employerNotBannedSql(t.employers.id, new Date().toISOString()),
+      ),
+    );
 }
 
 /**

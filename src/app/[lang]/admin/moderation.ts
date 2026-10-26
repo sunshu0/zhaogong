@@ -73,6 +73,12 @@ export function describeAction(entry: ModerationLogEntry, lang: Lang = DEFAULT_L
       return t.dismiss(job, why);
     case "ban":
       return t.ban(employer, takenDown);
+    case "temp_ban":
+      return t.tempBan(employer, entry.banDays ?? 0, note);
+    case "unban":
+      return t.unban(employer);
+    case "make_permanent":
+      return t.makePermanent(employer, takenDown);
     case "verify_approve":
       return t.verifyApprove(employer, note);
     case "verify_reject":

@@ -23,7 +23,16 @@ import { requestLang } from "@/i18n/server";
 import { pick } from "@/i18n/messages";
 import { loginMessages } from "@/i18n/messages/login";
 import { recordRequestEvent } from "@/lib/events/record";
-import { createEmployer, ensureAccount, getAccount, getAccountEmployer, openEmployerIdentity } from "@/lib/data";
+import {
+  createEmployer,
+  ensureAccount,
+  getAccount,
+  getAccountEmployer,
+  getEmployer,
+  openEmployerIdentity,
+} from "@/lib/data";
+import { currentBan, isBanned } from "@/lib/employer-ban";
+import { banNotice } from "@/components/employer/ban-notice";
 import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
 import {
   isValidCode,
@@ -149,6 +158,21 @@ export async function accountStatus(email?: string): Promise<AccountStatus | nul
   if (!session) return null;
   if (email !== undefined && validEmail(email) !== session.email) return null;
   return withStaff(session);
+}
+
+/**
+ * Why the signed-in account cannot be its business's employer now (ADR 0044): its business is banned, until when and
+ * why for a temporary ban; null otherwise. The employer sign-up step shows it instead of the choices.
+ */
+export async function businessBanNotice(): Promise<string | null> {
+  const session = await getCurrentSession();
+  if (!session) return null;
+  const linked = (await getAccount(session.email))?.employerId;
+  const employer = linked ? await getEmployer(linked) : undefined;
+  const now = Date.now();
+  if (!employer || !isBanned(employer, now)) return null;
+  const lang = await requestLang();
+  return banNotice(currentBan(employer, now), lang, openErrorMessage("banned", lang)) ?? null;
 }
 
 /**

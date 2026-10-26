@@ -2,6 +2,7 @@
 // these functions; their signatures and behaviour are the same as when the data lived in memory. Pay is
 // stored in cents and returned in dollars (src/db/rows.ts). New records get the next id of their kind
 // (j20, e9, r1 …), as the demo data has.
+import { employerNotBannedSql } from "@/db/bans";
 import { and, count, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { inList } from "@/db/in-list";
 import { insertIf, nextIdSql } from "@/db/write-if";
@@ -9,6 +10,7 @@ import { database } from "@/db/ready";
 import { fromJob, jobPatch, toAccount, toContactView, toEmployer, toJob, toLogEntry, toReport } from "@/db/rows";
 import * as t from "@/db/schema";
 import { normalizeEmploymentTypes } from "@/lib/employment-types";
+import { isBanned, tempBanUntil, type TempBanDays } from "@/lib/employer-ban";
 import { isOpenJob } from "@/lib/job-expiry";
 import { jobRoles } from "@/lib/job-roles";
 import type { EvidenceImage, EvidenceMessage } from "@/lib/report-evidence";
@@ -69,9 +71,12 @@ async function selectJobs(where?: SQL): Promise<Job[]> {
  */
 export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
   // The market and status narrow it in SQL; the rest of the filter is matchesFilter, shared with the tests.
-  const jobs = await selectJobs(and(eq(t.jobs.country, filter.country), eq(t.jobs.status, "active")));
+  const [jobs, banned] = await Promise.all([
+    selectJobs(and(eq(t.jobs.country, filter.country), eq(t.jobs.status, "active"))),
+    bannedEmployerIds(now),
+  ]);
   return jobs
-    .filter((j) => isOpenJob(j, now) && matchesFilter(j, filter))
+    .filter((j) => !banned.has(j.employerId) && isOpenJob(j, now) && matchesFilter(j, filter))
     .sort((a, b) => {
       const day = (s: string) => s.slice(0, 10);
       if (day(a.postedAt) !== day(b.postedAt)) return b.postedAt.localeCompare(a.postedAt);
@@ -82,6 +87,21 @@ export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
 export async function getJob(id: string): Promise<Job | undefined> {
   const [job] = await selectJobs(eq(t.jobs.id, id));
   return job;
+}
+
+/**
+ * The businesses banned at `now` (ADR 0044). A temporary ban keeps its jobs active, so every public list of jobs
+ * leaves these out; without `now` (a snapshot with no request time) every ban counts, temporary ones too.
+ */
+export async function bannedEmployerIds(now?: number): Promise<Set<string>> {
+  const db = await database();
+  const rows = await db
+    .select({ id: t.employers.id, bannedAt: t.employers.bannedAt, bannedUntil: t.employers.bannedUntil })
+    .from(t.employers)
+    .where(isNotNull(t.employers.bannedAt));
+  const banned = (r: (typeof rows)[number]) =>
+    now === undefined || isBanned({ bannedAt: r.bannedAt ?? undefined, bannedUntil: r.bannedUntil ?? undefined }, now);
+  return new Set(rows.filter(banned).map((r) => r.id));
 }
 
 export async function getEmployer(id: string): Promise<Employer | undefined> {
@@ -268,7 +288,8 @@ export async function banEmployer(id: string): Promise<string[]> {
   const db = await database();
   const at = new Date().toISOString();
   const [, removed] = await db.batch([
-    db.update(t.employers).set({ bannedAt: at }).where(eq(t.employers.id, id)),
+    // A temporary ban running becomes this permanent one (ADR 0044).
+    db.update(t.employers).set({ bannedAt: at, bannedUntil: null, banReason: null }).where(eq(t.employers.id, id)),
     db
       .update(t.jobs)
       .set({ status: "removed" })
@@ -282,6 +303,86 @@ export async function banEmployer(id: string): Promise<string[]> {
       .returning({ id: t.jobs.id, position: sql<number>`rowid` }),
   ]);
   return removed.sort((a, b) => a.position - b.position).map((row) => row.id);
+}
+
+/**
+ * Ban an employer for `days` (ADR 0044): nothing is taken down, their jobs are only hidden until the ban is over.
+ * Not over a permanent ban. Returns the business as it is now, or undefined if it was permanently banned or is gone.
+ */
+export async function tempBanEmployer(
+  id: string,
+  days: TempBanDays,
+  reason: string,
+  now = Date.now(),
+): Promise<Employer | undefined> {
+  const db = await database();
+  const [row] = await db
+    .update(t.employers)
+    .set({ bannedAt: new Date(now).toISOString(), bannedUntil: tempBanUntil(now, days), banReason: reason })
+    .where(
+      and(eq(t.employers.id, id), sql`(${t.employers.bannedAt} is null or ${t.employers.bannedUntil} is not null)`),
+    )
+    .returning();
+  return row && toEmployer(row);
+}
+
+/** End a temporary ban now (ADR 0044). Permanent bans are not lifted here. Returns whether one was lifted. */
+export async function liftTempBan(id: string, now = Date.now()): Promise<boolean> {
+  const db = await database();
+  const rows = await db
+    .update(t.employers)
+    .set({ bannedAt: null, bannedUntil: null, banReason: null })
+    .where(
+      and(
+        eq(t.employers.id, id),
+        isNotNull(t.employers.bannedUntil),
+        sql`${t.employers.bannedUntil} > ${new Date(now).toISOString()}`,
+      ),
+    )
+    .returning({ id: t.employers.id });
+  return rows.length > 0;
+}
+
+/**
+ * Turn a temporary ban still running into a permanent one (ADR 0044), taking their live jobs down as banEmployer
+ * does. Returns the ids taken down, or undefined if there was no running temporary ban.
+ */
+export async function makeBanPermanent(id: string, now = Date.now()): Promise<string[] | undefined> {
+  const db = await database();
+  const nowIso = new Date(now).toISOString();
+  const [made, removed] = await db.batch([
+    db
+      .update(t.employers)
+      .set({ bannedUntil: null, banReason: null })
+      .where(
+        and(eq(t.employers.id, id), isNotNull(t.employers.bannedUntil), sql`${t.employers.bannedUntil} > ${nowIso}`),
+      )
+      .returning({ id: t.employers.id }),
+    db
+      .update(t.jobs)
+      .set({ status: "removed" })
+      .where(
+        and(
+          eq(t.jobs.employerId, id),
+          inList(t.jobs.status, ["active", "pending_review"]),
+          sql`exists (select 1 from ${t.employers} where ${t.employers.id} = ${id} and ${t.employers.bannedAt} is not null and ${t.employers.bannedUntil} is null)`,
+        ),
+      )
+      .returning({ id: t.jobs.id, position: sql<number>`rowid` }),
+  ]);
+  if (made.length === 0) return undefined;
+  return removed.sort((a, b) => a.position - b.position).map((row) => row.id);
+}
+
+/** Businesses under a temporary ban at `now`, soonest end first (ADR 0044). */
+export async function listTempBannedEmployers(now: number): Promise<Employer[]> {
+  const db = await database();
+  const rows = await db
+    .select()
+    .from(t.employers)
+    .where(and(isNotNull(t.employers.bannedUntil), sql`${t.employers.bannedUntil} > ${new Date(now).toISOString()}`))
+    .orderBy(t.employers.bannedUntil);
+  return rows.map(toEmployer);
 }
 
 /** Record that a signed-in job seeker revealed a job's contact details. */
@@ -329,11 +430,10 @@ export async function listModerationLog(): Promise<ModerationLogEntry[]> {
 /** Real counts for the landing page. Taken-down jobs and banned employers are left out. */
 export async function getPlatformStats(country: CountryCode): Promise<PlatformStats> {
   const db = await database();
-  const banned = (await db.select({ id: t.employers.id }).from(t.employers).where(isNotNull(t.employers.bannedAt))).map(
-    (e) => e.id,
-  );
+  // No request time here (a prerendered snapshot): every ban counts, temporary ones too (ADR 0044).
+  const banned = await bannedEmployerIds();
   const posted = (await selectJobs(eq(t.jobs.country, country))).filter(
-    (j) => j.status !== "removed" && !banned.includes(j.employerId),
+    (j) => j.status !== "removed" && !banned.has(j.employerId),
   );
   const ids = posted.map((j) => j.id);
   const [views] = ids.length
@@ -353,8 +453,11 @@ export async function getPlatformStats(country: CountryCode): Promise<PlatformSt
  * it out (Cache Components does not allow reading the clock there).
  */
 export async function listFeaturedJobs(country: CountryCode, limit = 6, now?: number): Promise<Job[]> {
+  // Without `now` every ban counts, temporary ones too (ADR 0044).
   const trusted = new Set(
-    (await listEmployers()).filter((e) => e.verification !== "unverified" && !e.bannedAt).map((e) => e.id),
+    (await listEmployers())
+      .filter((e) => e.verification !== "unverified" && (now === undefined ? !e.bannedAt : !isBanned(e, now)))
+      .map((e) => e.id),
   );
   return (await selectJobs(and(eq(t.jobs.country, country), eq(t.jobs.status, "active"))))
     .filter((j) => (now === undefined || isOpenJob(j, now)) && trusted.has(j.employerId))
@@ -414,10 +517,11 @@ export type OpenEmployerResult =
  * `taken` here. Banned businesses cannot be taken on.
  */
 export async function openEmployerIdentity(email: string, employerId: string): Promise<OpenEmployerResult> {
+  const now = Date.now();
   const account = await ensureAccount(email);
   const employer = await getEmployer(employerId);
   if (!employer) return { ok: false, reason: "no_employer" };
-  if (employer.bannedAt) return { ok: false, reason: "banned" };
+  if (isBanned(employer, now)) return { ok: false, reason: "banned" };
   if (account.employerId && account.employerId !== employerId) return { ok: false, reason: "already_employer" };
   if (account.employerId === employerId) return { ok: true, account, employer };
   const db = await database();
@@ -429,7 +533,7 @@ export async function openEmployerIdentity(email: string, employerId: string): P
         eq(t.accounts.email, account.email),
         isNull(t.accounts.employerId),
         sql`not exists (select 1 from ${t.accounts} where ${t.accounts.employerId} = ${employerId})`,
-        sql`exists (select 1 from ${t.employers} where ${t.employers.id} = ${employerId} and ${t.employers.bannedAt} is null)`,
+        employerNotBannedSql(employerId, new Date(now).toISOString()),
       ),
     )
     .returning();
@@ -438,7 +542,7 @@ export async function openEmployerIdentity(email: string, employerId: string): P
   const current = await getAccount(email);
   if (current?.employerId === employerId) return { ok: true, account: current, employer };
   if (current?.employerId) return { ok: false, reason: "already_employer" };
-  if ((await getEmployer(employerId))?.bannedAt) return { ok: false, reason: "banned" };
+  if (isBanned(await getEmployer(employerId), now)) return { ok: false, reason: "banned" };
   return { ok: false, reason: "taken" };
 }
 
@@ -453,10 +557,14 @@ export async function listClaimedEmployerIds(): Promise<string[]> {
   return rows.flatMap((r) => (r.id ? [r.id] : []));
 }
 
-/** The business an account posts for, if its employer identity is open and the business is not banned. */
-export async function getAccountEmployer(email: string): Promise<Employer | undefined> {
+/**
+ * The business an account posts for, if its employer identity is open and the business is not banned at `now`. A
+ * business under a temporary ban is left out like a permanently banned one, so every employer action stops until the
+ * ban is over (ADR 0044).
+ */
+export async function getAccountEmployer(email: string, now = Date.now()): Promise<Employer | undefined> {
   const account = await getAccount(email);
   if (!account?.employerId) return undefined;
   const employer = await getEmployer(account.employerId);
-  return employer && !employer.bannedAt ? employer : undefined;
+  return employer && !isBanned(employer, now) ? employer : undefined;
 }

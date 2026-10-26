@@ -60,6 +60,7 @@ const chatZh = {
     viewJob: "查看职位",
     report: "举报",
     back: "返回会话列表",
+    paused: "对方暂时不能回复，现在发不了消息。",
     more: (person: string) => `更多：${person}`,
     viewProfile: (person: string) => `查看${person}的主页`,
     /** Before the job's title, which is the employer's own words (marked separately). */
@@ -91,6 +92,8 @@ const chatZh = {
   // record (src/lib/chat-server/own-limits.ts).
   limits: {
     messagesFull: (max: number) => `这段对话里已经有 ${max} 条消息，到上限了，这条没有发出。`,
+    otherSideBanned: "对方暂时不能回复，这条没有发出。",
+    ownSideBanned: "你的企业被暂时限制，现在不能发消息，这条没有发出。",
     conversationsFull: (max: number) => `你已经有 ${max} 段这样的对话，到上限了，没能发起新的聊天。`,
     importTooBig: "这台设备上的旧聊天记录太多，没有存到服务器。",
     reportsFull: (max: number) => `你已经保存了 ${max} 条聊天举报，到上限了，这次举报没有保存。`,

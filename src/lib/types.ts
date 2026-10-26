@@ -40,8 +40,15 @@ export interface Employer {
   verification: EmployerVerification;
   regionId: string;
   createdAt: string; // ISO date
-  /** Set when moderation bans the employer; their jobs are taken down too. */
+  /**
+   * Set when moderation bans the employer. Permanent without bannedUntil (their jobs are taken down too); temporary
+   * until bannedUntil (their jobs stay, hidden while it lasts). Ask isBanned (src/lib/employer-ban.ts), never this.
+   */
   bannedAt?: string;
+  /** A temporary ban's end (ADR 0044). */
+  bannedUntil?: string;
+  /** Why a temporary ban was given, shown to the business's team (ADR 0044). */
+  banReason?: string;
 }
 
 export interface PayRange {
@@ -138,6 +145,10 @@ export type ModerationAction =
   | "take_down"
   | "dismiss"
   | "ban"
+  // Temporary bans (ADR 0044): given for some days, lifted early, or made permanent.
+  | "temp_ban"
+  | "unban"
+  | "make_permanent"
   | "verify_approve"
   | "verify_reject"
   // External jobs (#112, ADR 0014): a job shown or hidden, a company stopped, resumed or removed at its request.
@@ -164,6 +175,8 @@ export interface ModerationLogEntry {
   rules?: string[];
   /** Jobs a ban took down. */
   takenDown?: number;
+  /** A temporary ban's length in days (ADR 0044). */
+  banDays?: number;
   /** The moderator's email (#60). Missing on entries from before #60; "deleted-account" once the account is deleted. */
   moderator?: string;
   /** 企业验证 (#78): the badge applied for, and why it was rejected (the reason's words and the note). */

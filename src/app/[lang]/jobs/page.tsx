@@ -1,3 +1,4 @@
+import { currentBan } from "@/lib/employer-ban";
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { Suspense } from "react";
@@ -85,7 +86,7 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
       <JobBrowser
         jobs={jobs.map(previewJob)}
         employers={Object.fromEntries(
-          [...employers].map(([id, employer]) => [id, previewEmployer(employer, activities.get(id))]),
+          [...employers].map(([id, employer]) => [id, previewEmployer(currentBan(employer, now), activities.get(id))]),
         )}
         now={now}
       >

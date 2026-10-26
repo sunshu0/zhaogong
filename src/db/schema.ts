@@ -51,6 +51,10 @@ export const employers = sqliteTable("employers", {
   regionId: text("region_id").notNull(),
   createdAt: text("created_at").notNull(),
   bannedAt: text("banned_at"),
+  /** A temporary ban's end (ADR 0044); null with banned_at set is a permanent ban. */
+  bannedUntil: text("banned_until"),
+  /** The moderator's reason for a temporary ban, shown to the business's team while it lasts (ADR 0044). */
+  banReason: text("ban_reason"),
 });
 
 /**
@@ -159,6 +163,8 @@ export const moderationLog = sqliteTable("moderation_log", {
   reasons: text("reasons", { mode: "json" }).$type<ReportReason[]>(),
   rules: text("rules", { mode: "json" }).$type<string[]>(),
   takenDown: integer("taken_down"),
+  /** A temporary ban's length in days (ADR 0044); its reason is the note. */
+  banDays: integer("ban_days"),
   /** The moderator who acted (#60); null on entries from before #60, deleted-account once that account is gone. */
   moderator: text("moderator_email"),
   /** 企业验证 decisions (#78): what was applied for, and a rejection's reason and note. */

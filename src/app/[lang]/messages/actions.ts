@@ -6,8 +6,9 @@
 // the server's clock and ids. A chat between a job seeker account and a business is one conversation both sides
 // read and write (#110, ADR 0015): the server puts it into each side's record as it answers, and writes changes to
 // it into the conversations tables; demo chats and reports stay in the identity's own record.
+import { isBanned } from "@/lib/employer-ban";
 import { createHash, randomUUID } from "node:crypto";
-import { getEmployer, getJob } from "@/lib/data";
+import { bannedEmployerIds, getEmployer, getJob } from "@/lib/data";
 import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
@@ -154,10 +155,14 @@ function readerOf(me: ChatIdentity): SharedReader | null {
 async function withSharedOf(me: ChatIdentity, own: ChatRecord, upTo?: number): Promise<ChatRecord> {
   const reader = readerOf(me);
   if (!reader) return own;
-  return withShared(
-    own,
-    sharedPart(await listSharedConversations(reader, upTo), reader.side, Date.now(), await requestLang()),
-  );
+  const now = Date.now();
+  const rows = await listSharedConversations(reader, upTo);
+  return withShared(own, sharedPart(rows, reader.side, now, await requestLang(), await bannedNow(reader.side, now)));
+}
+
+/** The businesses banned now, which the job seeker's chats with are paused for (ADR 0044); none for a business. */
+async function bannedNow(side: "seeker" | "employer", now: number): Promise<ReadonlySet<string>> {
+  return side === "seeker" ? bannedEmployerIds(now) : new Set();
 }
 
 async function snapshot(me: ChatIdentity, own: ChatRecord, opened?: string, notice?: string): Promise<ChatSnapshot> {
@@ -205,7 +210,14 @@ export async function myChatChanges(since: unknown): Promise<ChatSnapshot | Chat
     cursor: { messageId: upTo, at },
     ownTag,
     ...(asked.ownTag === ownTag ? {} : { own }),
-    shared: sharedChanges(heads, changed, reader?.side ?? "seeker", Date.now(), await requestLang()),
+    shared: sharedChanges(
+      heads,
+      changed,
+      reader?.side ?? "seeker",
+      Date.now(),
+      await requestLang(),
+      reader ? await bannedNow(reader.side, Date.now()) : new Set(),
+    ),
   };
 }
 
@@ -325,8 +337,13 @@ async function applyShared(
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!text || text.length > MESSAGE_MAX) return;
-      if (side === "seeker") await countChatStart(id, me.session.email);
       const now = new Date();
+      // A business under a ban (ADR 0044): nothing is sent either way until it is over, so a scam stops here.
+      if (isBanned(await getEmployer(row.employerId), now.getTime())) {
+        const t = await limits();
+        return side === "seeker" ? t.otherSideBanned : t.ownSideBanned;
+      }
+      if (side === "seeker") await countChatStart(id, me.session.email);
       if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined, now)) {
         // 聊天风险 (#384, ADR 0039): only the business's messages count towards telling a moderator; a job seeker
         // asking 要交押金吗 is not reported. Both sides still see their reminders in the chat.
@@ -452,7 +469,7 @@ async function openForSeeker(me: ChatIdentity, jobId: string): Promise<Conversat
   const job = await getJob(jobId);
   if (!job || job.status !== "active" || isExpired(job, Date.now())) return undefined;
   const employer = await getEmployer(job.employerId);
-  if (!employer || employer.bannedAt || me.session.employer?.id === employer.id) return undefined;
+  if (!employer || isBanned(employer, Date.now()) || me.session.employer?.id === employer.id) return undefined;
   const page = await getSeekerProfile(me.session.email);
   return openSharedConversation({
     seekerEmail: me.session.email,

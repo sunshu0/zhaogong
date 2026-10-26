@@ -4,6 +4,7 @@
 // 11:0x); chatting is how a job seeker gets in touch now, and a job they chatted about is listed too (ADR 0030), so
 // its interview can be answered and its notices lead somewhere. The account is the one in this browser's session
 // cookie.
+import { isBanned } from "@/lib/employer-ban";
 import { regionById } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
 import { getEmployer, getJob } from "@/lib/data";
@@ -52,7 +53,7 @@ export async function myApplicationViews(): Promise<MyApplicationView[] | null> 
         country: job.country,
         region: placeName(regionById(job.country, job.regionId), lang),
         employerName: employer?.name,
-        gone: job.status !== "active" || isExpired(job, now) || !!employer?.bannedAt,
+        gone: job.status !== "active" || isExpired(job, now) || isBanned(employer, now),
         interview: interviews.has(row.id) ? interviewView(interviews.get(row.id)!) : null,
       };
     }),

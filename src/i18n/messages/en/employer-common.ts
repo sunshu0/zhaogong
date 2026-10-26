@@ -35,6 +35,8 @@ export const employerCommonEn: Messages<(typeof employerCommonMessages)["zh"]> =
     signedOut: "Sign in first.",
     noIdentity: "Set up hiring first.",
     banned: "This account is suspended, so it can no longer change jobs.",
+    tempBanned: (until, reason) =>
+      `Your business is restricted until ${until}. Reason: ${reason}. Until then it can't post or change jobs or send messages; it ends by itself.`,
     jobNotFound: "That job can't be found.",
     alreadyEnded: "This job has already ended or been taken down.",
     hiresAfterEnd: "You can record how many people you hired once the job has ended.",

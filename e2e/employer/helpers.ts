@@ -29,7 +29,8 @@ export async function adminPage(browser: Browser, testInfo: TestInfo): Promise<P
 }
 
 /** The two groups of 审核后台 (ADR 0043): 待处理 opens first; the others are under 记录与统计. */
-const RECORD_TABS = /^(操作记录|审核数据|查看记录|审核员|Log|Moderation stats|Access log|Moderator)/;
+const RECORD_TABS =
+  /^(操作记录|审核数据|查看记录|暂时封禁|审核员|Log|Moderation stats|Access log|Temporary bans|Moderator)/;
 
 /**
  * Opens a tab of 审核后台 the way a moderator would: first its group (待处理 or 记录与统计), then the tab. `name` as for

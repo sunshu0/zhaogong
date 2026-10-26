@@ -80,6 +80,8 @@ export function fromEmployer(e: Employer): EmployerRow {
     legalName: e.legalName ?? null,
     businessNumber: e.businessNumber ?? null,
     bannedAt: e.bannedAt ?? null,
+    bannedUntil: e.bannedUntil ?? null,
+    banReason: e.banReason ?? null,
   };
 }
 

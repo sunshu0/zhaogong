@@ -1,4 +1,5 @@
 "use client";
+import { banNotice } from "@/components/employer/ban-notice";
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import type { Employer } from "@/lib/types";
@@ -55,7 +56,10 @@ function Verify({ me }: { me: EmployerIdentity }) {
   const { team, failed: teamFailed, reload: reloadTeam } = useMyTeam(me.email);
   // Only an admin of the team applies (#87); the server refuses anyone else too.
   const isMember = team?.me.role === "member";
-  const employer: Pick<Employer, "name" | "verification" | "businessNumber" | "bannedAt"> = profile ?? {
+  const employer: Pick<
+    Employer,
+    "name" | "verification" | "businessNumber" | "bannedAt" | "bannedUntil" | "banReason"
+  > = profile ?? {
     name: me.employerName,
     verification: "unverified",
   };
@@ -109,7 +113,7 @@ function Verify({ me }: { me: EmployerIdentity }) {
         request && <LatestRequest request={request} />
       )}
 
-      {employer.bannedAt && <p className="text-body text-danger">{t.banned}</p>}
+      {employer.bannedAt && <p className="text-body text-danger">{banNotice(employer, lang, t.banned)}</p>}
       {request !== undefined && kinds.length === 0 && (
         <p className="text-body text-muted">{t.nothingLeft(kindLabel.accredited_employer)}</p>
       )}

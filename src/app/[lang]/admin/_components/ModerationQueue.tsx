@@ -9,7 +9,6 @@ import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { adminMessages } from "@/i18n/messages/admin";
 import {
   approveJob,
-  banJobEmployer,
   dismissReports,
   getModerationQueue,
   takeDownJob,
@@ -21,7 +20,7 @@ import {
 } from "@/app/[lang]/admin/actions";
 import { isFailed, ready, settle } from "@/app/[lang]/admin/load-state";
 import { approveBlocker, moderatorLabel } from "@/app/[lang]/admin/moderation";
-import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
+import { BanChoice } from "@/app/[lang]/admin/_components/BanChoice";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
@@ -29,6 +28,7 @@ import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorChanges } from "@/app/[lang]/admin/_components/ModeratorChanges";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
+import { TempBans } from "@/app/[lang]/admin/_components/TempBans";
 import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
 import { ReportEvidenceView } from "@/app/[lang]/admin/_components/ReportEvidenceView";
 import { ChatRiskQueue, useChatRiskQueue } from "@/app/[lang]/admin/_components/ChatRiskQueue";
@@ -66,7 +66,7 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
  * many) and 记录与统计 (what was done, the numbers, who saw whose details, the moderators).
  */
 type TodoTab = "flagged" | "reported" | "chatRisk" | "verification" | "external";
-type RecordTab = "log" | "stats" | "views" | "moderators" | "changes";
+type RecordTab = "log" | "stats" | "views" | "tempBans" | "moderators" | "changes";
 type Tab = TodoTab | RecordTab;
 type Group = "todo" | "records";
 
@@ -130,6 +130,7 @@ export function ModerationQueue() {
     { key: "log", label: t.tabs.log, count: queue?.log.length },
     { key: "stats", label: t.tabs.stats },
     { key: "views", label: tv.tab },
+    { key: "tempBans", label: t.tabs.tempBans },
     { key: "moderators", label: t.tabs.moderators },
     ...(admin ? [{ key: "changes" as const, label: t.tabs.changes }] : []),
   ];
@@ -192,6 +193,8 @@ export function ModerationQueue() {
         <TabPanel idBase="admin" value={tab}>
           {tab === "changes" ? (
             <ModeratorChanges />
+          ) : tab === "tempBans" ? (
+            <TempBans onDone={done} />
           ) : tab === "moderators" ? (
             <ModeratorList onDone={setResult} />
           ) : tab === "views" ? (
@@ -342,7 +345,11 @@ function QueueCard({
       <p className="mt-2 flex flex-wrap items-center gap-2 text-body">
         <span lang={contentLang(employer?.name)}>{employer?.name ?? job.employerId}</span>
         {employer && <VerificationBadge verification={employer.verification} lang={lang} />}
-        {employer?.bannedAt && <Tag kind="urgent">{t.queue.banned}</Tag>}
+        {employer?.bannedAt && (
+          <Tag kind="urgent">
+            {employer.bannedUntil ? t.queue.tempBanned(formatDate(employer.bannedUntil, lang, TIME)) : t.queue.banned}
+          </Tag>
+        )}
         <span className="text-meta text-muted">{t.queue.posted(formatDate(job.postedAt, lang, TIME))}</span>
       </p>
       <p lang={contentLang(job.descriptionZh)} className="mt-2 line-clamp-3 text-body whitespace-pre-line text-muted">
@@ -421,18 +428,14 @@ function QueueCard({
           {employer &&
             !employer.bannedAt &&
             (confirmBan ? (
-              <>
-                <Button
-                  variant="danger"
-                  disabled={another("ban")}
-                  loading={busy("ban")}
-                  onClick={() => run("ban", () => banJobEmployer(job.id))}
-                  autoFocus
-                >
-                  {t.queue.confirmBan(employer.name)}
-                </Button>
-                <Cancel onClick={() => setConfirmBan(false)} />
-              </>
+              <BanChoice
+                jobId={job.id}
+                employerName={employer.name}
+                run={run}
+                busy={busy("ban")}
+                disabled={another("ban")}
+                onCancel={() => setConfirmBan(false)}
+              />
             ) : (
               <Button variant="danger-secondary" onClick={() => setConfirmBan(true)}>
                 {t.queue.ban}

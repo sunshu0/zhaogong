@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import {
   accountStatus,
+  businessBanNotice,
   openEmployerForAccount,
   requestSignInCode,
   signInAccount,
@@ -461,6 +462,18 @@ function BusinessStep({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const regions = COUNTRIES.NZ.regions;
+  // ADR 0044: the account's business is banned; nothing to set up here until it is over.
+  const [banned, setBanned] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    businessBanNotice().then(
+      (notice) => !cancelled && setBanned(notice),
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -482,6 +495,18 @@ function BusinessStep({
       onDone(result.employer);
     });
   }
+
+  if (banned)
+    return (
+      <section className={`space-y-3 ${CARD}`}>
+        <h2 ref={heading} tabIndex={-1} className="text-subtitle font-semibold outline-none">
+          {t.hiring.title}
+        </h2>
+        <p role="status" className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
+          {banned}
+        </p>
+      </section>
+    );
 
   return (
     <form onSubmit={submit} noValidate className={`space-y-5 ${CARD}`}>

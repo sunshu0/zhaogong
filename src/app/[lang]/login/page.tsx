@@ -1,3 +1,4 @@
+import { isBanned } from "@/lib/employer-ban";
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { redirect } from "next/navigation";
@@ -12,6 +13,7 @@ import { demoDataWanted } from "@/db/ready";
 import { DEMO_BUSINESS_IDS, parseRole } from "@/components/seeker/identity";
 import { LoginForm, LoginFormSkeleton, LoginIntro, type DemoBusiness } from "@/components/seeker/LoginForm";
 import { nextForSignedIn } from "@/components/seeker/session";
+import { requestTime } from "@/components/seeker/request-time";
 import { TrackView } from "@/components/ui/TrackView";
 import { loginMessages } from "@/i18n/messages/login";
 import { messages, serverLang } from "@/i18n/server";
@@ -79,9 +81,9 @@ async function demoBusinesses(): Promise<DemoBusiness[]> {
   if (!demoDataWanted()) return [];
   const lang = await serverLang();
   const ids: readonly string[] = DEMO_BUSINESS_IDS;
-  const claimed = new Set(await listClaimedEmployerIds());
+  const [claimed, now] = [new Set(await listClaimedEmployerIds()), await requestTime()];
   return (await listEmployers())
-    .filter((e) => ids.includes(e.id) && !e.bannedAt)
+    .filter((e) => ids.includes(e.id) && !isBanned(e, now))
     .map((e) => ({
       id: e.id,
       name: e.name,

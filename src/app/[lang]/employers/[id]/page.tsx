@@ -1,3 +1,4 @@
+import { isBanned, isPermanentBan } from "@/lib/employer-ban";
 import type { Metadata } from "next";
 import { NoScriptStreams } from "@/components/seeker/NoScriptStreams";
 import { notFound } from "next/navigation";
@@ -14,7 +15,8 @@ import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 export async function generateMetadata({ params }: PageProps<"/[lang]/employers/[id]">): Promise<Metadata> {
   const employer = await getEmployer((await params).id);
   const t = await messages(seekerEmployerMessages);
-  return { title: employer && !employer.bannedAt ? t.title(employer.name) : t.missing };
+  // No clock in metadata: only a permanent ban hides the name here; the page itself asks the time (ADR 0044).
+  return { title: employer && !isPermanentBan(employer) ? t.title(employer.name) : t.missing };
 }
 
 export default async function EmployerPage({ params }: PageProps<"/[lang]/employers/[id]">) {
@@ -31,8 +33,9 @@ export default async function EmployerPage({ params }: PageProps<"/[lang]/employ
 
 async function PublicEmployer({ params }: Pick<PageProps<"/[lang]/employers/[id]">, "params">) {
   const employer = await getEmployer((await params).id);
-  if (!employer || employer.bannedAt) notFound();
-  const [allJobs, now] = await Promise.all([listJobsByEmployer(employer.id), requestTime()]);
+  const now = await requestTime();
+  if (!employer || isBanned(employer, now)) notFound();
+  const allJobs = await listJobsByEmployer(employer.id);
   const jobs = allJobs
     .filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt))

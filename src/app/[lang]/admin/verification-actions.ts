@@ -4,6 +4,7 @@
 // checklist. A moderator only (requireModerator, as every /admin Server Function); each decision goes into the log
 // with who made it (#60). Each application handed to a moderator is recorded first (#336, ADR 0026): its contact's
 // name, role and phone are personal information.
+import { currentBan } from "@/lib/employer-ban";
 import { addModerationLog, getEmployer, listEmployers } from "@/lib/data";
 import type { Employer } from "@/lib/types";
 import { buildRegister, findInRegister, type RegisterEntry } from "@/components/employer/business-register";
@@ -62,7 +63,8 @@ export async function getVerificationQueue(): Promise<VerificationItem[] | Refus
   const me = await requireModerator();
   if (!me.ok) return { refused: me.reason, error_zh: await refusedText(me.reason) };
   const lang = await requestLang();
-  const employers = await listEmployers();
+  const now = Date.now();
+  const employers = (await listEmployers()).map((e) => currentBan(e, now));
   const register = buildRegister(employers);
   const pending = await listPendingVerifications();
   await recordViews(
@@ -87,7 +89,7 @@ async function decide(id: unknown, checklistInput: unknown, decision: Decision):
   const t = pick(adminVerificationMessages, lang);
   const pending = (await listPendingVerifications()).find((r) => r.id === id);
   if (!pending) return { ok: false, error_zh: t.errors.gone };
-  const employer = await getEmployer(pending.employerId);
+  const employer = currentBan(await getEmployer(pending.employerId), Date.now());
   if (decision.approve && employer?.bannedAt) return { ok: false, error_zh: t.errors.banned };
 
   const items = checklistFor(pending, lang);

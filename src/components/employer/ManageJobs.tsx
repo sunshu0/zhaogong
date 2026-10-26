@@ -1,4 +1,5 @@
 "use client";
+import { banNotice } from "@/components/employer/ban-notice";
 import { useState, type RefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Employer, Job } from "@/lib/types";
@@ -90,7 +91,9 @@ function Manage({ me }: { me: EmployerIdentity }) {
       )}
       <StatusTabs ready={searched} value={tab} onChange={setTab} />
       {employer?.bannedAt && (
-        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">{t.manage.banned}</p>
+        <p className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
+          {banNotice(employer, lang, t.manage.banned)}
+        </p>
       )}
       {notice && <NoticeLine notice={notice} noticeRef={noticeRef} />}
       <TabPanel idBase={TAB_ID_BASE} value={tab}>

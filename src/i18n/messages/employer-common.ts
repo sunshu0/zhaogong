@@ -38,6 +38,8 @@ const employerCommonZh = {
     signedOut: "请先登录。",
     noIdentity: "需要先开通雇主身份。",
     banned: "账号已被停用，不能再修改职位。",
+    tempBanned: (until: string, reason: string) =>
+      `你的企业被暂时限制到 ${until}，原因：${reason}。期间不能发布、修改职位，也不能发消息；到期自动恢复。`,
     jobNotFound: "找不到这个职位。",
     alreadyEnded: "这个职位已经结束或已被下架。",
     hiresAfterEnd: "职位结束后才能记录招到几人。",

@@ -2,6 +2,7 @@
 // Server Functions for the employer pages, so reads and writes hit the same data the job seekers'
 // pages read. The account comes from the session cookie and the business from that account on the
 // server (getAccountEmployer); nothing the browser sends says who is acting.
+import { currentBan, isBanned } from "@/lib/employer-ban";
 import { recordRequestEvent } from "@/lib/events/record";
 import { DEFAULT_COUNTRY } from "@/config/countries";
 import { getCurrentSession } from "@/lib/auth";
@@ -84,7 +85,7 @@ async function postingEmployer(): Promise<Employer | "signed_out" | "no_identity
   if (employer) return employer;
   // getAccountEmployer hides banned businesses; tell that case apart for the message.
   const linked = (await getAccount(session.email))?.employerId;
-  return linked && (await getEmployer(linked))?.bannedAt ? "banned" : "no_identity";
+  return linked && isBanned(await getEmployer(linked), Date.now()) ? "banned" : "no_identity";
 }
 
 async function identityError(reason: "signed_out" | "no_identity" | "banned"): Promise<string> {
@@ -398,7 +399,8 @@ export async function getMyEmployer(): Promise<Employer | null> {
   const session = await getCurrentSession();
   if (!session) return null;
   const linked = (await getAccount(session.email))?.employerId;
-  return (linked && (await getEmployer(linked))) || null;
+  // As it stands now (ADR 0044): a temporary ban that is over is gone, one running shows its end and reason.
+  return (linked && currentBan(await getEmployer(linked), Date.now())) || null;
 }
 
 export async function lookupBusiness(query: string): Promise<{ results: RegisterEntry[]; error_zh?: string }> {

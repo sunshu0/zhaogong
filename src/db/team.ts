@@ -1,6 +1,8 @@
 // 雇主多人管理 (#87, PRD R-38, ADR 0012): a business's team and its invitations. Every change is checked with the
 // rules in src/components/employer/team.ts inside the transaction that writes it. Server only.
-import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { isBanned } from "@/lib/employer-ban";
+import { employerNotBannedSql } from "@/db/bans";
+import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { guardedBatch } from "@/db/guarded-batch";
 import { unchangedMembership, unchangedTeam } from "@/db/team-state";
 import { insertIf, nextIdSql } from "@/db/write-if";
@@ -173,7 +175,7 @@ export async function invitesFor(email: string, now = new Date()): Promise<Invit
       and(
         eq(t.teamInvites.email, normalizeEmail(email)),
         eq(t.teamInvites.status, "pending"),
-        isNull(t.employers.bannedAt),
+        employerNotBannedSql(t.employers.id, new Date().toISOString()),
       ),
     )
     .orderBy(asc(t.teamInvites.createdAt));
@@ -211,11 +213,15 @@ export async function answerInvite(
       if (!locator) return { status: "gone" };
       const unchanged = await unchangedTeam(db, locator.employerId, address);
       const [invite] = await db
-        .select({ invite: t.teamInvites, bannedAt: t.employers.bannedAt })
+        .select({ invite: t.teamInvites, bannedAt: t.employers.bannedAt, bannedUntil: t.employers.bannedUntil })
         .from(t.teamInvites)
         .innerJoin(t.employers, eq(t.employers.id, t.teamInvites.employerId))
         .where(and(eq(t.teamInvites.id, inviteId), eq(t.teamInvites.email, address)));
-      if (!invite || invite.invite.status !== "pending" || invite.bannedAt) return { status: "gone" };
+      const banned = isBanned(
+        { bannedAt: invite?.bannedAt ?? undefined, bannedUntil: invite?.bannedUntil ?? undefined },
+        now.getTime(),
+      );
+      if (!invite || invite.invite.status !== "pending" || banned) return { status: "gone" };
       if (inviteExpired(invite.invite.createdAt, now.getTime())) return { status: "gone" };
       const answeredAt = now.toISOString();
       if (!answer.accept) {

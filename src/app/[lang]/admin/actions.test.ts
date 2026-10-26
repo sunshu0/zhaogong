@@ -6,6 +6,7 @@ import {
   getEmployer,
   getJob,
   listJobs,
+  listJobsByEmployer,
   listReports,
   submitReport,
   updateJob,
@@ -34,8 +35,12 @@ const {
   getModerationQueue,
   getModeratorChanges,
   getModerators,
+  getTempBans,
+  liftEmployerTempBan,
+  makeEmployerBanPermanent,
   removeModerator,
   takeDownJob,
+  tempBanJobEmployer,
 } = await import("@/app/[lang]/admin/actions");
 
 const MODERATOR = "the.moderator@example.com";
@@ -118,6 +123,10 @@ describe("admin switch", () => {
       for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer, addModerator, removeModerator]) {
         expect(await act("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
       }
+      expect(await tempBanJobEmployer("j10", 7, "押金")).toEqual({ ok: false, error_zh: "请先登录。" });
+      expect(await liftEmployerTempBan("e6")).toEqual({ ok: false, error_zh: "请先登录。" });
+      expect(await makeEmployerBanPermanent("e6")).toEqual({ ok: false, error_zh: "请先登录。" });
+      expect(await getTempBans()).toMatchObject({ refused: "signed_out" });
       cookies.set(sessionCookieName(), "made-up-token");
       expect(await getModerationQueue()).toMatchObject({ refused: "signed_out" });
       expect(await takeDownJob("j10")).toEqual({ ok: false, error_zh: "请先登录。" });
@@ -137,6 +146,11 @@ describe("admin switch", () => {
       for (const act of [approveJob, takeDownJob, dismissReports, banJobEmployer]) {
         expect(await act("j10")).toEqual(refused);
       }
+      expect(await tempBanJobEmployer("j10", 7, "押金")).toEqual(refused);
+      expect(await liftEmployerTempBan("e6")).toEqual(refused);
+      expect(await makeEmployerBanPermanent("e6")).toEqual(refused);
+      expect(await getTempBans()).toMatchObject({ refused: "not_moderator" });
+      expect(await getEmployer("e6")).not.toHaveProperty("bannedAt");
       expect(await addModerator("just.an.employer@example.com")).toEqual(refused); // cannot promote itself
       expect(await removeModerator(MODERATOR)).toEqual(refused);
       expect(await isModerator("just.an.employer@example.com")).toBe(false);
@@ -288,5 +302,86 @@ describe("moderation queue", () => {
     expect(log.map((e) => e.action)).toEqual(["ban", "dismiss", "take_down", "approve"]);
     // Every decision names the moderator who made it (#60).
     expect(log.map((e) => e.moderator)).toEqual([MODERATOR, MODERATOR, MODERATOR, MODERATOR]);
+  });
+});
+
+describe("temporary bans (ADR 0044)", () => {
+  const DAY = 86_400_000;
+  const live = async () => (await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id);
+
+  it("needs 3, 7 or 30 days and a reason of at most 200 characters, and writes nothing otherwise", async () => {
+    expect(await tempBanJobEmployer("j8", 5, "押金")).toEqual({
+      ok: false,
+      error_zh: "暂时封禁只能选 3 天、7 天或 30 天。",
+    });
+    expect(await tempBanJobEmployer("j8", "7", "押金")).toMatchObject({ ok: false });
+    for (const reason of [undefined, "", "   "])
+      expect(await tempBanJobEmployer("j8", 7, reason)).toEqual({
+        ok: false,
+        error_zh: "请写明封禁的原因，雇主会看到。",
+      });
+    expect(await tempBanJobEmployer("j8", 7, "押".repeat(201))).toEqual({ ok: false, error_zh: "原因最多 200 个字。" });
+    expect(await getEmployer("e5")).not.toHaveProperty("bannedAt");
+    // A permanent ban (快达物流, banned above) is not turned into a temporary one.
+    expect(await tempBanJobEmployer("j12", 3, "押金")).toEqual({ ok: false, error_zh: "这个雇主已经被封禁。" });
+  });
+
+  it("bans for the days picked, hides the jobs without taking them down, and lifts early once", async () => {
+    await submitReport("j8", "charges_fee", "电话里说要交押金");
+    const before = Date.now();
+    expect(await tempBanJobEmployer("j8", 7, " 电话里收押金 ")).toEqual({
+      ok: true,
+      text: "暂时封禁雇主「安居装修」7 天 · 电话里收押金",
+    });
+    const banned = await getEmployer("e5");
+    expect(banned?.banReason).toBe("电话里收押金");
+    expect(Date.parse(banned!.bannedUntil!) - before).toBeGreaterThanOrEqual(7 * DAY);
+    expect(Date.parse(banned!.bannedUntil!) - Date.now()).toBeLessThanOrEqual(7 * DAY);
+    expect([(await getJob("j8"))?.status, (await getJob("j9"))?.status]).toEqual(["active", "active"]);
+    expect(await live()).not.toContain("j8");
+    expect(await live()).not.toContain("j9");
+    expect((await listReports()).filter((r) => r.jobId === "j8").map((r) => r.status)).toEqual(["actioned"]);
+
+    const bans = await getTempBans();
+    if ("refused" in bans) throw new Error(`getTempBans: ${bans.refused}`);
+    expect(bans).toEqual([
+      { employerId: "e5", employerName: "安居装修", until: banned!.bannedUntil, reason: "电话里收押金", by: MODERATOR },
+    ]);
+
+    expect(await liftEmployerTempBan("e5")).toEqual({ ok: true, text: "提前解除对雇主「安居装修」的暂时封禁" });
+    expect(await live()).toEqual(expect.arrayContaining(["j8", "j9"]));
+    expect(await getTempBans()).toEqual([]);
+    expect(await liftEmployerTempBan("e5")).toEqual({ ok: false, error_zh: "这家企业现在没有被暂时封禁。" });
+    // A permanent ban is not lifted here.
+    expect(await liftEmployerTempBan("e7")).toEqual({ ok: false, error_zh: "这家企业现在没有被暂时封禁。" });
+  });
+
+  it("makes a temporary ban permanent: the live jobs come down, and each step is in the log", async () => {
+    // 悦美发型工作室's jobs that come down, as with 封禁雇主: live or waiting for review (j7 and the demo showcase's).
+    const theirs = (await listJobsByEmployer("e4"))
+      .filter((j) => j.status === "active" || j.status === "pending_review")
+      .map((j) => j.id);
+    expect(theirs).toContain("j7");
+    expect(await tempBanJobEmployer("j7", 3, "态度恶劣")).toMatchObject({ ok: true });
+    expect(await makeEmployerBanPermanent("e4")).toEqual({
+      ok: true,
+      text: `把对雇主「悦美发型工作室」的暂时封禁改成永久，下架 ${theirs.length} 个职位`,
+    });
+    const employer = await getEmployer("e4");
+    expect(employer?.bannedAt).toBeTruthy();
+    expect(employer).not.toHaveProperty("bannedUntil");
+    for (const id of theirs) expect((await getJob(id))?.status).toBe("removed");
+    expect(await makeEmployerBanPermanent("e4")).toEqual({ ok: false, error_zh: "这家企业现在没有被暂时封禁。" });
+    expect(await liftEmployerTempBan("e4")).toMatchObject({ ok: false });
+    expect(await makeEmployerBanPermanent("e5")).toMatchObject({ ok: false });
+
+    const { log } = await queue();
+    expect(log.slice(0, 4).map((e) => [e.action, e.moderator])).toEqual([
+      ["make_permanent", MODERATOR],
+      ["temp_ban", MODERATOR],
+      ["unban", MODERATOR],
+      ["temp_ban", MODERATOR],
+    ]);
+    expect(log[1].text).toBe("暂时封禁雇主「悦美发型工作室」3 天 · 态度恶劣");
   });
 });
