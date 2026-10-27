@@ -2,7 +2,7 @@
 
 // 常用语 (#372): a row above the chat's box, one press sends; 管理 changes them, and the job seeker's 开场白 (#373).
 // ADR 0035. Each identity has its own list; until a person changes it, the defaults in the page's language.
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { saveChatPhrases, useChatPhrases } from "@/components/seeker/chat-phrases-client";
 import { ChatDialog, CHAT_COMMAND_CLASS } from "@/components/seeker/ChatDialog";
@@ -26,45 +26,75 @@ import {
 
 /**
  * The row of 常用语 and 管理. Empty until the account's own have loaded, so a press never sends the wrong list; its
- * room is kept meanwhile, so the box does not jump when they come.
+ * room is kept meanwhile, so the box does not jump when they come. `folded`: the phone's keyboard is up (#415), so
+ * the row hides; the 管理 dialog stays outside it, so a field in the dialog keeps the keyboard and the dialog.
  */
-export function ChatPhraseRow({ role, onPick }: { role: PhraseRole; onPick: (phrase: string) => void }) {
+export function ChatPhraseRow({
+  role,
+  onPick,
+  folded = false,
+}: {
+  role: PhraseRole;
+  onPick: (phrase: string) => void;
+  folded?: boolean;
+}) {
   const t = useMessages(chatMessages).phrases;
   const kept = useChatPhrases(useSession()?.email);
   const [managing, setManaging] = useState(false);
-  if (!kept) return <div aria-hidden="true" className="mb-2 min-h-12" />;
+  // The dialog gives the focus back to 管理 as it closes; while folded that button is hidden and cannot take it, so
+  // 管理 takes it once the row is back.
+  const manage = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current || managing || folded) return;
+    refocus.current = false;
+    manage.current?.focus();
+  }, [managing, folded]);
+  if (!kept) return <div aria-hidden="true" className={folded ? "hidden" : "mb-2 min-h-12"} />;
   const phrases = shownPhrases(kept, role, role === "seeker" ? t.seekerDefaults : t.employerDefaults);
   return (
-    <div className="mb-2 flex items-center gap-2">
-      <ul aria-label={t.rowLabel} className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
-        {phrases.map((phrase, index) => (
-          <li key={`${index}:${phrase}`} className="shrink-0">
-            <button
-              type="button"
-              onClick={() => onPick(phrase)}
-              aria-label={t.sendPhrase(phrase)}
-              title={phrase}
-              className="pressable inline-flex min-h-11 max-w-[16rem] items-center rounded-full border border-border bg-background px-3.5 py-2 text-meta hover:border-brand"
-            >
-              <span lang={contentLang(phrase)} className="truncate">
-                {phrase}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        onClick={() => setManaging(true)}
-        aria-label={t.manageLabel}
-        title={t.manageLabel}
-        className="pressable inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-meta text-brand hover:bg-brand-soft"
-      >
-        <SlidersHorizontal aria-hidden="true" className="size-4" />
-        {t.manage}
-      </button>
-      {managing && <PhrasesDialog role={role} kept={kept} onClose={() => setManaging(false)} />}
-    </div>
+    <>
+      <div className={folded ? "hidden" : "mb-2 flex items-center gap-2"} data-folded={folded || undefined}>
+        <ul aria-label={t.rowLabel} className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+          {phrases.map((phrase, index) => (
+            <li key={`${index}:${phrase}`} className="shrink-0">
+              <button
+                type="button"
+                onClick={() => onPick(phrase)}
+                aria-label={t.sendPhrase(phrase)}
+                title={phrase}
+                className="pressable inline-flex min-h-11 max-w-[16rem] items-center rounded-full border border-border bg-background px-3.5 py-2 text-meta hover:border-brand"
+              >
+                <span lang={contentLang(phrase)} className="truncate">
+                  {phrase}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          ref={manage}
+          type="button"
+          onClick={() => setManaging(true)}
+          aria-label={t.manageLabel}
+          title={t.manageLabel}
+          className="pressable inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-meta text-brand hover:bg-brand-soft"
+        >
+          <SlidersHorizontal aria-hidden="true" className="size-4" />
+          {t.manage}
+        </button>
+      </div>
+      {managing && (
+        <PhrasesDialog
+          role={role}
+          kept={kept}
+          onClose={() => {
+            refocus.current = folded;
+            setManaging(false);
+          }}
+        />
+      )}
+    </>
   );
 }
 

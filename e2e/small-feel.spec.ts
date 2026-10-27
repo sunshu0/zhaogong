@@ -5,7 +5,7 @@ import { waitForTitle } from "./helpers/title";
 
 // 操作手感第二件「小手感」(#405): 收藏 shows the moment it is pressed and goes back when the server does not keep
 // it; on a phone 收藏 is in the job page's fixed bar; the small controls are 44 px to press; the chat folds its job
-// bar while the keyboard is up.
+// bar while the keyboard is up, and (#415) its activity lines and 常用语 row.
 test.use({ reducedMotion: "reduce" });
 
 const PHONE = { width: 375, height: 667 };
@@ -110,41 +110,66 @@ test.describe("phone", () => {
     await expectTouchSized(page.getByRole("main").getByRole("link", { name: "职位列表", exact: true }), "返回列表");
   });
 
-  test("with the keyboard up the chat folds its job bar, and brings it back when it goes down", async ({
+  test("with the keyboard up the chat folds its job bar, activity and 常用语, and brings them back when it goes down", async ({
     page,
   }, testInfo) => {
     await signIn(page, "/messages?conversation=north-tea", freshEmail("demo.feel-keys"));
     const thread = page.getByRole("region", { name: /北岸早茶酒家/ });
     const job = thread.getByRole("link", { name: /^聊的职位：/ });
+    const activity = thread.getByLabel("沟通状态", { exact: true });
+    const phrases = thread.getByRole("list", { name: "常用语" });
     const log = page.getByRole("log", { name: "消息记录" });
     await expect(job).toBeVisible();
+    await expect(activity).toBeVisible();
+    await expect(phrases).toBeVisible();
     const input = page.getByLabel("输入消息");
 
-    // What a keyboard of about 290 px leaves of the screen. T1 left the messages 86 px there (brief-B-15).
+    // What a keyboard of about 290 px leaves of the screen. T1 left the messages 86 px there (brief-B-15); #405 147.
     const bar = (await job.boundingBox())!.height;
+    const folded = bar + (await activity.boundingBox())!.height + (await phrases.boundingBox())!.height;
     const height = async () => Math.round((await log.boundingBox())!.height);
     const down = await height();
     await input.focus();
     await page.setViewportSize({ width: PHONE.width, height: 377 });
     await expect(job).toBeHidden();
+    await expect(activity).toBeHidden();
+    await expect(phrases).toBeHidden();
     // Settled: the chat follows the visible window on its resize event.
     await expect.poll(() => (async () => (await thread.boundingBox())!.height)()).toBeLessThanOrEqual(377);
     const up = await height();
     await page.screenshot({ path: testInfo.outputPath("keyboard-up.png") });
-    const numbers = `bar ${bar}, log down ${down}, log with the keyboard up ${up}`;
+    const numbers = `bar ${bar}, folded ${folded}, log down ${down}, log with the keyboard up ${up}`;
     testInfo.annotations.push({ type: "log height", description: numbers });
-    console.log(`#405 ${testInfo.project.name}: ${numbers}`);
-    expect(up).toBeGreaterThanOrEqual(86 + bar - 2);
+    console.log(`#415 ${testInfo.project.name}: ${numbers}`);
+    expect(up).toBeGreaterThanOrEqual(86 + folded - 2);
 
-    // The keyboard goes down (the window is tall again), or the box loses the focus: the bar is back.
+    // The keyboard goes down (the window is tall again), or the box loses the focus: they are back.
     await page.setViewportSize(PHONE);
     await expect(job).toBeVisible();
+    await expect(activity).toBeVisible();
+    await expect(phrases).toBeVisible();
     await page.setViewportSize({ width: PHONE.width, height: 377 });
     await expect(job).toBeHidden();
     await input.blur();
     await expect(job).toBeVisible();
+    await expect(phrases).toBeVisible();
+
+    // A field in 管理常用语 has the keyboard too: the row folds, its dialog stays.
+    await page.setViewportSize(PHONE);
+    await thread.getByRole("button", { name: "管理常用语和开场白" }).click();
+    const dialog = page.getByRole("dialog", { name: "常用语和开场白" });
+    const field = dialog.getByLabel("常用语 1", { exact: true });
+    await field.focus();
+    await page.setViewportSize({ width: PHONE.width, height: 377 });
+    await expect(phrases).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await expect(field).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
 
     await page.setViewportSize(PHONE);
+    await expect(phrases).toBeVisible();
+    await expect(thread.getByRole("button", { name: "管理常用语和开场白" })).toBeFocused();
     await waitForTitle(page);
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual(
       [],

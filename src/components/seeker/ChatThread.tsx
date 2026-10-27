@@ -61,22 +61,25 @@ export function ChatThread({
     <section ref={thread} className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
       <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
       {/* #405: while the phone's keyboard is up, the job bar and the marks fold away (kept, not reloaded) so the
-          messages keep the room; they are back when it goes down. */}
-      <div className={keyboardUp ? "hidden" : "contents"} data-folded={keyboardUp || undefined}>
+          messages keep the room; they are back when it goes down. #415: the activity lines and the 常用语 row too
+          (the row keeps its 管理 dialog showing, so a field in it can have the keyboard). DeliveryNote stays. */}
+      <Folded folded={keyboardUp}>
         {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
         {/* ADR 0030: the business marks the job seeker here too. */}
         {isEmployer && conversation.job && conversation.id.startsWith("chat:") && (
           <ChatCandidateMarks conversationId={conversation.id} jobId={conversation.job} />
         )}
-      </div>
+      </Folded>
       <DeliveryNote conversationId={conversation.id} />
 
-      <ChatActivity
-        conversation={conversation}
-        isEmployer={isEmployer}
-        conversations={conversations}
-        messages={messages}
-      />
+      <Folded folded={keyboardUp}>
+        <ChatActivity
+          conversation={conversation}
+          isEmployer={isEmployer}
+          conversations={conversations}
+          messages={messages}
+        />
+      </Folded>
 
       <MessageLog conversationId={conversation.id} thread={messages[conversation.id]} />
 
@@ -88,7 +91,7 @@ export function ChatThread({
           </p>
         ) : (
           <>
-            <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} />
+            <ChatPhraseRow role={isEmployer ? "employer" : "seeker"} onPick={sendPhrase} folded={keyboardUp} />
             <MessageComposer
               draft={draft}
               onDraftChange={onDraftChange}
@@ -99,6 +102,15 @@ export function ChatThread({
         )}
       </div>
     </section>
+  );
+}
+
+/** What folds away while the phone's keyboard is up (#405, #415): hidden, not unmounted. */
+function Folded({ folded, children }: { folded: boolean; children: ReactNode }) {
+  return (
+    <div className={folded ? "hidden" : "contents"} data-folded={folded || undefined}>
+      {children}
+    </div>
   );
 }
 
