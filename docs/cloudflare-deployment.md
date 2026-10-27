@@ -280,7 +280,7 @@ npm run db:demo-sql -- --output D:/dev/zg-scratch/d1/demo.sql
 npx wrangler d1 execute zhaogong-demo --remote --file=data/d1-demo.sql
 ```
 
-数据库名必须对应配置中的演示绑定，不能指向正式库。SQL 开头检查所有应用表：任一表非空即通过约束错误拒绝导入，避免覆盖已有账号或重复填充；不要删掉这条检查。文件需整体交给 `--file` 导入，不能拆成逐条命令，外键依赖需要同一批次内延迟检查。远程文件导入的失败回滚行为见 [Cloudflare D1 入门](https://developers.cloudflare.com/d1/get-started/#populate-your-d1-database)。
+数据库名必须对应配置中的演示绑定，不能指向正式库。SQL 开头检查所有应用表：任一表非空即通过约束错误拒绝导入，避免覆盖已有账号或重复填充；不要删掉这条检查。文件需整体交给 `--file` 导入，不能拆成逐条命令。INSERT 按外键依赖排好（被引用的表在前，按库结构算），远程导入不认 `PRAGMA defer_foreign_keys`，不靠它（B-17）。远程文件导入的失败回滚行为见 [Cloudflare D1 入门](https://developers.cloudflare.com/d1/get-started/#populate-your-d1-database)。
 
 本轮已验证：91 条合成记录在本机 D1 成功导入；重复导入被拒绝，数据和外键保持完整；libSQL 单测逐表核对与原始演示数据一致。正式站第一位审核员使用下一节的独立流程，不能通过导入演示账号来代替。
 

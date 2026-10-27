@@ -16,6 +16,45 @@ function identifier(name: string): string {
   return `"${name.replaceAll('"', '""')}"`;
 }
 
+/**
+ * The tables in an order where each comes after every table its foreign keys point to, so a file of INSERTs in this
+ * order passes foreign key checks statement by statement (D1's remote import does not honour
+ * `PRAGMA defer_foreign_keys`: B-17). Ties go by name, so the order only changes with the schema. A cycle between
+ * tables, or a table that points to itself, has no such order: the export stops and says so.
+ */
+export function parentsFirst(parents: ReadonlyMap<string, readonly string[]>): string[] {
+  const order: string[] = [];
+  const done = new Set<string>();
+  const visiting: string[] = [];
+  const visit = (table: string) => {
+    if (done.has(table)) return;
+    if (visiting.includes(table)) {
+      const cycle = [...visiting.slice(visiting.indexOf(table)), table].join(" → ");
+      throw new Error(`Foreign keys form a cycle (${cycle}): the demo export cannot put parent rows first.`);
+    }
+    visiting.push(table);
+    for (const parent of [...(parents.get(table) ?? [])].sort()) visit(parent);
+    visiting.pop();
+    done.add(table);
+    order.push(table);
+  };
+  for (const table of [...parents.keys()].sort()) visit(table);
+  return order;
+}
+
+/** Each table's parents: the tables its foreign keys point to, read from the migrated database. */
+async function foreignKeyParents(client: ReturnType<typeof createClient>, tables: string[]) {
+  const parents = new Map<string, string[]>();
+  for (const table of tables) {
+    const keys = await client.execute(`PRAGMA foreign_key_list(${identifier(table)})`);
+    parents.set(
+      table,
+      [...new Set(keys.rows.map((key) => String(key.table)))].filter((parent) => tables.includes(parent)),
+    );
+  }
+  return parents;
+}
+
 /** The last migration in drizzle/ (its journal tag, e.g. 0038_moderator_changes), for the file's header. */
 function lastMigration(): string {
   const journal = JSON.parse(readFileSync("drizzle/meta/_journal.json", "utf8")) as { entries: { tag: string }[] };
@@ -77,12 +116,14 @@ export async function demoDataSql(now = Date.now()): Promise<{ sql: string; stat
       .filter((value) => is(value, SQLiteTable))
       .map(getTableName)
       .sort();
+    const ordered = parentsFirst(await foreignKeyParents(client, tables));
     const header = [
       `-- Zhaogong synthetic demo fixtures. Apply migrations 0000-${lastMigration()} first.`,
       `-- Dated for ${new Date(now).toISOString().slice(0, 10)}: the fixed-date demo jobs were moved ${movedDays} days forward.`,
       "-- Import into an EMPTY DEMO DATABASE ONLY with wrangler d1 execute --file.",
       "-- No user database was read. Do not use this file for production onboarding.",
     ];
+    // Kept for local imports; the order below no longer needs it (D1's remote import ignores it: B-17).
     const statements = [
       "PRAGMA defer_foreign_keys = on;",
       // The NOT NULL constraint aborts the import if any application table already has data, including tables
@@ -90,7 +131,7 @@ export async function demoDataSql(now = Date.now()): Promise<{ sql: string; stat
       `INSERT INTO "write_guards" ("token") SELECT NULL WHERE ${tables.map((table) => `EXISTS (SELECT 1 FROM ${identifier(table)})`).join(" OR ")};`,
     ];
     let rows = 0;
-    for (const table of tables) {
+    for (const table of ordered) {
       const info = await client.execute(`PRAGMA table_info(${identifier(table)})`);
       const columns = info.rows.map((column) => identifier(String(column.name)));
       const quoted = await client.execute(

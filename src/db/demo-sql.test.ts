@@ -2,7 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { demoDataSql } from "@/db/demo-sql";
+import { demoDataSql, parentsFirst } from "@/db/demo-sql";
 import { seedDemoData } from "@/db/seed";
 import * as schema from "@/db/schema";
 import { MOCK_JOBS } from "@/mock/data";
@@ -96,6 +96,22 @@ describe("offline demo bootstrap SQL", () => {
     expect(artifact.sql).toContain("Dated for 2026-12-01: the fixed-date demo jobs were moved 51 days forward.");
   });
 
+  it("imports statement by statement with foreign keys checked at once: parent rows come first (B-17)", async () => {
+    const artifact = await demoDataSql();
+    const target = await freshDatabase();
+    await target.execute("PRAGMA foreign_keys = ON");
+    expect((await target.execute("PRAGMA foreign_keys")).rows[0].foreign_keys).toBe(1);
+    // As D1's remote import does: no deferring, each INSERT checked as it runs.
+    let failed = 0;
+    for (const statement of artifact.statements.filter((s) => !s.startsWith("PRAGMA"))) {
+      await target.execute(statement).catch(() => failed++);
+    }
+    expect(failed).toBe(0);
+    expect(artifact.statements[1]).toMatch(/^INSERT INTO "write_guards"/);
+    expect((await target.execute("PRAGMA foreign_key_check")).rows).toEqual([]);
+    expect((await target.execute("SELECT count(*) AS n FROM jobs")).rows[0].n).toBe(23);
+  });
+
   it("refuses a nonempty target even if it has no employers, preserving its data", async () => {
     const artifact = await demoDataSql();
     const target = await freshDatabase();
@@ -105,6 +121,26 @@ describe("offline demo bootstrap SQL", () => {
     await expect(target.batch(artifact.statements, "write")).rejects.toThrow(/NOT NULL/);
     expect((await target.execute("SELECT email FROM accounts")).rows).toEqual([{ email: "existing@example.com" }]);
     expect((await target.execute("SELECT * FROM employers")).rows).toEqual([]);
+  });
+
+  it("orders tables after the tables they point to, by name otherwise, and stops on a cycle", () => {
+    const parents = new Map([
+      ["contact_views", ["jobs", "accounts"]],
+      ["jobs", ["employers"]],
+      ["employers", []],
+      ["accounts", []],
+      ["write_guards", []],
+    ]);
+    expect(parentsFirst(parents)).toEqual(["accounts", "employers", "jobs", "contact_views", "write_guards"]);
+    expect(() =>
+      parentsFirst(
+        new Map([
+          ["a", ["b"]],
+          ["b", ["a"]],
+        ]),
+      ),
+    ).toThrow(/cycle \(a → b → a\)/);
+    expect(() => parentsFirst(new Map([["replies", ["replies"]]]))).toThrow(/cycle \(replies → replies\)/);
   });
 
   it("refuses a second import without adding to or replacing existing fixtures", async () => {
