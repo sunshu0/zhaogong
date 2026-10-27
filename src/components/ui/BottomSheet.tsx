@@ -1,8 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { shouldDismiss } from "@/components/ui/sheet-drag";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useKeyboardRoom, useSheetDrag } from "@/components/ui/use-sheet";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
@@ -10,7 +10,8 @@ import { uiMessages } from "@/i18n/messages/ui";
  * A bottom sheet (Round 19, an app's feel): on a phone a panel slides up from the bottom; from 768 px it is a centred
  * panel. A modal <dialog>, so focus stays inside and the page behind is inert. Closes on the 关闭 button, Esc, a
  * tap on the dimmed page, or by dragging the handle down. Shown while `open`; the parent owns that state and closes
- * it in `onClose`. A `footer` (the sheet's buttons) stays below the scrolling content, never over it.
+ * it in `onClose`. A `footer` (the sheet's buttons) stays below the scrolling content, never over it. On a phone it
+ * sits above the keyboard (#413).
  */
 export function BottomSheet({
   open,
@@ -28,8 +29,8 @@ export function BottomSheet({
   const closeLabel = useMessages(uiMessages).close;
   const ref = useRef<HTMLDialogElement>(null);
   const heading = useId();
-  const drag = useRef<{ startY: number; startAt: number } | null>(null);
-  const [offset, setOffset] = useState(0);
+  const { handlers: dragHandlers, style: dragStyle, reset } = useSheetDrag(onClose);
+  const keyboard = useKeyboardRoom(open);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -40,40 +41,18 @@ export function BottomSheet({
     dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     return () => {
       dialog.close();
-      setOffset(0);
+      reset();
       if (previous?.isConnected) previous.focus();
     };
-  }, [open]);
+  }, [open, reset]);
 
   if (!open) return null;
-
-  const dragHandlers = {
-    onPointerDown: (event: PointerEvent) => {
-      if ((event.target as HTMLElement).closest("button")) return; // 关闭 stays a plain button
-      drag.current = { startY: event.clientY, startAt: event.timeStamp };
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    },
-    onPointerMove: (event: PointerEvent) => {
-      if (drag.current) setOffset(Math.max(0, event.clientY - drag.current.startY));
-    },
-    onPointerUp: (event: PointerEvent) => {
-      const start = drag.current;
-      drag.current = null;
-      if (!start) return;
-      const distance = event.clientY - start.startY;
-      if (shouldDismiss(distance, event.timeStamp - start.startAt)) onClose();
-      else setOffset(0);
-    },
-    onPointerCancel: () => {
-      drag.current = null;
-      setOffset(0);
-    },
-  };
 
   return (
     <dialog
       ref={ref}
       aria-labelledby={heading}
+      aria-modal="true"
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -82,10 +61,10 @@ export function BottomSheet({
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      style={offset ? { transform: `translateY(${offset}px)`, transition: "none" } : undefined}
+      style={keyboard || dragStyle ? { ...keyboard, ...dragStyle } : undefined}
       className="mx-0 mt-auto mb-0 max-h-[85dvh] w-full max-w-none animate-sheet-up overflow-hidden rounded-t-card bg-surface p-0 pb-[env(safe-area-inset-bottom)] text-foreground shadow-pop transition-transform duration-(--duration-ui) ease-(--ease-app) backdrop:animate-fade-in backdrop:bg-black/40 md:m-auto md:w-[min(28rem,calc(100vw_-_2rem))] md:animate-pop-in md:rounded-card md:pb-0"
     >
-      <div className="flex max-h-[85dvh] flex-col">
+      <div className="flex max-h-[inherit] flex-col">
         <div
           {...dragHandlers}
           className="shrink-0 cursor-grab touch-none select-none active:cursor-grabbing md:cursor-auto"

@@ -260,7 +260,8 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 | `Section look="sheet"` | 纸：白底、一圈细线（`ring-1 ring-border`），没有阴影，手机上也是圆角块，不贴边 | 改版页面用它；里面照旧放 `Group`、`LinkList`，不再套卡片。第 19 轮的 `look="app"`（同样的形状带阴影）在视觉 A 做完后删掉了（#398） |
 | `LinkList` | 一行一个入口（我的、待办） | 按下整行变暗，伸到 `Section` 的左右边 |
 | `Card`、`CardLink`、`cardClass()`、`rowClass()` | 卡片；`interactive` 的整张可点 | `CardLink` 里不要再放链接和按钮 |
-| `BottomSheet` | 手机从底部滑上来，768 px 起是居中面板 | 原生 `<dialog>`：焦点不出面板；点遮罩、下拉把手、Esc、「关闭」都能关；内容里 `data-autofocus` 的元素先拿到焦点 |
+| `BottomSheet` | 手机从底部滑上来，768 px 起是居中面板 | 原生 `<dialog>`：焦点不出面板；点遮罩、下拉把手、Esc、「关闭」都能关；内容里 `data-autofocus` 的元素先拿到焦点；手机键盘起来时坐在键盘上（#413）。拖动和让键盘在 `use-sheet.ts`，`ChatDialog` 也用 |
+| `MoreMenu` | 「更多」：次要操作收在一个按钮后面。768 px 起是下拉菜单，手机上是装着同一个菜单的 `BottomSheet`（#413） | 键盘一样：↑↓、Home / End、Enter、Esc 回到按钮；下拉里 Tab 关掉往后走，弹层里 Tab 留在面板里。e2e 用 `chatMenuItem()` / `cardMenuItem()` |
 | `Select` | 代替原生 `<select>`：手机用底部弹层，桌面用下拉 | 值放在同名的隐藏输入框里，GET 表单照常提交（没有 `name` 就不放）；传 `value` 就是受控的，由 `onChange` 更新（整张表单会被替换的地方，比如 AI 整理后的发布表单）；表单自己画标签时传 `id`（给触发按钮，`<label htmlFor>` 指向它）和 `hideLabel`（标签只给读屏）；JavaScript 跑起来之前（或没有 JavaScript）是原生下拉框。键盘：↑↓ 移动、Home / End、Enter 或空格选、Esc / Tab 关、按字母跳到下一个（`select-keys.ts`）。e2e 用 `chooseOption()` |
 | `Checkbox`、`Radio` | 原生控件换外观 | 整行都是标签，高 44 px；测试照样 `check()` |
 | `Skeleton`、`SkeletonCard`、`SkeletonList`、`ListPageSkeleton`、`DetailPageSkeleton` | 骨架屏，轻微明暗起伏 | 不用 `role="status"`（页面有自己的状态消息），外层 `aria-busy` 加一行屏幕阅读器文字 |
@@ -284,6 +285,12 @@ Tailwind 里写 `duration-(--duration-ui) ease-(--ease-app)`；动画用 `animat
 - 从列表点进一个职位，用浏览器返回键或页内「← 职位列表」「← 实习 / 专业职位」回来，列表回到原来的位置：同一张卡在同一个高度，筛选也在。那张卡没了（职位下架），就回到原来的滚动位置。从别处（底部导航）进列表，照旧从顶上开始。
 - 列表外面包一层 `ListPlace`（`src/components/seeker/list-place.tsx`，ADR 0047）：现在包了职位列表和实习、专业职位。新的列表照着包；新的「回某列表」链接照 `SectionBackLink` 写。
 - 按下就预取试过、没做：职位读库没缓存，Next 的预取取不到职位（ADR 0047）。
+
+### 弹出来的面板都是底部弹层（#413）
+
+- 手机（768 px 以下）上，分享、聊天举报、常用语、发简历、交换联系方式这些面板（`ChatDialog`）和「更多」菜单都从底部滑上来：遮罩变暗，顶上有把手，往下拖一段（80 px，或快速一甩）、点遮罩、Esc、「关闭」都能关，关了焦点回到打开它的按钮。768 px 起照旧：居中面板（点旁边不关）和下拉菜单。
+- 键盘起来时，Safari 这类不缩页面的浏览器里，弹层抬到键盘上面、高度收进看得见的部分，正在填的框不被挡（`useKeyboardRoom`）。
+- 「减少动态效果」打开时不滑，直接出现（全站规则）。职位举报照旧在页内展开（表单长）。见 ADR 0048。
 
 ### 样板：职位列表和职位页（第二步，#141）
 

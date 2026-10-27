@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { MoreHorizontal } from "lucide-react";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { nextMenuIndex } from "@/components/ui/menu-keys";
+import { sheetFromBottom } from "@/components/ui/use-sheet";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
 
@@ -17,7 +19,8 @@ export type MoreMenuItem = {
 /**
  * 「更多」: secondary actions behind one button, so a card or page keeps a single primary button.
  * Keyboard: Enter, Space or ↓ opens on the first item, ↑ on the last; arrows, Home and End move; Escape closes
- * and returns to the button; Tab closes and moves on.
+ * and returns to the button; Tab closes and moves on. From 768 px a dropdown; on a phone the same menu in a
+ * BottomSheet (#413), which a tap on the dimmed page or a drag down closes, and where Tab stays inside.
  */
 export function MoreMenu({
   items,
@@ -35,14 +38,24 @@ export function MoreMenu({
   const words = useMessages(uiMessages).nav;
   const name = label ?? words.more;
   const [open, setOpen] = useState(false);
+  // Decided when it opens: a sheet on a phone-sized window, else the dropdown.
+  const [sheet, setSheet] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
   const firstFocus = useRef(0);
+  // What to do once the sheet has closed: until then the page behind it is inert and takes no focus.
+  const afterSheet = useRef<{ focus: boolean; run?: () => void } | null>(null);
   const menuId = useId();
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      const after = afterSheet.current;
+      afterSheet.current = null;
+      if (after?.focus) button.current?.focus();
+      after?.run?.();
+      return;
+    }
     itemRefs.current[firstFocus.current]?.focus();
     const onPointerDown = (e: PointerEvent) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
@@ -53,12 +66,19 @@ export function MoreMenu({
 
   function openAt(index: number) {
     firstFocus.current = index;
+    setSheet(sheetFromBottom());
     setOpen(true);
   }
 
-  function close(returnFocus: boolean) {
+  /** Closes, gives the focus back to the button if asked, then runs `then` (the chosen item). */
+  function close(returnFocus: boolean, then?: () => void) {
     setOpen(false);
+    if (sheet) {
+      afterSheet.current = { focus: returnFocus, run: then };
+      return;
+    }
     if (returnFocus) button.current?.focus();
+    then?.();
   }
 
   function onButtonKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
@@ -75,7 +95,8 @@ export function MoreMenu({
       return;
     }
     if (e.key === "Tab") {
-      close(false);
+      // In the sheet, a modal, Tab moves to 关闭 instead.
+      if (!sheet) close(false);
       return;
     }
     const current = itemRefs.current.findIndex((el) => el === document.activeElement);
@@ -89,6 +110,37 @@ export function MoreMenu({
     `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none aria-disabled:opacity-50 ${
       item.danger ? "text-danger" : ""
     }`;
+
+  const menuItems = items.map((item, i) => {
+    const common = {
+      ref: (el: HTMLElement | null) => {
+        itemRefs.current[i] = el;
+      },
+      role: "menuitem",
+      tabIndex: -1,
+      "aria-disabled": item.disabled || undefined,
+      className: itemClass(item),
+    } as const;
+    if (item.href !== undefined && !item.disabled) {
+      return (
+        <Link key={item.label} href={item.href} {...common} onClick={() => close(false)}>
+          {item.label}
+        </Link>
+      );
+    }
+    return (
+      <button
+        key={item.label}
+        type="button"
+        {...common}
+        onClick={() => {
+          if (!item.disabled) close(true, item.onSelect);
+        }}
+      >
+        {item.label}
+      </button>
+    );
+  });
 
   return (
     <div ref={root} className="relative inline-block">
@@ -106,7 +158,7 @@ export function MoreMenu({
         <MoreHorizontal aria-hidden="true" className="size-5" />
         {showLabel && name}
       </button>
-      {open && (
+      {open && !sheet && (
         <div
           id={menuId}
           role="menu"
@@ -116,39 +168,15 @@ export function MoreMenu({
             align === "end" ? "right-0" : "left-0"
           }`}
         >
-          {items.map((item, i) => {
-            const common = {
-              ref: (el: HTMLElement | null) => {
-                itemRefs.current[i] = el;
-              },
-              role: "menuitem",
-              tabIndex: -1,
-              "aria-disabled": item.disabled || undefined,
-              className: itemClass(item),
-            } as const;
-            if (item.href !== undefined && !item.disabled) {
-              return (
-                <Link key={item.label} href={item.href} {...common} onClick={() => close(false)}>
-                  {item.label}
-                </Link>
-              );
-            }
-            return (
-              <button
-                key={item.label}
-                type="button"
-                {...common}
-                onClick={() => {
-                  if (item.disabled) return;
-                  close(true);
-                  item.onSelect?.();
-                }}
-              >
-                {item.label}
-              </button>
-            );
-          })}
+          {menuItems}
         </div>
+      )}
+      {open && sheet && (
+        <BottomSheet open onClose={() => close(true)} title={name}>
+          <div id={menuId} role="menu" aria-label={name} onKeyDown={onMenuKeyDown}>
+            {menuItems}
+          </div>
+        </BottomSheet>
       )}
     </div>
   );
