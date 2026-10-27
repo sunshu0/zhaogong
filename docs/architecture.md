@@ -54,6 +54,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
 | `report_evidence` | 职位举报附的证据：选中的聊天消息（举报时的快照）和截图，只给审核员看，处理完 180 天后删 | ADR 0027 |
 | `events` | 点击统计的匿名事件（访客是按天变的 HMAC，不存 IP 和 UA），留 180 天；审核数据的漏斗从这里算（`src/db/events.ts`） | ADR 0025 |
+| `moderator_chats`、`moderator_chat_messages` | 审核员和雇主聊天：一家企业一段对话，谁开的、从哪开的、两边读到哪；每条消息存发的人的账号和团队称呼，企业只看到「找工审核员」（`src/db/moderator-chats.ts`） | ADR 0046 |
 | `chat_risk_hits`、`chat_risk_flags` | 聊天风险：企业发的、碰到聊天规则的消息（哪家、哪段对话哪条、哪几类、时间，不存内容，留 90 天），和每家企业给审核员的一项（7 天内 3 条开、审核员关）（`src/db/chat-risk.ts`） | ADR 0039 |
 | `personal_info_views` | 审核员看过谁的个人信息：审核员、时间、类别、记录编号，不记内容，留一年（`src/db/personal-info-views.ts`） | ADR 0026 |
 
@@ -89,6 +90,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/admin/actions.ts` | 审核后台 |
 | `src/app/[lang]/admin/evidence-actions.ts` | 举报附的聊天和截图，仅审核员可读，交出聊天前记录查看记录（ADR 0027） |
 | `src/app/[lang]/admin/chat-risk-actions.ts` | 审核后台「聊天风险」（#384）：列出、交出消息前记录查看记录、关闭（ADR 0039） |
+| `src/app/[lang]/admin/chat-actions.ts` | 审核后台「聊天」（#407）：和企业的对话，列出、开、读、发（ADR 0046） |
 | `src/app/[lang]/admin/external-actions.ts` | 审核后台「外部职位」 |
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
 | `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |
@@ -109,6 +111,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/me/saved/actions.ts` | 收藏和进度 |
 | `src/app/[lang]/messages/actions.ts` | 聊天、交换和通知 |
 | `src/app/[lang]/messages/phrases-actions.ts` | 聊天常用语和开场白（ADR 0035） |
+| `src/app/[lang]/messages/moderator-chat-actions.ts` | 企业和找工审核员的对话：读、标已读、发（ADR 0046） |
 | `src/app/[lang]/profile/actions.ts` | 我的主页 |
 | `src/app/[lang]/profile/candidate-actions.ts` | 推荐人才：雇主看到的求职者主页 |
 | `src/app/[lang]/profile/resume/actions.ts` | 中英文简历的分享链接 |

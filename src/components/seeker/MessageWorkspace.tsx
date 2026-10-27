@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { MessageSquare } from "lucide-react";
-import { useChat, useChatRefresh, type Conversation, type Message } from "@/components/seeker/chat-client";
+import { useChat, useChatRefresh, type Conversation } from "@/components/seeker/chat-client";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
 import { useChatDraft } from "@/components/seeker/chat-drafts";
@@ -16,6 +16,11 @@ import { chatMessages } from "@/i18n/messages/chat";
 import { shownTime } from "@/components/seeker/chat-store";
 import { isDemoAccount } from "@/lib/demo-accounts";
 import { useOpenConversation, useVisibleViewport } from "@/components/seeker/fullscreen-chat";
+import { MODERATOR_CHAT_ID, useModeratorChat } from "@/components/seeker/moderator-chat-client";
+import { ModeratorChatPanel } from "@/components/seeker/ModeratorChatPanel";
+import { ShieldCheck } from "lucide-react";
+import { moderatorChatMessages } from "@/i18n/messages/moderator-chat";
+import type { ModeratorChatView } from "@/lib/moderator-chat";
 
 export function MessageWorkspace() {
   const t = useMessages(chatMessages).workspace;
@@ -26,13 +31,18 @@ export function MessageWorkspace() {
   const isEmployer = session?.activeRole === "employer";
   const demoAccount = isDemoAccount(session?.email);
   const selected = conversations.find((item) => item.id === selectedId);
+  // ADR 0046: the business's conversation with the moderators, pinned above the others.
+  const moderators = useModeratorChat();
+  const moderatorsOpen = selectedId === MODERATOR_CHAT_ID && moderators.view ? moderators.view : undefined;
+  const anyOpen = Boolean(selected || moderatorsOpen);
   // #281: each conversation keeps its own draft in this tab, through a switch and a reload (chat-drafts.ts).
   const [draft, setDraft] = useChatDraft(identityScope(session), selected?.id ?? null);
   useChatRefresh();
   useUnreadInTitle(totalUnread);
   useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
+  useMarkReadWhileVisible(moderatorsOpen ? MODERATOR_CHAT_ID : null, moderatorsOpen?.lines, moderators.markRead);
   const board = useRef<HTMLDivElement>(null);
-  useVisibleViewport(board, Boolean(selected));
+  useVisibleViewport(board, anyOpen);
 
   function select(id: string) {
     if (id !== selectedId) open(id);
@@ -41,7 +51,7 @@ export function MessageWorkspace() {
 
   // Below 1024 px an open conversation fills the screen (fixed over the page; globals.css hides the site's header,
   // footer and bottom bar while [data-chat-open] is on the page), so the heading and notes here step aside too.
-  const besideChat = selected ? "max-lg:hidden" : "";
+  const besideChat = anyOpen ? "max-lg:hidden" : "";
   return (
     <div className="space-y-4">
       <header className={`flex items-center justify-between gap-3 ${besideChat}`}>
@@ -55,9 +65,9 @@ export function MessageWorkspace() {
       <div
         ref={board}
         data-chat-workspace=""
-        data-chat-open={selected ? "" : undefined}
+        data-chat-open={anyOpen ? "" : undefined}
         className={`grid overflow-hidden bg-surface lg:h-[calc(100dvh_-_9rem)] lg:min-h-[30rem] lg:rounded-card lg:ring-1 lg:ring-border lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)] ${
-          selected
+          anyOpen
             ? "max-lg:fixed max-lg:inset-x-0 max-lg:top-(--chat-top,0px) max-lg:z-30 max-lg:h-(--chat-height,100dvh) max-lg:pt-[env(safe-area-inset-top)] max-lg:pb-[env(safe-area-inset-bottom)]"
             : "h-[calc(100dvh_-_13rem_-_var(--bottom-nav-space))] min-h-[24rem] rounded-card ring-1 ring-border"
         }`}
@@ -66,11 +76,24 @@ export function MessageWorkspace() {
           conversations={conversations}
           messages={messages}
           unread={unread}
-          selectedId={selected?.id}
+          selectedId={selected?.id ?? (moderatorsOpen ? MODERATOR_CHAT_ID : undefined)}
           isEmployer={isEmployer}
           onSelect={select}
+          pinned={
+            moderators.view && (
+              <ModeratorRow
+                view={moderators.view}
+                selected={Boolean(moderatorsOpen)}
+                onSelect={() => select(MODERATOR_CHAT_ID)}
+              />
+            )
+          }
         />
-        {selected ? (
+        {moderatorsOpen ? (
+          <RetryBoundary key={MODERATOR_CHAT_ID} title={t.threadFailedTitle} note={t.threadFailedNote}>
+            <ModeratorThread view={moderatorsOpen} send={moderators.send} onBack={close} />
+          </RetryBoundary>
+        ) : selected ? (
           // #178: if the open chat fails, the list and the unsent draft (state up here) stay; 重试 redraws the chat.
           <RetryBoundary key={selected.id} title={t.threadFailedTitle} note={t.threadFailedNote}>
             <ChatThread
@@ -91,11 +114,7 @@ export function MessageWorkspace() {
 }
 
 /** Marks the open conversation read now and whenever the tab becomes visible again. */
-function useMarkReadWhileVisible(
-  conversationId: string | null,
-  thread: Message[] | undefined,
-  markRead: (id: string) => void,
-) {
+function useMarkReadWhileVisible(conversationId: string | null, thread: unknown, markRead: (id: string) => void) {
   useEffect(() => {
     const readVisible = () => {
       if (conversationId && document.visibilityState === "visible") markRead(conversationId);
@@ -113,10 +132,13 @@ function ConversationList({
   selectedId,
   isEmployer,
   onSelect,
+  pinned,
 }: Pick<ReturnType<typeof useChat>, "conversations" | "messages" | "unread"> & {
   selectedId: string | undefined;
   isEmployer: boolean;
   onSelect: (id: string) => void;
+  /** The conversation with the moderators (ADR 0046), above the others. */
+  pinned?: ReactNode;
 }) {
   const t = useMessages(chatMessages).workspace;
   return (
@@ -128,6 +150,7 @@ function ConversationList({
         <h2 className="text-subtitle font-semibold">{t.recent}</h2>
         <span className="text-meta text-muted">{t.conversationCount(conversations.length)}</span>
       </div>
+      {pinned && <div className="border-b border-border p-1.5">{pinned}</div>}
       {conversations.length === 0 && (
         <p className="px-4 py-6 text-body text-muted">
           {t.empty}
@@ -236,4 +259,81 @@ function useUnreadInTitle(count: number) {
       document.title = document.title.replace(UNREAD_PREFIX, "");
     };
   }, [count]);
+}
+
+/** The moderators' avatar: the site's shield, not a person. */
+function ModeratorAvatar() {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"
+    >
+      <ShieldCheck className="size-5" />
+    </span>
+  );
+}
+
+/** ADR 0046: the conversation with 找工审核员, pinned above the job seekers' and marked 官方. */
+function ModeratorRow({
+  view,
+  selected,
+  onSelect,
+}: {
+  view: ModeratorChatView;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const t = useMessages(moderatorChatMessages);
+  const preview = view.lines.at(-1)?.text ?? t.empty;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      data-moderator-chat=""
+      className={`pressable-row flex w-full items-center gap-3 rounded-control px-3 py-3 text-left hover:bg-background ${selected ? "bg-brand-soft hover:bg-brand-soft" : ""}`}
+    >
+      <ModeratorAvatar />
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2">
+          <span className={`truncate text-body ${view.unread ? "font-semibold" : "font-medium"}`}>{t.name}</span>
+          <span className="shrink-0 rounded-full bg-brand-soft px-2 text-meta font-medium text-brand">
+            {t.employer.rowNote}
+          </span>
+        </span>
+        <span
+          lang={contentLang(preview)}
+          className={`mt-0.5 block truncate text-meta ${view.unread ? "text-foreground" : "text-muted"}`}
+        >
+          {preview}
+        </span>
+      </span>
+      <UnreadBadge count={view.unread} />
+    </button>
+  );
+}
+
+function ModeratorThread({
+  view,
+  send,
+  onBack,
+}: {
+  view: ModeratorChatView;
+  send: ReturnType<typeof useModeratorChat>["send"];
+  onBack: () => void;
+}) {
+  const t = useMessages(moderatorChatMessages);
+  return (
+    <ModeratorChatPanel
+      label={t.employer.label}
+      heading={t.name}
+      avatar={<ModeratorAvatar />}
+      note={t.employer.note}
+      lines={view.lines}
+      signature={(line) => (line.mine ? line.by : undefined)}
+      onSend={send}
+      onBack={onBack}
+      backLabel={t.employer.back}
+    />
+  );
 }

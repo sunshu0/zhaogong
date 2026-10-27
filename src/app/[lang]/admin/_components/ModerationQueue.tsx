@@ -1,5 +1,6 @@
 "use client";
-import { useCallback, useState, useTransition } from "react";
+import { Suspense, useCallback, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { regionById } from "@/config/countries";
 import { placeName } from "@/components/seeker/format";
 import { useLang, useMessages } from "@/i18n/client";
@@ -29,6 +30,9 @@ import { Funnels } from "@/app/[lang]/admin/_components/Funnels";
 import { ModeratorChanges } from "@/app/[lang]/admin/_components/ModeratorChanges";
 import { ModeratorList } from "@/app/[lang]/admin/_components/ModeratorList";
 import { TempBans } from "@/app/[lang]/admin/_components/TempBans";
+import { StartChatButton, unreadChats, useModeratorChatList } from "@/app/[lang]/admin/_components/ModeratorChats";
+import { conversationAddress } from "@/components/seeker/fullscreen-chat";
+import { moderatorChatMessages } from "@/i18n/messages/moderator-chat";
 import { PersonalInfoViews } from "@/app/[lang]/admin/_components/PersonalInfoViews";
 import { ReportEvidenceView } from "@/app/[lang]/admin/_components/ReportEvidenceView";
 import { ChatRiskQueue, useChatRiskQueue } from "@/app/[lang]/admin/_components/ChatRiskQueue";
@@ -47,6 +51,13 @@ import { pick } from "@/i18n/messages";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 import { PILL_TABS, TabList, TabPanel, UNDERLINE_TABS, pillTab, underlineTab } from "@/components/employer/Tabs";
 import { useSession } from "@/components/seeker/session-client";
+
+// The 聊天 group's list and conversation load when the group opens: they share ChatThread's composer with 消息, which
+// would otherwise come with every visit to /admin (ADR 0046, performance budget).
+const ModeratorChats = dynamic(
+  () => import("@/app/[lang]/admin/_components/ModeratorChatBoard").then((m) => m.ModeratorChats),
+  { ssr: false, loading: () => <Loading cards={1} /> },
+);
 
 export const TITLE = "text-[1.75rem] leading-tight font-black";
 
@@ -68,7 +79,8 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
 type TodoTab = "flagged" | "reported" | "chatRisk" | "verification" | "external";
 type RecordTab = "log" | "stats" | "views" | "tempBans" | "moderators" | "changes";
 type Tab = TodoTab | RecordTab;
-type Group = "todo" | "records";
+/** ADR 0046: 聊天, the conversations with businesses, the third group. */
+type Group = "todo" | "records" | "chat";
 
 // When a job was posted, a report made, a decision taken: day and time, New Zealand time (format.ts).
 const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" };
@@ -78,7 +90,11 @@ export function ModerationQueue() {
   const t = useMessages(adminMessages);
   const tv = useMessages(adminViewsMessages);
   const admin = useSession()?.staff === "admin";
-  const [group, setGroup] = useState<Group>("todo");
+  // A conversation in the address (?conversation=, a reload or a link) opens the 聊天 group. This renders only
+  // after hydration (SignInGate), so the address is there to read.
+  const [group, setGroup] = useState<Group>(() =>
+    new URLSearchParams(window.location.search).has("conversation") ? "chat" : "todo",
+  );
   // Each group remembers its tab while the other is open.
   const [todoTab, setTodoTab] = useState<TodoTab>("flagged");
   const [recordTab, setRecordTab] = useState<RecordTab>("log");
@@ -94,10 +110,19 @@ export function ModerationQueue() {
   const verifications = useVerificationQueue(version, tab === "verification");
   const external = useExternalReview(version); // #112
   const chatRisk = useChatRiskQueue(version); // #384: names and counts only; the messages load when opened
+  const chats = useModeratorChatList(version, group === "chat"); // ADR 0046
+  const tc = useMessages(moderatorChatMessages).admin;
 
   const done = (r: AdminResult) => {
     setResult(r);
     reload();
+  };
+  /** 和企业聊天 opened a business's conversation: show it in the 聊天 group. */
+  const openChat = (employerId: string) => {
+    window.history.replaceState(null, "", conversationAddress(window.location, employerId));
+    setResult(undefined);
+    setGroup("chat");
+    chats.refresh();
   };
 
   if (answer && !isFailed(answer) && "refused" in answer) {
@@ -149,6 +174,7 @@ export function ModerationQueue() {
         tabs={[
           { key: "todo", label: `${t.groups.todo} ${waiting ?? ""}` },
           { key: "records", label: t.groups.records },
+          { key: "chat", label: `${tc.group} ${unreadChats(chats.list) || ""}` },
         ]}
         value={group}
         onChange={setGroup}
@@ -156,105 +182,114 @@ export function ModerationQueue() {
         tabClassName={pillTab}
       />
       <TabPanel idBase="admin-group" value={group} className="space-y-4">
-        {group === "todo" && <ModerationSummary stats={stats} onRetry={reload} />}
-        {group === "todo" ? (
-          <TabList
-            label={t.tabs.label}
-            idBase="admin"
-            tabs={labelled(todoTabs)}
-            value={todoTab}
-            onChange={setTodoTab}
-            className={UNDERLINE_TABS}
-            tabClassName={adminTab}
-          />
+        {group === "chat" ? (
+          <Suspense fallback={<Loading cards={1} />}>
+            <ModeratorChats list={chats.list} refresh={chats.refresh} />
+          </Suspense>
         ) : (
-          <TabList
-            label={t.groups.records}
-            idBase="admin"
-            tabs={labelled(recordTabs)}
-            value={recordTab}
-            onChange={setRecordTab}
-            className={UNDERLINE_TABS}
-            tabClassName={adminTab}
-          />
-        )}
-
-        {result && (
-          <p
-            ref={resultRef}
-            tabIndex={-1}
-            role="status"
-            className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
-          >
-            {result.ok ? t.queue.done(result.text) : result.error_zh}
-          </p>
-        )}
-
-        <TabPanel idBase="admin" value={tab}>
-          {tab === "changes" ? (
-            <ModeratorChanges />
-          ) : tab === "tempBans" ? (
-            <TempBans onDone={done} />
-          ) : tab === "moderators" ? (
-            <ModeratorList onDone={setResult} />
-          ) : tab === "views" ? (
-            <PersonalInfoViews />
-          ) : tab === "chatRisk" ? (
-            <ChatRiskQueue queue={chatRisk} onDone={done} onRetry={reload} />
-          ) : tab === "verification" ? (
-            <VerificationQueue queue={verifications} onDone={done} onRetry={reload} />
-          ) : tab === "external" ? (
-            <ExternalReview queue={external} onDone={done} onRetry={reload} />
-          ) : tab === "stats" ? (
-            statsNow ? (
-              <div className="space-y-section">
-                <ModerationWeeks stats={statsNow} />
-                <ModeratorWeeks stats={statsNow} />
-                <AiPostingUsage stats={statsNow} />
-                <Funnels />
-              </div>
-            ) : isFailed(stats) ? (
-              <LoadFailed what={t.queue.statsName} onRetry={reload} />
-            ) : (
-              <Loading />
-            )
-          ) : isFailed(answer) ? (
-            <LoadFailed what={t.queue.queueName} onRetry={reload} />
-          ) : !queue ? (
-            <Loading />
-          ) : tab === "log" ? (
-            queue.log.length === 0 ? (
-              <Empty>{t.queue.noLog}</Empty>
-            ) : (
-              <Section look="sheet">
-                <ol className="divide-y divide-border">
-                  {queue.log.map((e) => (
-                    <li key={e.id} className="flex gap-3 py-3 text-body">
-                      <time dateTime={e.at} className="w-24 shrink-0 text-muted">
-                        {formatDate(e.at, lang, TIME)}
-                      </time>
-                      <span className="min-w-0">
-                        {e.text}
-                        <span className="block text-meta text-muted">
-                          {t.queue.by(moderatorLabel(e.moderator, lang))}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </Section>
-            )
-          ) : (
-            <>
-              {tab === "reported" && <p className="mb-3 text-meta text-muted">{t.queue.reportsOnlyJobs}</p>}
-              <QueueList
-                items={tab === "flagged" ? queue.flagged : queue.reported}
-                empty={tab === "flagged" ? t.queue.noFlagged : t.queue.noReports}
-                onDone={done}
+          <>
+            {group === "todo" && <ModerationSummary stats={stats} onRetry={reload} />}
+            {group === "todo" ? (
+              <TabList
+                label={t.tabs.label}
+                idBase="admin"
+                tabs={labelled(todoTabs)}
+                value={todoTab}
+                onChange={setTodoTab}
+                className={UNDERLINE_TABS}
+                tabClassName={adminTab}
               />
-            </>
-          )}
-        </TabPanel>
+            ) : (
+              <TabList
+                label={t.groups.records}
+                idBase="admin"
+                tabs={labelled(recordTabs)}
+                value={recordTab}
+                onChange={setRecordTab}
+                className={UNDERLINE_TABS}
+                tabClassName={adminTab}
+              />
+            )}
+
+            {result && (
+              <p
+                ref={resultRef}
+                tabIndex={-1}
+                role="status"
+                className={`animate-fade-in rounded-control px-4 py-3 text-body outline-none ${result.ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}
+              >
+                {result.ok ? t.queue.done(result.text) : result.error_zh}
+              </p>
+            )}
+
+            <TabPanel idBase="admin" value={tab}>
+              {tab === "changes" ? (
+                <ModeratorChanges />
+              ) : tab === "tempBans" ? (
+                <TempBans onDone={done} onChat={openChat} />
+              ) : tab === "moderators" ? (
+                <ModeratorList onDone={setResult} />
+              ) : tab === "views" ? (
+                <PersonalInfoViews />
+              ) : tab === "chatRisk" ? (
+                <ChatRiskQueue queue={chatRisk} onDone={done} onRetry={reload} />
+              ) : tab === "verification" ? (
+                <VerificationQueue queue={verifications} onDone={done} onRetry={reload} onChat={openChat} />
+              ) : tab === "external" ? (
+                <ExternalReview queue={external} onDone={done} onRetry={reload} />
+              ) : tab === "stats" ? (
+                statsNow ? (
+                  <div className="space-y-section">
+                    <ModerationWeeks stats={statsNow} />
+                    <ModeratorWeeks stats={statsNow} />
+                    <AiPostingUsage stats={statsNow} />
+                    <Funnels />
+                  </div>
+                ) : isFailed(stats) ? (
+                  <LoadFailed what={t.queue.statsName} onRetry={reload} />
+                ) : (
+                  <Loading />
+                )
+              ) : isFailed(answer) ? (
+                <LoadFailed what={t.queue.queueName} onRetry={reload} />
+              ) : !queue ? (
+                <Loading />
+              ) : tab === "log" ? (
+                queue.log.length === 0 ? (
+                  <Empty>{t.queue.noLog}</Empty>
+                ) : (
+                  <Section look="sheet">
+                    <ol className="divide-y divide-border">
+                      {queue.log.map((e) => (
+                        <li key={e.id} className="flex gap-3 py-3 text-body">
+                          <time dateTime={e.at} className="w-24 shrink-0 text-muted">
+                            {formatDate(e.at, lang, TIME)}
+                          </time>
+                          <span className="min-w-0">
+                            {e.text}
+                            <span className="block text-meta text-muted">
+                              {t.queue.by(moderatorLabel(e.moderator, lang))}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </Section>
+                )
+              ) : (
+                <>
+                  {tab === "reported" && <p className="mb-3 text-meta text-muted">{t.queue.reportsOnlyJobs}</p>}
+                  <QueueList
+                    items={tab === "flagged" ? queue.flagged : queue.reported}
+                    empty={tab === "flagged" ? t.queue.noFlagged : t.queue.noReports}
+                    onDone={done}
+                    onChat={tab === "reported" ? openChat : undefined}
+                  />
+                </>
+              )}
+            </TabPanel>
+          </>
+        )}
       </TabPanel>
     </div>
   );
@@ -264,17 +299,19 @@ function QueueList({
   items,
   empty,
   onDone,
+  onChat,
 }: {
   items: (QueueItem & { reports?: ReportInQueue[] })[];
   empty: string;
   onDone: (r: AdminResult) => void;
+  onChat?: (employerId: string) => void;
 }) {
   if (items.length === 0) return <Empty>{empty}</Empty>;
   return (
     <ul className="space-y-3">
       {items.map((entry) => (
         <li key={entry.job.id}>
-          <QueueCard item={entry} reports={entry.reports} onDone={onDone} />
+          <QueueCard item={entry} reports={entry.reports} onDone={onDone} onChat={onChat} />
         </li>
       ))}
     </ul>
@@ -285,10 +322,12 @@ function QueueCard({
   item,
   reports,
   onDone,
+  onChat,
 }: {
   item: QueueItem;
   reports?: ReportInQueue[];
   onDone: (r: AdminResult) => void;
+  onChat?: (employerId: string) => void;
 }) {
   const lang = useLang();
   const t = useMessages(adminMessages);
@@ -442,6 +481,10 @@ function QueueCard({
               </Button>
             ))}
         </span>
+        {/* ADR 0046: ask the business about it, or hear it out. */}
+        {reports && employer && onChat && (
+          <StartChatButton employerId={employer.id} from="report" onOpen={onChat} onDone={onDone} />
+        )}
       </div>
       {failed && (
         <div className="mt-3">

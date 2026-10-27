@@ -13,6 +13,7 @@ import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
+import { StartChatButton } from "@/app/[lang]/admin/_components/ModeratorChats";
 import { Button } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Section";
 import { useLang, useMessages } from "@/i18n/client";
@@ -26,7 +27,14 @@ const TIME: Intl.DateTimeFormatOptions = { month: "numeric", day: "numeric", hou
  * 暂时封禁 (ADR 0044): the businesses under a temporary ban now, soonest end first — until when, why, who banned them —
  * with 提前解除 and 改成永久. A ban that is over leaves the list by itself.
  */
-export function TempBans({ onDone }: { onDone: (result: AdminResult) => void }) {
+export function TempBans({
+  onDone,
+  onChat,
+}: {
+  onDone: (result: AdminResult) => void;
+  /** 和企业聊天 opened the business's conversation (ADR 0046). */
+  onChat: (employerId: string) => void;
+}) {
   const lang = useLang();
   const t = useMessages(adminMessages).tempBans;
   const [version, setVersion] = useState(0);
@@ -91,6 +99,7 @@ export function TempBans({ onDone }: { onDone: (result: AdminResult) => void }) 
                     {t.makePermanent}
                   </Button>
                 )}
+                <StartChatButton employerId={b.employerId} from="temp_ban" onOpen={onChat} onDone={onDone} />
               </div>
             </li>
           ))}

@@ -207,22 +207,28 @@ function Counterpart({ conversation, isEmployer }: { conversation: Conversation;
   );
 }
 
-function MessageComposer({
+export function MessageComposer({
   draft,
   onDraftChange,
   onSubmit,
   tools,
+  warn = true,
+  busy = false,
 }: {
   draft: string;
   onDraftChange: (draft: string) => void;
   onSubmit: (event: FormEvent) => void;
   /** The ＋ menu (exchanges) beside the input. */
   tools?: ReactNode;
+  /** The chat rules' reminder while writing; not in a conversation with the moderators (ADR 0046). */
+  warn?: boolean;
+  /** A send on its way: 发送 waits. */
+  busy?: boolean;
 }) {
   const t = useMessages(chatMessages).thread;
   const lang = useLang();
   // A reminder while writing; the message can still be sent. The words it quotes are the writer's own.
-  const warning = outgoingWarningParts(draft, lang);
+  const warning = warn ? outgoingWarningParts(draft, lang) : undefined;
   const box = useRef<HTMLTextAreaElement>(null);
   const send = useRef<HTMLButtonElement>(null);
   useLayoutEffect(() => {
@@ -265,7 +271,7 @@ function MessageComposer({
       <button
         ref={send}
         type="submit"
-        disabled={!draft.trim()}
+        disabled={busy || !draft.trim()}
         className="pressable inline-flex min-h-11 items-center gap-2 rounded-full bg-accent px-5 py-2 text-body font-semibold text-white hover:bg-accent-strong active:bg-accent-strong disabled:opacity-50"
       >
         <Send aria-hidden="true" className="size-4" />

@@ -359,6 +359,8 @@ describe("deleteAccount (#54)", () => {
       "report_evidence.reporter_email",
       "moderators.email",
       "moderator_changes.email",
+      "moderator_chats.opened_by_email",
+      "moderator_chat_messages.sender_email",
       "conversations.seeker_email",
       "verification_requests.submitted_by_email",
       "verification_requests.decided_by_email",

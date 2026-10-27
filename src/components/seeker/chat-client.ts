@@ -23,10 +23,12 @@ import { chatDemo } from "@/components/seeker/chat-demo";
 import { isDemoAccount } from "@/lib/demo-accounts";
 import { addToOutbox, outboxFor, removeFromOutbox, type OutboxItem } from "@/components/seeker/chat-outbox";
 import { toast } from "@/components/ui/Toast";
+import { refreshModeratorChat, useModeratorChat } from "@/components/seeker/moderator-chat-client";
 import { useLang } from "@/i18n/client";
 import type { Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { chatMessages } from "@/i18n/messages/chat";
+import { CHAT_REFRESH_MS } from "@/components/seeker/chat-refresh";
 import {
   EMPTY_CHAT,
   addExchangeRequest,
@@ -203,8 +205,7 @@ async function refreshChat(scope: string): Promise<void> {
   }
 }
 
-/** How often an open chat page reads again while it is in front. */
-export const CHAT_REFRESH_MS = 10_000;
+export { CHAT_REFRESH_MS };
 
 /** Keeps the signed-in identity's chat fresh while the page is in front, and when it comes back to it. */
 export function useChatRefresh(): void {
@@ -214,7 +215,9 @@ export function useChatRefresh(): void {
   useEffect(() => {
     if (!signedIn) return;
     const refresh = () => {
-      if (document.visibilityState === "visible") refreshChat(scope).catch(() => setUnreached(scope, true));
+      if (document.visibilityState !== "visible") return;
+      refreshChat(scope).catch(() => setUnreached(scope, true));
+      void refreshModeratorChat(scope); // ADR 0046
     };
     const timer = window.setInterval(refresh, CHAT_REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
@@ -313,6 +316,8 @@ export function useChat() {
   const record = accounts[scope] ?? EMPTY_CHAT;
   // Memoized: pages keep `messages` and the like in effect dependencies.
   const view = useMemo(() => chatView(record, demo), [record, demo]);
+  // ADR 0046: the business's conversation with the moderators counts in what waits unread.
+  const moderatorUnread = useModeratorChat().unread;
   const signedIn = Boolean(session);
   useEffect(() => {
     if (signedIn) syncScope(scope);
@@ -332,7 +337,7 @@ export function useChat() {
 
   return {
     ...view,
-    totalUnread: session ? Object.values(view.unread).reduce((total, count) => total + count, 0) : 0,
+    totalUnread: session ? Object.values(view.unread).reduce((total, count) => total + count, moderatorUnread) : 0,
     markRead(id: string) {
       if (!view.messages[id]) return;
       if (!view.unread[id] && view.messages[id].every((message) => message.from === "me" || message.readAt)) return;

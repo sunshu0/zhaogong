@@ -952,3 +952,41 @@ export const chatRiskFlags = sqliteTable("chat_risk_flags", {
   /** Who closed it is in the moderation log (chat_risk_close), as for every other decision. */
   closedAt: text("closed_at"),
 });
+
+// ---- 审核员和雇主聊天 (#407, ADR 0046) ----
+
+/**
+ * A business's conversation with the moderators, one per business. Only a moderator opens it; everyone in the
+ * business's team reads and writes it, a banned business too. Each side's read time is shared by that side: the
+ * team's, and the moderators' (they answer as one, 找工审核员).
+ */
+export const moderatorChats = sqliteTable("moderator_chats", {
+  employerId: text("employer_id").primaryKey(),
+  /** The moderator who opened it, and from where. */
+  openedBy: text("opened_by_email").notNull(),
+  openedFrom: text("opened_from").$type<"report" | "verification" | "temp_ban">().notNull(),
+  openedAt: text("opened_at").notNull(),
+  employerReadAt: text("employer_read_at"),
+  moderatorsReadAt: text("moderators_read_at"),
+  /** The newest message, for the order of the moderators' list. */
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const moderatorChatMessages = sqliteTable(
+  "moderator_chat_messages",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    employerId: text("employer_id").notNull(),
+    from: text("from_side").$type<"moderator" | "employer">().notNull(),
+    /**
+     * Whose account sent it: the moderator (the business only ever sees 找工审核员), or the one in the business's team.
+     * "deleted-account" once that account is deleted.
+     */
+    senderEmail: text("sender_email").notNull(),
+    /** The team member's name as it was when sent (ADR 0012); null for a moderator's. */
+    byName: text("by_name"),
+    text: text("text").notNull(),
+    sentAt: text("sent_at").notNull(),
+  },
+  (table) => [index("moderator_chat_messages_employer_idx").on(table.employerId, table.id)],
+);

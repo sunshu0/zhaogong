@@ -13,6 +13,7 @@ import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
+import { StartChatButton } from "@/app/[lang]/admin/_components/ModeratorChats";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import {
   kindLabels,
@@ -52,10 +53,13 @@ export function VerificationQueue({
   queue,
   onDone,
   onRetry,
+  onChat,
 }: {
   queue?: VerificationItem[] | Refused | Failed;
   onDone: (result: AdminResult) => void;
   onRetry: () => void;
+  /** 和企业聊天 opened the business's conversation (ADR 0046). */
+  onChat: (employerId: string) => void;
 }) {
   const t = useMessages(adminVerificationMessages);
   if (isFailed(queue)) return <LoadFailed what={t.listName} onRetry={onRetry} />;
@@ -68,7 +72,7 @@ export function VerificationQueue({
       <ul className="space-y-3">
         {queue.map((item) => (
           <li key={item.request.id}>
-            <VerificationCard item={item} onDone={onDone} />
+            <VerificationCard item={item} onDone={onDone} onChat={onChat} />
           </li>
         ))}
       </ul>
@@ -76,7 +80,15 @@ export function VerificationQueue({
   );
 }
 
-function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (result: AdminResult) => void }) {
+function VerificationCard({
+  item,
+  onDone,
+  onChat,
+}: {
+  item: VerificationItem;
+  onDone: (result: AdminResult) => void;
+  onChat: (employerId: string) => void;
+}) {
   const lang = useLang();
   const t = useMessages(adminVerificationMessages);
   const tv = useMessages(adminViewsMessages);
@@ -212,6 +224,8 @@ function VerificationCard({ item, onDone }: { item: VerificationItem; onDone: (r
           <Button variant="danger-secondary" onClick={() => setRejecting(true)}>
             {t.reject}
           </Button>
+          {/* ADR 0046: ask the business for what the application is missing. */}
+          <StartChatButton employerId={request.employerId} from="verification" onOpen={onChat} onDone={onDone} />
           {missing.length > 0 && (
             <span className="text-meta text-muted">{t.unchecked(missing.map((m) => m.label))}</span>
           )}

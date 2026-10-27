@@ -31,6 +31,7 @@ import { aboutEn } from "./about";
 import { adminViewsEn } from "./admin-views";
 import { safetyEn } from "./safety";
 import { myReportsEn } from "./my-reports";
+import { moderatorChatEn } from "./moderator-chat";
 // imports (scripts/i18n-split-en.mjs)
 
 export const english: Record<string, unknown> = {
@@ -64,5 +65,6 @@ export const english: Record<string, unknown> = {
   adminViews: adminViewsEn,
   safety: safetyEn,
   myReports: myReportsEn,
+  moderatorChat: moderatorChatEn,
   // entries (scripts/i18n-split-en.mjs)
 };

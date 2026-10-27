@@ -49,6 +49,11 @@ export interface ServerAccountData {
   moderationActions: { id: string; at: string; action: string; jobId: string | null; employerId: string | null }[];
   /** Whose personal information /admin showed this account as a moderator (#336): when, which kind, which record. */
   personalInfoViews: { at: string; kind: string; subjectId: string }[];
+  /**
+   * What this account wrote in a business's conversation with the moderators (#407, ADR 0046): as a moderator, or as
+   * one of the business's team. The rest of it is the business's chat (ADR 0012), so it is not here.
+   */
+  moderatorChatMessages: { employerId: string; from: string; text: string; sentAt: string }[];
   /** The evidence this account attached to job reports (ADR 0027): chat messages as reported, screenshots by format. */
   reportEvidence: Awaited<ReturnType<typeof listEvidenceOf>>;
   /**
@@ -165,6 +170,16 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
     .from(t.personalInfoViews)
     .where(eq(t.personalInfoViews.moderator, address))
     .orderBy(asc(t.personalInfoViews.at), asc(t.personalInfoViews.id));
+  const moderatorChatWritten = await db
+    .select({
+      employerId: t.moderatorChatMessages.employerId,
+      from: t.moderatorChatMessages.from,
+      text: t.moderatorChatMessages.text,
+      sentAt: t.moderatorChatMessages.sentAt,
+    })
+    .from(t.moderatorChatMessages)
+    .where(eq(t.moderatorChatMessages.senderEmail, address))
+    .orderBy(asc(t.moderatorChatMessages.id));
   const [business] = account.employerId
     ? await db.select().from(t.employers).where(eq(t.employers.id, account.employerId))
     : [];
@@ -297,6 +312,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       employerId: a.employerId,
     })),
     personalInfoViews: shown,
+    moderatorChatMessages: moderatorChatWritten,
     reportEvidence: await listEvidenceOf(address),
     employer: business
       ? {
@@ -456,6 +472,15 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           .update(t.personalInfoViews)
           .set({ moderator: DELETED_ACCOUNT })
           .where(and(eq(t.personalInfoViews.moderator, address), allowed)),
+        // ADR 0046: the conversation stays with the business and the moderators, without the person's email.
+        db
+          .update(t.moderatorChats)
+          .set({ openedBy: DELETED_ACCOUNT })
+          .where(and(eq(t.moderatorChats.openedBy, address), allowed)),
+        db
+          .update(t.moderatorChatMessages)
+          .set({ senderEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.moderatorChatMessages.senderEmail, address), allowed)),
         db
           .update(t.verificationRequests)
           .set({ status: "withdrawn" })
@@ -534,6 +559,11 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
         ...(account.employerId && !teammates.length
           ? [
               db.delete(t.teamChats).where(and(eq(t.teamChats.employerId, account.employerId), allowed)),
+              // ADR 0046: its conversation with the moderators goes with its other chats.
+              db
+                .delete(t.moderatorChatMessages)
+                .where(and(eq(t.moderatorChatMessages.employerId, account.employerId), allowed)),
+              db.delete(t.moderatorChats).where(and(eq(t.moderatorChats.employerId, account.employerId), allowed)),
               db.delete(t.employerActivity).where(and(eq(t.employerActivity.employerId, account.employerId), allowed)),
               db.delete(t.chatRiskFlags).where(and(eq(t.chatRiskFlags.employerId, account.employerId), allowed)),
               db.delete(t.employerProfiles).where(and(eq(t.employerProfiles.employerId, account.employerId), allowed)),

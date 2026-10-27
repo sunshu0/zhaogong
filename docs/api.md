@@ -150,6 +150,16 @@
 | `myChatPhrases()` | | `{ email, phrases: ChatPhrases }` | 未登录时 `null` |
 | `saveMyChatPhrases(save)` | `{ role: "seeker" \| "employer", phrases?, opener? }`：`phrases` 是数组或 `null`（恢复默认），`opener` 是选择或 `null`（回到模板 1）；没传的不动 | `{ ok: true, email, phrases }`，存后的全部。常用语去掉首尾空白、空的丢掉 | 未登录或格式不对时 `null`；超过 10 条、某条超过 60 字、开场白超过 200 字或是空的、任何一条带电话、微信、邮箱（`readContact`）时 `{ ok: false, why }`，`why.problem` 是 `too_many`、`too_long`、`empty` 或 `contact`（带 `index`、`found`），什么都不存 |
 
+## 和找工审核员的对话 — `src/app/[lang]/messages/moderator-chat-actions.ts`
+
+#407（ADR 0046）。企业和审核员的一段对话，企业取自账号（`accounts.employer_id`）：雇主身份时给；企业正被封着时（ADR 0044），求职者身份也给。`ModeratorChatView`（`src/lib/moderator-chat.ts`）：`{ employerId, employerName, lines, unread }`，`lines` 每条是 `{ id, mine, text, sentAt, by?, read? }`：`mine` 是企业团队发的，`by` 是团队里的称呼（审核员发的没有 `by`，企业看不到是哪位审核员），自己这边的带 `read`（审核员读了没有）；`unread` 是审核员发的、团队还没读的条数。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myModeratorChat()` | | `ModeratorChatView` | 未登录、没有企业、不是这家企业的身份、或还没有对话时 `null` |
+| `readMyModeratorChat()` | | 团队读到现在 | 同上时什么都不做 |
+| `sendToModerators(text)` | 文字，去掉首尾空白后 1–2000 字 | `{ ok: true, view }`，发后的整段 | `{ ok: false, error }`：空的、太长、没有对话、到 500 条上限 |
+
 ## 收藏和进度 — `src/app/[lang]/me/saved/actions.ts`
 
 #52（PRD R-28）。按账号存在 `saved_jobs` 表（迁移 0004），账号取自会话；只有本人读得到，雇主和别的账号都读不到。「实习」「专业职位」的外部职位（#131，ADR 0020）存在 `saved_external_jobs`（迁移 0021），在这些函数里的编号写成 `external:<外部职位编号>`（`externalSaveKey`）；只有分区里正在显示的外部职位能收藏。
@@ -335,6 +345,8 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 ## 审核后台 — `src/app/[lang]/admin/actions.ts`
 
 聊天风险（#384，ADR 0039）位于 `src/app/[lang]/admin/chat-risk-actions.ts`，三个函数都先 `requireModerator()`，拒绝时返回 `{ refused, error_zh }`（关闭时是 `AdminResult`）：`getChatRiskQueue()` 返回 `{ items }`，每项是一家企业：名字、碰到的几类、几条、最近一次、开项时间，不带消息；`getChatRiskMessages(employerId)` 返回这一项的消息 `{ messages }`（新的在前，最多 50 条：对话编号、消息编号、哪几类、文字、团队里谁发的、时间），交出之前按每段对话记一条查看记录（`chat`）；`closeChatRiskItem(employerId)` 关掉这一项、写一条操作记录（`chat_risk_close`），之后要再有 3 条才重新开。
+
+审核员和雇主聊天（#407，ADR 0046）位于 `src/app/[lang]/admin/chat-actions.ts`，都先 `requireModerator()`：`getModeratorChats()` 返回 `{ chats }`，每段是 `{ employerId, employerName, openedAt, updatedAt, last?, unread }`（最新的在前，`unread` 是企业发的、审核员还没读的）；`startModeratorChat(employerId, from)` 开这家企业的对话或接着用已有的，`from` 是 `report`、`verification`、`temp_ban`，返回 `{ ok: true, employerId }`，企业不存在时 `{ ok: false, error_zh }`；`getModeratorChatThread(employerId, read = true)` 返回 `{ view }`（`ModeratorChatView`，`mine` 是审核员发的，`by` 是哪位审核员的邮箱或企业团队里的称呼），读了就算审核员都读了，没有对话时 `view` 是 `undefined`；`sendModeratorChatMessage(employerId, text)` 返回 `{ ok: true, employerId }` 或 `{ ok: false, error_zh }`。
 
 举报证据读取位于 `src/app/[lang]/admin/evidence-actions.ts`：`getReportEvidence(reportId)` 先验证审核员身份，返回 `{ evidence }`（聊天按发送顺序，再列截图）；拒绝时返回 `{ refused, error_zh }`。交出聊天前记录审核员查看行为；截图经单独的受保护接口交出并记录。
 
