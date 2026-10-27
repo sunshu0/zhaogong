@@ -12,6 +12,7 @@ import { formatHours, jobTagKeys, placeName, postedAgo } from "@/components/seek
 import { EmployerActivityLine } from "@/components/seeker/EmployerActivityLine";
 import { isExpired } from "@/components/seeker/job-facts";
 import type { PreviewEmployer, PreviewJob } from "@/components/seeker/job-preview";
+import { ListPlace } from "@/components/seeker/list-place";
 import { StartEmployerChat } from "@/components/seeker/StartEmployerChat";
 import { buttonClass } from "@/components/ui/Button";
 import { Pay } from "@/components/ui/Pay";
@@ -76,8 +77,9 @@ export function JobBrowser({
     preview.current?.scrollTo({ top: 0 });
   }
 
+  // 「← 职位列表」 from a job lands where the user was (#409).
   return (
-    <>
+    <ListPlace>
       <div ref={list} className="contents" onClickCapture={onClickCapture}>
         {children}
       </div>
@@ -91,7 +93,7 @@ export function JobBrowser({
           <JobPreview key={job.id} job={job} employer={employers[job.employerId]} now={now} />
         </aside>
       )}
-    </>
+    </ListPlace>
   );
 }
 

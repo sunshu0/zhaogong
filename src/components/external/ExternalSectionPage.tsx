@@ -33,6 +33,7 @@ import { FORWARD, PageTransition } from "@/components/ui/PageTransition";
 import { formatDate } from "@/i18n/format";
 import type { Lang } from "@/i18n/lang";
 import { serverLang } from "@/i18n/server";
+import { ListPlace } from "@/components/seeker/list-place";
 
 type Query = Record<string, string | string[] | undefined>;
 /** The external dictionary in the page's language. */
@@ -120,13 +121,16 @@ async function Results({ section, searchParams }: { section: ExternalSection; se
             )}
           </div>
         ) : (
-          <ul className="space-y-3">
-            {jobs.map((job) => (
-              <li key={job.id}>
-                <ExternalJobRow job={job} lang={lang} w={w} />
-              </li>
-            ))}
-          </ul>
+          // 「← 返回」 from a job lands where the user was (#409).
+          <ListPlace>
+            <ul className="space-y-3">
+              {jobs.map((job) => (
+                <li key={job.id}>
+                  <ExternalJobRow job={job} lang={lang} w={w} />
+                </li>
+              ))}
+            </ul>
+          </ListPlace>
         )}
       </section>
     </div>

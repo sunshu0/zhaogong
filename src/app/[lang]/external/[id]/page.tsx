@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { DemoApply } from "@/components/external/DemoApply";
 import { ExternalApplyLink } from "@/components/external/ExternalApplyLink";
+import { SectionBackLink } from "@/components/external/SectionBackLink";
 import { TrackView } from "@/components/ui/TrackView";
 import { NoClarity } from "@/components/analytics/NoClarity";
 import { TakedownNote } from "@/components/external/TakedownNote";
@@ -22,7 +22,7 @@ import { externalWords, factLines, sourceLine } from "@/lib/external-jobs/labels
 import { externalMessages } from "@/i18n/messages/external";
 import { messages, serverLang } from "@/i18n/server";
 import { isShown, sectionOf } from "@/lib/external-jobs/visibility";
-import { BACK, PageTransition } from "@/components/ui/PageTransition";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 // An external job (#113, ADR 0014): its facts, where they come from and when they were read, and 去官网申请. No
 // apply, chat or contact details here (Round 18 draft 3.8), no company logo, nobody's name. Kept out of search
@@ -74,13 +74,12 @@ async function ExternalJob({ params }: Pick<PageProps<"/[lang]/external/[id]">, 
       {/* The internship section is not recorded (ADR 0025 §6, 待用户 ①); its path does not say so. */}
       {section === "internship" && <NoClarity />}
       <p className="text-meta">
-        <Link
+        <SectionBackLink
           href={SECTION_PATHS[section]}
-          transitionTypes={BACK}
           className="pressable inline-flex min-h-11 items-center text-brand"
         >
           {t.back(w.sections[section])}
-        </Link>
+        </SectionBackLink>
       </p>
       <div className={SHEET}>
         <header className={SHEET_PART}>
