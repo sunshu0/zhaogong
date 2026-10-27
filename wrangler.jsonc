@@ -31,7 +31,7 @@
     {
       "binding": "DB",
       "database_name": "zhaogong-demo",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a851001f-d1af-487d-b3d8-23ed6e0cbbed",
       "migrations_dir": "drizzle",
     },
   ],
