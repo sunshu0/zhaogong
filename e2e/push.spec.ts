@@ -191,11 +191,16 @@ test("push: a delayed old identity is rolled back before the remounted identity 
   // current /account route until the queued server action settles. Either route is a valid remount trigger.
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
   if (new URL(page.url()).pathname === "/account") {
-    await page
-      .getByRole("main")
-      .getByRole("link", { name: /^工作台/ })
-      .click();
-    await expect(page).toHaveURL("/workspace");
+    const nav = page.getByRole("navigation", { name: /^(主导航|底部导航)$/ }).filter({ visible: true });
+    const workspace = nav.getByRole("link", { name: "工作台", exact: true });
+    if (await workspace.count()) {
+      await workspace.click();
+      await expect(page).toHaveURL("/workspace");
+    } else {
+      // The phone bar has 我的 instead of 工作台; 聊天 is still a real SPA route and remounts the account subtree.
+      await nav.getByRole("link", { name: "聊天", exact: true }).click();
+      await expect(page).toHaveURL("/messages");
+    }
   } else {
     await expect(page).toHaveURL("/workspace");
   }
