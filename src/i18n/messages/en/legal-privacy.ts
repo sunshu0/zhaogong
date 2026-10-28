@@ -8,7 +8,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
   title: "Privacy",
   description:
     "What personal information we collect, why, who sees it, how long we keep it, and how you can see, correct and delete it.",
-  updated: "Last updated: 27 October 2026",
+  updated: "Last updated: 29 October 2026",
   placeholders:
     "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
@@ -40,6 +40,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Reports: the reason and anything you write. For a report with only a reason and a note, we do not record your account or email itself. To stop duplicate and mass reports, an open report carries a number worked out from your account or anonymous visitor number that cannot be turned back into either, deleted once the report is handled; it is also used to tell you, on the device that sent the report, whether it is still being handled. Each day's reports are counted under such numbers too (including one worked out from your network address; the address itself is not stored); a count lapses within 24 hours, and lapsed counts are deleted when someone later asks for or checks a sign-in code, or sends a report. When you report a job while signed in, you can also attach evidence: messages you pick from your own chats with that business (up to 20, kept as they read when you report) and screenshots (up to 3, with location and other metadata removed before they are stored). Evidence is stored with your account, only so that it is deleted with your account and shown to you in your export; moderators are not shown who sent it.",
             "Activity: when a signed-in job seeker views the public contact details on a job, the account and time (employers only see a count); chats started; job views (only a hash of a browser identifier); when a business's team last used the site (recorded for the business, not for who in the team).",
             "AI posting use: when an employer posts by chatting, the account, time and amount of use. The conversation itself is not stored there.",
+            "Browser message push: only after you turn it on do we save this browser's push endpoint, encryption public key and authentication value, linked to your account, current sign-in session, seeker or employer identity at setup, interface language, and setup and update times. To limit repeated submissions, we also record the most recent setup attempt in that session, including an unsuccessful attempt; each session can keep at most 10 subscriptions. This is only for new chat alerts, not advertising or recommendations.",
             "Sign-in code counts: to stop anyone flooding the sign-in codes, we count the codes asked for and checked by your network address (IP) and by your email. We store only a hash made with a key on our server, which cannot be turned back into the address or the email; never the address or the email itself.",
             "Anonymous analytics events, see section 8.",
           ],
@@ -87,6 +88,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Providers who store and process data for us: hosting and the database (Cloudflare); the sign-in code emails (Amazon SES, from Amazon Web Services, used only to send the codes). They only keep and process it on our behalf, not for their own use; under section 11 of the Privacy Act 2020 this is not a disclosure to them.",
             "Our staff in China: when needed to run and maintain the site, deal with reports and reviews, and answer your requests (section 6).",
             "AI posting: when an employer posts a job by chatting, the conversation and the job draft (including contact details the employer chooses to make public) are sent to Anthropic's model to be put in order. Anthropic processes them in the United States. Nothing is sent if you don't post by chatting.",
+            "Browser message push: a browser vendor's push service (for example Google, Mozilla, Apple or Microsoft) processes the endpoint and connection information needed to send and deliver the alert. The browser-held keys encrypt the alert. We send only a generic new-message alert, not chat text, contact details, a CV or the other person's name.",
             "If the law requires it, or to prevent a serious threat to someone's safety, we may give information to the authorities (information privacy principle 11).",
           ],
         },
@@ -101,6 +103,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
         "Staff of the company in China can access this data, to run and maintain the site, deal with reports and reviews, and answer your requests.",
         "Under section 11 of the Privacy Act 2020, information a provider holds for us is treated as held by us, and our own staff using it is our use of it, not a disclosure to anyone else. So neither is a disclosure overseas under information privacy principle 12, but we remain fully responsible for your information, use and protect it as this page says, and only let staff who need it for their work access it.",
         "AI posting content is processed by Anthropic in the United States (section 5). United States law may not protect personal information as fully as New Zealand's does; if you don't want that, post the job by pasting or filling in the form, which sends nothing.",
+        "When you turn on browser message push, a browser vendor may process the endpoint and connection information outside New Zealand. Its retention and device-notification behaviour are governed by its privacy policy and your device settings. The alert is encrypted with browser keys; we do not send chat text or contact details to it.",
       ],
     },
     {
@@ -150,6 +153,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
           list: [
             "Sign-in codes: valid for 10 minutes. Once a code has been expired for a day, it is deleted the next time someone asks for or checks a code (we keep it that extra day so we can tell you it has expired).",
             "Staying signed in: 30 days, or until you sign out. Expired sign-ins are deleted when someone later asks for or checks a code.",
+            "Browser push subscriptions: deleted when you successfully turn off site alerts, the linked session is deleted, the account is deleted, or the push service confirms that the subscription is invalid. Setup-attempt times are deleted with the session or account. Sending stops after a session expires, but we do not promise physical deletion at that instant. Notifications already delivered to a device and information retained by a browser vendor are outside our control; you may need to clear them on the device.",
             "Sign-in code and report counts: they lapse within 24 hours, and lapsed counts are deleted when someone later asks for or checks a code, or sends a report.",
             "Anonymous analytics events: 180 days.",
             "Chat messages and screenshots attached to a report: deleted 180 days after the report is handled, and deleted with your account if you delete it. The report itself (reason and note) is kept.",
@@ -169,6 +173,9 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
         "Correcting it: you can change most of your profile, jobs and business details yourself. For anything you can't, write to the privacy officer; we will decide and tell you within 20 working days (section 63). If we don't agree to correct it, you can ask us to attach your statement of correction to that information, so that it is read with it whenever the information is used (information privacy principle 7).",
         'Deleting it: under Data and account, type your email to delete your account. This deletes your sign-ins, profile, applications and interviews, CV share link, saved jobs, alerts, team invitations you received and your chats. Some records have to stay so that reports and moderation can be handled, but your email in them is replaced with "deleted account": for example moderation records, team invitations you sent, business verification requests and contact-view records. Copies of chats kept by the other person stay. The business itself stays (reports and moderation records refer to it); if you are its last team member, its chats (including its conversation with Zhaogong moderators) and business page are deleted and all its jobs are taken down with their contact details cleared.',
         "None of this costs anything.",
+        "Browser message alerts: under Me, you can turn alerts on or off for this browser; only turning them on asks for notification permission. An alert only says there is a new message, without the chat text. Opening it first checks your account and identity, and never switches identity for you. Alerts go only to the identity you turned them on in; switching identity pauses them, and after signing out you need to turn them on again.",
+        "You can also revoke notification permission in your browser or system settings, but that does not tell our server straight away; subscriptions are deleted as section 9 describes. Alerts may be late or not arrive; the site chat is the record. Your data export includes your subscription details and setup-attempt times.",
+        "If your browser cannot safely keep these settings in step across pages, alerts cannot be turned on, but you can still turn them off on the site.",
       ],
     },
     {
