@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ recipients: vi.fn(), discard: vi.fn(), send: vi.fn(), config: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  recipients: vi.fn(),
+  discard: vi.fn(),
+  send: vi.fn(),
+  config: vi.fn(),
+  authorizer: vi.fn(),
+}));
 vi.mock("@/db/push-subscriptions", () => ({ pushRecipients: mocks.recipients, discardExpiredPush: mocks.discard }));
-vi.mock("./web-push", () => ({ sendPush: mocks.send, vapidConfig: mocks.config }));
+vi.mock("./web-push", () => ({ sendPush: mocks.send, vapidConfig: mocks.config, vapidAuthorizer: mocks.authorizer }));
 const { deliverChatPush } = await import("./delivery");
 const row = { id: "chat-private-id", seekerEmail: "private@example.com", employerId: "e1", jobId: "j1" };
 const recipient = (n: number) => ({
@@ -19,6 +25,7 @@ beforeEach(() => {
   mocks.config.mockReturnValue({});
   mocks.recipients.mockResolvedValue([recipient(0)]);
   mocks.send.mockResolvedValue("sent");
+  mocks.authorizer.mockImplementation(() => async () => "vapid t=token, k=key");
   vi.spyOn(console, "info").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -51,6 +58,13 @@ describe("best effort chat push delivery", () => {
     expect(console.info).toHaveBeenCalledWith(
       JSON.stringify({ event: "chat_push", sent: 0, expired: 1, failed: 2, skipped: 0 }),
     );
+  });
+  it("shares one per-origin VAPID authorizer across every recipient of a delivery", async () => {
+    mocks.recipients.mockResolvedValue([recipient(0), recipient(1), recipient(2)]);
+    await deliverChatPush(row, "seeker");
+    expect(mocks.authorizer).toHaveBeenCalledExactlyOnceWith({});
+    const authorize = mocks.authorizer.mock.results[0].value;
+    expect(mocks.send.mock.calls.map((call) => call[4])).toEqual([authorize, authorize, authorize]);
   });
   it("skips without deployment config, a live recipient, or a retained job", async () => {
     mocks.config.mockReturnValue(undefined);

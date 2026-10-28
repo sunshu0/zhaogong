@@ -1,7 +1,14 @@
 import { createECDH, createDecipheriv, createPublicKey, hkdfSync, verify } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decode64, encode64 } from "./rules";
-import { encryptPush, readyVapidConfig, sendPush, vapidAuthorization, type VapidConfig } from "./web-push";
+import {
+  encryptPush,
+  readyVapidConfig,
+  sendPush,
+  vapidAuthorization,
+  vapidAuthorizer,
+  type VapidConfig,
+} from "./web-push";
 
 async function vapid(): Promise<VapidConfig> {
   const keys = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
@@ -78,6 +85,23 @@ describe("Web Push wire protocol", () => {
     expect(
       verify("sha256", Buffer.from(`${head}.${body}`), { key, dsaEncoding: "ieee-p1363" }, decode64(signature)),
     ).toBe(true);
+  });
+  it("signs once per push-service origin within one delivery", async () => {
+    const config = await vapid();
+    const sign = vi.spyOn(crypto.subtle, "sign");
+    const authorize = vapidAuthorizer(config, Date.parse("2026-10-29T09:00:00Z"));
+    const [a, b, c] = await Promise.all([
+      authorize("https://fcm.googleapis.com/fcm/send/1"),
+      authorize("https://fcm.googleapis.com/fcm/send/2"),
+      authorize("https://web.push.apple.com/3"),
+    ]);
+    expect(sign).toHaveBeenCalledTimes(2);
+    expect(b).toBe(a);
+    const audience = (header: string) =>
+      JSON.parse(Buffer.from(decode64(header.slice(8).split(".")[1])).toString()).aud;
+    expect(audience(a)).toBe("https://fcm.googleapis.com");
+    expect(audience(c)).toBe("https://web.push.apple.com");
+    sign.mockRestore();
   });
   it("treats malformed and mismatched deployment keys as unavailable", async () => {
     expect(await readyVapidConfig({})).toBeUndefined();

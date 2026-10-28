@@ -102,11 +102,22 @@ export async function vapidAuthorization(endpoint: string, config: VapidConfig, 
   const signature = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, bytes(signed));
   return `vapid t=${signed}.${encode64(new Uint8Array(signature))}, k=${config.publicKey}`;
 }
+/** One VAPID signature per push-service origin for one delivery (each token is valid for an hour, a delivery ≤ 20 s). */
+export function vapidAuthorizer(config: VapidConfig, now = Date.now()): (endpoint: string) => Promise<string> {
+  const byOrigin = new Map<string, Promise<string>>();
+  return (endpoint) => {
+    const origin = new URL(endpoint).origin;
+    let authorization = byOrigin.get(origin);
+    if (!authorization) byOrigin.set(origin, (authorization = vapidAuthorization(endpoint, config, now)));
+    return authorization;
+  };
+}
 export async function sendPush(
   subscription: BrowserSubscription,
   payload: string,
   config: VapidConfig,
   fetcher: typeof fetch = fetch,
+  authorize: (endpoint: string) => Promise<string> = (endpoint) => vapidAuthorization(endpoint, config),
 ): Promise<"sent" | "expired" | "failed"> {
   // A ZG_E2E build must never send to real browser vendors. It still exercises real subscription authorization.
   // This switch is fixed at build time and is absent from deploy builds (ADR 0050).
@@ -117,7 +128,7 @@ export async function sendPush(
     redirect: "error",
     signal: AbortSignal.timeout(5000),
     headers: {
-      Authorization: await vapidAuthorization(subscription.endpoint, config),
+      Authorization: await authorize(subscription.endpoint),
       "Content-Encoding": "aes128gcm",
       "Content-Type": "application/octet-stream",
       TTL: "300",

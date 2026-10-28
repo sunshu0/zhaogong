@@ -1,7 +1,7 @@
 import { discardExpiredPush, pushRecipients } from "@/db/push-subscriptions";
 import { sharedConversationId } from "@/lib/chat-server/shared-view";
 import { pushOpenHref, type PushRole } from "./rules";
-import { sendPush, vapidConfig } from "./web-push";
+import { sendPush, vapidAuthorizer, vapidConfig } from "./web-push";
 
 /** Best effort after a committed new chat message. No message text, contact information or names leave the site. */
 export async function deliverChatPush(
@@ -12,6 +12,8 @@ export async function deliverChatPush(
   if (!config || !row.jobId) return;
   const role = sender === "seeker" ? "employer" : "seeker";
   const recipients = await pushRecipients(row, role);
+  // A business team's recipients mostly share one push service: sign once per origin, not once per subscription.
+  const authorize = vapidAuthorizer(config);
   let sent = 0,
     expired = 0,
     failed = 0,
@@ -41,6 +43,8 @@ export async function deliverChatPush(
             { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
             payload,
             config,
+            fetch,
+            authorize,
           );
           if (outcome === "expired") {
             await discardExpiredPush(subscription.endpoint, subscription.sessionId, subscription.updatedAt);
