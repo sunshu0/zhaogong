@@ -25,7 +25,7 @@ import {
   type FilterGroup,
 } from "@/components/seeker/filter-query";
 import { track } from "@/lib/events/track";
-import { jobListQuery, type JobOrder } from "@/components/seeker/job-order-query";
+import { jobListQuery, parseJobOrder, type JobOrder } from "@/components/seeker/job-order-query";
 
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
 /** Where the panel becomes the page's left column (Tailwind's lg). */
@@ -110,10 +110,12 @@ function Form({
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const sent = parseFilter(toParams(new FormData(e.currentTarget)), filter.country);
+    const data = new FormData(e.currentTarget);
+    const sent = parseFilter(toParams(data), filter.country);
     // On a phone with the sheet closed the form holds only the keyword: keep the filters the URL already has.
     const searched = !desktop && !open ? { ...filter, query: sent.query } : sent;
-    const query = jobListQuery(searched, order);
+    // The order's choices are in the desktop column and the open sheet; otherwise the URL's order stays.
+    const query = jobListQuery(searched, data.has("sort") ? parseJobOrder(toParams(data)) : order);
     // The search funnel (#319, ADR 0025): which filters were used, by name only.
     track({ name: "jobs_search", path: "/jobs", detail: usedFilterNames(searched) || undefined });
     startTransition(() => router.push(jobsHref(query)));
@@ -205,6 +207,25 @@ function Form({
     label: t.pay.from(`${country.currencySymbol}${n}`),
   }));
   const visaOptions = country.visaTypes.map((v) => ({ value: v, label: VISA_LABELS[v][lang] }));
+  // F1: 最新 / 推荐 sits here rather than above the list, so a phone still shows three whole cards (A21). Pills in
+  // both places; on desktop a change applies at once like the other choices.
+  const orderChoice = (
+    <fieldset aria-label={t.order.label}>
+      <legend className="flex min-h-12 items-center text-body font-medium">{t.order.label}</legend>
+      <div className="flex flex-wrap gap-2 pb-3">
+        {(["latest", "recommended"] as const).map((value) =>
+          chip({
+            key: value,
+            type: "radio",
+            name: "sort",
+            value,
+            checked: order === value,
+            label: t.order[value === "recommended" ? "recommendedLabel" : "latestLabel"],
+          }),
+        )}
+      </div>
+    </fieldset>
+  );
 
   return (
     <form
@@ -215,7 +236,6 @@ function Form({
       role="search"
       className="mb-3 lg:contents"
     >
-      {order === "recommended" && <input type="hidden" name="sort" value="recommended" />}
       <div className="flex gap-2 lg:col-start-2 lg:row-start-1 lg:mb-3">
         <input
           type="search"
@@ -248,6 +268,7 @@ function Form({
           className="hidden lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:block lg:rounded-card lg:bg-surface lg:px-4 lg:pb-4 lg:shadow-card"
         >
           <div className="divide-y divide-border">
+            {orderChoice}
             {multi}
             {food}
           </div>
@@ -283,6 +304,8 @@ function Form({
                   // Clear every field in the sheet; a reset button would only go back to the values from the URL.
                   const form = e.currentTarget.form!;
                   for (const el of Array.from(form.elements) as HTMLInputElement[]) {
+                    // The order is not a filter: 清除 leaves it.
+                    if (el.name === "sort") continue;
                     if (el.type === "checkbox") el.checked = false;
                     else if (el.type === "radio") el.checked = el.value === "";
                   }
@@ -298,6 +321,7 @@ function Form({
           }
         >
           <div id="job-filters" className="divide-y divide-border px-2">
+            {orderChoice}
             {multi}
             <Group title={f.minPay} {...group("minPay")}>
               {chip({

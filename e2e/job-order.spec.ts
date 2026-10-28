@@ -12,6 +12,20 @@ async function listedIds(page: Page) {
   return links(page).evaluateAll((items) => items.map((a) => a.getAttribute("href")));
 }
 
+/**
+ * The order is chosen in the filter form (review F1 补充裁定, A21): the desktop column applies a choice at once, the
+ * phone's sheet on 查看职位. `check` only looks at the current choice, leaving the sheet open.
+ */
+async function chooseOrder(page: Page, desktop: boolean, label: string, check?: string) {
+  const en = /^[A-Z]/.test(label);
+  if (!desktop) await page.getByRole("button", { name: en ? /^Filters/ : /^筛选/ }).click();
+  const order = page.getByRole("group", { name: en ? "Job order" : "职位排序", exact: true });
+  if (check) await expect(order.getByLabel(check, { exact: true })).toBeChecked();
+  await order.getByText(label, { exact: true }).click();
+  await expect(order.getByLabel(label, { exact: true })).toBeChecked();
+  if (!desktop) await page.getByRole("button", { name: en ? "Show jobs" : "查看职位", exact: true }).click();
+}
+
 async function preferDimSum(page: Page) {
   await page.goto("/profile");
   await page
@@ -24,11 +38,13 @@ async function preferDimSum(page: Page) {
 
 test("latest remains the default; recommended explains the signed-out fallback and preserves a sign-in return", async ({
   page,
-}) => {
+}, info) => {
+  const desktop = info.project.name === "desktop";
   await page.goto("/jobs?region=akl-mt-eden&type=part_time");
-  const order = page.getByRole("navigation", { name: "职位排序" });
-  await expect(order.getByRole("link", { name: "最新", exact: true })).toHaveAttribute("aria-current", "page");
-  await order.getByRole("link", { name: "推荐", exact: true }).click();
+  await expect(links(page).first()).toBeVisible();
+  // Nothing above the list but the filter chips and the count: the order is in the form (A21).
+  await expect(page.getByRole("navigation", { name: "职位排序" })).toHaveCount(0);
+  await chooseOrder(page, desktop, "推荐", "最新");
   await expect(page).toHaveURL("/jobs?region=akl-mt-eden&type=part_time&sort=recommended");
   await expect(status(page)).toHaveAttribute("data-job-order-status", "signed_out");
   await expect(page.getByRole("link", { name: "登录并返回" })).toHaveAttribute(
@@ -41,9 +57,16 @@ test("latest remains the default; recommended explains the signed-out fallback a
   );
   await page.getByRole("link", { name: "去掉条件：Mt Eden / Dominion Rd" }).click();
   await expect(page).toHaveURL("/jobs?type=part_time&sort=recommended");
-  await expect(
-    page.getByRole("navigation", { name: "职位排序" }).getByRole("link", { name: "最新", exact: true }),
-  ).toHaveAttribute("href", "/jobs?type=part_time");
+  // 清除 in the sheet clears the filters, not the order.
+  if (!desktop) {
+    await page.getByRole("button", { name: /^筛选/ }).click();
+    await page.getByRole("button", { name: "清空条件", exact: true }).click();
+    await expect(page.getByRole("group", { name: "职位排序", exact: true }).getByLabel("推荐")).toBeChecked();
+    await page.getByRole("button", { name: "查看职位", exact: true }).click();
+    await expect(page).toHaveURL("/jobs?sort=recommended");
+  }
+  await chooseOrder(page, desktop, "最新", "推荐");
+  await expect(page).toHaveURL(desktop ? "/jobs?type=part_time" : "/jobs");
 });
 
 test("search, desktop filters or the phone sheet, and clearing empty results keep recommended", async ({
@@ -82,7 +105,7 @@ test("search, desktop filters or the phone sheet, and clearing empty results kee
 
 test("a private resume ranks only its owner's results; sign-out and a second account cannot reuse them", async ({
   page,
-}) => {
+}, info) => {
   await signIn(page, "/jobs?sort=recommended", freshEmail("order.private"));
   await expect(status(page)).toHaveAttribute("data-job-order-status", "no_preferences");
   await preferDimSum(page);
@@ -102,7 +125,9 @@ test("a private resume ranks only its owner's results; sign-out and a second acc
   expect(rsc.ok()).toBe(true);
   expect(await rsc.text()).not.toMatch(/F1_PRIVATE_(NAME|PHONE)/);
   expect(rsc.headers()["cache-control"]).not.toMatch(/\bpublic\b|s-maxage/);
-  await page.getByRole("navigation", { name: "职位排序" }).getByRole("link", { name: "最新", exact: true }).click();
+  await chooseOrder(page, info.project.name === "desktop", "最新", "推荐");
+  await expect(page).toHaveURL("/jobs");
+  await expect(status(page)).toHaveCount(0);
   const latest = await listedIds(page);
   expect(latest.indexOf("/jobs/j1")).toBeLessThan(latest.indexOf("/jobs/j3"));
   await page.goto("/account");
@@ -140,7 +165,7 @@ test("switching between employer and seeker does not carry the private ranking a
 test("a preference with no match explains latest fallback, and English/home expose the ordering choices", async ({
   page,
   baseURL,
-}) => {
+}, info) => {
   await signIn(page, "/profile", freshEmail("order.none"));
   await page.getByLabel("期望时薪（NZ$ / 小时起）").fill("200");
   await expectProfileSaved(page);
@@ -149,10 +174,8 @@ test("a preference with no match explains latest fallback, and English/home expo
   await useEnglish(page, baseURL);
   await page.goto("/jobs?type=part_time&sort=recommended");
   await expect(page.locator("html")).toHaveAttribute("lang", "en-NZ");
-  const order = page.getByRole("navigation", { name: "Job order" });
-  await expect(order.getByRole("link", { name: "Recommended", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(status(page)).toContainText("latest order is kept");
-  await order.getByRole("link", { name: "Latest", exact: true }).click();
+  await chooseOrder(page, info.project.name === "desktop", "Latest", "Recommended");
   await expect(page).toHaveURL("/jobs?type=part_time");
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Jobs for your preferences →", exact: true })).toHaveAttribute(

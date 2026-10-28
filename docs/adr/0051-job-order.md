@@ -4,7 +4,7 @@
 
 ## 行为
 
-主职位列表默认仍为最新，提供原生链接「推荐／最新」。推荐只使用当前求职者在主页明确填写的期望岗位类别、可工作地区和最低时薪。不读取其他求职者，不要求向雇主公开简历，不从个人介绍、技能或浏览历史猜测偏好。
+主职位列表默认仍为最新，在筛选表单里提供「最新／推荐」单选（见下面「导师审查后改的」最后一条）。推荐只使用当前求职者在主页明确填写的期望岗位类别、可工作地区和最低时薪。不读取其他求职者，不要求向雇主公开简历，不从个人介绍、技能或浏览历史猜测偏好。
 
 先执行既有 listJobs：市场、搜索及全部硬筛选、职位有效状态/截止、雇主封禁；再对其返回集合稳定排序。每一类条件等权：
 
@@ -18,7 +18,7 @@
 
 ## URL 与提醒
 
-排序独立于 JobFilter：推荐写 `sort=recommended`，最新省略；未知或重复值回退最新。切换保留筛选，搜索/桌面自动应用/手机筛选弹层/移除 chip/清空/空结果清空均保留排序。GET 表单用隐藏 sort 字段，不能只把查询放在 action 上。
+排序独立于 JobFilter：推荐写 `sort=recommended`，最新省略；未知或重复值回退最新。切换保留筛选，搜索/桌面自动应用/手机筛选弹层/移除 chip/清空/空结果清空均保留排序。GET 表单里 sort 是单选（桌面筛选栏、手机弹层各一组；无脚本时桌面筛选栏在 DOM 里，GET 照带），不能只把查询放在 action 上。手机弹层关着时表单里没有 sort，提交沿用 URL 里的排序。
 
 filterToQuery / usedFilterNames / filterChips 仍只代表硬筛选。保存提醒传纯筛选 query，canonical identity 不受 sort 影响；登录返回 URL 独立保留排序，不污染提醒存储及去重。排序不会成为筛选 chip 或搜索埋点的筛选名称。
 
@@ -30,7 +30,7 @@ RememberListQuery 改为保存完整列表 query，ListPlace 继续使用原完�
 
 orderJobs 仅供 Server Component 调用，没有 `use server` action endpoint。推荐请求在既有 Results Suspense 动态范围内，requestTime 等待 connection 后，getCurrentSession 从本次 cookie 读会话，以其 email 查本人资料。雇主身份不读求职偏好；最新模式不为排序读取资料。
 
-对本人 resume 先投影三项字段再复用 parseResume 验证；不访问或向客户端传出个人介绍、联系方式、工作权利、技能或公开开关。仅排序后的公开职位、通用状态及筛选 URL 进入客户端；内部偏好对象不进入 props、URL 或共享缓存。无 use cache / unstable_cache / 全局 Map / 偏好跟踪或新增数据库字段。切换排序使用原生链接，以新请求重新验证会话，无预取个人化结果。
+对本人 resume 先投影三项字段再复用 parseResume 验证；不访问或向客户端传出个人介绍、联系方式、工作权利、技能或公开开关。仅排序后的公开职位、通用状态及筛选 URL 进入客户端；内部偏好对象不进入 props、URL 或共享缓存。无 use cache / unstable_cache / 全局 Map / 偏好跟踪或新增数据库字段。切换排序是表单提交（有脚本时 router.push，无脚本时原生链接 / GET），每次都是新请求、重新验证会话，没有预取个人化结果。
 
 既有登录/退出/切身份 action 更新 cookie，F1 不改会话代码。测试覆盖同浏览器 A 退出、B 登录、求职/雇主切换，及 HTML/RSC 非公开缓存和私有资料不序列化；这些必须在导师 D 克隆实际执行后才能认定通过。
 
@@ -40,9 +40,10 @@ orderJobs 仅供 Server Component 调用，没有 `use server` action endpoint�
 - **0 个结果不解释排序**：空列表直接按「最新」处理（不读会话），排序说明和「只供你自己查看」都不显示，只留列表自己的「暂时没有符合条件的职位」。
 - **查询并行**：`jobOrderViewer(now)`（会话 + 本人三项期望）和 `listJobs` 在 `Promise.all` 里同时读，`orderJobs(jobs, order, viewer)` 在内存里排，不再串行多三次往返。选「最新」不读会话。
 - **没期望的说法**：服务器读的是**已保存**的资料，所以写「还没有保存……」，免得刚在本机改了、还没同步的人以为填了没用。
-- **搜索引擎**：「推荐」链接（列表的切换、首页入口）加 `rel="nofollow"`。没用 canonical：站点没有 `metadataBase`，canonical 得在 `generateMetadata` 里读 `searchParams` 和请求头拼绝对地址，这一页的 metadata 就成了运行时数据（cacheComponents 下会挡住静态外壳）。
+- **搜索引擎**：「推荐」链接（列表的切换（现在只在无脚本的 `<noscript>` 里）、首页入口）加 `rel="nofollow"`。没用 canonical：站点没有 `metadataBase`，canonical 得在 `generateMetadata` 里读 `searchParams` 和请求头拼绝对地址，这一页的 metadata 就成了运行时数据（cacheComponents 下会挡住静态外壳）。
 - **返回列表**：e2e 加登录、有期望、列表真被重排过的两条（浏览器返回键、「← 职位列表」）。
 - 隐私页的一句拆成最后一个单独提交，等用户同意。
+- **切换放进筛选表单**（g4 e3 `layout.spec:26`、`:106` 挂，导师「补充裁定」选 A）：Codex 把切换单独放在列表上面一行（52 px + 12 px），375 × 812 手机上三张整卡量到 864 > 812，A21 不改。现在「最新／推荐」是筛选表单最上面的一组单选：手机在筛选弹层（查看职位时生效，「清空条件」不动排序），1024 px 起在左边筛选栏（选了马上生效）。数量句照旧写当前顺序。列表上面只剩回退最新时的说明。无脚本时手机看不到弹层，列表上面在 `<noscript>` 里留原来的两个链接。
 
 ## 隐私审阅与验收
 
