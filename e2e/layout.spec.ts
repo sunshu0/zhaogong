@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { expectProfileSaved, freshEmail, signIn } from "./helpers";
 import { waitForTitle } from "./helpers/title";
 
 const box = async (locator: Locator) => (await locator.boundingBox())!;
@@ -123,6 +124,50 @@ test("job cards in English (Round 20): still three whole cards on a 375 × 812 p
   expect(await pointsCut(cards), "area and contact on every card").toEqual([]);
   expect(await noSideScroll(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });
+});
+
+test("推荐 (F1, review 复核 g5): still three whole cards on a 375 × 812 phone, zh and en; how it ordered opens from the count", async ({
+  page,
+  baseURL,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "the phone's screen");
+  await signIn(page, "/profile", freshEmail("layout.recommended"));
+  await page
+    .getByRole("group", { name: "想做的岗位" })
+    .getByRole("checkbox", { name: "点心面点", exact: true })
+    .check();
+  await expectProfileSaved(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/jobs?sort=recommended");
+  const cards = page.getByRole("region", { name: "职位列表" }).locator("article");
+  await expect(cards.first()).toBeVisible();
+  const why = page.locator('details[data-job-order-status="recommended"]');
+  await expect(why.locator("summary")).toHaveText(/^共 \d+ 个职位，按求职期望排序/);
+  // The same measure as A21 above, from the first card: the order's notes are closed into the count's line, and
+  // 保存为提醒 (in after hydration) still fits beside it.
+  const threeCards = async (list: Locator) => {
+    let bottom = (await box(list.nth(0))).y;
+    for (const id of ["j3", "j5", "j11"])
+      bottom += (await box(list.filter({ has: page.locator(`a[href="/jobs/${id}"]`) }))).height;
+    return bottom;
+  };
+  await expect(page.getByText("保存为提醒", { exact: true })).toBeVisible();
+  expect(await threeCards(cards)).toBeLessThanOrEqual(812);
+  await expect(page.getByText("推荐只供你自己查看", { exact: false })).toBeHidden();
+  await why.locator("summary").click();
+  await expect(page.getByText("推荐只供你自己查看", { exact: false })).toBeVisible();
+  await expect(why.getByRole("link", { name: "完善求职期望", exact: true })).toHaveAttribute("href", "/profile");
+  expect(await noSideScroll(page)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("job-cards-375-recommended.png") });
+
+  // English: the longer count once wrapped under "Save as an alert" (88 px row, s9).
+  await page.context().addCookies([{ name: "zg_lang", value: "en", url: baseURL! }]);
+  await page.goto("/jobs?sort=recommended");
+  const en = page.getByRole("region", { name: "Jobs" }).locator("article");
+  await expect(en.first()).toBeVisible();
+  await expect(why.locator("summary")).toHaveText(/^\d+ jobs, recommended/);
+  await expect(page.getByText("Save as an alert", { exact: true })).toBeVisible();
+  expect(await threeCards(en)).toBeLessThanOrEqual(812);
 });
 
 test("the whole card opens the job (its preview from 1280 px), and featured cards on the home page are h3 under 精选工作", async ({

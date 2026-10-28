@@ -1,3 +1,4 @@
+import { Info } from "lucide-react";
 import Link from "next/link";
 import { jobsHref } from "@/components/seeker/filter-query";
 import { withJobOrder, type JobOrder as Order } from "@/components/seeker/job-order-query";
@@ -9,7 +10,8 @@ import type { Lang } from "@/i18n/lang";
 /**
  * The order is chosen in the filter form (the phone's sheet, the desktop column), so the list keeps three whole cards
  * on a 375 x 812 phone (A21, review F1 补充裁定). Here: why Recommended fell back to the latest order, and, without
- * scripts only, links to switch. Server-rendered; contains no personal preference values.
+ * scripts only, links to switch. A list really ordered by preferences says so in its count (OrderWhy) instead.
+ * Server-rendered; contains no personal preference values.
  */
 export function JobOrder({
   order,
@@ -23,7 +25,7 @@ export function JobOrder({
   lang: Lang;
 }) {
   const t = pick(seekerJobsMessages, lang).order;
-  const notice = status === "latest" ? null : t[status];
+  const notice = status === "latest" || status === "recommended" ? null : t[status];
   return (
     <>
       {/* The phone's sheet needs scripts; with scripts on the browser ignores this. */}
@@ -69,5 +71,32 @@ export function JobOrder({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * The count of a list really ordered by preferences, which opens how it was ordered (review F1 复核 g5): the two
+ * notes took about 190 px above the list, leaving less than two whole cards on a 375 x 812 phone. Closed, it is the
+ * count's own line; open, it takes the whole row. A native <details>, so it needs no scripts.
+ */
+export function OrderWhy({ count, lang }: { count: string; lang: Lang }) {
+  const t = pick(seekerJobsMessages, lang).order;
+  return (
+    <details data-job-order-status="recommended" className="min-w-0 open:basis-full">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-body text-muted [&::-webkit-details-marker]:hidden">
+        {count}
+        <Info aria-hidden="true" className="size-4 shrink-0 text-brand" />
+        <span className="sr-only">{t.why}</span>
+      </summary>
+      <div className="space-y-2 pb-2">
+        <p className="text-meta leading-relaxed text-muted">
+          {t.recommended}{" "}
+          <Link href="/profile" className="text-brand underline underline-offset-2">
+            {t.edit}
+          </Link>
+        </p>
+        <p className="text-meta text-muted">{t.private}</p>
+      </div>
+    </details>
   );
 }

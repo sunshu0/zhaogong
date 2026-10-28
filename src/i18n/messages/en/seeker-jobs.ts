@@ -17,7 +17,9 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     listLabel: "Jobs",
     found: (n) => `${jobsWord(n)} found`,
     all: (n) => `${jobsWord(n)}, newest first`,
-    recommendedCount: (n) => `${jobsWord(n)}, ordered by your preferences`,
+    // Short enough to share the 375 px row with "Save as an alert" (A21); how it ordered opens from it.
+    recommendedCount: (n) => `${jobsWord(n)}, recommended`,
+    recommendedFound: (n) => `${n} found, recommended`,
     clear: "Clear the filters and see every job",
     loading: "Loading jobs",
     emptyTitle: "No jobs match these filters yet",
@@ -28,6 +30,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
   },
   order: {
     label: "Job order",
+    why: "How is this ordered?",
     recommendedLabel: "Recommended",
     latestLabel: "Latest",
     signed_out: "Sign in to use your job preferences. Showing the latest jobs for now.",
@@ -36,7 +39,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     no_preferences:
       "You have not saved a preferred job category, region or minimum hourly pay. Showing the latest jobs; save any one preference to use recommendations.",
     recommended:
-      "Uses the categories, regions and minimum hourly pay you entered. Jobs meeting more preferences come first; ties keep the latest order. A pay range that includes your expectation counts as a match, not a guaranteed starting rate.",
+      "Uses the categories, regions and minimum hourly pay you saved. Jobs meeting more preferences come first; ties keep the latest order. A pay range that includes your expectation counts as a match, not a guaranteed starting rate.",
     all_same: "All current results meet your preferences equally, so they are shown in the latest order.",
     no_matches:
       "None of the current results meet your saved preferences, so the latest order is kept. You can change your filters or job preferences.",

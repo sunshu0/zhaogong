@@ -23,7 +23,7 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { messages, serverLang } from "@/i18n/server";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { TrackView } from "@/components/ui/TrackView";
-import { JobOrder } from "@/components/seeker/JobOrder";
+import { JobOrder, OrderWhy } from "@/components/seeker/JobOrder";
 import { jobListQuery, parseJobOrder, withJobOrder } from "@/components/seeker/job-order-query";
 import { jobOrderViewer, orderJobs } from "@/lib/job-ordering.server";
 
@@ -105,13 +105,14 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
           <ActiveFilters filter={filter} order={order} lang={lang} />
           {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
           <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
-            <p className="text-body text-muted">
-              {filtered
-                ? t.found(jobs.length)
-                : status === "recommended"
-                  ? t.recommendedCount(jobs.length)
-                  : t.all(jobs.length)}
-            </p>
+            {status === "recommended" ? (
+              <OrderWhy
+                count={filtered ? t.recommendedFound(jobs.length) : t.recommendedCount(jobs.length)}
+                lang={lang}
+              />
+            ) : (
+              <p className="text-body text-muted">{filtered ? t.found(jobs.length) : t.all(jobs.length)}</p>
+            )}
             <SaveAlert key={query} query={query} returnHref={jobsHref(jobListQuery(filter, order))} />
           </div>
           <JobList
