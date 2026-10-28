@@ -187,24 +187,22 @@ test("push: a delayed old identity is rolled back before the remounted identity 
     (window as unknown as { c5Document: string }).c5Document = "held-subscription";
   });
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
-  // The identity switch updates the account shell immediately; under a held push action this build may keep the
-  // current /account route until the queued server action settles. Either route is a valid remount trigger.
+  // The identity switch updates the account shell at once and goes to /workspace, as every switch does
+  // (identity-switch.ts). Its navigation is a transition, so it waits for the held 开启 (an async transition) to
+  // finish: until then the page stays on /account, the same document, with the remounted settings checking.
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
-  const pathname = new URL(page.url()).pathname;
-  if (pathname === "/workspace") {
-    // Browser Back follows the completed SPA switch; reloading would terminate the outstanding operation.
-    await page.goBack();
-    await expect(page).toHaveURL("/account");
-  } else {
-    // While the server action is held, the identity shell can stay on /account. Keep the same document and let the
-    // pending subscription operation settle before releasing it.
-    await expect(page).toHaveURL("/account");
-  }
+  await expect(page).toHaveURL("/account");
   expect(await page.evaluate(() => (window as unknown as { c5Document: string }).c5Document)).toBe("held-subscription");
   await expect(page.getByText("正在检查提醒设置…", { exact: true })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("c5-test-release-subscribe")));
+  // Released: the old identity's subscription is rolled back under the lock, then the switch lands on /workspace.
+  await expect(page).toHaveURL("/workspace");
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("c5-test-push-subscription"))).toBeNull();
+  // Back in the same document: the new identity has no subscription and can turn its own on.
+  await page.goBack();
+  await expect(page).toHaveURL("/account");
+  expect(await page.evaluate(() => (window as unknown as { c5Document: string }).c5Document)).toBe("held-subscription");
   await expect(disabled(page)).toBeVisible();
-  expect(await page.evaluate(() => sessionStorage.getItem("c5-test-push-subscription"))).toBeNull();
   await enable(page).click();
   await expect(enabled(page)).toBeVisible();
   await page.reload();
