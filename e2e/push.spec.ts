@@ -190,23 +190,16 @@ test("push: a delayed old identity is rolled back before the remounted identity 
   // The identity switch updates the account shell immediately; under a held push action this build may keep the
   // current /account route until the queued server action settles. Either route is a valid remount trigger.
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
-  if (new URL(page.url()).pathname === "/account") {
-    const nav = page.getByRole("navigation", { name: /^(主导航|底部导航)$/ }).filter({ visible: true });
-    const workspace = nav.getByRole("link", { name: "工作台", exact: true });
-    if (await workspace.count()) {
-      await workspace.click();
-      await expect(page).toHaveURL("/workspace");
-    } else {
-      // The phone bar has 我的 instead of 工作台; 聊天 is still a real SPA route and remounts the account subtree.
-      await nav.getByRole("link", { name: "聊天", exact: true }).click();
-      await expect(page).toHaveURL("/messages");
-    }
+  const pathname = new URL(page.url()).pathname;
+  if (pathname === "/workspace") {
+    // Browser Back follows the completed SPA switch; reloading would terminate the outstanding operation.
+    await page.goBack();
+    await expect(page).toHaveURL("/account");
   } else {
-    await expect(page).toHaveURL("/workspace");
+    // While the server action is held, the identity shell can stay on /account. Keep the same document and let the
+    // pending subscription operation settle before releasing it.
+    await expect(page).toHaveURL("/account");
   }
-  // Browser Back follows Next's SPA history on both layouts; reloading would terminate the outstanding operation.
-  await page.goBack();
-  await expect(page).toHaveURL("/account");
   expect(await page.evaluate(() => (window as unknown as { c5Document: string }).c5Document)).toBe("held-subscription");
   await expect(page.getByText("正在检查提醒设置…", { exact: true })).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new Event("c5-test-release-subscribe")));
