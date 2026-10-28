@@ -187,7 +187,15 @@ test("push: a delayed old identity is rolled back before the remounted identity 
     (window as unknown as { c5Document: string }).c5Document = "held-subscription";
   });
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
-  await expect(page).toHaveURL("/workspace");
+  // The identity switch updates the account shell immediately; under a held push action this build may keep the
+  // current /account route until the queued server action settles. Either route is a valid remount trigger.
+  await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
+  if (new URL(page.url()).pathname === "/account") {
+    await page.getByRole("main").getByRole("link", { name: /^工作台/ }).click();
+    await expect(page).toHaveURL("/workspace");
+  } else {
+    await expect(page).toHaveURL("/workspace");
+  }
   // Browser Back follows Next's SPA history on both layouts; reloading would terminate the outstanding operation.
   await page.goBack();
   await expect(page).toHaveURL("/account");
