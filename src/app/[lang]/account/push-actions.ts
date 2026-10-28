@@ -7,6 +7,7 @@ import {
   keepPushSubscription,
   ownsPushSubscription,
   removePushSubscription,
+  removeSessionPushSubscriptions,
 } from "@/db/push-subscriptions";
 import { decode64, parseSubscription, pushEndpoint } from "@/lib/push/rules";
 import { readyVapidConfig } from "@/lib/push/web-push";
@@ -57,5 +58,13 @@ export async function disableMyPush(endpoint: string, expectedScope: string): Pr
   const clean = pushEndpoint(endpoint);
   if (!owner || !clean || scopeOf(owner.view) !== expectedScope) return false;
   await removePushSubscription(owner, clean);
+  return true;
+}
+
+/** Browser-coordination fallback only: stop delivery for this exact login without touching browser-global state. */
+export async function disableMySessionPush(expectedScope: string): Promise<boolean> {
+  const owner = await currentPushSession();
+  if (!owner || scopeOf(owner.view) !== expectedScope) return false;
+  await removeSessionPushSubscriptions(owner);
   return true;
 }

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   keep: vi.fn(),
   owns: vi.fn(),
   remove: vi.fn(),
+  removeSession: vi.fn(),
 }));
 vi.mock("@/lib/auth/sessions", async (original) => ({
   ...(await original<typeof import("@/lib/auth/sessions")>()),
@@ -22,9 +23,10 @@ vi.mock("@/db/push-subscriptions", () => ({
   keepPushSubscription: mocks.keep,
   ownsPushSubscription: mocks.owns,
   removePushSubscription: mocks.remove,
+  removeSessionPushSubscriptions: mocks.removeSession,
 }));
 vi.mock("@/i18n/server", () => ({ requestLang: async () => "en" }));
-const { myPushSettings, enableMyPush, disableMyPush } = await import("./push-actions");
+const { myPushSettings, enableMyPush, disableMyPush, disableMySessionPush } = await import("./push-actions");
 const owner: PushOwner = { id: "private-session", view: { email: "push@example.com", activeRole: "seeker" } };
 const scope = JSON.stringify([owner.view.email, "seeker", null]);
 async function subscription() {
@@ -46,6 +48,15 @@ beforeEach(() => {
   mocks.keep.mockResolvedValue(true);
 });
 describe("browser push server actions", () => {
+  it("stops this exact login without browser permission or keys, and refuses a stale scope", async () => {
+    mocks.config.mockResolvedValue(undefined);
+    expect(await disableMySessionPush("other-scope")).toBe(false);
+    expect(mocks.removeSession).not.toHaveBeenCalled();
+    expect(await disableMySessionPush(scope)).toBe(true);
+    expect(mocks.removeSession).toHaveBeenCalledWith(owner);
+    mocks.session.mockResolvedValue(null);
+    expect(await disableMySessionPush(scope)).toBe(false);
+  });
   it("returns only scope/public key/state, and honestly reports missing configuration", async () => {
     mocks.config.mockResolvedValue(undefined);
     expect(await myPushSettings()).toEqual({ scope, publicKey: null, enabled: false });

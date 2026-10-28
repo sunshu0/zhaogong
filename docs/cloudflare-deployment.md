@@ -27,6 +27,9 @@
 | `DATABASE_URL` | 变量 | 线上不设 | 本机和测试用：libSQL 库的地址，不设就是本地文件 `file:./data/zhaogong.db`。设了它会覆盖 Worker 的 D1 绑定，线上务必移除 | `src/db/client.ts` |
 | `DATABASE_AUTH_TOKEN` | 密钥 | 线上不设 | 远程 libSQL 库的令牌；用 D1 以后不需要 | `src/db/client.ts` |
 | `AUTH_SECRET` | 密钥 | **必须** | 验证码的 HMAC 密钥。生产环境没有就直接报错（`src/lib/auth/config.ts`） | `src/lib/auth/config.ts` |
+| `PUSH_VAPID_PUBLIC_KEY` | 服务器变量 | 要网页推送时设 | 匹配P-256密钥对的原始公钥，base64url；校验成功后才交给浏览器 | `src/lib/push/web-push.ts` |
+| `PUSH_VAPID_PRIVATE_KEY` | 密钥 | 要网页推送时设 | 同一P-256密钥对的私钥标量，base64url；不放入源码或NEXT_PUBLIC变量；未配置时如实显示暂未开放 | `src/lib/push/web-push.ts` |
+| `PUSH_VAPID_SUBJECT` | 服务器变量 | 要网页推送时设 | 运营方真实可联系的mailto或HTTPS地址；三个值及密钥对均有效才开放主动启用，迁移/受控验证见docs/web-push.md | `src/lib/push/web-push.ts` |
 | `ZG_EVENTS_SECRET` | 密钥 | 要统计就必须 | 漏斗事件里访客号的 HMAC 密钥（ADR 0025）。生产环境不设就不记事件，日志里会说一次 | `src/lib/events/visitor-key.ts` |
 | `NEXT_PUBLIC_CLARITY_ID` | 变量，**构建时** | 要 Clarity 就要 | Clarity 项目 ID，构建时写进浏览器的 JS。已集成同意提示和敏感页面屏蔽`src/components/analytics/Analytics.tsx` | `src/components/analytics/Analytics.tsx` |
 | `SITE_URL` | 变量 | 用自己的域名时要 | 绝对链接、robots、sitemap 的地址；不设就照请求的 host | `src/lib/site.ts`、`src/app/robots.ts` |

@@ -34,6 +34,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | 表 | 内容 | 决定 |
 | --- | --- | --- |
 | `accounts` 的 `lang` | 账号选的界面语言，空就是没选过 | ADR 0023 |
+| `push_subscriptions`、`push_setups` | 主动开启的网页新聊天提醒：推送地址/加密资料绑定精确会话、账号和身份，最近开启尝试时间用于限频；会话删除级联清理，账号导出不含会话标识 | ADR 0050 |
 | `conversations`、`messages`、`exchanges` | 求职者和企业共用的一条对话，企业整个团队一起读写；`messages.resume` 是求职者在聊天里发的中英文简历（发出时的那一份） | ADR 0015、0037 |
 | `team_invites`、`team_chats` | 企业的团队和邀请；雇主一侧的聊天按企业存一份 | ADR 0012 |
 | `employer_activity` | 企业团队最近一次用网站的时间（最多每 10 分钟写一次），职位卡和详情只用它显示「今天在线」；回复速度从共用对话现算（`src/db/employer-activity.ts`） | ADR 0038 |
@@ -87,6 +88,7 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | 文件 | 管什么 |
 | --- | --- |
 | `src/app/[lang]/account/actions.ts` | 数据与账号 |
+| `src/app/[lang]/account/push-actions.ts` | 网页消息推送设置、当前会话的订阅保存及取消（ADR 0050） |
 | `src/app/[lang]/admin/actions.ts` | 审核后台 |
 | `src/app/[lang]/admin/evidence-actions.ts` | 举报附的聊天和截图，仅审核员可读，交出聊天前记录查看记录（ADR 0027） |
 | `src/app/[lang]/admin/chat-risk-actions.ts` | 审核后台「聊天风险」（#384）：列出、交出消息前记录查看记录、关闭（ADR 0039） |

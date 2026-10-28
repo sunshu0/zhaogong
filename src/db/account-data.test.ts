@@ -82,6 +82,15 @@ async function fullAccount(email: string) {
     createdAt: "2026-10-16T00:00:00.000Z",
     expiresAt: "2026-11-16T00:00:00.000Z",
   });
+  const db = await database();
+  // Synthetic storage rows: wire/key validation is tested at the push boundary, not in this export fixture.
+  await db.insert(t.pushSubscriptions).values({
+    endpoint: `https://fcm.googleapis.com/fcm/send/${encodeURIComponent(email)}`,
+    sessionId: `session-${email}`,
+    email, role: "seeker", p256dh: "synthetic-public-key", auth: "synthetic-auth", lang: "en",
+    createdAt: "2026-10-17T00:00:00.000Z", updatedAt: "2026-10-17T00:00:00.000Z",
+  });
+  await db.insert(t.pushSetups).values({ sessionId: `session-${email}`, attemptedAt: "2026-10-17T00:00:00.000Z" });
   await auth.putCode({
     email,
     codeHash: "hash",
@@ -139,6 +148,12 @@ describe("exportAccountData (#54)", () => {
     const data = await exportAccountData(" Export.Me@Example.com ");
     expect(data?.account).toMatchObject({ email, lastRole: "seeker" });
     expect(data?.moderator).toBeNull();
+    expect(data?.pushSubscriptions).toEqual([{
+      endpoint: `https://fcm.googleapis.com/fcm/send/${encodeURIComponent(email)}`,
+      role: "seeker", p256dh: "synthetic-public-key", auth: "synthetic-auth", lang: "en",
+      createdAt: "2026-10-17T00:00:00.000Z", updatedAt: "2026-10-17T00:00:00.000Z",
+    }]);
+    expect(data?.pushSetupAttempts).toEqual([{ attemptedAt: "2026-10-17T00:00:00.000Z" }]);
     expect(data?.employer?.business).toMatchObject({ id: business.id, name: business.name });
     expect(data?.employer?.jobs.map((j) => j.id)).toEqual([job.id]);
     expect(data?.employer?.renewals).toMatchObject([
@@ -230,6 +245,7 @@ describe("deleteAccount (#54)", () => {
     const db = await database();
     for (const [table, column] of [
       [t.sessions, t.sessions.email],
+      [t.pushSubscriptions, t.pushSubscriptions.email],
       [t.signInCodes, t.signInCodes.email],
       [t.chatRecords, t.chatRecords.email],
       [t.contactViews, t.contactViews.viewerEmail],
@@ -245,6 +261,9 @@ describe("deleteAccount (#54)", () => {
     ] as const) {
       expect(await db.select().from(table).where(eq(column, email))).toEqual([]);
     }
+    expect(await db.select().from(t.pushSetups).where(eq(t.pushSetups.sessionId, `session-${email}`))).toEqual([]);
+    expect(await db.select().from(t.pushSubscriptions).where(eq(t.pushSubscriptions.email, "stays.here@example.com"))).toHaveLength(1);
+    expect(await db.select().from(t.pushSetups).where(eq(t.pushSetups.sessionId, "session-stays.here@example.com"))).toHaveLength(1);
     // The interviews on the person's applications went with them (#103); the other account's stays.
     expect(await db.select().from(t.interviews)).toHaveLength(
       (await db.select().from(t.jobApplications)).filter((a) => a.jobId === "j1").length,
@@ -339,6 +358,7 @@ describe("deleteAccount (#54)", () => {
     const handled = new Set([
       "accounts.email",
       "sessions.email",
+      "push_subscriptions.email",
       "sign_in_codes.email",
       "chat_records.email",
       "contact_views.viewer_email",

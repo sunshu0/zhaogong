@@ -50,8 +50,8 @@ describe("Web Push wire protocol", () => {
       Buffer.concat([Buffer.from("WebPush: info\0"), key.getPublicKey(), as]),
       32,
     );
-    const cek = hkdfSync("sha256", ikm, salt, Buffer.from("Content-Encoding: aes128gcm\0"), 16);
-    const nonce = hkdfSync("sha256", ikm, salt, Buffer.from("Content-Encoding: nonce\0"), 12);
+    const cek = hkdfSync("sha256", Buffer.from(ikm), salt, Buffer.from("Content-Encoding: aes128gcm\0"), 16);
+    const nonce = hkdfSync("sha256", Buffer.from(ikm), salt, Buffer.from("Content-Encoding: nonce\0"), 12);
     const decipher = createDecipheriv("aes-128-gcm", Buffer.from(cek), Buffer.from(nonce));
     decipher.setAuthTag(ciphertext.subarray(-16));
     const plain = Buffer.concat([decipher.update(ciphertext.subarray(0, -16)), decipher.final()]);

@@ -47,6 +47,19 @@
 | `myServerData()` | | `{ ok: true, data: ServerAccountData }`：账号、审核员身份、企业和它的全部职位、各身份的聊天记录和已读通知、收藏的职位和求职进度、职位提醒和提醒过的职位、提交过的企业验证申请（#78，不含审核员的邮箱）、看过联系方式的职位、登录会话（只有身份和时间）。浏览器再加上本机的资料、举报和浏览记录，下载成 `zhaogong-my-data-日期.json` | `{ ok: false, error }`：「请先登录」「找不到这个账号」 |
 | `deleteMyAccount(email)` | 再输入一次登录邮箱（不分大小写、首尾空格） | `{ ok: true }`：删除账号、所有会话、验证码、聊天记录、收藏、职位提醒和审核员身份；企业的职位下架并清空联系方式；查看记录和「由谁添加」改成 `deleted-account`；企业验证申请保留，提交人邮箱改成 `deleted-account`、联系人姓名清掉，还在等的改为撤回（#78）；删除这次的 cookie | `{ ok: false, error }`：「请先登录」「输入的邮箱和当前登录的邮箱不一致」「你是最后一位审核员。请先在审核后台添加另一位审核员，再删除账号。」 |
 
+## 网页消息推送 — `src/app/[lang]/account/push-actions.ts`
+
+账号和精确登录会话来自cookie（#420，ADR0050）。订阅不可转给其他会话；每次开启需匹配当前scope，最多10条订阅，开启尝试每10秒一次。浏览器用原生Web Locks跨标签串行创建/取消，权限提示只在用户点击后请求。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myPushSettings(endpoint?)` | 可选的明确支持厂商的HTTPS推送地址 | `{ scope, publicKey, enabled }`；缺少或无效VAPID配置时publicKey为null；不返回会话id或private key | 未登录或staff为null |
+| `enableMyPush(value, expectedScope)` | 浏览器订阅JSON、当前身份scope | true：校验endpoint、P-256点、auth长度、会话所有权后保存；不覆盖另一会话 | false：未登录、scope/密钥/输入无效、限频、储存上限或被另一会话占用 |
+| `disableMyPush(endpoint, expectedScope)` | 推送地址、当前身份scope | true：只删除当前会话+email下该endpoint，不存在也幂等成功；不要求配置密钥或通知权限 | false：未登录、scope或endpoint无效 |
+| `disableMySessionPush(expectedScope)` | 当前身份scope；缺少浏览器协调能力时的内部取消兜底 | true：仅删除本次登录会话+email下的全部订阅，停止站点推送；不改其他登录、不尝试不安全的浏览器取消 | false：未登录或scope不符 |
+
+真实新共享聊天文字/简历保存后用Next after最佳努力发送通用提醒；没有正文、联系方式、简历或姓名。发送失败不回滚聊天。API worker无私密页面缓存；点击重新核对当前登录/角色/对话所有权。
+
 ## 职位（求职者）— `src/app/[lang]/jobs/[id]/actions.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
@@ -425,6 +438,8 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 | `/admin` | 审核后台 | `ADMIN_ENABLED=1`，审核员 |
 | `POST /api/dev/chat-reply` | 演示对话的对方已读或回复（见上） | 只在开发环境；登录 |
 | `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
+| `GET /api/push/worker` | root scope的push-only Service Worker：JavaScript MIME、no-store，不拦截fetch或缓存私密页 | — |
+| `GET /api/push/open` | 系统提醒点击：只允许有权访问的对话；未登录去login并保留同源返回地址，身份不符去account提示，不自动换身份 | 当前会话和对话所有权 |
 | `GET /api/report-evidence/[id]` | 职位举报附的一张截图（ADR 0027）：图片本身，`nosniff`、`sandbox`、不缓存；每次交出先记进查看记录（ADR 0026）。不是审核员、编号不是截图都回 404 | `ADMIN_ENABLED=1`，审核员 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
 | `/sitemap.xml` | 首页、职位列表、实习和专业职位两个分区（#264）、关于 / 隐私 / 条款三页、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；外部职位详情不列；每次请求时生成（`sitemapEntries`，`src/lib/site.ts`） | — |

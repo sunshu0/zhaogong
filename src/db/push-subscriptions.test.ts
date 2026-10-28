@@ -11,6 +11,7 @@ import {
   ownsPushSubscription,
   pushRecipients,
   removePushSubscription,
+  removeSessionPushSubscriptions,
   type PushOwner,
 } from "./push-subscriptions";
 import { exportAccountData, deleteAccount } from "./account-data";
@@ -32,6 +33,21 @@ const subscription = (tag: string) => ({
   keys: { p256dh: "key-for-database-test", auth: "auth-for-database-test" },
 });
 describe("push subscription ownership and lifecycle", () => {
+  it("the coordination fallback removes only this exact login, including its paused role", async () => {
+    const a = await owner("push.fallback.a");
+    const b = await owner("push.fallback.b", a.view.email);
+    const c = await owner("push.fallback.c");
+    const paused: PushOwner = { ...a, view: { ...a.view, activeRole: "employer" } };
+    await keepPushSubscription(a, subscription("fallback-a"), "zh", now);
+    await keepPushSubscription(paused, subscription("fallback-paused"), "zh", now);
+    await keepPushSubscription(b, subscription("fallback-b"), "zh", now);
+    await keepPushSubscription(c, subscription("fallback-c"), "zh", now);
+    await removeSessionPushSubscriptions(a);
+    expect(await ownsPushSubscription(a, subscription("fallback-a").endpoint)).toBe(false);
+    expect(await ownsPushSubscription(paused, subscription("fallback-paused").endpoint)).toBe(false);
+    expect(await ownsPushSubscription(b, subscription("fallback-b").endpoint)).toBe(true);
+    expect(await ownsPushSubscription(c, subscription("fallback-c").endpoint)).toBe(true);
+  });
   it("cannot overwrite or delete another login/account's endpoint, and refreshes only its owner", async () => {
     const a = await owner("push.a"),
       b = await owner("push.b"),

@@ -64,6 +64,12 @@ export async function removePushSubscription(owner: PushOwner, endpoint: string)
   const db = await database();
   await db.delete(t.pushSubscriptions).where(and(ownership(owner), eq(t.pushSubscriptions.endpoint, endpoint)));
 }
+
+/** Internal fallback when the browser cannot safely coordinate its own subscription. Never affects another login. */
+export async function removeSessionPushSubscriptions(owner: PushOwner): Promise<void> {
+  const db = await database();
+  await db.delete(t.pushSubscriptions).where(ownership(owner));
+}
 /** A departed team member, expired/signed-out session or a session in another role receives nothing. */
 export async function pushRecipients(
   conversation: { seekerEmail: string; employerId: string },

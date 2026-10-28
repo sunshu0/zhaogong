@@ -13,10 +13,12 @@ export const pushEn: Messages<(typeof pushMessages)["zh"]> = {
   unavailable: "Browser alerts are not available yet. You can still read messages on the site.",
   unsupported:
     "This browser does not support web push here. On iPhone or iPad, add the site to your Home Screen and open it from there first.",
+  coordination: "This browser cannot safely coordinate push settings across pages, so alerts cannot be enabled. You can still stop site alerts for this sign-in.",
   denied: "Notifications are blocked. Allow them in your browser or system settings, then try again.",
   failed: "The change did not finish. Check your connection and try again.",
   closeFailed:
     "Site alerts are off, but browser unsubscription failed. Turn off notifications in your browser settings.",
+  browserCloseNeeded: "Site push is stopped for this sign-in. Turn off notifications in browser or system settings to finish cancelling this browser's subscription.",
   note: "Requires browser and system permission. Delivery can be delayed or unavailable. Signing out stops alerts; switching identity pauses the previous identity's alerts.",
   roleHint: "This alert belongs to another identity. Switch identity above, then open Messages.",
 };
