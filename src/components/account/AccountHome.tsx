@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/Toast";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { accountMessages } from "@/i18n/messages/account";
+import { PushSettings } from "@/components/account/PushSettings";
 
 /**
  * 我的 (/account): who you are, switching identity, and every page that is not in the bottom bar. Sheets (Section
@@ -104,6 +105,7 @@ export function AccountHome() {
         )}
       </Section>
       {!employer && !staff && <TeamInvites email={session.email} />}
+      {!staff && <PushSettings key={`${session.email}:${session.activeRole}:${session.employerId ?? ""}`} />}
       <Section look="sheet">
         <LinkList items={rows} />
       </Section>

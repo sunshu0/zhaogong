@@ -97,6 +97,12 @@ export async function getCurrentSession(jar?: CookieJar, now = new Date()): Prom
   return view(row.email, row.activeRole, await getAccountEmployer(row.email));
 }
 
+/** Server-only: binds a browser push subscription to this exact authenticated session. Never sent to the client. */
+export async function currentPushSession(jar?: CookieJar, now = new Date()): Promise<{ id: string; view: SessionView } | null> {
+  const row = await currentRow(jar ?? (await requestJar()), now);
+  return row ? { id: row.id, view: view(row.email, row.activeRole, await getAccountEmployer(row.email)) } : null;
+}
+
 export async function requireSession(jar?: CookieJar): Promise<SessionView> {
   const session = await getCurrentSession(jar);
   if (!session) throw new AuthError("signed_out");

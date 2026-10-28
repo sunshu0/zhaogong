@@ -30,6 +30,10 @@ export interface ServerAccountData {
   account: { email: string; createdAt: string; lastRole: AccountRole; lang: Lang | null };
   /** The 常用语 and 开场白 the person changed (#372, #373, ADR 0035); null where they kept the defaults. */
   chatPhrases: ChatPhrases;
+  /** The account's browser push subscriptions, without session identifiers. */
+  pushSubscriptions: { endpoint: string; role: string; p256dh: string; auth: string; lang: string; createdAt: string; updatedAt: string }[];
+  /** Most recent setup attempt per signed-in session; no session identifier is exported. */
+  pushSetupAttempts: { attemptedAt: string }[];
   /** The account's place in its business's team (#87): role, the name the team sees, since when. */
   team: { role: string; name: string | null; joinedAt: string | null } | null;
   /** Team invitations this account received or sent (#87), whatever their status. */
@@ -285,6 +289,8 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
       employer: readPhrases(account.employerPhrases),
       opener: readOpener(account.chatOpener),
     },
+    pushSubscriptions: await db.select({ endpoint: t.pushSubscriptions.endpoint, role: t.pushSubscriptions.role, p256dh: t.pushSubscriptions.p256dh, auth: t.pushSubscriptions.auth, lang: t.pushSubscriptions.lang, createdAt: t.pushSubscriptions.createdAt, updatedAt: t.pushSubscriptions.updatedAt }).from(t.pushSubscriptions).where(eq(t.pushSubscriptions.email, address)),
+    pushSetupAttempts: await db.select({ attemptedAt: t.pushSetups.attemptedAt }).from(t.pushSetups).innerJoin(t.sessions, eq(t.sessions.id, t.pushSetups.sessionId)).where(eq(t.sessions.email, address)),
     team: account.employerId
       ? { role: account.teamRole ?? "admin", name: account.teamName, joinedAt: account.teamJoinedAt }
       : null,
@@ -501,6 +507,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           .where(and(eq(t.verificationRequests.decidedByEmail, address), allowed)),
         // Delete children by subquery: newly opened chats/applications are included and large accounts need no ID list.
         db.delete(t.reportEvidence).where(and(eq(t.reportEvidence.reporterEmail, address), allowed)),
+        db.delete(t.pushSubscriptions).where(and(eq(t.pushSubscriptions.email, address), allowed)),
+        db.delete(t.pushSetups).where(and(inArray(t.pushSetups.sessionId, db.select({ id: t.sessions.id }).from(t.sessions).where(eq(t.sessions.email, address))), allowed)),
         db.delete(t.sessions).where(and(eq(t.sessions.email, address), allowed)),
         db.delete(t.signInCodes).where(and(eq(t.signInCodes.email, address), allowed)),
         db.delete(t.chatRecords).where(and(eq(t.chatRecords.email, address), allowed)),

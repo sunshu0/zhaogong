@@ -7,6 +7,9 @@
 // read and write (#110, ADR 0015): the server puts it into each side's record as it answers, and writes changes to
 // it into the conversations tables; demo chats and reports stay in the identity's own record.
 import { isBanned } from "@/lib/employer-ban";
+import { after } from "next/server";
+import { deliverChatPush } from "@/lib/push/delivery";
+import { vapidConfig } from "@/lib/push/web-push";
 import { createHash, randomUUID } from "node:crypto";
 import { bannedEmployerIds, getEmployer, getJob } from "@/lib/data";
 import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
@@ -345,6 +348,7 @@ async function applyShared(
       }
       if (side === "seeker") await countChatStart(id, me.session.email);
       if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined, now)) {
+        if (vapidConfig()) after(() => deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))));
         // 聊天风险 (#384, ADR 0039): only the business's messages count towards telling a moderator; a job seeker
         // asking 要交押金吗 is not reported. Both sides still see their reminders in the chat.
         const rules = side === "employer" ? chatRiskRules(text) : [];
@@ -366,7 +370,10 @@ async function applyShared(
       const resume = parseResumeDoc(change.resume, { withEmail: true });
       if (!resume) return;
       await countChatStart(id, me.session.email);
-      if (await addSharedMessage(row.id, side, RESUME_MESSAGE_TEXT, undefined, new Date(), resume)) return;
+      if (await addSharedMessage(row.id, side, RESUME_MESSAGE_TEXT, undefined, new Date(), resume)) {
+        if (vapidConfig()) after(() => deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))));
+        return;
+      }
       return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
     }
     case "request": {

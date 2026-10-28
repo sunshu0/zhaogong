@@ -29,6 +29,10 @@ const jar: CookieJar = {
   delete: (name) => void cookies.delete(name),
 };
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
+const push = vi.hoisted(() => ({ configured: false, callbacks: [] as (() => Promise<void>)[], deliver: vi.fn() }));
+vi.mock("next/server", async (original) => ({ ...await original<typeof import("next/server")>(), after: (callback: () => Promise<void>) => { push.callbacks.push(callback); } }));
+vi.mock("@/lib/push/web-push", () => ({ vapidConfig: () => push.configured ? {} : undefined }));
+vi.mock("@/lib/push/delivery", () => ({ deliverChatPush: push.deliver }));
 
 const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myChatChanges, myNotificationReads } =
   await import("@/app/[lang]/messages/actions");
@@ -51,6 +55,9 @@ async function signedIn(email: string, role: "seeker" | "employer" = "seeker") {
 }
 
 beforeEach(() => {
+  push.configured = false;
+  push.callbacks.length = 0;
+  push.deliver.mockReset().mockResolvedValue(undefined);
   setAuthStoreForTests();
   store = memoryChatStore();
   setChatServerStoreForTests(store);
@@ -451,6 +458,34 @@ describe("chats both sides share (#110)", () => {
     job.expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
     return { shop, boss, staff, job: await createJob(job as Omit<Job, "id">) };
   }
+
+  it("schedules push only after a new shared message/resume; retries, reads and empty sends do not schedule", async () => {
+    const { shop, job } = await business("push");
+    const email = "push.seeker@example.com";
+    const conversationId = `employer:${shop.id}:${job.id}`;
+    await signedIn(email);
+    push.configured = true;
+    const ticket = { id: "push-ticket-once", scope: seekerScope(email) };
+    await changeMyChat({ type: "send", conversationId, text: "你好" }, ticket);
+    expect(push.callbacks).toHaveLength(1);
+    expect(push.deliver).not.toHaveBeenCalled(); // still after the response, never inline with the insert
+    await changeMyChat({ type: "send", conversationId, text: "你好" }, ticket);
+    await change({ type: "read", conversationId });
+    await change({ type: "send", conversationId, text: " " });
+    await myChat(); await myChatChanges(undefined);
+    expect(push.callbacks).toHaveLength(1);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    push.deliver.mockRejectedValueOnce(new Error("provider unavailable"));
+    await expect(push.callbacks[0]()).resolves.toBeUndefined();
+    expect((await my())?.added[conversationId]).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(JSON.stringify({ event: "chat_push", failed: true }));
+    warn.mockRestore();
+    await change({ type: "resume", conversationId, resume: { zh: { name: "测试" } } });
+    expect(push.callbacks).toHaveLength(2);
+    push.configured = false;
+    await change({ type: "send", conversationId, text: "配置未开放仍能聊天" });
+    expect(push.callbacks).toHaveLength(2);
+  });
 
   it("a job seeker and a whole team talk in one conversation, with read receipts and who sent what", async () => {
     const { shop, boss, staff, job } = await business("shared");

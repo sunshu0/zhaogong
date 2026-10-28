@@ -2,6 +2,7 @@
 // src/i18n/english.ts imports this: at once on the server, and in the browser as its own chunk on English pages.
 // scripts/i18n-split-en.mjs adds the lines; keep the two markers.
 import { uiEn } from "./ui";
+import { pushEn } from "./push";
 import { seekerJobsEn } from "./seeker-jobs";
 import { seekerMeEn } from "./seeker-me";
 import { seekerProfileEn } from "./seeker-profile";
@@ -36,6 +37,7 @@ import { moderatorChatEn } from "./moderator-chat";
 
 export const english: Record<string, unknown> = {
   ui: uiEn,
+  push: pushEn,
   seekerJobs: seekerJobsEn,
   seekerMe: seekerMeEn,
   seekerProfile: seekerProfileEn,
