@@ -191,7 +191,10 @@ test("push: a delayed old identity is rolled back before the remounted identity 
   // current /account route until the queued server action settles. Either route is a valid remount trigger.
   await expect(page.getByRole("banner").getByRole("button", { name: "账号菜单，当前身份：求职者" })).toBeVisible();
   if (new URL(page.url()).pathname === "/account") {
-    await page.getByRole("main").getByRole("link", { name: /^工作台/ }).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: /^工作台/ })
+      .click();
     await expect(page).toHaveURL("/workspace");
   } else {
     await expect(page).toHaveURL("/workspace");
