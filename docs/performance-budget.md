@@ -39,3 +39,24 @@ node scripts/perf-budget.mjs
 - `scripts/perf-budget.mjs`：读构建统计、算大小、对比预算、打印表格。
 - `scripts/perf-budget-rules.mjs`：算大小和比较的规则，单测在 `perf-budget-rules.test.mjs`（`npm run test` 里）。
 - `scripts/perf-budget.json`：预算（`margin` 余量，`defaultKb` 默认值，`routes` 各路由的 KB 数）。
+
+## 主要点击的交互延迟（#418）
+
+除了首屏大小，再用固定实验测手机上五个主要操作：职位卡、详情「立即沟通」、聊天发送、「更多」和筛选弹层。每项五次，375×812、触摸、Chromium CPU 4×，报告中位数和最差，对照 200 ms。**超时只提示；采集失败或数据不完整才退出非零。**
+
+这不是整页真实用户 INP，也不是异步网络请求完成时间。Event Timing 从输入等待、事件处理量到下一次绘制；测试另确认页面、消息或弹层确实出现。定义和限制见 [ADR 0049](adr/0049-interaction-budget.md)。
+
+按机器资源规矩取得对应构建 / inp 时段后运行：
+
+```bash
+npm run e2e:build
+E2E_PORT=8705 npm run perf:inp
+```
+
+PowerShell 中第二行写成 `$env:E2E_PORT='8705'; npm run perf:inp`。端口必须空闲：Playwright 自己启动并在结束时关闭生产测试服务器，不复用任何现有服务器。默认端口是专用门槛端口 8705；独立诊断按分配使用其他端口。缺少 `.next-e2e/BUILD_ID`、误指定开发模式或端口被占用都会失败。不要用验收页的开发服务器替代。
+
+控制台打印汇总，`test-results/inp.json` 留每个样本的可信目标事件、Event Timing 原始记录、时间窗口、interactionId 对应证据和前后校准。校准点击由测试注入，故意慢 48 ms，不算目标样本。能力缺失 / 采集链路坏了不能当作快；只有同文档前后校准成功、目标事件完整且没有达到记录阈值时，才以显式 `below-threshold` 状态记录 16 ms 上界。硬导航丢失旧文档数据会报错。
+
+总导师 R2 已批准在 e8 后加独立 inp 段，仍只提示。拿共用 GPU 锁、最多 15 分钟，空闲至少 3.5 GB 间隔 30 秒读两次，owner command 标 inp；前 3 次必须同时记录进程树峰值内存、时长和其他并发活动。超过 10 分钟或 1.5 GB 先报总导师。
+
+首次实测数字及头三次资源花费尚待本实现运行后据实填写；实现完成不等于门槛通过。不要用旧草稿的测量结果验收新代码。纯函数回归在 `scripts/perf-inp-rules.test.mjs`，由正常 `npm run test` 收集。
