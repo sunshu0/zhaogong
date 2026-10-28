@@ -23,6 +23,9 @@ describe("returnList", () => {
   it("is the list, query and all, when the page was opened from a list at that path", () => {
     expect(returnList(place, "/jobs/j3", "/jobs")).toBe("/jobs?region=north-shore");
     expect(returnList({ ...place, list: "/jobs" }, "/jobs/j3", "/jobs")).toBe("/jobs");
+    expect(returnList({ ...place, list: "/jobs?region=akl-cbd&sort=recommended" }, "/jobs/j3", "/jobs")).toBe(
+      "/jobs?region=akl-cbd&sort=recommended",
+    );
   });
 
   it("is null on another page, from another list, or with nothing remembered", () => {

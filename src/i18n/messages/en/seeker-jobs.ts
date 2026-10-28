@@ -17,6 +17,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     listLabel: "Jobs",
     found: (n) => `${jobsWord(n)} found`,
     all: (n) => `${jobsWord(n)}, newest first`,
+    recommendedCount: (n) => `${jobsWord(n)}, ordered by your preferences`,
     clear: "Clear the filters and see every job",
     loading: "Loading jobs",
     emptyTitle: "No jobs match these filters yet",
@@ -24,6 +25,26 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     back: "Jobs",
     preview: "Job preview",
     openFull: "Open the full page",
+  },
+  order: {
+    label: "Job order",
+    recommendedLabel: "Recommended",
+    latestLabel: "Latest",
+    signed_out: "Sign in to use your job preferences. Showing the latest jobs for now.",
+    employer:
+      "Job recommendations are for the job seeker identity. Showing the latest jobs; you can switch identities on your account page.",
+    no_preferences:
+      "You have not saved a preferred job category, region or minimum hourly pay. Showing the latest jobs; save any one preference to use recommendations.",
+    recommended:
+      "Uses the categories, regions and minimum hourly pay you entered. Jobs meeting more preferences come first; ties keep the latest order. A pay range that includes your expectation counts as a match, not a guaranteed starting rate.",
+    all_same: "All current results meet your preferences equally, so they are shown in the latest order.",
+    no_matches:
+      "None of the current results meet your saved preferences, so the latest order is kept. You can change your filters or job preferences.",
+    private:
+      "Recommendations are for you only. You do not need a public CV, and using them does not reveal your preferences to employers.",
+    signIn: "Sign in and return",
+    switchIdentity: "Go to account",
+    edit: "Edit job preferences",
   },
   pay: {
     hourUnit: " an hour",

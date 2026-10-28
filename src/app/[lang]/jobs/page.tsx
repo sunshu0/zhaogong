@@ -23,6 +23,9 @@ import { PageTransition } from "@/components/ui/PageTransition";
 import { messages, serverLang } from "@/i18n/server";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 import { TrackView } from "@/components/ui/TrackView";
+import { JobOrder } from "@/components/seeker/JobOrder";
+import { jobListQuery, parseJobOrder, withJobOrder } from "@/components/seeker/job-order-query";
+import { jobOrderViewer, orderJobs } from "@/lib/job-ordering.server";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await messages(seekerJobsMessages)).list.title };
@@ -58,9 +61,16 @@ export default async function JobsPage({ searchParams }: PageProps<"/[lang]/jobs
 }
 
 async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "searchParams">) {
-  const filter = parseFilter(await searchParams, DEFAULT_COUNTRY);
+  const params = await searchParams;
+  const filter = parseFilter(params, DEFAULT_COUNTRY);
+  const order = parseJobOrder(params);
   const now = await requestTime(); // the list changes as jobs are published and close
-  const jobs = await listJobs(filter, now);
+  // Recommended reads the session and saved preferences alongside the list, then orders in memory.
+  const [listed, viewer] = await Promise.all([
+    listJobs(filter, now),
+    order === "recommended" ? jobOrderViewer(now) : null,
+  ]);
+  const { jobs, status } = orderJobs(listed, order, viewer);
   const [employers, activities] = await Promise.all([
     employersOf(jobs),
     employerActivities(
@@ -79,10 +89,10 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
   // From 1280 px a third column previews the selected job (V6, #376; JobBrowser).
   return (
     <div className="lg:grid lg:grid-cols-[16rem_minmax(0,48rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10 xl:grid-cols-[14rem_minmax(0,1fr)_22rem] xl:gap-x-6">
-      <RememberListQuery query={query} />
+      <RememberListQuery query={jobListQuery(filter, order)} />
       {/* The search funnel's first step (#319, ADR 0025): once per arrival at the list. */}
       <TrackView event={{ name: "jobs_list_view", path: "/jobs", detail: filtered ? "filtered" : "all" }} />
-      <FilterForm filter={filter} />
+      <FilterForm filter={filter} order={order} />
       <JobBrowser
         jobs={jobs.map(previewJob)}
         employers={Object.fromEntries(
@@ -91,11 +101,18 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
         now={now}
       >
         <section aria-label={t.listLabel} className="lg:col-start-2">
-          <ActiveFilters filter={filter} lang={lang} />
+          <JobOrder order={order} status={status} query={query} lang={lang} />
+          <ActiveFilters filter={filter} order={order} lang={lang} />
           {/* min-h-11: the row is as tall before 保存为提醒 appears (after hydration) as after, so the list stays put. */}
           <div className="mb-2 flex min-h-11 flex-wrap items-center justify-between gap-x-3">
-            <p className="text-body text-muted">{filtered ? t.found(jobs.length) : t.all(jobs.length)}</p>
-            <SaveAlert key={query} query={query} />
+            <p className="text-body text-muted">
+              {filtered
+                ? t.found(jobs.length)
+                : status === "recommended"
+                  ? t.recommendedCount(jobs.length)
+                  : t.all(jobs.length)}
+            </p>
+            <SaveAlert key={query} query={query} returnHref={jobsHref(jobListQuery(filter, order))} />
           </div>
           <JobList
             look="app"
@@ -105,7 +122,7 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
             lang={lang}
             empty={
               filtered && (
-                <Link href={jobsHref("")} className={buttonClass("primary")}>
+                <Link href={jobsHref(withJobOrder("", order))} className={buttonClass("primary")}>
                   {t.clear}
                 </Link>
               )

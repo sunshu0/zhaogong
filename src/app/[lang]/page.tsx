@@ -310,9 +310,18 @@ async function FeaturedBand() {
             </h2>
             <p className="mt-1 text-body text-muted">{t.hint}</p>
           </div>
-          <Link href={jobsHref("")} className="pressable inline-flex min-h-11 items-center font-medium text-brand">
-            {t.all}
-          </Link>
+          <div className="flex flex-wrap gap-x-5">
+            <a
+              href={jobsHref("sort=recommended")}
+              rel="nofollow"
+              className="pressable inline-flex min-h-11 items-center font-medium text-brand"
+            >
+              {t.recommended}
+            </a>
+            <Link href={jobsHref("")} className="pressable inline-flex min-h-11 items-center font-medium text-brand">
+              {t.all}
+            </Link>
+          </div>
         </div>
         <ul className="mt-6 space-y-3 lg:max-w-3xl">
           {jobs.map((job) => (

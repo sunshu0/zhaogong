@@ -28,7 +28,15 @@ const SAID: Record<SaveAlertResult["status"], "created" | "exists" | "limit"> = 
  * it leads to sign-in and back to the same list. Keyed by the query on the page, so a new search starts over. With a
  * `section` it saves the filters of 实习 or 专业职位 (#131).
  */
-export function SaveAlert({ query, section }: { query: string; section?: ExternalSection }) {
+export function SaveAlert({
+  query,
+  section,
+  returnHref,
+}: {
+  query: string;
+  section?: ExternalSection;
+  returnHref?: string;
+}) {
   const a = useMessages(seekerMeMessages).alerts;
   const hydrated = useHydrated();
   const session = useSession();
@@ -45,7 +53,7 @@ export function SaveAlert({ query, section }: { query: string; section?: Externa
   if (!session) {
     return (
       <Link
-        href={`/login?next=${encodeURIComponent(section ? externalAlertHref({ section, query }) : jobsHref(query))}`}
+        href={`/login?next=${encodeURIComponent(returnHref ?? (section ? externalAlertHref({ section, query }) : jobsHref(query)))}`}
         className={ACTION}
       >
         <Bell aria-hidden="true" className="size-4" />

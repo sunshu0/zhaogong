@@ -18,7 +18,6 @@ import type { EmploymentType, Industry, JobFilter } from "@/lib/types";
 import {
   filterChips,
   filterGroupSummary,
-  filterToQuery,
   usedFilterNames,
   jobsHref,
   parseFilter,
@@ -26,6 +25,7 @@ import {
   type FilterGroup,
 } from "@/components/seeker/filter-query";
 import { track } from "@/lib/events/track";
+import { jobListQuery, type JobOrder } from "@/components/seeker/job-order-query";
 
 const MIN_PAY_OPTIONS = [25, 27, 30, 35];
 /** Where the panel becomes the page's left column (Tailwind's lg). */
@@ -42,7 +42,7 @@ const DESKTOP = "(min-width: 1024px)";
  * under another made the column too long). Which groups are open outlives the form, so on desktop a group stays
  * open while its choices apply one by one.
  */
-export function FilterForm({ filter }: { filter: JobFilter }) {
+export function FilterForm({ filter, order = "latest" }: { filter: JobFilter; order?: JobOrder }) {
   const [openGroups, setOpenGroups] = useState<ReadonlySet<FilterGroup>>(new Set());
   const toggleGroup = useCallback((group: FilterGroup) => {
     setOpenGroups((open) => {
@@ -52,15 +52,25 @@ export function FilterForm({ filter }: { filter: JobFilter }) {
     });
   }, []);
   // A new URL resets the form (and closes the panel on phones).
-  return <Form key={filterToQuery(filter)} filter={filter} openGroups={openGroups} toggleGroup={toggleGroup} />;
+  return (
+    <Form
+      key={jobListQuery(filter, order)}
+      filter={filter}
+      order={order}
+      openGroups={openGroups}
+      toggleGroup={toggleGroup}
+    />
+  );
 }
 
 function Form({
   filter,
+  order,
   openGroups,
   toggleGroup,
 }: {
   filter: JobFilter;
+  order: JobOrder;
   openGroups: ReadonlySet<FilterGroup>;
   toggleGroup: (group: FilterGroup) => void;
 }) {
@@ -103,7 +113,7 @@ function Form({
     const sent = parseFilter(toParams(new FormData(e.currentTarget)), filter.country);
     // On a phone with the sheet closed the form holds only the keyword: keep the filters the URL already has.
     const searched = !desktop && !open ? { ...filter, query: sent.query } : sent;
-    const query = filterToQuery(searched);
+    const query = jobListQuery(searched, order);
     // The search funnel (#319, ADR 0025): which filters were used, by name only.
     track({ name: "jobs_search", path: "/jobs", detail: usedFilterNames(searched) || undefined });
     startTransition(() => router.push(jobsHref(query)));
@@ -205,6 +215,7 @@ function Form({
       role="search"
       className="mb-3 lg:contents"
     >
+      {order === "recommended" && <input type="hidden" name="sort" value="recommended" />}
       <div className="flex gap-2 lg:col-start-2 lg:row-start-1 lg:mb-3">
         <input
           type="search"

@@ -42,6 +42,7 @@ export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
     title: "Featured jobs",
     hint: "Open jobs from verified employers, highest pay first.",
     all: "See all jobs →",
+    recommended: "Jobs for your preferences →",
     browseAll: "Browse all jobs →",
     loading: "Loading featured jobs",
     auckland: "Auckland",

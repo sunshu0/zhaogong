@@ -4,9 +4,18 @@ import { filterChips, jobsHref } from "@/components/seeker/filter-query";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { withJobOrder, type JobOrder } from "@/components/seeker/job-order-query";
 
 /** The filters in the URL, each removable on its own, in the page's language. */
-export function ActiveFilters({ filter, lang = DEFAULT_LANG }: { filter: JobFilter; lang?: Lang }) {
+export function ActiveFilters({
+  filter,
+  order = "latest",
+  lang = DEFAULT_LANG,
+}: {
+  filter: JobFilter;
+  order?: JobOrder;
+  lang?: Lang;
+}) {
   const t = pick(seekerJobsMessages, lang).filter;
   const chips = filterChips(filter, lang);
   if (chips.length === 0) return null;
@@ -16,7 +25,7 @@ export function ActiveFilters({ filter, lang = DEFAULT_LANG }: { filter: JobFilt
       {chips.map((chip) => (
         <Link
           key={chip.id}
-          href={jobsHref(chip.query)}
+          href={jobsHref(withJobOrder(chip.query, order))}
           aria-label={t.remove(chip.label)}
           className="pressable inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-soft pr-2.5 pl-3 text-body text-brand"
         >
@@ -27,7 +36,10 @@ export function ActiveFilters({ filter, lang = DEFAULT_LANG }: { filter: JobFilt
         </Link>
       ))}
       {chips.length > 1 && (
-        <Link href={jobsHref("")} className="px-1 text-body text-muted underline underline-offset-2">
+        <Link
+          href={jobsHref(withJobOrder("", order))}
+          className="px-1 text-body text-muted underline underline-offset-2"
+        >
           {t.clearAll}
         </Link>
       )}

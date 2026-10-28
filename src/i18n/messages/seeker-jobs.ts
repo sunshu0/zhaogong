@@ -19,6 +19,7 @@ const seekerJobsZh = {
     listLabel: "职位列表",
     found: (n: number) => `找到 ${n} 个职位`,
     all: (n: number) => `共 ${n} 个职位，最新发布在前`,
+    recommendedCount: (n: number) => `共 ${n} 个职位，按求职期望排序`,
     clear: "清除筛选，看全部职位",
     loading: "正在加载职位",
     emptyTitle: "暂时没有符合条件的职位",
@@ -27,6 +28,22 @@ const seekerJobsZh = {
     // #376: the preview column beside the list, from 1280 px.
     preview: "职位预览",
     openFull: "查看完整页面",
+  },
+  order: {
+    label: "职位排序",
+    recommendedLabel: "推荐",
+    latestLabel: "最新",
+    signed_out: "登录后可按你填写的求职期望推荐。当前按最新展示。",
+    employer: "推荐工作供求职者使用。当前按最新展示，可在账号页切换身份。",
+    no_preferences: "还没有保存期望岗位、地区或最低时薪。当前按最新展示，保存其中一项即可使用推荐。",
+    recommended:
+      "按你已填写的岗位、地区和最低时薪排序，符合项多的优先，同样符合时最新在前。薪资范围包含你的期望时计为符合，不代表保证起薪。",
+    all_same: "当前结果都同样符合你的求职期望，按最新顺序展示。",
+    no_matches: "当前结果没有符合你已填写期望的职位，保留最新顺序。你也可以调整筛选或求职期望。",
+    private: "推荐只供你自己查看，无需公开简历，也不会因此把求职期望公开给雇主。",
+    signIn: "登录并返回",
+    switchIdentity: "前往账号页",
+    edit: "完善求职期望",
   },
   // seeker/format.ts and job-facts.ts: the figures come formatted.
   pay: {

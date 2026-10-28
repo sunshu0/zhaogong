@@ -18,6 +18,10 @@ describe("job alerts (#53)", () => {
     expect(normalizeAlertQuery("industry=hospitality,nonsense&colour=red", "NZ")).toBe("industry=hospitality");
     expect(normalizeAlertQuery(undefined, "NZ")).toBe("");
     expect(normalizeAlertQuery(42, "NZ")).toBe("");
+    expect(normalizeAlertQuery("sort=recommended&industry=hospitality&q=服务员", "NZ")).toBe(
+      normalizeAlertQuery("industry=hospitality&q=服务员", "NZ"),
+    );
+    expect(normalizeAlertQuery("sort=recommended", "NZ")).toBe("");
   });
 
   it("reads back the filter of the job list", () => {
