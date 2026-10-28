@@ -15,8 +15,12 @@ export type PushClient = {
 };
 
 /** Native origin-wide locks cover tabs and React remounts. Aborting cancels a queued request, never its holder. */
-export function withPushLock<T>(operation: () => Promise<T>, signal: AbortSignal, locks = navigator.locks): Promise<T> {
-  return locks.request(LOCK, { mode: "exclusive", signal }, operation);
+export async function withPushLock<T>(
+  operation: () => Promise<T>,
+  signal: AbortSignal,
+  locks = navigator.locks,
+): Promise<T> {
+  return await locks.request(LOCK, { mode: "exclusive", signal }, operation);
 }
 
 export function requireCurrentPush(current: () => boolean): void {
