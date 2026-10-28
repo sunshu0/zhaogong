@@ -4,6 +4,7 @@ import { convertV4MiniflareOptions, Miniflare, type V4MiniflareOptions } from "m
 import { afterAll } from "vitest";
 import { setD1ForTests, type D1Binding } from "@/db/client";
 import { migrationFiles } from "@/db/d1-migrations";
+import { childFirstTables, sqlIdentifier } from "@/db/testing/drop-order";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -23,11 +24,21 @@ async function freshen(): Promise<void> {
       "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' and name not like '_cf_%'",
     )
     .all();
-  if (results.length)
+  if (results.length) {
+    const references = await Promise.all(
+      results.map(async (row: Record<string, unknown>) => {
+        const name = String(row.name);
+        const keys = await d1.prepare(`PRAGMA foreign_key_list(${sqlIdentifier(name)})`).all();
+        return { name, parents: keys.results.map((key: Record<string, unknown>) => String(key.table)) };
+      }),
+    );
+    // Deferral alone does not stop CASCADE from accessing a parent which sqlite_master listed earlier.
+    const order = childFirstTables(references);
     await d1.batch([
       d1.prepare("PRAGMA defer_foreign_keys = on"),
-      ...results.map((row: Record<string, unknown>) => d1.prepare(`DROP TABLE "${String(row.name)}"`)),
+      ...order.map((name) => d1.prepare(`DROP TABLE ${sqlIdentifier(name)}`)),
     ]);
+  }
   for (const file of migrationFiles()) await d1.batch(file.statements.map((statement) => d1.prepare(statement)));
 }
 
