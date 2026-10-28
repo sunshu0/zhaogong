@@ -30,8 +30,13 @@ const jar: CookieJar = {
 };
 vi.mock("next/headers", () => ({ cookies: async () => jar }));
 const push = vi.hoisted(() => ({ configured: false, callbacks: [] as (() => Promise<void>)[], deliver: vi.fn() }));
-vi.mock("next/server", async (original) => ({ ...await original<typeof import("next/server")>(), after: (callback: () => Promise<void>) => { push.callbacks.push(callback); } }));
-vi.mock("@/lib/push/web-push", () => ({ vapidConfig: () => push.configured ? {} : undefined }));
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: (callback: () => Promise<void>) => {
+    push.callbacks.push(callback);
+  },
+}));
+vi.mock("@/lib/push/web-push", () => ({ vapidConfig: () => (push.configured ? {} : undefined) }));
 vi.mock("@/lib/push/delivery", () => ({ deliverChatPush: push.deliver }));
 
 const { changeMyChat, importMyChat, markMyNotificationsRead, myChat, myChatChanges, myNotificationReads } =
@@ -472,7 +477,8 @@ describe("chats both sides share (#110)", () => {
     await changeMyChat({ type: "send", conversationId, text: "你好" }, ticket);
     await change({ type: "read", conversationId });
     await change({ type: "send", conversationId, text: " " });
-    await myChat(); await myChatChanges(undefined);
+    await myChat();
+    await myChatChanges(undefined);
     expect(push.callbacks).toHaveLength(1);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     push.deliver.mockRejectedValueOnce(new Error("provider unavailable"));

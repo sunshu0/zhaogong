@@ -11,11 +11,25 @@ export async function GET(request: Request) {
   const session = await getCurrentSession();
   let destination = "/messages";
   if (!session) destination = "/login?next=" + encodeURIComponent(url.pathname + url.search);
-  else if ((role !== "seeker" && role !== "employer") || role !== session.activeRole || await isModerator(session.email)) destination = "/account?pushRole=" + (role === "employer" ? "employer" : "seeker");
+  else if (
+    (role !== "seeker" && role !== "employer") ||
+    role !== session.activeRole ||
+    (await isModerator(session.email))
+  )
+    destination = "/account?pushRole=" + (role === "employer" ? "employer" : "seeker");
   else {
     const key = parseSharedId(conversation, role);
-    const reader = role === "seeker" ? { side: "seeker" as const, email: session.email } : session.employer ? { side: "employer" as const, employerId: session.employer.id } : null;
-    if (key && reader && await findSharedConversation(reader, key)) destination += `?conversation=${encodeURIComponent(conversation)}`;
+    const reader =
+      role === "seeker"
+        ? { side: "seeker" as const, email: session.email }
+        : session.employer
+          ? { side: "employer" as const, employerId: session.employer.id }
+          : null;
+    if (key && reader && (await findSharedConversation(reader, key)))
+      destination += `?conversation=${encodeURIComponent(conversation)}`;
   }
-  return new Response(null, { status: 303, headers: { Location: new URL(destination, url.origin).href, "Cache-Control": "no-store" } });
+  return new Response(null, {
+    status: 303,
+    headers: { Location: new URL(destination, url.origin).href, "Cache-Control": "no-store" },
+  });
 }

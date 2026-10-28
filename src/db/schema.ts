@@ -298,21 +298,34 @@ export const sessions = sqliteTable(
 );
 
 /** C5: one browser endpoint, owned by one authenticated session and role. Session deletion removes it too. */
-export const pushSubscriptions = sqliteTable("push_subscriptions", {
-  endpoint: text("endpoint").primaryKey(),
-  sessionId: text("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
-  email: text("email").notNull().references(() => accounts.email),
-  role: text("role").$type<AccountRole>().notNull(),
-  p256dh: text("p256dh").notNull(),
-  auth: text("auth").notNull(),
-  lang: text("lang").$type<Lang>().notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-}, (table) => [index("push_subscriptions_session_idx").on(table.sessionId), index("push_subscriptions_email_idx").on(table.email)]);
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    endpoint: text("endpoint").primaryKey(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    email: text("email")
+      .notNull()
+      .references(() => accounts.email),
+    role: text("role").$type<AccountRole>().notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    lang: text("lang").$type<Lang>().notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    index("push_subscriptions_session_idx").on(table.sessionId),
+    index("push_subscriptions_email_idx").on(table.email),
+  ],
+);
 
 /** One push setup cooldown per login; removed with that login. */
 export const pushSetups = sqliteTable("push_setups", {
-  sessionId: text("session_id").primaryKey().references(() => sessions.id, { onDelete: "cascade" }),
+  sessionId: text("session_id")
+    .primaryKey()
+    .references(() => sessions.id, { onDelete: "cascade" }),
   attemptedAt: text("attempted_at").notNull(),
 });
 

@@ -4,19 +4,38 @@ import { createEmployer, ensureAccount, openEmployerIdentity } from "@/lib/data"
 import { database } from "@/db/ready";
 import { databaseAuthStore } from "@/db/auth-store";
 import * as t from "@/db/schema";
-import { claimPushAttempt, discardExpiredPush, keepPushSubscription, ownsPushSubscription, pushRecipients, removePushSubscription, type PushOwner } from "./push-subscriptions";
+import {
+  claimPushAttempt,
+  discardExpiredPush,
+  keepPushSubscription,
+  ownsPushSubscription,
+  pushRecipients,
+  removePushSubscription,
+  type PushOwner,
+} from "./push-subscriptions";
 import { exportAccountData, deleteAccount } from "./account-data";
 
 const now = new Date("2026-10-28T10:00:00Z");
 async function owner(tag: string, email = `${tag}@example.com`): Promise<PushOwner> {
   await ensureAccount(email);
-  await databaseAuthStore().insertSession({ id: tag, email, activeRole: "seeker", createdAt: now.toISOString(), expiresAt: new Date(now.getTime() + 3600_000).toISOString() });
+  await databaseAuthStore().insertSession({
+    id: tag,
+    email,
+    activeRole: "seeker",
+    createdAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + 3600_000).toISOString(),
+  });
   return { id: tag, view: { email, activeRole: "seeker" } };
 }
-const subscription = (tag: string) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/${tag}`, keys: { p256dh: "key-for-database-test", auth: "auth-for-database-test" } });
+const subscription = (tag: string) => ({
+  endpoint: `https://fcm.googleapis.com/fcm/send/${tag}`,
+  keys: { p256dh: "key-for-database-test", auth: "auth-for-database-test" },
+});
 describe("push subscription ownership and lifecycle", () => {
   it("cannot overwrite or delete another login/account's endpoint, and refreshes only its owner", async () => {
-    const a = await owner("push.a"), b = await owner("push.b"), c = await owner("push.c", a.view.email);
+    const a = await owner("push.a"),
+      b = await owner("push.b"),
+      c = await owner("push.c", a.view.email);
     const value = subscription("ownership");
     expect(await keepPushSubscription(a, value, "zh", now)).toBe(true);
     expect(await keepPushSubscription(b, value, "en", now)).toBe(false);
@@ -39,7 +58,9 @@ describe("push subscription ownership and lifecycle", () => {
     expect(await pushRecipients(chat, "seeker", new Date(now.getTime() + 3600_001))).toHaveLength(0);
     await databaseAuthStore().deleteSession(a.id);
     expect(await ownsPushSubscription(a, value.endpoint)).toBe(false);
-    expect(await (await database()).select().from(t.pushSetups).where(eq(t.pushSetups.sessionId, a.id))).toHaveLength(0);
+    expect(await (await database()).select().from(t.pushSetups).where(eq(t.pushSetups.sessionId, a.id))).toHaveLength(
+      0,
+    );
   });
   it("delivers to a current business team only, and stops after membership changes", async () => {
     const shop = await createEmployer({ name: "推送团队", regionId: "akl-cbd" });
@@ -55,7 +76,9 @@ describe("push subscription ownership and lifecycle", () => {
   });
   it("caps concurrent setup storage and throttles repeated setup without throttling removal", async () => {
     const a = await owner("push.limit");
-    const writes = await Promise.all(Array.from({ length: 15 }, (_, n) => keepPushSubscription(a, subscription(`limit${n}`), "zh", now)));
+    const writes = await Promise.all(
+      Array.from({ length: 15 }, (_, n) => keepPushSubscription(a, subscription(`limit${n}`), "zh", now)),
+    );
     expect(writes.filter(Boolean)).toHaveLength(10);
     const attempts = await Promise.all(Array.from({ length: 4 }, () => claimPushAttempt(a, now)));
     expect(attempts.filter(Boolean)).toHaveLength(1);
@@ -67,12 +90,16 @@ describe("push subscription ownership and lifecycle", () => {
     const a = await owner("push.delete");
     await keepPushSubscription(a, subscription("delete"), "zh", now);
     await claimPushAttempt(a, now);
-    expect((await exportAccountData(a.view.email))?.pushSubscriptions).toEqual([expect.objectContaining({ endpoint: subscription("delete").endpoint, role: "seeker" })]);
+    expect((await exportAccountData(a.view.email))?.pushSubscriptions).toEqual([
+      expect.objectContaining({ endpoint: subscription("delete").endpoint, role: "seeker" }),
+    ]);
     expect(JSON.stringify((await exportAccountData(a.view.email))?.pushSubscriptions)).not.toContain("sessionId");
     expect((await exportAccountData(a.view.email))?.pushSetupAttempts).toEqual([{ attemptedAt: now.toISOString() }]);
     await deleteAccount(a.view.email);
     const db = await database();
-    expect(await db.select().from(t.pushSubscriptions).where(eq(t.pushSubscriptions.email, a.view.email))).toHaveLength(0);
+    expect(await db.select().from(t.pushSubscriptions).where(eq(t.pushSubscriptions.email, a.view.email))).toHaveLength(
+      0,
+    );
     expect(await db.select().from(t.pushSetups).where(eq(t.pushSetups.sessionId, a.id))).toHaveLength(0);
   });
   it("does not let a stale 410 response delete a more recently refreshed subscription", async () => {

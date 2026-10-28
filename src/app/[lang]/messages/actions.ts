@@ -348,7 +348,10 @@ async function applyShared(
       }
       if (side === "seeker") await countChatStart(id, me.session.email);
       if (await addSharedMessage(row.id, side, text, side === "employer" ? me.by : undefined, now)) {
-        if (vapidConfig()) after(() => deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))));
+        if (vapidConfig())
+          after(() =>
+            deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))),
+          );
         // 聊天风险 (#384, ADR 0039): only the business's messages count towards telling a moderator; a job seeker
         // asking 要交押金吗 is not reported. Both sides still see their reminders in the chat.
         const rules = side === "employer" ? chatRiskRules(text) : [];
@@ -371,7 +374,10 @@ async function applyShared(
       if (!resume) return;
       await countChatStart(id, me.session.email);
       if (await addSharedMessage(row.id, side, RESUME_MESSAGE_TEXT, undefined, new Date(), resume)) {
-        if (vapidConfig()) after(() => deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))));
+        if (vapidConfig())
+          after(() =>
+            deliverChatPush(row, side).catch(() => console.warn(JSON.stringify({ event: "chat_push", failed: true }))),
+          );
         return;
       }
       return (await limits()).messagesFull(SHARED_MESSAGES_MAX);
