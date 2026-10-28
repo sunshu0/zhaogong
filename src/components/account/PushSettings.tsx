@@ -63,24 +63,29 @@ export function PushSettings() {
         const settings = await myPushSettings(subscription?.endpoint);
         requireCurrentPush(current);
         if (!settings || settings.scope !== scope) throw new Error("Push identity changed");
-        const next: State = !settings.publicKey ? "unavailable" :
-          settings.enabled && Notification.permission === "granted" ? "enabled" : "disabled";
+        const next: State = !settings.publicKey
+          ? "unavailable"
+          : settings.enabled && Notification.permission === "granted"
+            ? "enabled"
+            : "disabled";
         return { state: next, publicKey: settings.publicKey };
       }, controller.signal);
     }
     const check = () => {
       if (busy.current || !current()) return;
       const startedAt = revision.current;
-      void read().then((value) => {
-        if (current() && !busy.current && startedAt === revision.current) {
-          setState(value.state);
-          setPublicKey(value.publicKey);
-          setNotice("");
-          setRoleHint(new URLSearchParams(location.search).has("pushRole"));
-        }
-      }).catch(() => {
-        if (current() && !busy.current && startedAt === revision.current) setState("failed");
-      });
+      void read()
+        .then((value) => {
+          if (current() && !busy.current && startedAt === revision.current) {
+            setState(value.state);
+            setPublicKey(value.publicKey);
+            setNotice("");
+            setRoleHint(new URLSearchParams(location.search).has("pushRole"));
+          }
+        })
+        .catch(() => {
+          if (current() && !busy.current && startedAt === revision.current) setState("failed");
+        });
     };
     const stopChanges = onPushChange((change) => {
       if (busy.current || !current()) return;
@@ -109,27 +114,39 @@ export function PushSettings() {
     setNotice("");
     try {
       if (!supported() || !coordinated()) {
-        if (kind === "enable") { setState(supported() ? "coordination" : "unsupported"); return; }
+        if (kind === "enable") {
+          setState(supported() ? "coordination" : "unsupported");
+          return;
+        }
         // Cancelling on the server needs neither permission, keys, nor browser coordination support.
-        if (!await disableMySessionPush(scope)) throw new Error("Could not stop session alerts");
+        if (!(await disableMySessionPush(scope))) throw new Error("Could not stop session alerts");
         requireCurrentPush(current);
         setState(supported() ? "coordination" : "unsupported");
         setNotice(t.browserCloseNeeded);
         return;
       }
       if (kind === "enable") {
-        if (!publicKey) { setState("unavailable"); return; }
+        if (!publicKey) {
+          setState("unavailable");
+          return;
+        }
         // Keep this before the lock await so Safari still has the explicit click's user activation.
         const permission = await Notification.requestPermission();
         requireCurrentPush(current);
-        if (permission !== "granted") { setState(permission === "denied" ? "denied" : "disabled"); return; }
+        if (permission !== "granted") {
+          setState(permission === "denied" ? "denied" : "disabled");
+          return;
+        }
       }
       const result = await withPushLock<"enabled" | "unavailable" | "disabled" | "browser-close-needed">(async () => {
         requireCurrentPush(current);
         announcePushChange("changing");
         try {
-          return kind === "enable" ? await enableBrowserPush(client, scope, current) :
-            await disableBrowserPush(client, scope, current) ? "disabled" : "browser-close-needed";
+          return kind === "enable"
+            ? await enableBrowserPush(client, scope, current)
+            : (await disableBrowserPush(client, scope, current))
+              ? "disabled"
+              : "browser-close-needed";
         } finally {
           announcePushChange("changed");
         }
@@ -149,8 +166,14 @@ export function PushSettings() {
       <div className="space-y-3 py-group">
         <h2 className="text-subtitle font-semibold">{t.title}</h2>
         <p className="text-body text-muted">{t.detail}</p>
-        {roleHint && <p role="status" className="text-body text-warn">{t.roleHint}</p>}
-        <p role="status" className="text-meta">{notice || t[state]}</p>
+        {roleHint && (
+          <p role="status" className="text-body text-warn">
+            {t.roleHint}
+          </p>
+        )}
+        <p role="status" className="text-meta">
+          {notice || t[state]}
+        </p>
         <div className="flex flex-wrap gap-2">
           <Button
             disabled={pending || ["checking", "unsupported", "coordination", "unavailable", "denied"].includes(state)}
@@ -158,7 +181,11 @@ export function PushSettings() {
           >
             {pending ? t.working : t.enable}
           </Button>
-          <Button variant="secondary" disabled={pending || state === "checking"} onClick={() => start(() => change("disable"))}>
+          <Button
+            variant="secondary"
+            disabled={pending || state === "checking"}
+            onClick={() => start(() => change("disable"))}
+          >
             {t.disable}
           </Button>
         </div>

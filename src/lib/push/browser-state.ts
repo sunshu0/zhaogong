@@ -55,7 +55,11 @@ export async function createBrowserPush(key: string, check: () => void): Promise
 }
 
 /** Call only inside withPushLock. Rollback owns only this operation's created endpoint and finishes before release. */
-export async function enableBrowserPush(client: PushClient, scope: string, current: () => boolean): Promise<"enabled" | "unavailable"> {
+export async function enableBrowserPush(
+  client: PushClient,
+  scope: string,
+  current: () => boolean,
+): Promise<"enabled" | "unavailable"> {
   const check = () => requireCurrentPush(current);
   let created: Subscription | null = null;
   try {
@@ -67,14 +71,14 @@ export async function enableBrowserPush(client: PushClient, scope: string, curre
     const previous = await client.existing(check);
     check();
     if (previous) {
-      if (!await client.remove(previous.endpoint, scope)) throw new Error("Could not disable previous subscription");
+      if (!(await client.remove(previous.endpoint, scope))) throw new Error("Could not disable previous subscription");
       check();
-      if (!await previous.unsubscribe()) throw new Error("Could not cancel previous subscription");
+      if (!(await previous.unsubscribe())) throw new Error("Could not cancel previous subscription");
       check();
     }
     created = await client.create(settings.publicKey, check);
     check();
-    if (!await client.save(created.toJSON(), scope)) throw new Error("Could not save subscription");
+    if (!(await client.save(created.toJSON(), scope))) throw new Error("Could not save subscription");
     check();
     return "enabled";
   } catch (error) {
@@ -97,7 +101,7 @@ export async function disableBrowserPush(client: PushClient, scope: string, curr
   const subscription = await client.existing(check);
   check();
   if (!subscription) return true;
-  if (!await client.remove(subscription.endpoint, scope)) throw new Error("Could not remove subscription");
+  if (!(await client.remove(subscription.endpoint, scope))) throw new Error("Could not remove subscription");
   check();
   const cancelled = await subscription.unsubscribe();
   check();
@@ -112,16 +116,27 @@ export function announcePushChange(change: PushChange): void {
       const channel = new BroadcastChannel(CHANNEL);
       channel.postMessage(change);
       channel.close();
-    } catch { /* Optional refresh signals must never change the outcome of a saved setting. */ }
+    } catch {
+      /* Optional refresh signals must never change the outcome of a saved setting. */
+    }
   }
 }
 
 export function onPushChange(receive: (change: PushChange) => void): () => void {
-  const accept = (value: unknown) => { if (value === "changing" || value === "changed") receive(value); };
+  const accept = (value: unknown) => {
+    if (value === "changing" || value === "changed") receive(value);
+  };
   const local = (event: Event) => accept((event as CustomEvent).detail);
   window.addEventListener(LOCAL_EVENT, local);
   let channel: BroadcastChannel | null = null;
-  try { channel = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL) : null; } catch { /* Focus still rechecks. */ }
+  try {
+    channel = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL) : null;
+  } catch {
+    /* Focus still rechecks. */
+  }
   if (channel) channel.onmessage = (event) => accept(event.data);
-  return () => { window.removeEventListener(LOCAL_EVENT, local); channel?.close(); };
+  return () => {
+    window.removeEventListener(LOCAL_EVENT, local);
+    channel?.close();
+  };
 }

@@ -54,7 +54,9 @@ async function browserPush(page: Page, permission: "default" | "granted" | "deni
             if (sessionStorage.getItem("c5-test-hold-subscribe") === "1") {
               sessionStorage.removeItem("c5-test-hold-subscribe");
               sessionStorage.setItem("c5-test-subscribe-waiting", "1");
-              await new Promise<void>((resolve) => window.addEventListener("c5-test-release-subscribe", () => resolve(), { once: true }));
+              await new Promise<void>((resolve) =>
+                window.addEventListener("c5-test-release-subscribe", () => resolve(), { once: true }),
+              );
               sessionStorage.removeItem("c5-test-subscribe-waiting");
             }
             const n = Number(sessionStorage.getItem("c5-test-sequence") || 0) + 1;
@@ -151,15 +153,25 @@ test("push: unsupported browsers get a Home Screen hint without a permission pro
   await expect(enable(page)).toBeDisabled();
 });
 
-test("push: missing origin coordination refuses enable but still stops this login's server alerts", async ({ page }) => {
+test("push: missing origin coordination refuses enable but still stops this login's server alerts", async ({
+  page,
+}) => {
   await browserPush(page, "granted");
-  await page.addInitScript(() => { Object.defineProperty(navigator, "locks", { configurable: true, value: undefined }); });
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "locks", { configurable: true, value: undefined });
+  });
   await signIn(page, "/account", freshEmail("push.no-locks"));
-  await expect(page.getByText("此浏览器无法安全协调多个页面的推送设置，暂不能开启。你仍可关闭本次登录的站点提醒。", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("此浏览器无法安全协调多个页面的推送设置，暂不能开启。你仍可关闭本次登录的站点提醒。", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(enable(page)).toBeDisabled();
   await expect(disable(page)).toBeEnabled();
   await disable(page).click();
-  await expect(page.getByText("已停止本次登录的站点推送。请到浏览器或系统设置中关闭通知，完成此浏览器的取消。", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("已停止本次登录的站点推送。请到浏览器或系统设置中关闭通知，完成此浏览器的取消。", { exact: true }),
+  ).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem("c5-test-prompts"))).toBeNull();
 });
 
@@ -171,7 +183,9 @@ test("push: a delayed old identity is rolled back before the remounted identity 
   await page.evaluate(() => sessionStorage.setItem("c5-test-hold-subscribe", "1"));
   await enable(page).click();
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("c5-test-subscribe-waiting"))).toBe("1");
-  await page.evaluate(() => { (window as unknown as { c5Document: string }).c5Document = "held-subscription"; });
+  await page.evaluate(() => {
+    (window as unknown as { c5Document: string }).c5Document = "held-subscription";
+  });
   await page.getByRole("button", { name: "切换为求职者", exact: true }).click();
   await expect(page).toHaveURL("/workspace");
   // Browser Back follows Next's SPA history on both layouts; reloading would terminate the outstanding operation.
@@ -218,7 +232,10 @@ test("push: account identity switches pause the old subscription, and a new logi
   await expect(disabled(page)).toBeVisible();
 });
 
-test("push: real click routes retain sign-in return targets, authorize chat owners and isolate identities", async ({ page, browser }, info) => {
+test("push: real click routes retain sign-in return targets, authorize chat owners and isolate identities", async ({
+  page,
+  browser,
+}, info) => {
   test.slow();
   await signUpEmployer(page, info);
   const jobId = (await publishJob(page, uniqueTitle("推送跳转服务员", info)))!;
@@ -226,7 +243,9 @@ test("push: real click routes retain sign-in return targets, authorize chat owne
   const otherContext = await browser.newContext({ ...info.project.use });
   const visitorContext = await browser.newContext({ ...info.project.use });
   try {
-    const seeker = await seekerContext.newPage(), other = await otherContext.newPage(), visitor = await visitorContext.newPage();
+    const seeker = await seekerContext.newPage(),
+      other = await otherContext.newPage(),
+      visitor = await visitorContext.newPage();
     const email = freshEmail("push.click.owner");
     const privateText = `只给这段聊天的文字${Date.now()}`;
     await signIn(seeker, `/jobs/${jobId}`, email);
@@ -234,7 +253,9 @@ test("push: real click routes retain sign-in return targets, authorize chat owne
     const conversation = new URL(seeker.url()).searchParams.get("conversation")!;
     const seekerHref = `/api/push/open?role=seeker&conversation=${encodeURIComponent(conversation)}`;
     await seeker.goto(seekerHref);
-    await expect(seeker).toHaveURL((url) => url.pathname === "/messages" && url.searchParams.get("conversation") === conversation);
+    await expect(seeker).toHaveURL(
+      (url) => url.pathname === "/messages" && url.searchParams.get("conversation") === conversation,
+    );
     await expect(seeker.getByRole("log", { name: "消息记录" })).toContainText(privateText);
 
     // Correct role, different account: a real database ownership check cannot disclose the target chat.
@@ -248,11 +269,17 @@ test("push: real click routes retain sign-in return targets, authorize chat owne
     await expect(page).toHaveURL("/account?pushRole=seeker");
     await expect(page.getByRole("button", { name: "切换为求职者", exact: true })).toBeVisible();
     await page.goto("/messages");
-    await page.getByRole("complementary", { name: "聊天列表" }).getByRole("button").filter({ hasText: privateText }).click();
+    await page
+      .getByRole("complementary", { name: "聊天列表" })
+      .getByRole("button")
+      .filter({ hasText: privateText })
+      .click();
     await expect(page).toHaveURL((url) => url.pathname === "/messages" && !!url.searchParams.get("conversation"));
     const employerConversation = new URL(page.url()).searchParams.get("conversation")!;
     await page.goto(`/api/push/open?role=employer&conversation=${encodeURIComponent(employerConversation)}`);
-    await expect(page).toHaveURL((url) => url.pathname === "/messages" && url.searchParams.get("conversation") === employerConversation);
+    await expect(page).toHaveURL(
+      (url) => url.pathname === "/messages" && url.searchParams.get("conversation") === employerConversation,
+    );
     await expect(page.getByRole("log", { name: "消息记录" })).toContainText(privateText);
 
     // Real signed-out click -> login -> same route checks the newly authenticated owner before opening the chat.
@@ -262,9 +289,13 @@ test("push: real click routes retain sign-in return targets, authorize chat owne
     await visitor.getByRole("button", { name: "获取验证码" }).click();
     await fillSignInCode(visitor);
     await visitor.getByRole("button", { name: "登录", exact: true }).click();
-    await expect(visitor).toHaveURL((url) => url.pathname === "/messages" && url.searchParams.get("conversation") === conversation);
+    await expect(visitor).toHaveURL(
+      (url) => url.pathname === "/messages" && url.searchParams.get("conversation") === conversation,
+    );
     await expect(visitor.getByRole("log", { name: "消息记录" })).toContainText(privateText);
   } finally {
-    await seekerContext.close(); await otherContext.close(); await visitorContext.close();
+    await seekerContext.close();
+    await otherContext.close();
+    await visitorContext.close();
   }
 });
