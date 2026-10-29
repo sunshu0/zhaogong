@@ -2,7 +2,7 @@
 // list is 聊过这个职位的人 (ADR 0030). Marks are made on the list or in the chat; the job seeker reads how it went in
 // 我的申请, read only.
 import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test";
-import { chatAboutJob, freshEmail, signIn } from "./helpers";
+import { chatAboutJob, chatMenuItem, freshEmail, signIn } from "./helpers";
 import { candidateCard, publishJob, signUpEmployer, uniqueTitle } from "./employer/helpers";
 
 async function seekerPage(browser: Browser, testInfo: TestInfo): Promise<Page> {
@@ -60,7 +60,8 @@ test("the business marks 已录用 in the chat, and the job seeker is told", asy
   await hired.click();
   await expect(hired).toHaveAttribute("aria-pressed", "true");
   await expect(hired).not.toHaveAttribute("aria-busy");
-  await page.getByRole("link", { name: "这个职位聊过的人" }).click();
+  // E5-1: in the chat's 更多, out of the marks' row.
+  await (await chatMenuItem(page, "这个职位聊过的人")).click();
   await expect(page).toHaveURL(`/employer/jobs/${jobId}/applicants`);
   await expect(page.getByRole("article", { name: "候选人 求职者" })).toContainText("已录用");
 

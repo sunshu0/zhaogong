@@ -50,20 +50,42 @@ export function ChatPhraseRow({
     refocus.current = false;
     manage.current?.focus();
   }, [managing, folded]);
-  if (!kept) return <div aria-hidden="true" className={folded ? "hidden" : "mb-2 min-h-12"} />;
+  // E5-1: the business's row is two lines that scroll together, each 常用语 cut to one line, so four show on a phone
+  // (one did); 管理 comes after the last, on the second line. The job seeker's row is as it was.
+  const twoLines = role === "employer";
+  if (!kept)
+    return <div aria-hidden="true" className={folded ? "hidden" : twoLines ? "mb-2 min-h-25" : "mb-2 min-h-12"} />;
   const phrases = shownPhrases(kept, role, role === "seeker" ? t.seekerDefaults : t.employerDefaults);
   return (
     <>
-      <div className={folded ? "hidden" : "mb-2 flex items-center gap-2"} data-folded={folded || undefined}>
-        <ul aria-label={t.rowLabel} className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1">
+      <div
+        className={
+          folded
+            ? "hidden"
+            : twoLines
+              ? "mb-2 flex items-end gap-2 overflow-x-auto pb-1"
+              : "mb-2 flex items-center gap-2"
+        }
+        data-folded={folded || undefined}
+      >
+        <ul
+          aria-label={t.rowLabel}
+          className={
+            twoLines
+              ? "grid shrink-0 auto-cols-max grid-flow-col grid-rows-2 gap-2"
+              : "flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1"
+          }
+        >
           {phrases.map((phrase, index) => (
-            <li key={`${index}:${phrase}`} className="shrink-0">
+            <li key={`${index}:${phrase}`} className={twoLines ? "min-w-0" : "shrink-0"}>
               <button
                 type="button"
                 onClick={() => onPick(phrase)}
                 aria-label={t.sendPhrase(phrase)}
                 title={phrase}
-                className="pressable inline-flex min-h-11 max-w-[16rem] items-center rounded-full border border-border bg-background px-3.5 py-2 text-meta hover:border-brand"
+                className={`pressable inline-flex min-h-11 items-center rounded-full border border-border bg-background py-2 text-meta hover:border-brand ${
+                  twoLines ? "max-w-[10rem] px-3" : "max-w-[16rem] px-3.5"
+                }`}
               >
                 <span lang={contentLang(phrase)} className="truncate">
                   {phrase}

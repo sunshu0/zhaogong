@@ -21,6 +21,7 @@ import { useMediaQuery } from "@/components/ui/use-media-query";
 import { useLang, useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { chatMessages } from "@/i18n/messages/chat";
+import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
 
 export function ChatThread({
   conversation,
@@ -64,11 +65,17 @@ export function ChatThread({
           messages keep the room; they are back when it goes down. #415: the activity lines and the 常用语 row too
           (the row keeps its 管理 dialog showing, so a field in it can have the keyboard). DeliveryNote stays. */}
       <Folded folded={keyboardUp}>
-        {conversation.job && <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
-        {/* ADR 0030: the business marks the job seeker here too. */}
-        {isEmployer && conversation.job && conversation.id.startsWith("chat:") && (
-          <ChatCandidateMarks conversationId={conversation.id} jobId={conversation.job} />
-        )}
+        {/* ADR 0030: the business marks the job seeker here too, in one row with the job (E5-1). */}
+        {conversation.job &&
+          (hasMarks(conversation, isEmployer) ? (
+            <ChatCandidateMarks
+              conversationId={conversation.id}
+              job={<ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} inRow />}
+              fallback={<ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />}
+            />
+          ) : (
+            <ConversationJob jobId={conversation.job} fallbackTitle={conversation.title} />
+          ))}
       </Folded>
       <DeliveryNote conversationId={conversation.id} />
 
@@ -104,6 +111,10 @@ export function ChatThread({
     </section>
   );
 }
+
+/** A conversation both share, on the business's side, about a job: it can mark the job seeker (ADR 0030). */
+const hasMarks = (conversation: Conversation, isEmployer: boolean) =>
+  isEmployer && !!conversation.job && conversation.id.startsWith("chat:");
 
 /** What folds away while the phone's keyboard is up (#405, #415): hidden, not unmounted. */
 function Folded({ folded, children }: { folded: boolean; children: ReactNode }) {
@@ -145,12 +156,17 @@ function ThreadHeader({
   onBack: () => void;
 }) {
   const t = useMessages(chatMessages).thread;
+  const marks = useMessages(employerApplicantsMessages).chatMarks;
   const [reporting, setReporting] = useState(false);
   const profileHref = conversationProfileHref(conversation, isEmployer);
-  // 更多: their page, the job, 举报 — so the header keeps only back, who, and this one button.
+  // 更多: their page, the job, 这个职位聊过的人 (E5-1: out of the marks' row), 举报 — so the header keeps only back,
+  // who, and this one button.
   const more: MoreMenuItem[] = [
     ...(profileHref ? [{ label: isEmployer ? t.seekerProfile : t.employerProfile, href: profileHref }] : []),
     ...(conversation.job ? [{ label: t.viewJob, href: `/jobs/${conversation.job}` }] : []),
+    ...(hasMarks(conversation, isEmployer)
+      ? [{ label: marks.all, href: `/employer/jobs/${conversation.job}/applicants` }]
+      : []),
     { label: t.report, danger: true, onSelect: () => setReporting(true) },
   ];
   return (

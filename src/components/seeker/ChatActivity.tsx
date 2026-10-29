@@ -41,20 +41,31 @@ export function ChatActivity({
       (conversation.id.startsWith("recommend:") ? conversation.id.split(":")[1] : conversation.id))
     : conversation.employerId;
   const activity = personId ? demoChatActivity(personId, isEmployer) : undefined;
+  const counterpart = t.counterpart(now ? lastActiveLabel(activity?.lastActiveAt, now, lang) : t.loadingLastActive);
   return (
+    // E5-1: one line on the business's side, so the messages start higher on a phone; when it does not fit, the other
+    // person's last time online gives way (its whole text stays in the title).
     <div
       aria-label={t.chatLabel}
-      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-1 text-meta text-muted lg:px-6"
+      className={`flex shrink-0 items-center px-4 py-1 text-meta text-muted lg:px-6 ${
+        isEmployer ? "gap-x-2" : "flex-wrap gap-x-3 gap-y-0.5"
+      }`}
     >
-      <span>{t.counterpart(now ? lastActiveLabel(activity?.lastActiveAt, now, lang) : t.loadingLastActive)}</span>
-      <span>
+      {isEmployer ? (
+        <span className="min-w-0 truncate" title={counterpart}>
+          {counterpart}
+        </span>
+      ) : (
+        <span>{counterpart}</span>
+      )}
+      <span className={isEmployer ? "shrink-0" : undefined}>
         {isEmployer
           ? t.repliedByMe(now ? countRepliedCandidates(conversations, messages, now) : 0)
           : activity && now
             ? t.repliedByEmployer(demoEmployerReplyCount(activity, now))
             : t.noEmployerReplies}
       </span>
-      <span className="ml-auto">{t.demo}</span>
+      <span className={isEmployer ? "ml-auto shrink-0" : "ml-auto"}>{t.demo}</span>
     </div>
   );
 }

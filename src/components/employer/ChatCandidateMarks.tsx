@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { decideMyChatCandidate, getMyChatCandidate } from "@/app/[lang]/employer/applicant-actions";
 import { decisionLabel, type ApplicationDecision } from "@/components/seeker/applications";
 import { buttonClass } from "@/components/ui/Button";
@@ -13,12 +12,23 @@ import { useLang, useMessages } from "@/i18n/client";
 import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
 
 /**
- * 合适 and 已录用 under a chat's job bar, on the business's side of a conversation both share (ADR 0030): the same
- * marks as on 聊过这个职位的人, which it links to. 已录用 tells the job seeker, as there. Nothing for a conversation
- * that is not shared (demo chats, demo candidates) or not the business's. A press shows at once and is taken back if
- * the server does not keep it (#405); while the marks load, grey shapes hold their place (T5).
+ * 合适 and 已录用 on the business's side of a conversation both share (ADR 0030): the same marks as on 聊过这个职位的人
+ * (in the chat's 更多). 已录用 tells the job seeker, as there. E5-1: one row with the job, so the messages start higher
+ * on a phone; `fallback` (the job's own bar) for a conversation that is not shared (demo chats, demo candidates) or not
+ * the business's. A press shows at once and is taken back if the server does not keep it (#405); while the marks
+ * load, grey shapes hold their place (T5).
  */
-export function ChatCandidateMarks({ conversationId, jobId }: { conversationId: string; jobId: string }) {
+export function ChatCandidateMarks({
+  conversationId,
+  job,
+  fallback,
+}: {
+  conversationId: string;
+  /** The job, left of the marks. */
+  job: ReactNode;
+  /** The job's bar of its own, when there are no marks. */
+  fallback: ReactNode;
+}) {
   const t = useMessages(employerApplicantsMessages);
   const lang = useLang();
   const [loaded, setLoaded] = useState<{ id: string; decision: ApplicationDecision | null }>();
@@ -37,15 +47,15 @@ export function ChatCandidateMarks({ conversationId, jobId }: { conversationId: 
       live = false;
     };
   }, [conversationId]);
-  if (noneFor === conversationId) return null;
+  if (noneFor === conversationId) return fallback;
   if (loaded?.id !== conversationId)
     return (
-      <div aria-hidden="true" className={`${ROW} justify-between`}>
-        <div className="flex gap-2">
+      <div className={ROW}>
+        {job}
+        <div aria-hidden="true" className="flex shrink-0 gap-2">
           <Skeleton className="h-11 w-16" />
           <Skeleton className="h-11 w-20" />
         </div>
-        <Skeleton className="h-4 w-24" />
       </div>
     );
 
@@ -66,7 +76,8 @@ export function ChatCandidateMarks({ conversationId, jobId }: { conversationId: 
 
   return (
     <div className={ROW}>
-      <div role="group" aria-label={t.chatMarks.label} className="flex gap-2">
+      {job}
+      <div role="group" aria-label={t.chatMarks.label} className="flex shrink-0 gap-2">
         {(["fit", "hired"] as const).map((d) => (
           <button
             key={d}
@@ -81,15 +92,9 @@ export function ChatCandidateMarks({ conversationId, jobId }: { conversationId: 
           </button>
         ))}
       </div>
-      <Link
-        href={`/employer/jobs/${jobId}/applicants`}
-        className="ml-auto text-meta text-brand underline-offset-4 hover:underline"
-      >
-        {t.chatMarks.all}
-      </Link>
     </div>
   );
 }
 
-/** The marks' row; its placeholder has the same height (h-11 like the buttons, the same padding). */
-const ROW = "flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-1.5 lg:px-6 lg:py-2";
+/** The job and the marks' row, the same height while they load (h-11 like the buttons); one line on a 375 px phone. */
+const ROW = "flex shrink-0 items-center gap-2 border-b border-border px-4 py-0.5 lg:px-6 lg:py-2";
