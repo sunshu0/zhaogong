@@ -110,6 +110,21 @@ describe("注册或登录", () => {
     expect(await accountStatus()).toBeNull();
   });
 
+  it("says the site is open only to invited accounts to an address off SIGN_IN_ALLOWLIST, at both steps", async () => {
+    vi.stubEnv("SIGN_IN_ALLOWLIST", "boss@example.com");
+    const invitedOnly = "这个演示站现在只开放给受邀的账号。职位、企业主页可以直接看。";
+    expect(await requestSignInCode("stranger@example.com")).toEqual({ ok: false, error: invitedOnly });
+    const early = await requestSignInCode(" Boss@Example.com ");
+    expect(early).toMatchObject({ ok: true, devCode: expect.stringMatching(/^\d{6}$/) });
+    vi.stubEnv("SIGN_IN_ALLOWLIST", "friend@example.com");
+    expect(await signInAccount("boss@example.com", (early as { devCode: string }).devCode)).toEqual({
+      ok: false,
+      error: invitedOnly,
+    });
+    expect(await accountStatus()).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
   it("knows only the browser's own session: another email asked about reads as signed out", async () => {
     await signIn("me@example.com");
     expect(await accountStatus("someone.else@example.com")).toBeNull();

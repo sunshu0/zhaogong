@@ -63,6 +63,8 @@ const loginZh = {
     sentRecently: (seconds: number) => `验证码刚发过，请 ${seconds} 秒后再获取`,
     noMailService: "邮件服务还没有配置，暂时无法发送验证码",
     sendFailed: "验证码没有发出去，请稍后再试",
+    // SIGN_IN_ALLOWLIST (src/lib/auth/allowlist.ts): the demo site open only to invited accounts; never says who is.
+    notInvited: "这个演示站现在只开放给受邀的账号。职位、企业主页可以直接看。",
     noCode: "请先获取验证码",
     expired: "验证码已过期，请重新获取",
     tooManyTries: "错误次数太多，请重新获取验证码",

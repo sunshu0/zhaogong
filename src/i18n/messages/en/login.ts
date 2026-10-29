@@ -61,6 +61,8 @@ export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
     sentRecently: (seconds) => `We just sent a code. You can ask for another in ${seconds} s.`,
     noMailService: "Email isn't set up yet, so we can't send codes for now.",
     sendFailed: "We couldn't send the code. Please try again later.",
+    notInvited:
+      "This demo site is open only to invited accounts for now. You can still browse jobs and business pages.",
     noCode: "Ask for a code first",
     expired: "The code has expired. Ask for a new one.",
     tooManyTries: "Too many wrong tries. Ask for a new code.",

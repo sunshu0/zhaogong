@@ -103,6 +103,7 @@ export async function requestSignInCode(
   if (result.reason === "limited")
     return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
   if (result.reason === "send_failed") return { ok: false, error: t.errors.sendFailed };
+  if (result.reason === "not_invited") return { ok: false, error: t.errors.notInvited };
   return { ok: false, error: t.errors.noMailService };
 }
 
@@ -131,6 +132,8 @@ export async function signInAccount(
         return { ok: false, error: t.errors.expired };
       case "too_many":
         return { ok: false, error: t.errors.tooManyTries };
+      case "not_invited":
+        return { ok: false, error: t.errors.notInvited };
       case "limited":
         return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
       case "wrong":

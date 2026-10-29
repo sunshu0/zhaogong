@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mayGetSignInCode, signInAllowlist } from "@/lib/auth/allowlist";
 import { memoryAuthStore, setAuthStoreForTests } from "@/lib/auth/store";
 import { createEmployer, ensureAccount, openEmployerIdentity } from "@/lib/data";
 import {
@@ -205,6 +206,52 @@ describe("sign-in codes", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("AUTH_SECRET", "");
     expect(() => hashCode("h@example.com", "123456")).toThrow(/AUTH_SECRET/);
+  });
+});
+
+describe("SIGN_IN_ALLOWLIST (the demo site open only to invited accounts)", () => {
+  it("reads the list trimmed and in lower case; not set or empty is no list", () => {
+    expect(signInAllowlist({})).toBeUndefined();
+    expect(signInAllowlist({ SIGN_IN_ALLOWLIST: " , " })).toBeUndefined();
+    expect(signInAllowlist({ SIGN_IN_ALLOWLIST: " Boss@Example.com ,friend@example.com," })).toEqual(
+      new Set(["boss@example.com", "friend@example.com"]),
+    );
+    expect(mayGetSignInCode("anyone@example.com", {})).toBe(true);
+    expect(mayGetSignInCode(" BOSS@example.COM ", { SIGN_IN_ALLOWLIST: "boss@example.com" })).toBe(true);
+    expect(mayGetSignInCode("other@example.com", { SIGN_IN_ALLOWLIST: "boss@example.com" })).toBe(false);
+  });
+
+  it("sends codes to everyone while it is not set", async () => {
+    expect((await requestCode("open@example.com", t0)).ok).toBe(true);
+    vi.stubEnv("SIGN_IN_ALLOWLIST", "");
+    expect((await requestCode("open2@example.com", t0)).ok).toBe(true);
+  });
+
+  it("sends no code and no mail to an address off the list, and counts the ask against the limits", async () => {
+    const sent = productionWithSes(() => Response.json({ MessageId: "m-1" }));
+    vi.stubEnv("SIGN_IN_ALLOWLIST", "Boss@Example.com, friend@example.com");
+    const ip = "203.0.113.9";
+    expect(await requestCode("stranger@example.com", t0, "zh", { ip })).toEqual({ ok: false, reason: "not_invited" });
+    expect(store.codes.has("stranger@example.com")).toBe(false);
+    expect(sent).toHaveLength(0);
+    expect(await requestCode(" BOSS@example.com ", t0, "zh", { ip })).toEqual({ ok: true });
+    expect(sent).toHaveLength(1);
+    // Twenty codes an hour from one network (ADR 0033): the asks off the list used them up too.
+    for (let i = 0; i < 18; i++) await requestCode(`stranger${i}@example.com`, later(1000), "zh", { ip });
+    expect(await requestCode("friend@example.com", later(2000), "zh", { ip })).toMatchObject({
+      ok: false,
+      reason: "limited",
+      scope: "ip",
+    });
+    expect(sent).toHaveLength(1);
+  });
+
+  it("refuses to sign in with a code sent before the address was off the list", async () => {
+    const { devCode } = (await requestCode("early@example.com", t0)) as { devCode: string };
+    vi.stubEnv("SIGN_IN_ALLOWLIST", "boss@example.com");
+    expect(await verifyCode("early@example.com", devCode, later(1000))).toEqual({ ok: false, reason: "not_invited" });
+    vi.unstubAllEnvs();
+    expect(await verifyCode("early@example.com", devCode, later(2000))).toEqual({ ok: true });
   });
 });
 

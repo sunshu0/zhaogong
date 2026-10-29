@@ -5,6 +5,7 @@ import { LIMITS, limitWindow, siteFuseOn, type LimitCheck, type LimitScope } fro
 import { authSecret, CODE_TTL_MS, EXPIRED_CODE_KEPT_MS, MAX_ATTEMPTS, RESEND_AFTER_MS } from "@/lib/auth/config";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { canSendCodes, sendSignInCode } from "@/lib/auth/delivery";
+import { mayGetSignInCode } from "@/lib/auth/allowlist";
 import { devHelpersEnabled } from "@/lib/test-build";
 import { normalizeEmail } from "@/components/seeker/session";
 
@@ -16,12 +17,14 @@ export type RequestCodeResult =
   | { ok: false; reason: "throttled"; retryAfterSec: number }
   | Limited
   | { ok: false; reason: "no_mailer" }
+  /** Not on SIGN_IN_ALLOWLIST while it is set (allowlist.ts): no code, no mail. */
+  | { ok: false; reason: "not_invited" }
   /** The mail service did not take the email (#16): the code is dropped, so asking again works at once. */
   | { ok: false; reason: "send_failed" };
 
 export type VerifyCodeResult =
   | { ok: true }
-  | { ok: false; reason: "no_code" | "expired" | "too_many" }
+  | { ok: false; reason: "no_code" | "expired" | "too_many" | "not_invited" }
   | Limited
   | { ok: false; reason: "wrong"; attemptsLeft: number };
 
@@ -101,6 +104,8 @@ export async function requestCode(
     now,
   );
   if (limited) return limited;
+  // After the limits, so asking for an address off the list still counts against them.
+  if (!mayGetSignInCode(address)) return { ok: false, reason: "not_invited" };
 
   const code = generateCode();
   await store.putCode({
@@ -149,6 +154,8 @@ export async function verifyCode(
     now,
   );
   if (limited) return limited;
+  // Again here: a code sent before the address left the list (or before the list was set) signs nobody in.
+  if (!mayGetSignInCode(address)) return { ok: false, reason: "not_invited" };
 
   const counted = await store.takeCodeAttempt(address, MAX_ATTEMPTS, now.toISOString());
   if (!counted) {

@@ -43,6 +43,7 @@
 | `MAIL_FROM` | 变量 | 要登录就必须 | 验证码邮件的发件人，必须在 SES 验证过的域名上，比如 `找工 <no-reply@你的域名>` | `src/lib/auth/ses.ts` |
 | `SES_ACCESS_KEY_ID` | 密钥 | 要登录就必须 | 只能发信的 IAM 用户的访问密钥 ID（权限只给 `ses:SendEmail`） | `src/lib/auth/ses.ts` |
 | `SES_SECRET_ACCESS_KEY` | 密钥 | 要登录就必须 | 上面那个访问密钥的私钥。四个 SES 设置少一个，生产环境就不发信、不让登录 | `src/lib/auth/ses.ts` |
+| `SIGN_IN_ALLOWLIST` | 密钥 | 演示站只给受邀的人登录时设 | 能收验证码、能登录的邮箱，逗号分隔，不分大小写、前后空格不算。设了以后名单外的邮箱在要验证码和核对验证码两步都被服务器拒绝（不发信、不存验证码，防刷计数照算），页面说「这个演示站现在只开放给受邀的账号」，不说名单里有谁。**不设或设成空 = 所有人都能登录**；正式开放时删掉它 | `src/lib/auth/allowlist.ts` |
 | `TAKEDOWN_EMAIL` | 变量 | 建议设 | 外部职位页下面「公司要求下架」的联系邮箱；不设就不显示 | `src/config/external-companies.ts` |
 | `EXTERNAL_JOBS` | 变量 | 生产环境别设 | `real` 会让空的演示库在后台去公司网站导入真实职位；生产环境默认不导入 | `src/db/ready.ts` |
 | `NEXTJS_ENV` | 变量 | 已经在 `wrangler.jsonc` | `production` | `wrangler.jsonc` |
@@ -151,6 +152,8 @@ Cloudflare 从 GitHub 拉代码、在它的 Linux 机器上构建和部署（[Wo
 | `NEXT_PUBLIC_CLARITY_ID` | **不设** | 演示站不录 Clarity |
 
 **只能浏览、不能登录（SES 还在沙盒）：** `SES_REGION`、`MAIL_FROM` 在 `wrangler.jsonc` 里，但两个 SES 访问密钥在离开沙盒前**不设**。`sesConfig()` 四个设置少一个就是 `undefined`，生产构建里 `devHelpersEnabled()` 为假（`NODE_ENV=production`，没有 `ZG_E2E`），所以 `canSendCodes()` 为假：登录页不显示表单，直接说「这个演示站暂时不能登录」并给「去看职位」的链接（#332），要验证码的请求也被拒（`no_mailer`）。`DEMO_DATA` 不影响这条路。不在沙盒里临时设密钥，是因为沙盒里只授权了发件域名，给验证过的收件人发信还要收件人身份的权限；离开沙盒后一次设好两个密钥就能登录。
+
+**只给受邀的人登录（SES 出了沙盒以后，用户 10-30 定「先只给我自己」）：** 设好两个 SES 密钥的同时设 `SIGN_IN_ALLOWLIST`：`npx wrangler secret put SIGN_IN_ALLOWLIST`，提示输入时填邮箱，几个就用逗号隔开（比如 `me@example.com,friend@example.com`）。放在 secret 而不是 `wrangler.jsonc` 的 `vars`，是因为名单是人的邮箱，不进 git。改名单就再 `secret put` 一次（整份替换）；对所有人开放时 `npx wrangler secret delete SIGN_IN_ALLOWLIST`。`secret put` / `secret delete` 会让 Wrangler 马上发一个新版本，不用另外部署。登录页对名单外的人照样显示输入框，提交后才说只开放给受邀的账号。
 
 **用户的操作顺序（Windows，在仓库根目录开终端，PowerShell 或 Git Bash）：**
 
