@@ -12,7 +12,8 @@ import { deliverChatPush } from "@/lib/push/delivery";
 import { vapidConfig } from "@/lib/push/web-push";
 import { createHash, randomUUID } from "node:crypto";
 import { bannedEmployerIds, getEmployer, getJob } from "@/lib/data";
-import { currentChatIdentity, readChat, type ChatIdentity } from "@/lib/chat-server/identity";
+import { currentChatIdentity, readChat, readVersionedChat, type ChatIdentity } from "@/lib/chat-server/identity";
+import { CHANGED, keptChanging, untilSettled } from "@/db/optimistic";
 import { chatServerStore } from "@/lib/chat-server/store";
 import { countChatStart } from "@/db/job-stats";
 import { applicationOf } from "@/db/job-applications";
@@ -61,9 +62,12 @@ import {
   markConversationRead,
   openConversation,
   parseChatRecord,
+  pinConversation,
+  pinsFull,
   type ChatRecord,
   JUST_NOW,
   MESSAGE_MAX,
+  PINS_MAX,
   RESUME_MESSAGE_TEXT,
 } from "@/components/seeker/chat-store";
 import { parseResumeDoc } from "@/components/seeker/resume-doc";
@@ -101,6 +105,8 @@ export type ChatChange =
       payload?: ExchangePayload;
     }
   | { type: "report"; conversationId: string; reason: ChatReportReason; note: string; messageIndex?: number }
+  /** C7 (ADR 0053): pinned to the top of the identity's own list, or not; the other side never hears of it. */
+  | { type: "pin"; conversationId: string; pinned: boolean }
   | {
       type: "open";
       conversation:
@@ -249,19 +255,28 @@ export async function changeMyChat(change: ChatChange, ticket?: ChangeTicket): P
   const me = await currentChatIdentity();
   if (!me) return null;
   const store = chatServerStore();
-  const current = (await readChat(me)) ?? EMPTY_CHAT;
   let applied: string[] | undefined;
   if (ticket !== undefined) {
     if (!ticket || typeof ticket.id !== "string" || !TICKET_ID.test(ticket.id) || ticket.scope !== me.scope) {
-      return snapshot(me, current);
+      return snapshot(me, (await readChat(me)) ?? EMPTY_CHAT);
     }
     applied = (await store.getAppliedChanges(me.scope)) ?? [];
-    if (applied.includes(ticket.id)) return snapshot(me, current);
+    if (applied.includes(ticket.id)) return snapshot(me, (await readChat(me)) ?? EMPTY_CHAT);
   }
-  const { record: next, opened, notice } = await apply(current, change, me);
-  if (next !== current) await store.putChat(me.recordScope, next);
+  // The record is read, changed and written back only if nobody wrote it in between (ADR 0031): a business's team
+  // shares one, and two teammates' changes at once must both stay (C7). Otherwise read and decide again.
+  const done = await untilSettled(
+    async () => {
+      const { record, version } = await readVersionedChat(me);
+      const current = record ?? EMPTY_CHAT;
+      const result = await apply(current, change, me);
+      const written = result.record === current || (await store.putChatIf(me.recordScope, result.record, version));
+      return written ? result : CHANGED;
+    },
+    () => keptChanging("changeMyChat"),
+  );
   if (applied && ticket) await store.putAppliedChanges(me.scope, [...applied, ticket.id].slice(-APPLIED_KEPT));
-  return snapshot(me, next, opened, notice);
+  return snapshot(me, done.record, done.opened, done.notice);
 }
 
 /**
@@ -291,9 +306,9 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
   const view = chatView(await withSharedOf(me, record), me.demo);
   const conversationId = "conversationId" in change ? change.conversationId : undefined;
   if (typeof conversationId !== "string") return { record };
-  // Reports stay with the reporter, whatever the conversation.
+  // Reports and pins stay with the identity, whatever the conversation.
   const key = reader && parseSharedId(conversationId, reader.side);
-  if (reader && key && change.type !== "report") {
+  if (reader && key && change.type !== "report" && change.type !== "pin") {
     const shared = (await findSharedConversation(reader, key)) ?? (await sharedToStart(me, key, change));
     if (shared) {
       const notice = await applyShared(shared, change, me, reader.side, view);
@@ -306,6 +321,8 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
     return { record, notice: (await limits()).messagesFull(OWN_MESSAGES_MAX) };
   if (change.type === "report" && !roomForReport(record))
     return { record, notice: (await limits()).reportsFull(OWN_REPORTS_MAX) };
+  if (change.type === "pin" && change.pinned === true && pinsFull(record, conversationId, shownIn(view)))
+    return { record, notice: (await limits()).pinsFull(PINS_MAX) };
   return { record: applyOwn(record, change, me, view) };
 }
 
@@ -327,7 +344,7 @@ async function sharedToStart(
 /** A change to a conversation both sides share, written to its rows; what to tell the sender when it is not taken. */
 async function applyShared(
   row: ConversationRow,
-  change: Exclude<ChatChange, { type: "open" } | { type: "report" }>,
+  change: Exclude<ChatChange, { type: "open" } | { type: "report" } | { type: "pin" }>,
   me: ChatIdentity,
   side: "seeker" | "employer",
   view: ReturnType<typeof chatView>,
@@ -422,7 +439,9 @@ async function applyShared(
   }
 }
 
-/** A change to the identity's own record: demo chats, chats with demo candidates, reports. */
+const shownIn = (view: ReturnType<typeof chatView>) => new Set(view.conversations.map((c) => c.id));
+
+/** A change to the identity's own record: demo chats, chats with demo candidates, reports, pins. */
 function applyOwn(
   record: ChatRecord,
   change: Exclude<ChatChange, { type: "open" }>,
@@ -433,6 +452,9 @@ function applyOwn(
   switch (change.type) {
     case "read":
       return markConversationRead(record, change.conversationId, now);
+    case "pin":
+      if (typeof change.pinned !== "boolean") return record;
+      return pinConversation(record, change.conversationId, change.pinned, now, shownIn(view));
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!text || text.length > MESSAGE_MAX) return record;

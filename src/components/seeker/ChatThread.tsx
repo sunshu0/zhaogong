@@ -158,6 +158,8 @@ function ThreadHeader({
   const t = useMessages(chatMessages).thread;
   const marks = useMessages(employerApplicantsMessages).chatMarks;
   const [reporting, setReporting] = useState(false);
+  const { pinned, pin } = useChat();
+  const isPinned = Boolean(pinned[conversation.id]);
   const profileHref = conversationProfileHref(conversation, isEmployer);
   // 更多: their page, the job, 这个职位聊过的人 (E5-1: out of the marks' row), 举报 — so the header keeps only back,
   // who, and this one button.
@@ -167,6 +169,8 @@ function ThreadHeader({
     ...(hasMarks(conversation, isEmployer)
       ? [{ label: marks.all, href: `/employer/jobs/${conversation.job}/applicants` }]
       : []),
+    // C7: to the top of the list, or back among the others.
+    { label: isPinned ? t.unpin : t.pin, onSelect: () => pin(conversation.id, !isPinned) },
     { label: t.report, danger: true, onSelect: () => setReporting(true) },
   ];
   return (

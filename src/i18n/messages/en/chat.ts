@@ -36,6 +36,10 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     listLabel: "Chats",
     recent: "Recent chats",
     conversationCount: (n) => (n === 1 ? "1 chat" : `${n} chats`),
+    filterLabel: "Show by status",
+    filters: { all: "All", new: "New", talking: "Talking", interview: "Interview" },
+    filterEmpty: (filter) => `No chats in “${filter}” yet.`,
+    pinned: "Pinned",
     /** Followed on the same line by emptyEmployer or emptySeeker, so it ends with the space between them. */
     empty: "No chats yet. ",
     emptyEmployer:
@@ -54,6 +58,8 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     employerProfile: "Business page",
     viewJob: "View the job",
     report: "Report",
+    pin: "Pin to top",
+    unpin: "Unpin",
     back: "Back to the chat list",
     paused: "The other side can't reply for now, so messages can't be sent here.",
     more: (person) => `More: ${person}`,
@@ -89,6 +95,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
       `You already have ${max} conversations like this, the most allowed, so a new chat didn't open.`,
     importTooBig: "The older chat records on this device are too many to keep, so they weren't saved to the server.",
     reportsFull: (max) => `You already have ${max} chat reports saved, the most allowed, so this one wasn't saved.`,
+    pinsFull: (max) => `You can pin up to ${max} chats. Unpin one first.`,
   },
   log: {
     label: "Messages",

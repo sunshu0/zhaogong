@@ -7,6 +7,13 @@ export interface ChatServerStore {
   /** The identity's own chat records (see chat-store.ts), keyed by identityScope(). */
   getChat(scope: string): Promise<ChatRecord | undefined>;
   putChat(scope: string, record: ChatRecord): Promise<void>;
+  /**
+   * The record with the version a conditional write checks: null while there is no row yet. A change read, decided
+   * and written with putChatIf is lost to nobody (ADR 0031): two teammates pinning at once both keep their pin (C7).
+   */
+  getVersionedChat(scope: string): Promise<{ record: ChatRecord | undefined; version: string | null }>;
+  /** Writes the record only if it is still at `version` (no row yet for null); whether it did. */
+  putChatIf(scope: string, record: ChatRecord, version: string | null): Promise<boolean>;
   /** The ids of the notifications the identity has read. */
   getNotificationReads(scope: string): Promise<string[] | undefined>;
   putNotificationReads(scope: string, ids: string[]): Promise<void>;
@@ -20,7 +27,12 @@ export function memoryChatStore(): ChatServerStore & { chats: Map<string, ChatRe
   const chats = new Map<string, ChatRecord>();
   const reads = new Map<string, string[]>();
   const applied = new Map<string, string[]>();
+  const versions = new Map<string, number>();
   const copy = <T>(value: T): T => structuredClone(value);
+  const put = (scope: string, record: ChatRecord) => {
+    chats.set(scope, copy(record));
+    versions.set(scope, (versions.get(scope) ?? 0) + 1);
+  };
   return {
     chats,
     reads,
@@ -29,7 +41,18 @@ export function memoryChatStore(): ChatServerStore & { chats: Map<string, ChatRe
       return record && copy(record);
     },
     async putChat(scope, record) {
-      chats.set(scope, copy(record));
+      put(scope, record);
+    },
+    async getVersionedChat(scope) {
+      const record = chats.get(scope);
+      const version = versions.get(scope);
+      return { record: record && copy(record), version: record ? String(version ?? 0) : null };
+    },
+    async putChatIf(scope, record, version) {
+      const now = chats.has(scope) ? String(versions.get(scope) ?? 0) : null;
+      if (now !== version) return false;
+      put(scope, record);
+      return true;
     },
     async getNotificationReads(scope) {
       const ids = reads.get(scope);

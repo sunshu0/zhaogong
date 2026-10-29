@@ -5,6 +5,7 @@ import {
   addSharedMessage,
   answerSharedExchange,
   findSharedConversation,
+  listSharedChanges,
   listSharedConversations,
   markSharedRead,
   openSharedConversation,
@@ -15,6 +16,7 @@ import * as t from "@/db/schema";
 import { insertsInChunks } from "@/db/write-if";
 import { saveSeekerProfile } from "@/db/seeker-profiles";
 import { ensureAccount } from "@/lib/data";
+import { answerInterview, cancelInterview, inviteToInterview } from "@/db/interviews";
 
 const t0 = new Date("2026-10-17T01:00:00.000Z");
 const later = (minutes: number) => new Date(t0.getTime() + minutes * 60_000);
@@ -191,5 +193,65 @@ describe("shared conversations (#110)", () => {
       },
     ]);
     expect(seen.updatedAt).toBe(later(2).toISOString());
+  });
+});
+
+describe("已约面 in the chat list (C7, ADR 0053)", () => {
+  const invite = { slots: [], callFirst: true, mode: null, place: "", note: "" };
+  const seeker = { side: "seeker" as const, email: "interview.list@example.com" };
+  const business = { side: "employer" as const, employerId: "e1" };
+  /**
+   * The conversation's mark on both sides, from a full read and from a read of changes (the heads every 10-second
+   * read has).
+   */
+  async function marks(id: string) {
+    const since = { messageId: 0, at: later(100).toISOString() };
+    const of = (rows: { id: string; interview: boolean }[]) => rows.filter((r) => r.id === id).map((r) => r.interview);
+    return Promise.all(
+      [seeker, business].flatMap((reader) => [
+        listSharedConversations(reader).then(of),
+        listSharedChanges(reader, since, Number.MAX_SAFE_INTEGER).then(({ heads }) => of(heads)),
+      ]),
+    );
+  }
+
+  it("is marked with no interview, an invitation in play, and one called off or turned down, as each should be", async () => {
+    const row = await opened(seeker.email);
+    await addSharedMessage(row.id, "seeker", "你好，还招人吗？", undefined, later(1));
+    // The job seeker's first message made them one of the job's candidates (ADR 0030): the application.
+    const [application] = await (
+      await database()
+    )
+      .select()
+      .from(t.jobApplications)
+      .where(and(eq(t.jobApplications.seekerEmail, seeker.email), eq(t.jobApplications.jobId, "j1")));
+    expect(await marks(row.id)).toEqual([[false], [false], [false], [false]]);
+
+    await inviteToInterview("e1", application.id, invite, later(2));
+    expect(await marks(row.id)).toEqual([[true], [true], [true], [true]]);
+    await answerInterview(application.id, { kind: "confirm", slot: null }, later(3));
+    expect(await marks(row.id)).toEqual([[true], [true], [true], [true]]);
+
+    await cancelInterview("e1", application.id, later(4));
+    expect(await marks(row.id)).toEqual([[false], [false], [false], [false]]);
+    await inviteToInterview("e1", application.id, invite, later(5));
+    await answerInterview(application.id, { kind: "decline", reply: "不去了" }, later(6));
+    expect(await marks(row.id)).toEqual([[false], [false], [false], [false]]);
+  });
+
+  it("does not mark another job's conversation of the same job seeker", async () => {
+    const row = await opened(seeker.email);
+    const other = await opened(seeker.email, { jobId: "j2" });
+    await addSharedMessage(row.id, "seeker", "你好", undefined, later(1));
+    await addSharedMessage(other.id, "seeker", "你好", undefined, later(1));
+    const [application] = await (
+      await database()
+    )
+      .select()
+      .from(t.jobApplications)
+      .where(and(eq(t.jobApplications.seekerEmail, seeker.email), eq(t.jobApplications.jobId, "j1")));
+    await inviteToInterview("e1", application.id, invite, later(2));
+    const rows = (await listSharedConversations(seeker)).filter((r) => [row.id, other.id].includes(r.id));
+    expect(Object.fromEntries(rows.map((r) => [r.jobId, r.interview]))).toEqual({ j1: true, j2: false });
   });
 });

@@ -29,6 +29,7 @@ function row(over: Partial<SharedConversation> = {}): SharedConversation {
     seekerReadAt: null,
     employerReadAt: null,
     updatedAt: "2026-10-17T00:30:00.000Z",
+    interview: false,
     messages: [],
     exchanges: [],
     ...over,
@@ -323,5 +324,34 @@ describe("a business under a ban (ADR 0044)", () => {
     expect(started).toEqual(withShared(empty, sharedPart([a, b], "seeker", now, "zh", banned)));
     const ended = mergeSharedChanges(started, empty, sharedChanges([a, b], [], "seeker", now));
     expect(ended).toEqual(kept);
+  });
+});
+
+describe("已约面 and pins in the chat list (C7, ADR 0053)", () => {
+  const said = {
+    messages: [{ id: 1, from: "seeker" as const, text: "你好", sentAt: "2026-10-17T00:20:00.000Z", byName: null }],
+  };
+  const a = row({ ...said });
+  const b = row({ ...said, id: "c0ffee00-2222", jobId: "j2", updatedAt: "2026-10-17T00:20:00.000Z" });
+  const invited = { ...a, interview: true };
+
+  it("marks a conversation with an interview invitation in play, for both sides", () => {
+    for (const side of ["seeker", "employer"] as const)
+      expect(sharedPart([invited, b], side, now).conversations.map((c) => c.interview)).toEqual([true, undefined]);
+  });
+
+  it("reaches a kept copy whose chat did not change, when the invitation is sent and when it is called off", () => {
+    const kept = withShared(empty, sharedPart([a, b], "employer", now));
+    const sent = mergeSharedChanges(kept, empty, sharedChanges([invited, b], [], "employer", now));
+    expect(sent).toEqual(withShared(empty, sharedPart([invited, b], "employer", now)));
+    const off = mergeSharedChanges(sent, empty, sharedChanges([a, b], [], "employer", now));
+    expect(off).toEqual(kept);
+  });
+
+  it("keeps the own record's pins through a full read and a read of changes", () => {
+    const own: ChatRecord = { ...empty, pinned: { "employer:e1:j2": "2026-10-17T00:50:00.000Z" } };
+    const full = withShared(own, sharedPart([a, b], "seeker", now));
+    expect(full.pinned).toEqual(own.pinned);
+    expect(mergeSharedChanges(full, own, sharedChanges([a, b], [], "seeker", now)).pinned).toEqual(own.pinned);
   });
 });

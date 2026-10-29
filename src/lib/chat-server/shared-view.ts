@@ -38,6 +38,8 @@ export type SharedConversation = {
   seekerReadAt: string | null;
   employerReadAt: string | null;
   updatedAt: string;
+  /** An interview invitation on the job seeker's application for the job still in play (C7, ADR 0053): 已约面. */
+  interview: boolean;
   /** `resume`: a 中英文简历 the job seeker sent (#379), the page as sent. */
   messages: { id: number; from: Side; text: string; sentAt: string; byName: string | null; resume?: ResumeDoc }[];
   exchanges: SharedExchange[];
@@ -171,6 +173,7 @@ function addRow(
     job: row.jobId,
     ...(side === "seeker" ? { employerId: row.employerId } : row.candidateId ? { candidateId: row.candidateId } : {}),
     ...(pausedFor(row, side, banned) ? { paused: true as const } : {}),
+    ...(row.interview ? { interview: true as const } : {}),
   });
   part.added[id] = row.messages.map((m): Message => {
     const message: Message = {
@@ -199,7 +202,8 @@ function addRow(
  * with only their new messages; `quiet`: changed ones the other side opened with no new message and no exchange,
  * shown only if the browser has them already (they had messages before); `theirReadAt`: how far the other side has
  * read each changed one, for the messages the browser has; `paused`: all of them that are paused now (ADR 0044), changed
- * or not, since a ban starts and ends without changing a conversation.
+ * or not, since a ban starts and ends without changing a conversation; `interviews`: all of them with an interview
+ * invitation in play (C7), changed or not, since inviting or calling it off does not change the conversation.
  */
 export type SharedChanges = {
   order: string[];
@@ -207,10 +211,11 @@ export type SharedChanges = {
   quiet: string[];
   theirReadAt: Record<string, string>;
   paused: string[];
+  interviews: string[];
 };
 
 export function sharedChanges(
-  heads: Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt">[],
+  heads: Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt" | "interview">[],
   changed: SharedConversation[],
   side: Side,
   now: number,
@@ -223,6 +228,7 @@ export function sharedChanges(
     quiet: [],
     theirReadAt: {},
     paused: heads.filter((h) => pausedFor(h, side, banned)).map((h) => sharedConversationId(h, side)),
+    interviews: heads.filter((h) => h.interview).map((h) => sharedConversationId(h, side)),
   };
   for (const row of changed) {
     const id = sharedConversationId(row, side);
@@ -245,6 +251,7 @@ export function mergeSharedChanges(cached: ChatRecord, own: ChatRecord, changes:
   const had = new Map(cached.extra.map((c) => [c.id, c]));
   const quietIds = new Set(changes.quiet);
   const pausedIds = new Set(changes.paused);
+  const interviewIds = new Set(changes.interviews);
   const part: SharedPart = { conversations: [], added: {}, readAt: {}, exchanges: {} };
   for (const id of changes.order) {
     const before = had.get(id);
@@ -252,8 +259,12 @@ export function mergeSharedChanges(cached: ChatRecord, own: ChatRecord, changes:
     // Not shown before and nothing said in it since: the other side's chat with nothing in it, or none at all.
     if (!before && (!now || quietIds.has(id))) continue;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropped, then set again from the answer
-    const { paused, ...conversation } = now ?? before!;
-    part.conversations.push(pausedIds.has(id) ? { ...conversation, paused: true } : conversation);
+    const { paused, interview, ...conversation } = now ?? before!;
+    part.conversations.push({
+      ...conversation,
+      ...(pausedIds.has(id) ? { paused: true as const } : {}),
+      ...(interviewIds.has(id) ? { interview: true as const } : {}),
+    });
     const kept = before ? (cached.added[id] ?? []).slice(own.added[id]?.length ?? 0) : [];
     const theirs = changes.theirReadAt[id];
     part.added[id] = [
@@ -283,5 +294,6 @@ export function withShared(record: ChatRecord, part: SharedPart): ChatRecord {
     extra: [...part.conversations, ...record.extra.filter((c) => !ids.has(c.id))],
     exchanges: { ...record.exchanges, ...part.exchanges },
     reports: record.reports,
+    ...(record.pinned ? { pinned: record.pinned } : {}),
   };
 }

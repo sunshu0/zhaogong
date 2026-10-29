@@ -41,6 +41,12 @@ const chatZh = {
     listLabel: "聊天列表",
     recent: "最近联系",
     conversationCount: (n: number) => `${n} 个会话`,
+    /** C7: the row of filters above the list, each with its count after it. */
+    filterLabel: "按状态看",
+    filters: { all: "全部", new: "新招呼", talking: "沟通中", interview: "已约面" },
+    filterEmpty: (filter: string) => `「${filter}」里还没有会话。`,
+    /** Read before a pinned conversation's time. */
+    pinned: "已置顶",
     /** Read with emptyEmployer or emptySeeker after it on the same line (the English ends with a space). */
     empty: "还没有聊天。",
     emptyEmployer: "求职者在你的职位上找你聊，或者你在推荐人才里点「发起聊天」，就会出现在这里。",
@@ -59,6 +65,8 @@ const chatZh = {
     employerProfile: "企业主页",
     viewJob: "查看职位",
     report: "举报",
+    pin: "置顶",
+    unpin: "取消置顶",
     back: "返回会话列表",
     paused: "对方暂时不能回复，现在发不了消息。",
     more: (person: string) => `更多：${person}`,
@@ -97,6 +105,7 @@ const chatZh = {
     conversationsFull: (max: number) => `你已经有 ${max} 段这样的对话，到上限了，没能发起新的聊天。`,
     importTooBig: "这台设备上的旧聊天记录太多，没有存到服务器。",
     reportsFull: (max: number) => `你已经保存了 ${max} 条聊天举报，到上限了，这次举报没有保存。`,
+    pinsFull: (max: number) => `最多置顶 ${max} 个会话，先取消一个再置顶。`,
   },
   log: {
     label: "消息记录",

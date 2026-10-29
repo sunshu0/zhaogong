@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MessageSquare, Pin } from "lucide-react";
 import { useChat, useChatRefresh, type Conversation } from "@/components/seeker/chat-client";
+import { CHAT_GROUPS, chatList, type ChatFilter } from "@/components/seeker/chat-list";
 import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { ChatThread } from "@/components/seeker/ChatThread";
 import { useChatDraft } from "@/components/seeker/chat-drafts";
@@ -26,7 +27,7 @@ export function MessageWorkspace() {
   const t = useMessages(chatMessages).workspace;
   // T1 (ADR 0042): the open conversation is in the address, so the phone's back key closes it.
   const { selectedId, open, close } = useOpenConversation();
-  const { messages, unread, totalUnread, conversations, markRead } = useChat();
+  const { messages, unread, totalUnread, conversations, exchanges, pinned, markRead } = useChat();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const demoAccount = isDemoAccount(session?.email);
@@ -75,11 +76,13 @@ export function MessageWorkspace() {
         <ConversationList
           conversations={conversations}
           messages={messages}
+          exchanges={exchanges}
+          pinned={pinned}
           unread={unread}
           selectedId={selected?.id ?? (moderatorsOpen ? MODERATOR_CHAT_ID : undefined)}
           isEmployer={isEmployer}
           onSelect={select}
-          pinned={
+          moderators={
             moderators.view && (
               <ModeratorRow
                 view={moderators.view}
@@ -128,42 +131,69 @@ function useMarkReadWhileVisible(conversationId: string | null, thread: unknown,
 function ConversationList({
   conversations,
   messages,
+  exchanges,
+  pinned,
   unread,
   selectedId,
   isEmployer,
   onSelect,
-  pinned,
-}: Pick<ReturnType<typeof useChat>, "conversations" | "messages" | "unread"> & {
+  moderators,
+}: Pick<ReturnType<typeof useChat>, "conversations" | "messages" | "exchanges" | "pinned" | "unread"> & {
   selectedId: string | undefined;
   isEmployer: boolean;
   onSelect: (id: string) => void;
-  /** The conversation with the moderators (ADR 0046), above the others. */
-  pinned?: ReactNode;
+  /** The conversation with the moderators (ADR 0046), above the others and in no group. */
+  moderators?: ReactNode;
 }) {
   const t = useMessages(chatMessages).workspace;
+  // C7 (ADR 0053): 全部 / 新招呼 / 沟通中 / 已约面 in the row the heading had, so the list loses no row on a phone.
+  const [filter, setFilter] = useState<ChatFilter>("all");
+  const { rows, counts } = chatList({ conversations, messages, exchanges, pinned }, filter);
   return (
     <aside
       className={`${selectedId ? "hidden lg:block" : ""} min-h-0 overflow-y-auto lg:border-r lg:border-border`}
       aria-label={t.listLabel}
     >
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="text-subtitle font-semibold">{t.recent}</h2>
-        <span className="text-meta text-muted">{t.conversationCount(conversations.length)}</span>
+      <h2 className="sr-only">
+        {t.recent} · {t.conversationCount(conversations.length)}
+      </h2>
+      <div
+        role="group"
+        aria-label={t.filterLabel}
+        className="flex gap-1 overflow-x-auto border-b border-border p-1.5 [scrollbar-width:none]"
+      >
+        {(["all", ...CHAT_GROUPS] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={filter === key}
+            onClick={() => setFilter(key)}
+            className={`pressable min-h-11 shrink-0 rounded-full px-3 text-meta whitespace-nowrap ${
+              filter === key ? "bg-brand-soft font-semibold text-brand" : "text-muted hover:bg-background"
+            }`}
+          >
+            {t.filters[key]} <span className="tabular-nums">{counts[key]}</span>
+          </button>
+        ))}
       </div>
-      {pinned && <div className="border-b border-border p-1.5">{pinned}</div>}
+      {moderators && <div className="border-b border-border p-1.5">{moderators}</div>}
       {conversations.length === 0 && (
         <p className="px-4 py-6 text-body text-muted">
           {t.empty}
           {isEmployer ? t.emptyEmployer : t.emptySeeker}
         </p>
       )}
+      {conversations.length > 0 && rows.length === 0 && (
+        <p className="px-4 py-6 text-body text-muted">{t.filterEmpty(t.filters[filter])}</p>
+      )}
       <ul className="space-y-0.5 p-1.5">
-        {conversations.map((conversation) => (
+        {rows.map((conversation) => (
           <li key={conversation.id}>
             <ConversationRow
               conversation={conversation}
               isEmployer={isEmployer}
               selected={selectedId === conversation.id}
+              pinned={Boolean(pinned[conversation.id])}
               preview={messages[conversation.id].at(-1)?.text ?? t.previewEmpty}
               unreadCount={unread[conversation.id]}
               onSelect={() => onSelect(conversation.id)}
@@ -179,6 +209,7 @@ function ConversationRow({
   conversation,
   isEmployer,
   selected,
+  pinned,
   preview,
   unreadCount,
   onSelect,
@@ -186,11 +217,13 @@ function ConversationRow({
   conversation: Conversation;
   isEmployer: boolean;
   selected: boolean;
+  pinned: boolean;
   preview: string;
   unreadCount: number;
   onSelect: () => void;
 }) {
   const lang = useLang();
+  const t = useMessages(chatMessages).workspace;
   return (
     <button
       type="button"
@@ -207,7 +240,15 @@ function ConversationRow({
           >
             {conversation.person}
           </span>
-          <span className="shrink-0 text-meta text-muted">{shownTime(conversation.time, lang)}</span>
+          <span className="flex shrink-0 items-center gap-1 text-meta text-muted">
+            {pinned && (
+              <>
+                <Pin aria-hidden="true" className="size-3.5 text-brand" />
+                <span className="sr-only">{t.pinned}</span>
+              </>
+            )}
+            {shownTime(conversation.time, lang)}
+          </span>
         </span>
         <span
           lang={contentLang(preview)}

@@ -82,6 +82,8 @@ export type Conversation = {
   candidateId?: string;
   /** The job seeker's chat with a business under a ban now (ADR 0044): nothing can be sent until it is over. */
   paused?: true;
+  /** A shared conversation with an interview invitation still in play (C7, ADR 0053): 已约面 in the list. */
+  interview?: true;
 };
 
 export type ChatDemo = {
@@ -102,9 +104,17 @@ export type ChatRecord = {
   /** Exchanges the user started, or demo ones they answered (same id replaces the demo one). */
   exchanges: Record<string, Exchange[]>;
   reports: ChatReport[];
+  /**
+   * C7 (ADR 0053): the conversations pinned to the top of the list, with when; at most PINS_MAX. Only this identity's
+   * (a business's whole team shares its record), never the other side's. Left out while there are none.
+   */
+  pinned?: Record<string, string>;
 };
 
 export const EMPTY_CHAT: ChatRecord = { added: {}, readAt: {}, extra: [], exchanges: {}, reports: [] };
+
+/** C7: how many conversations may be pinned at once. */
+export const PINS_MAX = 10;
 
 /** Used when old data says a conversation was read but not when. */
 export const LEGACY_READ_AT = "2026-10-14T00:00:00.000Z";
@@ -116,6 +126,8 @@ export type ChatView = {
   unread: Record<string, number>;
   exchanges: Record<string, Exchange[]>;
   reports: ChatReport[];
+  /** C7: when each conversation in the list was pinned. */
+  pinned: Record<string, string>;
 };
 
 export function chatView(record: ChatRecord, demo: ChatDemo): ChatView {
@@ -133,7 +145,8 @@ export function chatView(record: ChatRecord, demo: ChatDemo): ChatView {
     unread[id] = (readAt ? 0 : (demo.unread[id] ?? 0)) + added.filter((m) => m.from === "them" && !m.readAt).length;
     exchanges[id] = mergeExchanges(demo.exchanges[id] ?? [], record.exchanges[id] ?? []);
   }
-  return { conversations, messages, unread, exchanges, reports: record.reports };
+  const pinned = Object.fromEntries(Object.entries(record.pinned ?? {}).filter(([id]) => id in messages));
+  return { conversations, messages, unread, exchanges, reports: record.reports, pinned };
 }
 
 function mergeExchanges(demo: Exchange[], own: Exchange[]): Exchange[] {
@@ -146,6 +159,32 @@ function mergeExchanges(demo: Exchange[], own: Exchange[]): Exchange[] {
 
 function upsert(items: Exchange[], item: Exchange): Exchange[] {
   return items.some((x) => x.id === item.id) ? items.map((x) => (x.id === item.id ? item : x)) : [...items, item];
+}
+
+/**
+ * Pins the conversation to the top of the list, or takes the pin off (C7). Pins of conversations no longer in `shown`
+ * (deleted with an account, say) are dropped on the way; past PINS_MAX nothing changes (pinsFull tells).
+ */
+export function pinConversation(
+  record: ChatRecord,
+  id: string,
+  pinned: boolean,
+  now: string,
+  shown: ReadonlySet<string>,
+): ChatRecord {
+  if (!pinned && !record.pinned?.[id]) return record;
+  const kept = Object.entries(record.pinned ?? {}).filter(([key]) => key !== id && shown.has(key));
+  if (pinned && !record.pinned?.[id] && kept.length >= PINS_MAX) return record;
+  const next = Object.fromEntries(pinned ? [...kept, [id, record.pinned?.[id] ?? now]] : kept);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out while there are none
+  const { pinned: _, ...rest } = record;
+  return Object.keys(next).length ? { ...rest, pinned: next } : rest;
+}
+
+/** Whether pinning one more conversation would pass PINS_MAX (C7). */
+export function pinsFull(record: ChatRecord, id: string, shown: ReadonlySet<string>): boolean {
+  if (record.pinned?.[id]) return false;
+  return Object.keys(record.pinned ?? {}).filter((key) => shown.has(key)).length >= PINS_MAX;
 }
 
 export function markConversationRead(record: ChatRecord, id: string, now: string): ChatRecord {
@@ -221,12 +260,17 @@ export function parseChats(raw: string | null, demoFor: (isEmployer: boolean) =>
 export function parseChatRecord(value: unknown): ChatRecord | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const input = value as Record<string, unknown>;
+  // The newest PINS_MAX, should a record somehow hold more.
+  const pins = Object.entries(mapOf(input.pinned, (at) => (validTimestamp(at) ? at : undefined)))
+    .sort(([, a], [, b]) => b.localeCompare(a))
+    .slice(0, PINS_MAX);
   return {
     added: mapOf(input.added, (list) => (Array.isArray(list) ? list.flatMap(parseMessage) : undefined)),
     readAt: mapOf(input.readAt, (at) => (validTimestamp(at) ? at : undefined)),
     extra: Array.isArray(input.extra) ? input.extra.flatMap(parseConversation) : [],
     exchanges: mapOf(input.exchanges, (list) => (Array.isArray(list) ? list.flatMap(parseExchanges) : undefined)),
     reports: Array.isArray(input.reports) ? input.reports.flatMap((r) => optional(parseChatReport(r))) : [],
+    ...(pins.length ? { pinned: Object.fromEntries(pins) } : {}),
   };
 }
 
@@ -305,7 +349,7 @@ const optionalField = <K extends string, T>(key: K, value: T | undefined) =>
 function parseConversation(value: unknown): Conversation[] {
   if (!value || typeof value !== "object") return [];
   const c = value as Record<string, unknown>;
-  const { id, person, title, time, avatar, job, employerId, candidateId, paused } = c;
+  const { id, person, title, time, avatar, job, employerId, candidateId, paused, interview } = c;
   if (
     typeof id !== "string" ||
     !["recommend:", "employer:", "apply:", "chat:"].some((prefix) => id.startsWith(prefix)) ||
@@ -325,6 +369,7 @@ function parseConversation(value: unknown): Conversation[] {
       ...(employerId !== undefined ? { employerId } : {}),
       ...(candidateId !== undefined ? { candidateId } : {}),
       ...(paused === true ? { paused } : {}),
+      ...(interview === true ? { interview } : {}),
     },
   ];
 }

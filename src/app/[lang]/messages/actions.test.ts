@@ -959,3 +959,83 @@ describe("chats both sides share (#110)", () => {
     });
   });
 });
+
+describe("pins in the chat list (C7, ADR 0053)", () => {
+  /** A demo business with an admin and a member, an open job, and a job seeker who wrote about it. */
+  async function team(tag: string) {
+    const shop = await createEmployer({ name: `${tag}茶楼`, regionId: "akl-cbd" });
+    const boss = `demo.${tag}.boss@example.com`;
+    const staff = `demo.${tag}.staff@example.com`;
+    await ensureAccount(boss);
+    await openEmployerIdentity(boss, shop.id);
+    await ensureAccount(staff);
+    const invited = await inviteToTeam(shop.id, boss, staff, "member");
+    if (invited.status !== "invited") throw new Error(invited.status);
+    await answerInvite(staff, invited.invite.id, { accept: true, name: "小李" });
+    const job: Partial<Job> = { ...MOCK_JOBS[0], employerId: shop.id, titleZh: `${tag}服务员`, status: "active" };
+    delete job.id;
+    job.expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const created = await createJob(job as Omit<Job, "id">);
+    const seeker = `${tag}.seeker@example.com`;
+    await signedIn(seeker);
+    await change({ type: "send", conversationId: `employer:${shop.id}:${created.id}`, text: "你好" });
+    return { shop, boss, staff, seeker, seekerId: `employer:${shop.id}:${created.id}` };
+  }
+
+  it("a pin on a shared conversation stays in the side's own record: the team sees it, the job seeker never does", async () => {
+    const { boss, staff, seeker, seekerId } = await team("pin");
+    await signedIn(staff, "employer");
+    const shared = (await my())!.extra.find((c) => c.id.startsWith("chat:"))!;
+    const pinned = await change({ type: "pin", conversationId: shared.id, pinned: true });
+    expect(Object.keys(pinned!.pinned!)).toEqual([shared.id]);
+    await signedIn(boss, "employer");
+    expect(Object.keys((await my())!.pinned!)).toEqual([shared.id]);
+    const conversation = (await (await database()).select().from(t.conversations))[0];
+    expect(conversation.employerReadAt).toBeNull();
+    await signedIn(seeker);
+    expect((await my())!.pinned).toBeUndefined();
+    expect((await my())!.extra.map((c) => c.id)).toContain(seekerId);
+
+    await signedIn(boss, "employer");
+    expect((await change({ type: "pin", conversationId: shared.id, pinned: false }))!.pinned).toBeUndefined();
+    for (const bad of [
+      { type: "pin", conversationId: "nobody", pinned: true },
+      { type: "pin", conversationId: shared.id, pinned: "yes" },
+    ])
+      expect((await change(bad as never))!.pinned).toBeUndefined();
+  });
+
+  it("two teammates' pins at once both stay: the one that wrote second reads again and decides again", async () => {
+    const { staff } = await team("both");
+    await signedIn(staff, "employer");
+    // Both changes read the record before either writes it.
+    const read = store.getVersionedChat.bind(store);
+    let reads = 0;
+    let release!: () => void;
+    const bothRead = new Promise<void>((resolve) => (release = resolve));
+    store.getVersionedChat = async (scope) => {
+      const result = await read(scope);
+      reads += 1;
+      if (reads === 2) release();
+      if (reads <= 2) await bothRead;
+      return result;
+    };
+    await Promise.all([
+      change({ type: "pin", conversationId: "candidate-lin", pinned: true }),
+      change({ type: "pin", conversationId: "candidate-chen", pinned: true }),
+    ]);
+    expect(reads).toBe(3);
+    expect(Object.keys((await my())!.pinned!).sort()).toEqual(["candidate-chen", "candidate-lin"]);
+  });
+
+  it("two pins one after the other both stay, with the database store too", async () => {
+    setChatServerStoreForTests(databaseChatStore());
+    const { boss, staff } = await team("after");
+    await signedIn(boss, "employer");
+    await change({ type: "pin", conversationId: "candidate-lin", pinned: true });
+    await signedIn(staff, "employer");
+    await change({ type: "pin", conversationId: "candidate-chen", pinned: true });
+    await signedIn(boss, "employer");
+    expect(Object.keys((await my())!.pinned!).sort()).toEqual(["candidate-chen", "candidate-lin"]);
+  });
+});

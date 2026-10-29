@@ -26,6 +26,25 @@ describe("chat records in the database (#42)", () => {
     expect(await db.select().from(chatRecords)).not.toContainEqual(expect.objectContaining({ scope: team }));
   });
 
+  it("writes a record only if nobody wrote it since it was read (C7, ADR 0031), for a business and a person", async () => {
+    const shop = await createEmployer({ name: "条件写入小店", regionId: "akl-cbd" });
+    await ensureAccount("cas.person@example.com");
+    for (const scope of [`team:${shop.id}`, scopeOf("cas.person@example.com")]) {
+      const none = await store.getVersionedChat(scope);
+      expect(none).toEqual({ record: undefined, version: null });
+      expect(await store.putChatIf(scope, sent("第一条"), null)).toBe(true);
+      // A second writer that also saw no row loses, and so does one that read before the first wrote.
+      expect(await store.putChatIf(scope, sent("同时的"), null)).toBe(false);
+      const first = await store.getVersionedChat(scope);
+      expect(first.record).toEqual(sent("第一条"));
+      expect(await store.putChatIf(scope, sent("第二条"), first.version)).toBe(true);
+      expect(await store.putChatIf(scope, sent("晚了"), first.version)).toBe(false);
+      const second = await store.getVersionedChat(scope);
+      expect(second.record).toEqual(sent("第二条"));
+      expect(second.version).not.toBe(first.version);
+    }
+  });
+
   it("has nothing for an identity that never wrote", async () => {
     const scope = scopeOf("nobody.yet@example.com");
     expect(await store.getChat(scope)).toBeUndefined();

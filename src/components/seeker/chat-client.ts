@@ -40,10 +40,13 @@ import {
   markConversationRead,
   openConversation,
   parseChats as parseStoredChats,
+  pinConversation,
+  pinsFull,
   type ChatRecord,
   type Conversation,
   JUST_NOW,
   MESSAGE_MAX,
+  PINS_MAX,
 } from "@/components/seeker/chat-store";
 
 export type { Conversation, Message } from "@/components/seeker/chat-store";
@@ -132,7 +135,8 @@ const isEmpty = (record: ChatRecord) =>
   !Object.keys(record.readAt).length &&
   !record.extra.length &&
   !Object.keys(record.exchanges).length &&
-  !record.reports.length;
+  !record.reports.length &&
+  !record.pinned;
 
 // The server's records are the truth (#10); this browser's copy is a cache, refreshed once per identity per page
 // load, after sending what the outbox still holds. Records from before #10 that only this browser has are handed
@@ -343,6 +347,14 @@ export function useChat() {
       if (!view.unread[id] && view.messages[id].every((message) => message.from === "me" || message.readAt)) return;
       change((current) => markConversationRead(current, id, new Date().toISOString()));
       sendChange(scope, { type: "read", conversationId: id });
+    },
+    /** C7: pins the conversation to the top of the list, or takes the pin off; past PINS_MAX it says so instead. */
+    pin(id: string, pinned: boolean) {
+      if (!view.messages[id]) return;
+      const shown = new Set(view.conversations.map((c) => c.id));
+      if (pinned && pinsFull(record, id, shown)) return void toast(pick(chatMessages, lang).limits.pinsFull(PINS_MAX));
+      change((current) => pinConversation(current, id, pinned, new Date().toISOString(), shown));
+      sendChange(scope, { type: "pin", conversationId: id, pinned });
     },
     send(id: string, text: string) {
       // Over the server's limit it would show as sent and then be dropped there (#259): not sent at all.

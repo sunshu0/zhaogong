@@ -68,6 +68,19 @@ export async function readChat(me: Pick<ChatIdentity, "scope" | "recordScope">):
   return store.getChat(me.scope);
 }
 
+/**
+ * readChat with the version of the row it is written back to (`recordScope`), for a conditional write (ADR 0031): a
+ * business without a shared record yet reads the reader's own copy, and its first write makes the shared row.
+ */
+export async function readVersionedChat(
+  me: Pick<ChatIdentity, "scope" | "recordScope">,
+): Promise<{ record: ChatRecord | undefined; version: string | null }> {
+  const store = chatServerStore();
+  const read = await store.getVersionedChat(me.recordScope);
+  if (read.record || me.recordScope === me.scope) return read;
+  return { record: await store.getChat(me.scope), version: read.version };
+}
+
 export function scopeOf(session: SessionView): string {
   return identityScope({
     email: session.email,

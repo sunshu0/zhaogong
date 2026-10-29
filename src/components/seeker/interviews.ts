@@ -29,6 +29,9 @@ const words = (lang: Lang) => pick(seekerMeMessages, lang).interview;
  */
 export type InterviewStatus = "proposed" | "confirmed" | "counter" | "declined" | "cancelled";
 
+/** An invitation still in play: it can be changed or called off, and the chat list puts it under 已约面 (C7). */
+export const LIVE_INTERVIEW: readonly InterviewStatus[] = ["proposed", "confirmed", "counter"];
+
 export const SLOT_MAX = 20;
 export const PLACE_MAX = 120;
 export const INTERVIEW_NOTE_MAX = 200;

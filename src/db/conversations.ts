@@ -13,6 +13,7 @@ import { normalizeEmail } from "@/components/seeker/session";
 import type { SharedConversation, SharedExchange, Side } from "@/lib/chat-server/shared-view";
 import type { ExchangeKind, ExchangePayload } from "@/lib/chat-consent";
 import type { ResumeDoc } from "@/components/seeker/resume-doc";
+import { LIVE_INTERVIEW, type InterviewStatus } from "@/components/seeker/interviews";
 
 export type ConversationRow = typeof t.conversations.$inferSelect;
 
@@ -28,6 +29,18 @@ const NAME_MAX = 40;
  * the sender is told.
  */
 export const SHARED_MESSAGES_MAX = 500;
+
+/**
+ * The job seeker's application for the conversation's job, whose interview invitation (if any) puts the conversation
+ * under 已约面 (C7, ADR 0053). Joined to it and then to interviews, one row at most each, through job_applications'
+ * (seeker_email, job_id) and interviews' application_id unique indexes, so the 10-second read of changes stays as
+ * quick as it was.
+ */
+const applicationOfConversation = and(
+  eq(t.jobApplications.seekerEmail, t.conversations.seekerEmail),
+  eq(t.jobApplications.jobId, t.conversations.jobId),
+);
+const isLive = (status: InterviewStatus | null) => status !== null && LIVE_INTERVIEW.includes(status);
 
 const ofReader = (reader: SharedReader) =>
   reader.side === "seeker"
@@ -53,7 +66,7 @@ export async function listSharedConversations(reader: SharedReader, upTo?: numbe
 }
 
 /** One of the reader's conversations as the list of them gives it, without its messages and exchanges. */
-export type SharedHead = Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt">;
+export type SharedHead = Pick<SharedConversation, "id" | "employerId" | "jobId" | "updatedAt" | "interview">;
 
 /**
  * What changed in the reader's conversations since a read (#369, ADR 0040): every conversation's head, for the order
@@ -67,14 +80,16 @@ export async function listSharedChanges(
 ): Promise<{ heads: SharedHead[]; changed: SharedConversation[] }> {
   const db = await database();
   // The same conversations the full list has (its joins), without the job seeker's page.
-  const heads = (
-    await db
-      .select({ conversation: t.conversations })
-      .from(t.conversations)
-      .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
-      .innerJoin(t.jobs, eq(t.jobs.id, t.conversations.jobId))
-      .where(ofReader(reader))
-  ).map((r) => r.conversation);
+  const rows = await db
+    .select({ conversation: t.conversations, interview: t.interviews.status })
+    .from(t.conversations)
+    .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
+    .innerJoin(t.jobs, eq(t.jobs.id, t.conversations.jobId))
+    .leftJoin(t.jobApplications, applicationOfConversation)
+    .leftJoin(t.interviews, eq(t.interviews.applicationId, t.jobApplications.id))
+    .where(ofReader(reader));
+  const heads = rows.map((r) => r.conversation);
+  const interviewing = new Set(rows.filter((r) => isLive(r.interview)).map((r) => r.conversation.id));
   if (!heads.length) return { heads: [], changed: [] };
   // The newest messages only: the id range keeps this to them, whatever the conversations hold.
   const written = await db
@@ -103,6 +118,7 @@ export async function listSharedChanges(
       employerId: h.employerId,
       jobId: h.jobId!,
       updatedAt: h.updatedAt ?? h.createdAt,
+      interview: interviewing.has(h.id),
     })),
     changed: changed.length
       ? await readShared(inList(t.conversations.id, changed), { after: since.messageId, upTo })
@@ -119,11 +135,14 @@ async function readShared(where: SQL, range?: { after: number; upTo: number }): 
       employerName: t.employers.name,
       jobTitle: t.jobs.titleZh,
       page: t.seekerProfiles.profile,
+      interview: t.interviews.status,
     })
     .from(t.conversations)
     .innerJoin(t.employers, eq(t.employers.id, t.conversations.employerId))
     .innerJoin(t.jobs, eq(t.jobs.id, t.conversations.jobId))
     .leftJoin(t.seekerProfiles, eq(t.seekerProfiles.email, t.conversations.seekerEmail))
+    .leftJoin(t.jobApplications, applicationOfConversation)
+    .leftJoin(t.interviews, eq(t.interviews.applicationId, t.jobApplications.id))
     .where(where);
   if (!rows.length) return [];
   const ids = rows.map((r) => r.conversation.id);
@@ -142,7 +161,7 @@ async function readShared(where: SQL, range?: { after: number; upTo: number }): 
     .from(t.exchanges)
     .where(inList(t.exchanges.conversationId, ids))
     .orderBy(asc(t.exchanges.createdAt));
-  return rows.map(({ conversation: c, employerName, jobTitle, page }) => {
+  return rows.map(({ conversation: c, employerName, jobTitle, page, interview }) => {
     // The business sees the name on the job seeker's page as it is now; the one they applied or were found with
     // otherwise. Their 推荐人才 card only while they still let businesses find them.
     const resume = page?.resume;
@@ -159,6 +178,7 @@ async function readShared(where: SQL, range?: { after: number; upTo: number }): 
       seekerReadAt: c.seekerReadAt,
       employerReadAt: c.employerReadAt,
       updatedAt: c.updatedAt ?? c.createdAt,
+      interview: isLive(interview),
       messages: messages
         .filter((m) => m.conversationId === c.id)
         .map((m) => ({

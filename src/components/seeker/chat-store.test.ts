@@ -11,7 +11,11 @@ import {
   chatView,
   markConversationRead,
   openConversation,
+  parseChatRecord,
   parseChats,
+  pinConversation,
+  pinsFull,
+  PINS_MAX,
   type ChatDemo,
 } from "@/components/seeker/chat-store";
 import { LOCAL_DATA_VERSION, stringifyStoredIdentities } from "@/components/seeker/identity-scope";
@@ -293,5 +297,46 @@ describe("shownTime", () => {
       "10:42",
       "10月2日",
     ]);
+  });
+});
+
+describe("pins (C7, ADR 0053)", () => {
+  const shown = new Set(["a", "b", ...Array.from({ length: PINS_MAX }, (_, i) => `c${i}`)]);
+  const t1 = "2026-10-30T01:00:00.000Z";
+  const t2 = "2026-10-30T02:00:00.000Z";
+
+  it("pins and unpins, keeping when it was first pinned, and leaves the record as it was with none", () => {
+    const one = pinConversation(EMPTY_CHAT, "a", true, t1, shown);
+    expect(one.pinned).toEqual({ a: t1 });
+    expect(pinConversation(one, "a", true, t2, shown).pinned).toEqual({ a: t1 });
+    expect(pinConversation(one, "a", false, t2, shown)).toEqual(EMPTY_CHAT);
+    expect(pinConversation(EMPTY_CHAT, "a", false, t2, shown)).toBe(EMPTY_CHAT);
+  });
+
+  it(`holds at most ${PINS_MAX}, and drops pins of conversations no longer shown`, () => {
+    let record = EMPTY_CHAT;
+    for (let i = 0; i < PINS_MAX; i++) record = pinConversation(record, `c${i}`, true, t1, shown);
+    expect(pinsFull(record, "a", shown)).toBe(true);
+    expect(pinsFull(record, "c0", shown)).toBe(false);
+    expect(pinConversation(record, "a", true, t2, shown)).toBe(record);
+    const gone = new Set([...shown].filter((id) => id !== "c0"));
+    expect(pinsFull(record, "a", gone)).toBe(false);
+    const next = pinConversation(record, "a", true, t2, gone);
+    expect(Object.keys(next.pinned!)).toHaveLength(PINS_MAX);
+    expect(next.pinned).not.toHaveProperty("c0");
+  });
+
+  it("shows only the pins of conversations in the list", () => {
+    const record = { ...EMPTY_CHAT, pinned: { "north-tea": t1, gone: t2 } };
+    expect(chatView(record, seekerDemo).pinned).toEqual({ "north-tea": t1 });
+  });
+
+  it("reads back what is stored, dropping bad times and keeping the newest ten", () => {
+    const pinned = Object.fromEntries(
+      Array.from({ length: PINS_MAX + 2 }, (_, i) => [`c${i}`, `2026-10-30T01:${String(10 + i)}:00.000Z`]),
+    );
+    const read = parseChatRecord({ ...EMPTY_CHAT, pinned: { ...pinned, bad: "yesterday" } })!;
+    expect(Object.keys(read.pinned!).sort()).toEqual(Array.from({ length: PINS_MAX }, (_, i) => `c${i + 2}`).sort());
+    expect(parseChatRecord(EMPTY_CHAT)).toEqual(EMPTY_CHAT);
   });
 });
