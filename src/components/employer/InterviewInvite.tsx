@@ -146,14 +146,22 @@ export function InterviewInvite({
           onClose={close}
           title={t.formLabel(name)}
           footer={
-            // Below the scrolling form, so 发出邀约 is always in reach, with the keyboard up too.
-            <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={close}>
-                {t.collapse}
-              </Button>
-              <Button type="submit" form={formId} size="lg" loading={pending} className="flex-[2]">
-                {live ? t.sendAgain : t.send}
-              </Button>
+            // Below the scrolling form, so 发出邀约 is always in reach, with the keyboard up too; what went wrong is
+            // just above it, where the eye is after pressing it (E5-3 返工 1).
+            <div className="space-y-2">
+              {error && (
+                <p role="alert" className="px-2 text-meta text-danger">
+                  {error}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="secondary" className="flex-1" onClick={close}>
+                  {t.collapse}
+                </Button>
+                <Button type="submit" form={formId} size="lg" loading={pending} className="flex-[2]">
+                  {live ? t.sendAgain : t.send}
+                </Button>
+              </div>
             </div>
           }
         >
@@ -166,13 +174,9 @@ export function InterviewInvite({
                 name={name}
                 pending={pending}
                 onCancel={close}
+                onProblem={setError}
                 onSend={(invite) => void send(invite)}
               />
-              {error && (
-                <p role="alert" className="mt-2 px-4 text-meta text-danger">
-                  {error}
-                </p>
-              )}
             </div>
           )}
         </BottomSheet>
@@ -188,7 +192,10 @@ export function InterviewInvite({
 
 type Invite = { slots: string[]; callFirst: boolean; mode: InterviewMode | null; place: string; note: string };
 
-/** The form. With an `id` it is in the bottom sheet, whose footer holds its buttons (`form={id}`); else it has its own. */
+/**
+ * The form. With an `id` it is in the bottom sheet, whose footer holds its buttons (`form={id}`) and, through
+ * `onProblem`, what is wrong with it; else it has its own.
+ */
 function InviteForm({
   id,
   min,
@@ -196,6 +203,7 @@ function InviteForm({
   name,
   pending,
   onCancel,
+  onProblem,
   onSend,
 }: {
   id?: string;
@@ -204,6 +212,7 @@ function InviteForm({
   name: string;
   pending: boolean;
   onCancel: () => void;
+  onProblem?: (problem: string) => void;
   onSend: (invite: Invite) => void;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
@@ -213,7 +222,9 @@ function InviteForm({
   const [mode, setMode] = useState<InterviewMode | "">(initial?.mode ?? "");
   const [place, setPlace] = useState(initial?.place ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
-  const [problem, setProblem] = useState("");
+  const [shown, setShown] = useState("");
+  const problem = onProblem ? "" : shown;
+  const setProblem = onProblem ?? setShown;
   // #304: the two ways to give the time are one group: arrow keys move between them, one Tab stop, "1 of 2".
   const timeChoice = useId();
   // #248: the form takes the place of 邀请面试 / 改时间, and with it the focus: its chosen time option, else the first.

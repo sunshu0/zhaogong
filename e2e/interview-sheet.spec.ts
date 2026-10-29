@@ -24,6 +24,15 @@ async function inView(page: Page, locator: Locator) {
   return b;
 }
 
+/** `said` is on the screen, right above `button` (at most 16 px between them). */
+async function justAbove(page: Page, said: Locator, button: Locator) {
+  const b = await inView(page, said);
+  const gap = (await box(button)).y - (b.y + b.height);
+  expect(gap).toBeGreaterThanOrEqual(0);
+  expect(gap).toBeLessThanOrEqual(16);
+  return b;
+}
+
 test("E5-3 约面试 on a phone: a bottom sheet, 发出邀约 in view, 收起 finger sized, the keyboard up, Esc and a tap outside send nothing", async ({
   page,
   browser,
@@ -84,12 +93,31 @@ test("E5-3 约面试 on a phone: a bottom sheet, 发出邀约 in view, 收起 fi
   await expect(invite).toBeFocused();
   await expect(card.getByRole("status", { name: "和求职者的面试" })).toHaveCount(0);
 
-  // 收起 too; then sending from the footer works.
+  // 5. (返工 1) What went wrong is just above 发出邀约 and on the screen: no time given (the server's answer), then a
+  // time an Auckland clock skips (the form's own check: 02:00 → 03:00 on 26 Sep 2027).
   await invite.click();
+  await expect(sheet).toBeVisible();
+  await settled(sheet);
+  const said = sheet.getByRole("alert");
+  await send.click();
+  await expect(said).toHaveText("至少给一个时间，或者选「电话联系后再定」");
+  const saidBox = await justAbove(page, said, send);
+  await sheet.getByLabel("时间 1").fill("2027-09-26T02:30");
+  await send.click();
+  await expect(said).toHaveText("有一个时间不完整，请把日期和时刻都选上");
+  const problemBox = await justAbove(page, said, send);
+  measure(testInfo, {
+    type: "E5-3",
+    description: `375x812: 报错 at y ${saidBox.y}–${saidBox.y + saidBox.height} (no time), ${problemBox.y}–${problemBox.y + problemBox.height} (skipped time); 发出邀约 at y ${sendBox.y}`,
+  });
+
+  // 收起 too, and it takes what went wrong away with it; then sending from the footer works.
   await sheet.getByRole("button", { name: "收起", exact: true }).click();
   await expect(sheet).toBeHidden();
   await expect(invite).toBeFocused();
+  await expect(card.getByRole("alert")).toHaveCount(0);
   await invite.click();
+  await expect(said).toHaveCount(0);
   await sheet.getByRole("radio", { name: "电话联系后再定" }).check();
   await send.click();
   await expect(sheet).toBeHidden();
