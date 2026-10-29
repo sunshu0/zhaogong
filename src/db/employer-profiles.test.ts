@@ -34,6 +34,7 @@ describe("saveEmployerPage (ADR 0022)", () => {
       page: { headline: "招前厅" },
       updatedAt: later.toISOString(),
       updatedByEmail: boss,
+      benefits: null,
     });
   });
 

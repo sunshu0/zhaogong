@@ -47,6 +47,8 @@
 | `EXTERNAL_JOBS` | 变量 | 生产环境别设 | `real` 会让空的演示库在后台去公司网站导入真实职位；生产环境默认不导入 | `src/db/ready.ts` |
 | `NEXTJS_ENV` | 变量 | 已经在 `wrangler.jsonc` | `production` | `wrangler.jsonc` |
 | `EVIDENCE_BUCKET` | **R2 绑定** | **必须** | 举报截图存放的 R2 桶（ADR 0027）。Worker 里没绑就不收截图（举报会报错），见第 4 节第 2a 步 | `src/db/evidence-store.ts` |
+| `PHOTO_BUCKET` | **R2 绑定** | **必须** | 企业门店照片存放的 R2 桶（ADR 0052），和举报截图分开。Worker 里没绑就不收门店照片（上传会报错），见第 4 节第 2c 步 | `src/db/photo-store.ts` |
+| `ZG_PHOTO_DIR` | 变量 | 本机可以不设 | 不在 Cloudflare 上时门店照片放的文件夹，默认 `data/uploads/company-photos`（`data/` 不进 git） | `src/db/photo-store.ts` |
 | `ZG_EVIDENCE_DIR` | 变量 | 本机可以不设 | 不在 Cloudflare 上时截图放的文件夹，默认 `data/uploads/report-evidence`（`data/` 不进 git） | `src/db/evidence-store.ts` |
 
 只在开发和测试里用的：`ZG_E2E`、`E2E_PORT`、`AI_POST_FAKE`、`AI_POST_LIVE`、`NEXT_PRIVATE_STANDALONE`，线上不要设。
@@ -90,6 +92,7 @@ npx wrangler d1 migrations apply zhaogong --remote
 1. **（用户做）** 用公司名义注册 Cloudflare，在本机 `npx wrangler login`。
 2. 设密钥（第 2 节）：`npx wrangler secret put AUTH_SECRET`、`ZG_EVENTS_SECRET`、`ANTHROPIC_API_KEY`（要的话）。变量（`SITE_URL`、`DEMO_DATA` 等）写进 `wrangler.jsonc` 的 `vars`，或者在 Cloudflare 后台设。
 2a. **（用户做）举报截图的 R2 桶**（ADR 0027）：以公司名义在 Cloudflare 开 R2，建一个桶（比如 `zhaogong-report-evidence`，位置提示选大洋洲 `oc`，和 D1 一样离用户近；Wrangler 4.150 的 `r2 bucket create --location` 可选 weur、eeur、apac、wnam、enam、oc），**不要开公开访问**，也不要绑自定义域名；在 `wrangler.jsonc` 加 `"r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }]`。截图只通过 `/api/report-evidence/[id]` 给审核员看。处理完 180 天后和删号时，代码会把文件一起删掉。
+2c. **（用户做）门店照片的 R2 桶**（ADR 0052）：和 2a 一样，再建一个桶 `zhaogong-company-photos`（位置提示 `oc`），**不要开公开访问**，也不要绑自定义域名；`wrangler.jsonc` 的 `r2_buckets` 里已经写好 `PHOTO_BUCKET` 这一项，桶名不同就改那里。照片只通过 `/api/company-photos/[id]` 发出去：审核通过、企业没被封才给看（浏览器最多缓存 10 分钟），待审的只给本企业和审核员。退回、删除、企业被删时，代码会把文件一起删掉。
 2b. **（用户做）登录验证码的邮件：Amazon SES（ADR 0032）。** 分步说明另给用户。要点：
    - 以公司名义开 AWS 账号，在 SES 悉尼区（`ap-southeast-2`）验证发信域名：3 条 DKIM CNAME；自定义 MAIL FROM 子域（MX 加 SPF TXT），让 SPF 对齐；`_dmarc` TXT 先用 `p=none`。
    - 申请离开沙盒（production access）。在沙盒里只能发给验证过的地址。
@@ -139,6 +142,7 @@ Cloudflare 从 GitHub 拉代码、在它的 Linux 机器上构建和部署（[Wo
 | `AUTH_SECRET` | 随机 32 字节以上 | 生产环境必须有。没有它，网站照样启动，但第一次有人要验证码时就报错、登录不了（不会出安全问题，只是部署后要试一次登录才看得出来） |
 | `ZG_EVENTS_SECRET` | 随机 32 字节以上 | 漏斗统计；不设就不记 |
 | `EVIDENCE_BUCKET` | R2 桶（第 4 节第 2a 步） | 举报截图；不绑的话登录不了也用不上，但代码在 Worker 里会拒收截图 |
+| `PHOTO_BUCKET` | R2 桶（第 4 节第 2c 步） | 门店照片；不绑的话代码在 Worker 里会拒收照片 |
 | `DATABASE_URL`、`DATABASE_AUTH_TOKEN` | **不设** | 线上用 D1 绑定，不用 libSQL 地址和令牌 |
 | `ADMIN_ENABLED` | **不设** | 演示站不开审核后台 |
 | `ZHAOGONG_ADMIN_EMAILS` | **不设** | 同上 |

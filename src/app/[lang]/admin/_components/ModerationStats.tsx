@@ -139,7 +139,7 @@ export function ModerationWeeks({ stats }: { stats: ModerationStats }) {
   );
 }
 
-const DECISIONS = ["approve", "takeDown", "dismiss", "ban", "verify", "external"] as const;
+const DECISIONS = ["approve", "takeDown", "dismiss", "ban", "verify", "external", "photo"] as const;
 
 /** Decisions per moderator over the same eight weeks (#60 names who acted), most first. */
 export function ModeratorWeeks({ stats }: { stats: ModerationStats }) {

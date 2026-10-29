@@ -126,6 +126,7 @@ type NotificationTarget =
   | { type: "closing_jobs" }
   | { type: "applicants"; jobId: string }
   | { type: "verification" }
+  | { type: "photos" }
   | { type: "team_invite" }
   | { type: "applications" };
 export type Notification = {
@@ -258,11 +259,13 @@ export function notificationHref(item: Notification, session: DemoSession | null
             ? `/employer/jobs/${encodeURIComponent(target.jobId)}/applicants`
             : target?.type === "verification"
               ? "/employer/verify"
-              : target?.type === "team_invite"
-                ? "/account#team-invites"
-                : target?.type === "applications"
-                  ? "/me/saved"
-                  : target?.type === "external_job"
-                    ? `/external/${encodeURIComponent(target.id)}`
-                    : undefined;
+              : target?.type === "photos"
+                ? "/employer/photos"
+                : target?.type === "team_invite"
+                  ? "/account#team-invites"
+                  : target?.type === "applications"
+                    ? "/me/saved"
+                    : target?.type === "external_job"
+                      ? `/external/${encodeURIComponent(target.id)}`
+                      : undefined;
 }

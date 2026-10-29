@@ -73,6 +73,8 @@ export type ModeratorStats = {
   verify: number;
   /** External jobs shown or hidden, and companies stopped, resumed or removed (#112). */
   external: number;
+  /** 门店照片 approved or sent back (ADR 0052). */
+  photo: number;
   total: number;
 };
 
@@ -127,9 +129,10 @@ export type ModerationStats = {
 /** The column a log entry counts under in 按审核员. */
 function decisionKey(
   action: ModerationLogEntry["action"],
-): "approve" | "takeDown" | "dismiss" | "ban" | "verify" | "external" {
+): "approve" | "takeDown" | "dismiss" | "ban" | "verify" | "external" | "photo" {
   if (action === "take_down") return "takeDown";
   if (action === "verify_approve" || action === "verify_reject") return "verify";
+  if (action === "photo_approve" || action === "photo_reject") return "photo";
   if (action.startsWith("external_")) return "external";
   return action as "approve" | "dismiss" | "ban";
 }
@@ -192,6 +195,7 @@ export function moderationStats(
       ban: 0,
       verify: 0,
       external: 0,
+      photo: 0,
       total: 0,
     };
     moderators.set(entry.moderator, who);

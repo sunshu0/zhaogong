@@ -158,7 +158,10 @@ export type ModerationAction =
   | "external_resume"
   | "external_takedown"
   // 聊天风险 (#384, ADR 0039): a moderator looked into a business's chat messages and closed the item.
-  | "chat_risk_close";
+  | "chat_risk_close"
+  // 门店照片 (ADR 0052): a shop photo approved for the business's page, or sent back with a reason.
+  | "photo_approve"
+  | "photo_reject";
 
 /** One moderation decision, kept for complaints and audits. */
 export interface ModerationLogEntry {

@@ -39,6 +39,8 @@ import { ChatRiskQueue, useChatRiskQueue } from "@/app/[lang]/admin/_components/
 import { adminViewsMessages } from "@/i18n/messages/admin-views";
 import { useVerificationQueue, VerificationQueue } from "@/app/[lang]/admin/_components/VerificationQueue";
 import { ExternalReview, useExternalReview } from "@/app/[lang]/admin/_components/ExternalReview";
+import { PhotoQueue, usePhotoQueue } from "@/app/[lang]/admin/_components/PhotoQueue";
+import { employerPhotosMessages } from "@/i18n/messages/employer-photos";
 import {
   AiPostingUsage,
   ModerationSummary,
@@ -76,7 +78,7 @@ import { VerificationBadge } from "@/components/seeker/VerificationBadge";
  * ADR 0043: the page in two groups, as a moderator works through it — 待处理 (what waits for a decision, each with how
  * many) and 记录与统计 (what was done, the numbers, who saw whose details, the moderators).
  */
-type TodoTab = "flagged" | "reported" | "chatRisk" | "verification" | "external";
+type TodoTab = "flagged" | "reported" | "chatRisk" | "verification" | "external" | "photos";
 type RecordTab = "log" | "stats" | "views" | "tempBans" | "moderators" | "changes";
 type Tab = TodoTab | RecordTab;
 /** ADR 0046: 聊天, the conversations with businesses, the third group. */
@@ -110,8 +112,10 @@ export function ModerationQueue() {
   const verifications = useVerificationQueue(version, tab === "verification");
   const external = useExternalReview(version); // #112
   const chatRisk = useChatRiskQueue(version); // #384: names and counts only; the messages load when opened
+  const photos = usePhotoQueue(version); // ADR 0052: names and times; the pictures load on its tab
   const chats = useModeratorChatList(version, group === "chat"); // ADR 0046
   const tc = useMessages(moderatorChatMessages).admin;
+  const tp = useMessages(employerPhotosMessages).admin;
 
   const done = (r: AdminResult) => {
     setResult(r);
@@ -150,6 +154,7 @@ export function ModerationQueue() {
       label: t.tabs.external,
       count: ready(external)?.pending.length,
     },
+    { key: "photos", label: tp.tab, count: ready(photos)?.length },
   ];
   const recordTabs: { key: RecordTab; label: string; count?: number }[] = [
     { key: "log", label: t.tabs.log, count: queue?.log.length },
@@ -237,6 +242,8 @@ export function ModerationQueue() {
                 <VerificationQueue queue={verifications} onDone={done} onRetry={reload} onChat={openChat} />
               ) : tab === "external" ? (
                 <ExternalReview queue={external} onDone={done} onRetry={reload} />
+              ) : tab === "photos" ? (
+                <PhotoQueue queue={photos} onDone={done} onRetry={reload} />
               ) : tab === "stats" ? (
                 statsNow ? (
                   <div className="space-y-section">

@@ -20,6 +20,8 @@ import type { SharedConversation } from "@/lib/chat-server/shared-view";
 import type { EmployerPage } from "@/components/employer/employer-page";
 import { listJobContactsBy, listJobsPostedBy } from "@/db/job-posters";
 import { imageKeysOf, listEvidenceOf, removeImages } from "@/db/report-evidence";
+import { listPhotosForExport, photoIdsOfBusiness } from "@/db/employer-photos";
+import { photoStore } from "@/db/photo-store";
 
 /** Who applied for 企业验证, once their account is deleted. */
 const DELETED_CONTACT = "（已删除的账号）";
@@ -70,13 +72,14 @@ export interface ServerAccountData {
   reportEvidence: Awaited<ReturnType<typeof listEvidenceOf>>;
   /**
    * The business of the employer identity, every job it posted whatever their status, and their renewals (#69); its
-   * 企业主页 (ADR 0022), and whether this account saved it last.
+   * 企业主页 (ADR 0022), and whether this account saved it last; its shop photos (ADR 0052), never the pictures.
    */
   employer: {
     business: Employer;
     jobs: Job[];
     renewals: JobRenewal[];
     page: { page: EmployerPage; updatedAt: string; savedByYou: boolean } | null;
+    photos: Awaited<ReturnType<typeof listPhotosForExport>>;
   } | null;
   /** The jobs this account posted (#182), in whichever business; the jobs themselves are under `employer`. */
   jobsPosted: { jobId: string; employerId: string; postedAt: string }[];
@@ -355,6 +358,7 @@ export async function exportAccountData(email: string): Promise<ServerAccountDat
                 savedByYou: businessPage.updatedByEmail === address,
               }
             : null,
+          photos: await listPhotosForExport(business.id),
         }
       : null,
     jobsPosted,
@@ -446,6 +450,8 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
   const db = await database();
   // Report screenshots' files go once their rows have (ADR 0027): a failed transaction leaves both.
   const images = await imageKeysOf(address);
+  // So do the shop photos' files when the business goes with its last teammate (ADR 0052), read in each attempt.
+  let photos: string[] = [];
   const result = await untilSettled<DeleteAccountResult>(
     async () => {
       const [account] = await db.select().from(t.accounts).where(eq(t.accounts.email, address));
@@ -469,6 +475,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
       and ${t.accounts.employerId} is ${account.employerId} and ${t.accounts.teamRole} is ${account.teamRole}
     ) and (not exists (select 1 from ${t.moderators} where ${t.moderators.email} = ${address})
       or (select count(*) from ${t.moderators}) > 1)`;
+      photos = account.employerId && !teammates.length ? await photoIdsOfBusiness(account.employerId) : [];
       const ownChats =
         account.employerId && !teammates.length
           ? or(eq(t.conversations.seekerEmail, address), eq(t.conversations.employerId, account.employerId))!
@@ -528,6 +535,15 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
           .update(t.verificationRequests)
           .set({ decidedByEmail: DELETED_ACCOUNT })
           .where(and(eq(t.verificationRequests.decidedByEmail, address), allowed)),
+        // ADR 0052: a business's photos stay with it, without who uploaded or reviewed them.
+        db
+          .update(t.employerPhotos)
+          .set({ uploadedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.employerPhotos.uploadedByEmail, address), allowed)),
+        db
+          .update(t.employerPhotos)
+          .set({ reviewedByEmail: DELETED_ACCOUNT })
+          .where(and(eq(t.employerPhotos.reviewedByEmail, address), allowed)),
         // Delete children by subquery: newly opened chats/applications are included and large accounts need no ID list.
         db.delete(t.reportEvidence).where(and(eq(t.reportEvidence.reporterEmail, address), allowed)),
         db.delete(t.pushSubscriptions).where(and(eq(t.pushSubscriptions.email, address), allowed)),
@@ -608,6 +624,7 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
               db.delete(t.employerActivity).where(and(eq(t.employerActivity.employerId, account.employerId), allowed)),
               db.delete(t.chatRiskFlags).where(and(eq(t.chatRiskFlags.employerId, account.employerId), allowed)),
               db.delete(t.employerProfiles).where(and(eq(t.employerProfiles.employerId, account.employerId), allowed)),
+              db.delete(t.employerPhotos).where(and(eq(t.employerPhotos.employerId, account.employerId), allowed)),
               db
                 .update(t.teamInvites)
                 .set({ status: "cancelled" })
@@ -636,6 +653,19 @@ export async function deleteAccount(email: string): Promise<DeleteAccountResult>
     },
     () => keptChanging("deleteAccount"),
   );
-  if (result === "deleted") await removeImages(images);
+  if (result === "deleted") {
+    await removeImages(images);
+    await removePhotoFiles(photos);
+  }
   return result;
+}
+
+/** Removes the files of a deleted business's photos; a file left behind has no row, and is in the server log. */
+async function removePhotoFiles(ids: readonly string[]): Promise<void> {
+  if (!ids.length) return;
+  try {
+    await photoStore().remove(ids);
+  } catch (error) {
+    console.error("company photos: files of a deleted business not removed", ids, error);
+  }
 }

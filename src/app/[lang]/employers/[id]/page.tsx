@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { getEmployer, listJobsByEmployer } from "@/lib/data";
 import { requestTime } from "@/components/seeker/request-time";
 import { employerActivities } from "@/db/employer-activity";
+import { getBenefits, listApprovedPhotoIds } from "@/db/employer-photos";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { EmployerPublicPage } from "@/components/seeker/EmployerPublicPage";
@@ -40,6 +41,18 @@ async function PublicEmployer({ params }: Pick<PageProps<"/[lang]/employers/[id]
     .filter((job) => job.status === "active" && Date.parse(job.expiresAt) > now)
     .sort((a, b) => b.postedAt.localeCompare(a.postedAt))
     .map((job) => ({ ...job, contact: {} }));
-  const activity = (await employerActivities([employer.id], now)).get(employer.id);
-  return <EmployerPublicPage employer={employer} jobs={jobs} activity={activity} />;
+  const [activities, photos, benefits] = await Promise.all([
+    employerActivities([employer.id], now),
+    listApprovedPhotoIds(employer.id),
+    getBenefits(employer.id),
+  ]);
+  return (
+    <EmployerPublicPage
+      employer={employer}
+      jobs={jobs}
+      activity={activities.get(employer.id)}
+      photos={photos}
+      benefits={benefits}
+    />
+  );
 }

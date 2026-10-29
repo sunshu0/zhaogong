@@ -130,9 +130,29 @@ describe("moderationStats (#70)", () => {
     expect(untimed).toBe(1);
     // Per moderator over the eight weeks (#60): most first, the unnamed old entries last.
     expect(byModerator).toEqual([
-      { moderator: "a@example.com", approve: 0, takeDown: 1, dismiss: 1, ban: 0, verify: 2, external: 0, total: 4 },
-      { moderator: "b@example.com", approve: 0, takeDown: 1, dismiss: 0, ban: 1, verify: 0, external: 0, total: 2 },
-      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 0, total: 1 },
+      {
+        moderator: "a@example.com",
+        approve: 0,
+        takeDown: 1,
+        dismiss: 1,
+        ban: 0,
+        verify: 2,
+        external: 0,
+        photo: 0,
+        total: 4,
+      },
+      {
+        moderator: "b@example.com",
+        approve: 0,
+        takeDown: 1,
+        dismiss: 0,
+        ban: 1,
+        verify: 0,
+        external: 0,
+        photo: 0,
+        total: 2,
+      },
+      { moderator: undefined, approve: 1, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 0, photo: 0, total: 1 },
     ]);
   });
 
@@ -152,7 +172,37 @@ describe("moderationStats (#70)", () => {
     );
     expect(stats).toMatchObject({ pendingExternal: 2, oldestPendingExternalAt: "2026-10-13T00:00:00.000Z" });
     expect(stats.byModerator).toEqual([
-      { moderator: "a@example.com", approve: 0, takeDown: 0, dismiss: 0, ban: 0, verify: 0, external: 2, total: 2 },
+      {
+        moderator: "a@example.com",
+        approve: 0,
+        takeDown: 0,
+        dismiss: 0,
+        ban: 0,
+        verify: 0,
+        external: 2,
+        photo: 0,
+        total: 2,
+      },
+    ]);
+  });
+
+  it("counts moderators' 门店照片 decisions in a column of their own (ADR 0052)", () => {
+    const log: ModerationLogEntry[] = [
+      { id: "p1", at: "2026-10-15T01:00:00.000Z", action: "photo_approve", moderator: "a@example.com" },
+      { id: "p2", at: "2026-10-15T02:00:00.000Z", action: "photo_reject", moderator: "a@example.com" },
+    ];
+    expect(moderationStats({ jobs: [], reports: [], log }, NOW).byModerator).toEqual([
+      {
+        moderator: "a@example.com",
+        approve: 0,
+        takeDown: 0,
+        dismiss: 0,
+        ban: 0,
+        verify: 0,
+        external: 0,
+        photo: 2,
+        total: 2,
+      },
     ]);
   });
 });

@@ -41,6 +41,7 @@ const adminStatsZh = {
     ban: "封禁",
     verify: "企业验证",
     external: "外部职位",
+    photo: "门店照片",
     total: "合计",
   },
   ai: {

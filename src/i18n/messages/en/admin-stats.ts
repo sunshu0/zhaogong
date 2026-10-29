@@ -50,6 +50,7 @@ export const adminStatsEn: Messages<(typeof adminStatsMessages)["zh"]> = {
     ban: "Banned",
     verify: "Verification",
     external: "External jobs",
+    photo: "Shop photos",
     total: "Total",
   },
   ai: {

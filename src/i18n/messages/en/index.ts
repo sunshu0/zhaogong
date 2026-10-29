@@ -15,6 +15,7 @@ import { employerTeamEn } from "./employer-team";
 import { employerVerifyEn } from "./employer-verify";
 import { employerCommonEn } from "./employer-common";
 import { employerPageEn } from "./employer-page";
+import { employerPhotosEn } from "./employer-photos";
 import { chatEn } from "./chat";
 import { complianceEn } from "./compliance";
 import { candidateMatchingEn } from "./candidate-matching";
@@ -50,6 +51,7 @@ export const english: Record<string, unknown> = {
   employerVerify: employerVerifyEn,
   employerCommon: employerCommonEn,
   employerPage: employerPageEn,
+  employerPhotos: employerPhotosEn,
   chat: chatEn,
   compliance: complianceEn,
   candidateMatching: candidateMatchingEn,

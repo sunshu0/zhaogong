@@ -179,6 +179,8 @@ const adminZh = {
     externalTakedown: (company: string, n: number, note: string) =>
       `公司要求删除「${company}」，下架 ${n} 个职位${note}`,
     chatRiskClose: (employer: string, why: string, note: string) => `看过并关闭「${employer}」的聊天风险${why}${note}`,
+    photoApprove: (employer: string) => `通过「${employer}」的门店照片`,
+    photoReject: (employer: string, note: string) => `退回「${employer}」的门店照片${note}`,
   },
 };
 

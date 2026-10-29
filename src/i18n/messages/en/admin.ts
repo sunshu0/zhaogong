@@ -168,5 +168,7 @@ export const adminEn: Messages<(typeof adminMessages)["zh"]> = {
     externalResume: (company, note) => `Resumed importing from “${company}”${note}`,
     externalTakedown: (company, n, note) => `Removal requested by “${company}”: took down ${jobs(n)}${note}`,
     chatRiskClose: (employer, why, note) => `Looked at and closed the chat risks of “${employer}”${why}${note}`,
+    photoApprove: (employer) => `Approved a shop photo of “${employer}”`,
+    photoReject: (employer, note) => `Sent back a shop photo of “${employer}”${note}`,
   },
 };

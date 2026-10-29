@@ -22,21 +22,29 @@ import { useLang, useMessages } from "@/i18n/client";
 import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
 import { contentLang } from "@/i18n/lang";
 import { placeName } from "@/components/seeker/format";
+import { employerPhotosMessages } from "@/i18n/messages/employer-photos";
+import type { Benefit } from "@/lib/company-photos";
 
 export function EmployerPublicPage({
   employer,
   jobs,
   activity,
+  photos = [],
+  benefits = [],
 }: {
   employer: Employer;
   jobs: Job[];
   /** 老板活跃度 on its job cards (#381). */
   activity?: EmployerActivity;
+  /** Its approved shop photos' ids, oldest first (ADR 0052). */
+  photos?: string[];
+  benefits?: Benefit[];
 }) {
   const profile = usePublicEmployerProfile(employer.id);
   const session = useSession();
   const lang = useLang();
   const t = useMessages(seekerEmployerMessages);
+  const shop = useMessages(employerPhotosMessages);
   const name = profile?.name.trim() || employer.name;
   const industries = [...new Set(jobs.map((job) => INDUSTRY_LABELS[job.industry][lang]))];
   const isOwnEmployer = session?.activeRole === "employer" && session.employerId === employer.id;
@@ -95,8 +103,37 @@ export function EmployerPublicPage({
                 {t.edit}
               </Link>
             )}
+            {isOwnEmployer && (
+              <Link
+                href="/employer/photos"
+                className="pressable inline-flex min-h-11 items-center text-body text-brand"
+              >
+                {shop.public.addPhotos}
+              </Link>
+            )}
           </div>
         </header>
+        {/* ADR 0052: only approved photos; with none, no empty frame for visitors. */}
+        {photos.length > 0 && (
+          <section aria-labelledby="company-photos" className={CARD}>
+            <h2 id="company-photos" className="sr-only">
+              {shop.public.photosHeading}
+            </h2>
+            <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible">
+              {photos.map((id, i) => (
+                <li key={id} className="w-4/5 shrink-0 snap-start sm:w-auto">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- our own route, already small and cached */}
+                  <img
+                    src={`/api/company-photos/${id}`}
+                    alt={shop.public.photoAlt(name, i + 1)}
+                    loading={i < 2 ? "eager" : "lazy"}
+                    className="aspect-[4/3] w-full rounded-md bg-neutral-soft object-cover"
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section aria-labelledby="company-about" className={`space-y-3 ${CARD}`}>
             <h2 id="company-about" className="flex items-center gap-2 text-subtitle font-semibold">
@@ -112,6 +149,18 @@ export function EmployerPublicPage({
               <Info term={t.languages} value={profile?.languages} empty={t.notFilled} />
               <Info term={t.contactHours} value={profile?.availability} empty={t.notFilled} />
             </dl>
+            {benefits.length > 0 && (
+              <div className="space-y-2 border-t border-border pt-4">
+                <h3 className="text-meta text-muted">{shop.public.benefitsHeading}</h3>
+                <ul className="flex flex-wrap gap-1.5" aria-label={shop.public.benefitsHeading}>
+                  {benefits.map((benefit) => (
+                    <li key={benefit} className="rounded-md bg-brand-soft px-2 py-0.5 text-meta font-medium text-brand">
+                      {shop.benefits.labels[benefit]}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
           <section
             id="company-credentials"

@@ -49,7 +49,8 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `interviews` | 约面试：雇主给的时间、求职者的回复 | |
 | `resume_shares` | 中英文简历的分享链接，每个账号最多一个 | |
 | `seeker_profiles` | 求职者主页，存在账号上 | ADR 0017 |
-| `employer_profiles` | 企业主页公开的部分，属于企业 | ADR 0022 |
+| `employer_profiles` | 企业主页公开的部分，属于企业；`benefits` 是勾选的福利（固定 8 项） | ADR 0022、0052 |
+| `employer_photos` | 企业主页的门店照片：每张一行（类型、大小、状态 `pending` / `approved` / `rejected`、退回理由、上传人和审核人、文件还在不在 `stored`），文件在私有桶 `PHOTO_BUCKET` 里，键是行的编号；等审和通过的合计最多 6 张，每家每天传 20 次；退回的理由留 30 天 | ADR 0052 |
 | `ai_usage` | AI 发帖每次调用的用量，用来限额和算审核数据 | ADR 0018 |
 | `external_jobs`、`external_company_blocks` | 外部职位（只存事实）和公司的停用、删除请求，见下面「外部职位」 | ADR 0014 |
 | `saved_external_jobs`、`external_job_alert_hits` | 外部职位的收藏和提醒命中 | ADR 0020 |
@@ -97,11 +98,13 @@ Next.js 16（App Router，React 19，Cache Components）单仓库应用。页面
 | `src/app/[lang]/admin/stats-actions.ts` | 审核数据（#70，ADR 0010） |
 | `src/app/[lang]/admin/verification-actions.ts` | 企业验证的审核（#78，ADR 0011） |
 | `src/app/[lang]/admin/views-actions.ts` | 审核后台的查看记录（#336，ADR 0026） |
+| `src/app/[lang]/admin/photo-actions.ts` | 审核后台「门店照片」：等审的照片，通过或带理由退回（ADR 0052） |
 | `src/app/[lang]/employer/actions.ts` | 雇主 |
 | `src/app/[lang]/employer/applicant-actions.ts` | 候选人：聊过这个职位的人和以前的申请（ADR 0030） |
 | `src/app/[lang]/employer/count-view.ts` | 职位浏览计数 |
 | `src/app/[lang]/employer/interview-actions.ts` | 约面试 |
 | `src/app/[lang]/employer/page-actions.ts` | 企业主页 |
+| `src/app/[lang]/employer/photo-actions.ts` | 企业主页的门店照片和福利（ADR 0052） |
 | `src/app/[lang]/employer/team-actions.ts` | 团队 |
 | `src/app/[lang]/jobs/[id]/actions.ts` | 职位（求职者） |
 | `src/app/[lang]/jobs/[id]/apply-actions.ts` | 申请职位：求职者这边只剩读（#352，用户 10-20 定删掉「申请」） |

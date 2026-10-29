@@ -1,5 +1,6 @@
 import { eq, getTableColumns, getTableName } from "drizzle-orm";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { deleteAccount, exportAccountData } from "@/db/account-data";
 import { databaseAuthStore } from "@/db/auth-store";
@@ -38,6 +39,9 @@ import {
   recordContactView,
 } from "@/lib/data";
 import { DELETED_ACCOUNT } from "@/lib/deleted-account";
+import { addPhoto, decidePhoto, listOwnPhotos } from "@/db/employer-photos";
+import { memoryStore } from "@/db/evidence-store";
+import { setPhotoStoreForTests } from "@/db/photo-store";
 import type { Job } from "@/lib/types";
 import { MOCK_JOBS } from "@/mock/data";
 import type { ApplicationProfile } from "@/components/seeker/applications";
@@ -387,6 +391,8 @@ describe("deleteAccount (#54)", () => {
       "resume_shares.email",
       "seeker_profiles.email",
       "employer_profiles.updated_by_email",
+      "employer_photos.uploaded_by_email",
+      "employer_photos.reviewed_by_email",
       "jobs.posted_by_email",
       "jobs.contact_by_email",
       "job_chat_starts.seeker_email",
@@ -476,5 +482,87 @@ describe("chats both sides share (#110)", () => {
     expect(await deleteAccount("last.boss@example.com")).toBe("deleted");
     expect(await rows(row.id)).toEqual({ conversations: [], messages: [] });
     expect(await getAccount("talks.to.last@example.com")).toBeDefined();
+  });
+});
+
+describe("a business's shop photos (ADR 0052)", () => {
+  /** A photo of the account's business, its file in `store`. */
+  async function photo(store: ReturnType<typeof memoryStore>, email: string, at: string) {
+    const id = randomUUID();
+    expect(await addPhoto(email, { id, type: "image/jpeg", bytes: 2048 }, new Date(at))).toBe("added");
+    await store.put(id, new Uint8Array([1, 2, 3]), "image/jpeg");
+    return id;
+  }
+
+  it("are in the export without the pictures; the last admin's deletion takes the rows and the files", async () => {
+    const store = memoryStore();
+    setPhotoStoreForTests(store);
+    try {
+      const email = "photos.last.admin@example.com";
+      const { business } = await fullAccount(email);
+      const other = await fullAccount("photos.other.shop@example.com");
+      const approved = await photo(store, email, "2026-10-29T01:00:00.000Z");
+      const sentBack = await photo(store, email, "2026-10-29T02:00:00.000Z");
+      const waiting = await photo(store, email, "2026-10-29T03:00:00.000Z");
+      const theirs = await photo(store, "photos.other.shop@example.com", "2026-10-29T03:00:00.000Z");
+      await decidePhoto(approved, DEMO_MODERATOR, { approve: true }, new Date("2026-10-29T04:00:00.000Z"));
+      await decidePhoto(
+        sentBack,
+        DEMO_MODERATOR,
+        { approve: false, reason: "faces" },
+        new Date("2026-10-29T04:00:00.000Z"),
+      );
+
+      const data = await exportAccountData(email);
+      expect(data?.employer?.photos).toEqual([
+        {
+          id: approved,
+          status: "approved",
+          uploadedAt: "2026-10-29T01:00:00.000Z",
+          reviewedAt: "2026-10-29T04:00:00.000Z",
+        },
+        {
+          id: sentBack,
+          status: "rejected",
+          uploadedAt: "2026-10-29T02:00:00.000Z",
+          reviewedAt: "2026-10-29T04:00:00.000Z",
+        },
+        { id: waiting, status: "pending", uploadedAt: "2026-10-29T03:00:00.000Z", reviewedAt: null },
+      ]);
+      expect(JSON.stringify(data)).not.toContain(theirs);
+
+      expect(await deleteAccount(email)).toBe("deleted");
+      const db = await database();
+      expect(await db.select().from(t.employerPhotos).where(eq(t.employerPhotos.employerId, business.id))).toEqual([]);
+      expect(store.keys()).toEqual([theirs]);
+      expect(await listOwnPhotos(other.business.id, new Date("2026-10-29T05:00:00.000Z"))).toHaveLength(1);
+    } finally {
+      setPhotoStoreForTests(undefined);
+    }
+  });
+
+  it("stay with the business when the uploader goes and the team carries on, without the uploader's email", async () => {
+    const store = memoryStore();
+    setPhotoStoreForTests(store);
+    try {
+      const business = await createEmployer({ name: "照片留下的店", regionId: "akl-cbd" });
+      await ensureAccount("photos.uploader@example.com");
+      await openEmployerIdentity("photos.uploader@example.com", business.id);
+      const db = await database();
+      await db.insert(t.accounts).values({
+        email: "photos.stays@example.com",
+        createdAt: "2026-10-17",
+        employerId: business.id,
+        teamRole: "admin",
+      });
+      const id = await photo(store, "photos.uploader@example.com", "2026-10-29T01:00:00.000Z");
+
+      expect(await deleteAccount("photos.uploader@example.com")).toBe("deleted");
+      const [row] = await db.select().from(t.employerPhotos).where(eq(t.employerPhotos.id, id));
+      expect(row).toMatchObject({ uploadedByEmail: DELETED_ACCOUNT, stored: 1 });
+      expect(store.keys()).toEqual([id]);
+    } finally {
+      setPhotoStoreForTests(undefined);
+    }
   });
 });

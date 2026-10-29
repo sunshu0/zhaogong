@@ -76,6 +76,7 @@ describe("activeNavKey", () => {
     // Not the employer's own pages, and not a look-alike path.
     expect(activeNavKey("/employer")).toBe("manage");
     expect(activeNavKey("/employer/team")).toBe("mine");
+    expect(activeNavKey("/employer/photos")).toBe("mine");
     expect(activeNavKey("/externals")).toBeNull();
     // A shared CV and a candidate's page stay unmarked.
     expect(activeNavKey("/resume/r1")).toBeNull();

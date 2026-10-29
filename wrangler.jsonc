@@ -36,7 +36,11 @@
     },
   ],
   // Screenshots attached to reports (ADR 0027): a private R2 bucket, served only through /api/report-evidence/[id].
-  "r2_buckets": [{ "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" }],
+  // Shop photos on business pages (ADR 0052): another private bucket, served only through /api/company-photos/[id].
+  "r2_buckets": [
+    { "binding": "EVIDENCE_BUCKET", "bucket_name": "zhaogong-report-evidence" },
+    { "binding": "PHOTO_BUCKET", "bucket_name": "zhaogong-company-photos" },
+  ],
   "vars": {
     "NEXTJS_ENV": "production",
     // The demo site: demo data, its own address.

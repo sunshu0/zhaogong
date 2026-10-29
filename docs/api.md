@@ -120,6 +120,21 @@
 
 邀请链接存在 `team_invite_links`（迁移 0029）：`id`、企业、令牌的哈希、生成人、生成时间、状态（`open` / `used` / `revoked`）、使用人和使用时间。过期在读取时判断（`LINK_DAYS` = 7，`linkExpired`）。没过期、没用掉的链接和邮箱邀请一样占团队的名额。数据函数在 `src/db/team-links.ts`；打开链接的页面直接读 `teamLinkState(token)`，不经过 Server Function。
 
+## 门店照片和福利 — `src/app/[lang]/employer/photo-actions.ts`
+
+企业主页的门店照片和福利（F8，ADR 0052）。人和企业都从会话读；没登录、是求职者身份或没有企业时都返回 `null`。只有团队管理员能上传、删除和改福利，数据库写的那一句再查一次（ADR 0031）；成员调用时回答里带「只有团队管理员能上传或删除门店照片、修改福利。」、`error: true`。企业被封禁时（暂时封禁也算，ADR 0044）照片和福利都不能改：快照里 `canEdit` 为 `false`、带 `banned`（和其他页一样的封禁提示），上传、删除、存福利都回答这句提示、`error: true`。
+
+| 函数 | 参数 | 成功 | 失败 |
+| --- | --- | --- | --- |
+| `myCompanyPhotos()` | | `CompanyPhotosSnapshot`：`{ scope, employerId, photos, benefits, canEdit, banned? }`。`photos` 按上传时间从旧到新，每张 `{ id, status, reason, uploadedAt, reviewedAt }`：等审、通过的，和 30 天内被退回的（只有理由，没有图）；删掉的不列；顺手清理本企业的（同 `purgeExpiredPhotos`） | `null` |
+| `uploadCompanyPhoto(form)` | `FormData`，字段 `photo`：浏览器先缩到长边 1600 像素（WebP，不行就 JPEG） | `{ snapshot, said: "已上传，等审核员看过就会公开。" }`：服务器按字节认类型（JPG、PNG、WebP），去掉元数据，先占一行（等审）再存文件，存不进就删掉那一行；存完再看那一行还在不在（同时删号、删照片），不在就删掉刚存的文件、回答「上传没有成功」 | `{ snapshot, said, error: true }`：「只能上传 JPG、PNG 或 WebP 图片。」「这张图片不完整，请重新保存后再上传。」「这张照片太大了…」（2 MB 以上）、「已经有 6 张了：删掉一张再上传。」「今天上传的照片太多了，请明天再试。」（24 小时 20 次，退回的、删掉的也算）、「上传没有成功，请再试一次。」 |
+| `removeCompanyPhoto(id)` | 本企业照片的编号，什么状态都行 | `{ snapshot, said: "照片已删除。" }`：先把行标成删掉（`status = "removed"`，谁都看不到、不导出），再删文件；行留一天照样算进当天的上传次数，之后清理时删掉；文件没删掉的写服务器日志，清理时补删 | 只有管理员；别家的照片当作没有，照样回答「照片已删除。」 |
+| `saveCompanyBenefits(benefits)` | 勾选的福利，只认 `BENEFITS` 里的 8 项（`src/lib/company-photos.ts`） | `{ snapshot, said: "福利已保存。" }`：马上显示在企业主页上，不用审核；还没有企业主页的企业建一个空的 | 只有管理员；不是数组时 `null` |
+
+照片文件只经 `GET /api/company-photos/[id]` 交出（见「页面路由」）。被退回时雇主的通知里有一条「有一张门店照片被退回」（`src/app/[lang]/employer/photo-notifications.ts`，读通知不写数据库），点进 `/employer/photos`。删号时企业跟着最后一个人删掉的话，照片的行和文件一起删；「导出我的数据」列出照片的编号、状态和时间，没有图（和照片页一样：不含删掉的、30 天前退回的）。
+
+**每天清理一次**（`purgeExpiredPhotos`，`src/db/employer-photos.ts`；和举报截图的 `purgeExpiredEvidence` 一样不用定时任务，ADR 0008）：每个新西兰日第一次有人上传照片、或审核员第一次打开照片队列时跑，所有企业一起：补删退回、删掉时没删成的文件；删掉 30 天前退回的行、上传超过一天的删掉的行（只删文件已经没了的）。存储没回应时下一次调用再跑，不等第二天；跑失败只写服务器日志，不挡上传和队列。
+
 ## 职位浏览计数 — `src/app/[lang]/employer/count-view.ts`
 
 | 函数 | 参数 | 成功 | 失败 |
@@ -361,6 +376,8 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 
 审核员和雇主聊天（#407，ADR 0046）位于 `src/app/[lang]/admin/chat-actions.ts`，都先 `requireModerator()`：`getModeratorChats()` 返回 `{ chats }`，每段是 `{ employerId, employerName, openedAt, updatedAt, last?, unread }`（最新的在前，`unread` 是企业发的、审核员还没读的）；`startModeratorChat(employerId, from)` 开这家企业的对话或接着用已有的，`from` 是 `report`、`verification`、`temp_ban`，返回 `{ ok: true, employerId }`，企业不存在时 `{ ok: false, error_zh }`；`getModeratorChatThread(employerId, read = true)` 返回 `{ view }`（`ModeratorChatView`，`mine` 是审核员发的，`by` 是哪位审核员的邮箱或企业团队里的称呼），读了就算审核员都读了，没有对话时 `view` 是 `undefined`；`sendModeratorChatMessage(employerId, text)` 返回 `{ ok: true, employerId }` 或 `{ ok: false, error_zh }`。
 
+门店照片（F8，ADR 0052）位于 `src/app/[lang]/admin/photo-actions.ts`，都先 `requireModerator()`：`getPhotoQueue()` 返回等审的照片 `{ id, employerId, employerName, uploadedAt }[]`（上传早的在前，拒绝时 `{ refused, error_zh }`），图本身经 `/api/company-photos/[id]` 给审核员看，不记查看记录（照片本来就要公开）；`approvePhoto(id)` 通过，显示到企业主页；`rejectPhoto(id, reason)` 带理由退回（`contact`、`faces`、`unrelated`、`unclear`、`inappropriate`），先记下决定再删文件，删不掉的下次清理时补删（每天一次的 `purgeExpiredPhotos`，或企业打开照片页时）。两个都返回 `AdminResult`，写一条操作记录（`photo_approve` / `photo_reject`，退回的带理由）；已经处理过或被删的照片返回「这张照片已经处理过或被删除了。」，没选理由返回「请选择退回理由。」。
+
 举报证据读取位于 `src/app/[lang]/admin/evidence-actions.ts`：`getReportEvidence(reportId)` 先验证审核员身份，返回 `{ evidence }`（聊天按发送顺序，再列截图）；拒绝时返回 `{ refused, error_zh }`。交出聊天前记录审核员查看行为；截图经单独的受保护接口交出并记录。
 
 只有环境变量 `ADMIN_ENABLED=1` 时可用（本机开发由 `.env.development` 打开，线上不设）；否则每个函数都抛出「审核后台未开放。」。打开时还要求已登录、并且是审核员（`requireModerator()`，`src/app/[lang]/admin/moderator.ts`，#50）：
@@ -432,6 +449,7 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 | `/employer/jobs/[id]/republish` | 用截止超过 14 天的职位的内容发布一条新职位（#69） | 雇主身份 |
 | `/employer/jobs/[id]/copy` | 复制为新职位：用在招或已结束职位的内容新建一条，同一个表单，走 `publishJob`（#190） | 雇主身份 |
 | `/employer/team` | 团队：成员、我的称呼、邀请和没回复的邀请（#87）、邀请链接（#349） | 雇主身份 |
+| `/employer/photos` | 门店照片和福利（ADR 0052）：上传、删除、看审核状态和退回理由，勾选福利；成员只能看 | 雇主身份 |
 | `/employer/team/join/[token]` | 打开邀请链接：哪家店邀请；没登录时「登录后加入」，登录后填称呼加入为成员；不能用时说明原因（#349，ADR 0028）；不收录、不带 Referer | — |
 | `/employer/jobs/[id]/applicants` | 聊过这个职位的人（ADR 0030）：申请过的带资料要点和附言；合适 / 不合适 / 已录用、聊天、约面试（#84） | 雇主身份 |
 | `/employer/jobs/[id]/stats` | 职位数据：最近 14 天的浏览、聊天、查看联系方式，和从发布到现在的申请、面试、录用（`getMyJobDays`） | 雇主身份 |
@@ -440,6 +458,7 @@ S2（#390，ADR 0041）。`/me/reports` 列这台设备记着的职位举报，�
 | `POST /api/events` | 点击统计的一条事件（见上，#312） | — |
 | `GET /api/push/worker` | root scope的push-only Service Worker：JavaScript MIME、no-store，不拦截fetch或缓存私密页 | — |
 | `GET /api/push/open` | 系统提醒点击：只允许有权访问的对话；未登录去login并保留同源返回地址，身份不符去account提示，不自动换身份 | 当前会话和对话所有权 |
+| `GET /api/company-photos/[id]` | 企业主页的一张门店照片（ADR 0052）：通过的、企业没被封禁的谁都能看，`public, max-age=600`；等审的只给本企业的人和审核员，`private, no-store`；其他（退回的、被封禁企业的、编号不对）一律 404。图片本身，类型是上传时按字节认的，`nosniff`、`sandbox` | — |
 | `GET /api/report-evidence/[id]` | 职位举报附的一张截图（ADR 0027）：图片本身，`nosniff`、`sandbox`、不缓存；每次交出先记进查看记录（ADR 0026）。不是审核员、编号不是截图都回 404 | `ADMIN_ENABLED=1`，审核员 |
 | `/manifest.webmanifest` | 可安装网页的清单 | — |
 | `/sitemap.xml` | 首页、职位列表、实习和专业职位两个分区（#264）、关于 / 隐私 / 条款三页、在招职位（过了截止时间的不列，ADR 0008）、有在招职位且没被封禁的企业主页；外部职位详情不列；每次请求时生成（`sitemapEntries`，`src/lib/site.ts`） | — |

@@ -41,6 +41,7 @@ import type {
 import type { ExternalBlockKind, ExternalRemovedReason, ExternalReview } from "@/lib/external-jobs/visibility";
 import type { ExternalSection } from "@/lib/external-jobs/filter";
 import type { AiUsageResult } from "@/lib/ai-post/model/limits";
+import type { Benefit, PHOTO_TYPES, PhotoRejectReason, PhotoRowStatus } from "@/lib/company-photos";
 
 export const employers = sqliteTable("employers", {
   id: text("id").primaryKey(),
@@ -827,7 +828,42 @@ export const employerProfiles = sqliteTable("employer_profiles", {
   page: text("page", { mode: "json" }).$type<EmployerPage>().notNull(),
   updatedAt: text("updated_at").notNull(),
   updatedByEmail: text("updated_by_email").notNull(),
+  /** The benefits the business shows on its page (ADR 0052), codes from BENEFITS in their order; null for none yet. */
+  benefits: text("benefits", { mode: "json" }).$type<Benefit[]>(),
 });
+
+/**
+ * A shop photo of a business's 企业主页 (ADR 0052): the file is in the photo store (photo-store.ts) under `id`, never
+ * in the database. Shown to the public once a moderator approves it; a photo sent back loses its file at once and
+ * keeps its reason REJECTED_KEEP_DAYS for the business to read. `stored` is 1 while the file is (or may still be) in
+ * the store: a rejected row still at 1 means removing the file failed and is tried again. The uploader's and the
+ * moderator's emails become deleted-account when their accounts go; the rows and files go with the business.
+ */
+export const employerPhotos = sqliteTable(
+  "employer_photos",
+  {
+    /** crypto.randomUUID(), also the file's key in the photo store. */
+    id: text("id").primaryKey(),
+    employerId: text("employer_id")
+      .notNull()
+      .references(() => employers.id),
+    /** What the file's own bytes said it is when uploaded (sniffImage), sent back as its Content-Type. */
+    type: text("type").$type<(typeof PHOTO_TYPES)[number]>().notNull(),
+    /** Its size once the metadata was taken out. */
+    bytes: integer("bytes").notNull(),
+    status: text("status").$type<PhotoRowStatus>().notNull(),
+    rejectReason: text("reject_reason").$type<PhotoRejectReason>(),
+    stored: integer("stored").notNull().default(1),
+    uploadedByEmail: text("uploaded_by_email").notNull(),
+    uploadedAt: text("uploaded_at").notNull(),
+    reviewedByEmail: text("reviewed_by_email"),
+    reviewedAt: text("reviewed_at"),
+  },
+  (table) => [
+    index("employer_photos_employer_idx").on(table.employerId, table.status),
+    index("employer_photos_status_idx").on(table.status, table.uploadedAt),
+  ],
+);
 
 // ---- AI 发帖用量 (#102) ----
 

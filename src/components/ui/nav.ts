@@ -144,6 +144,7 @@ export function activeNavKey(pathname: string): NavKey | null {
       "/me/alerts",
       "/employer/verify",
       "/employer/team",
+      "/employer/photos", // 门店照片和福利 (ADR 0052)
     ].includes(pathname)
   )
     return "mine";
