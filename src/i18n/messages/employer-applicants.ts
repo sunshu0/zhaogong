@@ -19,6 +19,9 @@ const employerApplicantsZh = {
     title: "聊过这个职位的人",
     /** After the job's title, which is marked as the employer's own words. */
     jobSummaryCount: (n: number) => ` · ${n} 人`,
+    /** E5-2: the one line that always shows; the whole note opens under it. */
+    privacyShort: "标「不合适」「已录用」时对方会看到。",
+    privacyMore: "看说明",
     privacyNote:
       "这里没有对方的联系方式，要交换请在聊天里提。标「不合适」时，对方只会看到「雇主已看过」。标「已录用」时对方会收到通知；职位结束后，没被录用的人会收到「职位已结束」。",
     saveFailed: "没有保存，请再试一次。",

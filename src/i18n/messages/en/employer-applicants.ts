@@ -15,6 +15,8 @@ export const employerApplicantsEn: Messages<(typeof employerApplicantsMessages)[
     back: "← My jobs",
     title: "People who chatted about this job",
     jobSummaryCount: (n) => ` · ${n === 1 ? "1 person" : `${n} people`}`,
+    privacyShort: "They can see when you mark “Not a fit” or “Hired”.",
+    privacyMore: "Details",
     privacyNote:
       "No contact details here: ask for them in the chat. If you mark someone “Not a fit”, all they see is “Seen by the employer”. If you mark someone “Hired”, they are told. When the job ends, everyone you did not hire sees “This job has ended”.",
     saveFailed: "That didn't save. Try again.",

@@ -218,11 +218,11 @@ function JobSummary({
             <Figures>{n}</Figures>
           </span>
         ))}
-        <Link href={`/employer/jobs/${job.id}/stats`} className="text-brand underline-offset-4 hover:underline">
+        <Link href={`/employer/jobs/${job.id}/stats`} className={CARD_LINK}>
           {t.job.last14Days}
         </Link>
         {/* #84, ADR 0030: who chatted or applied; the list marks them seen. */}
-        <Link href={`/employer/jobs/${job.id}/applicants`} className="text-brand underline-offset-4 hover:underline">
+        <Link href={`/employer/jobs/${job.id}/applicants`} className={CARD_LINK}>
           <Figures>{applicantsLabelZh(applications, lang)}</Figures>
         </Link>
         {renewals && (
@@ -330,3 +330,6 @@ function closeDoneText(answer: HiresAnswer | undefined, t: Words, lang: Lang): s
 
 const answerText = (answer: HiresAnswer, lang: Lang) =>
   hiresLabelZh({ hiresConfirmed: answer.hired ? answer.count : 0 }, lang)!;
+
+/** E5-2: the card's links in its line of numbers, a full finger high (44 px) on a phone. */
+const CARD_LINK = "inline-flex min-h-11 items-center text-brand underline-offset-4 hover:underline";

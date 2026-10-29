@@ -176,7 +176,15 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           <span lang={contentLang(job.titleZh)}>{job.titleZh}</span>
           {t.jobSummaryCount(applicants.length)}
         </p>
-        <p className="mt-1 text-meta text-muted">{t.privacyNote}</p>
+        {/* E5-2: one line always shows what the marks tell the other person; the whole note opens under it, so the
+            first applicant comes higher on a phone. */}
+        <details className="text-meta text-muted">
+          <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-2 [&::-webkit-details-marker]:hidden">
+            <span>{t.privacyShort}</span>
+            <span className="text-brand underline underline-offset-4">{t.privacyMore}</span>
+          </summary>
+          <p className="pb-1">{t.privacyNote}</p>
+        </details>
       </div>
 
       {error && (
@@ -311,22 +319,31 @@ function ApplicantCard({
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {/* ADR 0036: the same button on every applicant, so a secondary one (one main button a screen). */}
-        <button
-          type="button"
-          className={buttonClass("secondary")}
-          {...busyProps(opening)}
-          onClick={async () => {
-            // The conversation is the one the job seeker has too (#110); its id comes from the server.
-            setOpening(true);
-            const id = await openApplicantChat({ id: a.id }, job).catch(() => null);
-            if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
-            else setOpening(false);
-          }}
-        >
-          {a.source === "chat" ? t.openChat : t.startChat}
-        </button>
+      {/* E5-2: 打开聊天 and 约面试 in one row, the marks in the next, no line between: two cards a phone screen. */}
+      <InterviewInvite
+        applicationId={a.id}
+        name={name}
+        interview={a.interview}
+        onChange={onInterview}
+        lead={
+          // ADR 0036: the same button on every applicant, so a secondary one (one main button a screen).
+          <button
+            type="button"
+            className={buttonClass("secondary")}
+            {...busyProps(opening)}
+            onClick={async () => {
+              // The conversation is the one the job seeker has too (#110); its id comes from the server.
+              setOpening(true);
+              const id = await openApplicantChat({ id: a.id }, job).catch(() => null);
+              if (id) router.push(`/messages?conversation=${encodeURIComponent(id)}`);
+              else setOpening(false);
+            }}
+          >
+            {a.source === "chat" ? t.openChat : t.startChat}
+          </button>
+        }
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <div role="group" aria-label={t.markGroupLabel(name)} className="flex gap-2">
           {(["fit", "unfit", "hired"] as const).map((d, i) => (
             <button
@@ -344,7 +361,6 @@ function ApplicantCard({
           ))}
         </div>
       </div>
-      <InterviewInvite applicationId={a.id} name={name} interview={a.interview} onChange={onInterview} />
     </article>
   );
 }

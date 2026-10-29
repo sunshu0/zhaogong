@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cancelMyApplicantInterview, inviteMyApplicant } from "@/app/[lang]/employer/interview-actions";
 import {
   aucklandToInstant,
@@ -27,17 +27,21 @@ import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants"
 /**
  * 约面试 on an applicant (#103): the business's invitation as it stands, and the form to send or change it. Any
  * times, as many as the employer likes, or none (电话联系后再定); a time already past is refused with a reason.
+ * E5-2: `lead` (the card's 打开聊天) shares the row of 约面试, so a card is a row shorter on a phone.
  */
 export function InterviewInvite({
   applicationId,
   name,
   interview,
   onChange,
+  lead,
 }: {
   applicationId: string;
   name: string;
   interview: InterviewView | null;
   onChange: (interview: InterviewView) => void;
+  /** First in the row of 约面试; above the form while it is open. */
+  lead?: ReactNode;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
   const lang = useLang();
@@ -68,7 +72,7 @@ export function InterviewInvite({
   }
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
+    <div className="mt-3">
       {interview && (
         <div role="status" aria-label={t.statusLabel(name)} className="mb-2 text-body">
           <p className="font-medium">{employerInterviewStatus(interview, lang)}</p>
@@ -77,6 +81,7 @@ export function InterviewInvite({
           )}
         </div>
       )}
+      {openAt && lead && <div className="mb-3 flex flex-wrap gap-2">{lead}</div>}
       {openAt ? (
         <InviteForm
           min={openAt}
@@ -106,6 +111,7 @@ export function InterviewInvite({
         />
       ) : (
         <div className="flex flex-wrap gap-2">
+          {lead}
           <Button
             id={openButton}
             variant="secondary"
