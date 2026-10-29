@@ -157,25 +157,28 @@ function ConversationList({
       <h2 className="sr-only">
         {t.recent} · {t.conversationCount(conversations.length)}
       </h2>
-      <div
-        role="group"
-        aria-label={t.filterLabel}
-        className="flex gap-1 overflow-x-auto border-b border-border p-1.5 [scrollbar-width:none]"
-      >
-        {(["all", ...CHAT_GROUPS] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={filter === key}
-            onClick={() => setFilter(key)}
-            className={`pressable min-h-11 shrink-0 rounded-full px-3 text-meta whitespace-nowrap ${
-              filter === key ? "bg-brand-soft font-semibold text-brand" : "text-muted hover:bg-background"
-            }`}
-          >
-            {t.filters[key]} <span className="tabular-nums">{counts[key]}</span>
-          </button>
-        ))}
-      </div>
+      {/* With no conversation yet there is nothing to filter: the row stays out. */}
+      {conversations.length > 0 && (
+        <div
+          role="group"
+          aria-label={t.filterLabel}
+          className="flex gap-1 overflow-x-auto border-b border-border p-1.5 [scrollbar-width:none]"
+        >
+          {(["all", ...CHAT_GROUPS] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={filter === key}
+              onClick={() => setFilter(key)}
+              className={`pressable min-h-11 shrink-0 rounded-full px-3 text-meta whitespace-nowrap ${
+                filter === key ? "bg-brand-soft font-semibold text-brand" : "text-muted hover:bg-background"
+              }`}
+            >
+              {t.filters[key]} <span className="tabular-nums">{counts[key]}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {moderators && <div className="border-b border-border p-1.5">{moderators}</div>}
       {conversations.length === 0 && (
         <p className="px-4 py-6 text-body text-muted">
