@@ -50,6 +50,9 @@ async function adminBusiness(address: string): Promise<{ employerId: string } | 
   return { employerId: account.employerId };
 }
 
+/** The most keys one R2 delete takes. */
+export const REMOVE_BATCH = 1000;
+
 /** Rows that are only kept for a while: sent back (their reason) or deleted by the business (their upload, counted). */
 const GONE: PhotoRowStatus[] = ["rejected", "removed"];
 
@@ -73,13 +76,15 @@ async function tidyPhotos(now: Date, scope?: string): Promise<boolean> {
     .from(p)
     .where(and(mine, inArray(p.status, GONE), eq(p.stored, 1)));
   let answered = true;
-  if (rows.length) {
-    const ids = rows.map((row) => row.id);
+  const ids = rows.map((row) => row.id);
+  // R2 deletes at most REMOVE_BATCH keys at once; a batch that fails waits for next time, the others go on.
+  for (let i = 0; i < ids.length; i += REMOVE_BATCH) {
+    const batch = ids.slice(i, i + REMOVE_BATCH);
     try {
-      await photoStore().remove(ids);
-      await db.update(p).set({ stored: 0 }).where(inList(p.id, ids));
+      await photoStore().remove(batch);
+      await db.update(p).set({ stored: 0 }).where(inList(p.id, batch));
     } catch (error) {
-      console.error("company photos: files not removed, tried again next time", ids, error);
+      console.error("company photos: files not removed, tried again next time", batch, error);
       answered = false;
     }
   }

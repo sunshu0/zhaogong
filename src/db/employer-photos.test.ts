@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
-import { memoryStore } from "@/db/evidence-store";
+import { and, eq } from "drizzle-orm";
+import { memoryStore, r2Store } from "@/db/evidence-store";
 import {
   addPhoto,
   decidePhoto,
@@ -16,6 +16,7 @@ import {
   photoStillWanted,
   purgeExpiredPhotos,
   readOwnPhotos,
+  REMOVE_BATCH,
   removeOwnPhoto,
   resetPhotoCleanupForTests,
   saveBenefits,
@@ -270,6 +271,58 @@ describe("purgeExpiredPhotos (review F8 rework 1)", () => {
     expect(store.keys()).toContain(next.id);
     await purgeExpiredPhotos(later(10));
     expect(store.keys()).not.toContain(next.id);
+  });
+
+  it("removes files in batches R2 takes, a failed batch not stopping the others", async () => {
+    const { employer } = await shop();
+    // Whatever earlier tests left waiting for removal goes first, so every file below is this test's.
+    await purgeExpiredPhotos(later(1));
+    resetPhotoCleanupForTests();
+    const ids = Array.from({ length: 2 * REMOVE_BATCH + 1 }, () => randomUUID());
+    const db = await database();
+    // Nine rows a statement: D1 binds at most 100 values.
+    for (let i = 0; i < ids.length; i += 9)
+      await db.insert(t.employerPhotos).values(
+        ids.slice(i, i + 9).map((id) => ({
+          id,
+          employerId: employer.id,
+          type: "image/webp" as const,
+          bytes: 1234,
+          status: "rejected" as const,
+          rejectReason: "unclear" as const,
+          stored: 1,
+          uploadedByEmail: "photos.bulk@example.com",
+          uploadedAt: T0.toISOString(),
+          reviewedAt: T0.toISOString(),
+        })),
+      );
+    const deletes: string[][] = [];
+    setPhotoStoreForTests(
+      r2Store({
+        put: async () => undefined,
+        get: async () => null,
+        delete: async (keys) => {
+          const batch = [keys].flat();
+          deletes.push(batch);
+          if (deletes.length === 1) throw new Error("R2 is down");
+        },
+      }),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await purgeExpiredPhotos(later(2));
+    expect(deletes.map((batch) => batch.length)).toEqual([REMOVE_BATCH, REMOVE_BATCH, 1]);
+    const stillStored = async () =>
+      (
+        await db
+          .select({ id: t.employerPhotos.id })
+          .from(t.employerPhotos)
+          .where(and(eq(t.employerPhotos.employerId, employer.id), eq(t.employerPhotos.stored, 1)))
+      ).map((row) => row.id);
+    expect((await stillStored()).sort()).toEqual([...deletes[0]].sort());
+    // The failed batch is tried again the same day, alone.
+    await purgeExpiredPhotos(later(3));
+    expect(deletes.slice(3).map((batch) => batch.length)).toEqual([REMOVE_BATCH]);
+    expect(await stillStored()).toEqual([]);
   });
 });
 
