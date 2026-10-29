@@ -6,9 +6,9 @@
 
 拟在隐私说明第 4 节使用目的新增：
 
-> 当你选择「推荐」时，使用你已填写的期望岗位类别、地区和最低时薪，对当前筛选结果排序。这些期望不会因此公开给雇主，你可以随时切回「最新」。
+> 当你选择「推荐」时，使用你已保存的期望岗位类别、地区和最低时薪，对当前筛选结果排序。这些期望不会因此公开给雇主，你可以随时切回「最新」。
 
-> When you choose Recommended, we use the job categories, regions and minimum hourly pay you have entered as your preferences to rank the current filtered job results. This does not make those preferences public to employers. You can switch back to Latest at any time.
+> When you choose Recommended, we use the job categories, regions and minimum hourly pay you have saved as your preferences to rank the current filtered job results. This does not make those preferences public to employers. You can switch back to Latest at any time.
 
 隐私页最后更新日期拟改为 2026-10-28。实际发布前由导师核对届时其他候选新增的用途与日期，不能覆盖 C5 等独立改动。
 

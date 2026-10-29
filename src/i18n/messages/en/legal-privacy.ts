@@ -65,6 +65,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Signing you in, and keeping your job seeker and employer roles apart.",
             "Posting, showing and managing jobs; passing applications to employers; letting both sides chat and exchange contact details.",
             "Telling you about new jobs that match your alerts, and about applications, interviews, team invitations and business verification.",
+            "When you choose Recommended, we use the job categories, regions and minimum hourly pay you have saved as your preferences to rank the current filtered job results. This does not make those preferences public to employers. You can switch back to Latest at any time.",
             "Checking jobs against the law before they are posted (such as the minimum wage and discriminatory wording), dealing with reports, reviewing business verification, and preventing misuse.",
             "Anonymous analytics, to see how many people reach each step and improve the site (section 8).",
             "Anything the law requires of us.",
