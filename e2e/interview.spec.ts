@@ -13,6 +13,9 @@ function ahead(days: number, hour: number, minute = 0) {
   return { local: `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` };
 }
 
+// E5-3: on a phone the form is in a bottom sheet whose footer holds 发出邀约, outside the <form>; the sheet is inside
+// the card, so the buttons are taken from the card.
+
 /**
  * The employer publishes a job and a job seeker, in their own browser, writes about it (立即沟通). The business knows
  * them as 「求职者」: they have no page on their account.
@@ -48,7 +51,7 @@ test("the employer offers two times; the job seeker confirms one and saves it to
   await form.getByLabel("地点或说明（选填）").fill("到店找王经理");
   await form.getByLabel("附言（选填）").fill("带上简历");
   await expect(form).toContainText("邀约里不带你的联系方式");
-  await form.getByRole("button", { name: "发出邀约" }).click();
+  await applicant.getByRole("button", { name: "发出邀约" }).click();
   const status = applicant.getByRole("status", { name: "和求职者的面试" });
   await expect(status).toContainText("已发邀约，等对方确认");
 
@@ -104,7 +107,7 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
   await applicant.getByRole("button", { name: "约面试" }).click();
   const form = applicant.getByRole("form", { name: "约求职者面试" });
   await form.getByRole("radio", { name: "电话联系后再定" }).check();
-  await form.getByRole("button", { name: "发出邀约" }).click();
+  await applicant.getByRole("button", { name: "发出邀约" }).click();
   await expect(applicant.getByRole("status", { name: "和求职者的面试" })).toContainText("已发邀约");
 
   await seeker.goto("/me/saved");
@@ -127,7 +130,7 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
   const change = applicant.getByRole("form", { name: "约求职者面试" });
   await change.getByRole("radio", { name: "给具体时间" }).check();
   await change.getByLabel("时间 1", { exact: true }).fill(ahead(-2, 9).local);
-  await change.getByRole("button", { name: "发出新的邀约" }).click();
+  await applicant.getByRole("button", { name: "发出新的邀约" }).click();
   expect(
     await change
       .getByLabel("时间 1", { exact: true })
@@ -135,7 +138,7 @@ test("电话联系后再定, the job seeker's own times, new times, a past time 
   ).toBe(true);
   await expect(status).toContainText("对方说这些时间不行");
   await change.getByLabel("时间 1", { exact: true }).fill(ahead(5, 9).local);
-  await change.getByRole("button", { name: "发出新的邀约" }).click();
+  await applicant.getByRole("button", { name: "发出新的邀约" }).click();
   await expect(status).toContainText("已发邀约，等对方确认");
 
   await seeker.reload();

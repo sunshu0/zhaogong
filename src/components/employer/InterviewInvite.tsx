@@ -15,19 +15,26 @@ import {
   type InterviewMode,
   type InterviewView,
 } from "@/components/seeker/interviews";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { Radio } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
 import { toast } from "@/components/ui/Toast";
 import { busyProps } from "@/components/ui/busy";
 import { inputClass } from "@/components/ui/input-class";
+import { useMediaQuery } from "@/components/ui/use-media-query";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerApplicantsMessages } from "@/i18n/messages/employer-applicants";
+
+/** From here the form opens in the card; below it (a phone, a narrow window) it opens in a bottom sheet (E5-3). */
+const DESKTOP = "(min-width: 1024px)";
 
 /**
  * 约面试 on an applicant (#103): the business's invitation as it stands, and the form to send or change it. Any
  * times, as many as the employer likes, or none (电话联系后再定); a time already past is refused with a reason.
  * E5-2: `lead` (the card's 打开聊天) shares the row of 约面试, so a card is a row shorter on a phone.
+ * E5-3: below 1024 px the form opens in a bottom sheet, 发出邀约 fixed at its foot, and the card's row stays as it is;
+ * closing the sheet (收起, Esc, a tap outside) sends nothing and puts the focus back on 约面试.
  */
 export function InterviewInvite({
   applicationId,
@@ -40,7 +47,7 @@ export function InterviewInvite({
   name: string;
   interview: InterviewView | null;
   onChange: (interview: InterviewView) => void;
-  /** First in the row of 约面试; above the form while it is open. */
+  /** First in the row of 约面试; above the form while it is open in the card. */
   lead?: ReactNode;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
@@ -60,6 +67,31 @@ export function InterviewInvite({
   });
   // An invitation still in play can be changed or called off; after 婉拒 or 取消 the employer may invite again.
   const live = interview && ["proposed", "confirmed", "counter"].includes(interview.status);
+  // Before JavaScript runs nothing is open, so the server can assume the card.
+  const inCard = useMediaQuery(DESKTOP, true);
+  const formId = useId();
+
+  function close() {
+    setOpenAt(null);
+    // #304: a failure belongs to the form that was put away.
+    setError("");
+    refocus.current = true;
+  }
+
+  async function send(invite: Invite) {
+    setPending(true);
+    setError("");
+    const result = await inviteMyApplicant(applicationId, invite).catch(() => ({
+      ok: false as const,
+      error: t.sendFailed,
+    }));
+    setPending(false);
+    if (!result.ok) return setError(result.error);
+    onChange(result.interview);
+    setOpenAt(null);
+    refocus.current = true;
+    toast(t.sent);
+  }
 
   async function cancel() {
     setPending(true);
@@ -81,33 +113,15 @@ export function InterviewInvite({
           )}
         </div>
       )}
-      {openAt && lead && <div className="mb-3 flex flex-wrap gap-2">{lead}</div>}
-      {openAt ? (
+      {openAt && inCard && lead && <div className="mb-3 flex flex-wrap gap-2">{lead}</div>}
+      {openAt && inCard ? (
         <InviteForm
           min={openAt}
           initial={live ? interview : null}
           name={name}
           pending={pending}
-          onCancel={() => {
-            setOpenAt(null);
-            // #304: a failure belongs to the form that was put away.
-            setError("");
-            refocus.current = true;
-          }}
-          onSend={async (invite) => {
-            setPending(true);
-            setError("");
-            const result = await inviteMyApplicant(applicationId, invite).catch(() => ({
-              ok: false as const,
-              error: t.sendFailed,
-            }));
-            setPending(false);
-            if (!result.ok) return setError(result.error);
-            onChange(result.interview);
-            setOpenAt(null);
-            refocus.current = true;
-            toast(t.sent);
-          }}
+          onCancel={close}
+          onSend={(invite) => void send(invite)}
         />
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -126,7 +140,44 @@ export function InterviewInvite({
           )}
         </div>
       )}
-      {error && (
+      {!inCard && (
+        <BottomSheet
+          open={!!openAt}
+          onClose={close}
+          title={t.formLabel(name)}
+          footer={
+            // Below the scrolling form, so 发出邀约 is always in reach, with the keyboard up too.
+            <div className="flex gap-2">
+              <Button variant="secondary" className="flex-1" onClick={close}>
+                {t.collapse}
+              </Button>
+              <Button type="submit" form={formId} size="lg" loading={pending} className="flex-[2]">
+                {live ? t.sendAgain : t.send}
+              </Button>
+            </div>
+          }
+        >
+          {openAt && (
+            <div className="px-2">
+              <InviteForm
+                id={formId}
+                min={openAt}
+                initial={live ? interview : null}
+                name={name}
+                pending={pending}
+                onCancel={close}
+                onSend={(invite) => void send(invite)}
+              />
+              {error && (
+                <p role="alert" className="mt-2 px-4 text-meta text-danger">
+                  {error}
+                </p>
+              )}
+            </div>
+          )}
+        </BottomSheet>
+      )}
+      {error && !(openAt && !inCard) && (
         <p role="alert" className="mt-2 text-meta text-danger">
           {error}
         </p>
@@ -135,7 +186,11 @@ export function InterviewInvite({
   );
 }
 
+type Invite = { slots: string[]; callFirst: boolean; mode: InterviewMode | null; place: string; note: string };
+
+/** The form. With an `id` it is in the bottom sheet, whose footer holds its buttons (`form={id}`); else it has its own. */
 function InviteForm({
+  id,
   min,
   initial,
   name,
@@ -143,18 +198,13 @@ function InviteForm({
   onCancel,
   onSend,
 }: {
+  id?: string;
   min: string;
   initial: InterviewView | null;
   name: string;
   pending: boolean;
   onCancel: () => void;
-  onSend: (invite: {
-    slots: string[];
-    callFirst: boolean;
-    mode: InterviewMode | null;
-    place: string;
-    note: string;
-  }) => void;
+  onSend: (invite: Invite) => void;
 }) {
   const t = useMessages(employerApplicantsMessages).interviewInvite;
   const lang = useLang();
@@ -170,7 +220,10 @@ function InviteForm({
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     const box = form.current;
-    (box?.querySelector<HTMLElement>("input:checked") ?? box?.querySelector<HTMLElement>("input"))?.focus();
+    const first = box?.querySelector<HTMLElement>("input:checked") ?? box?.querySelector<HTMLElement>("input");
+    // In the bottom sheet, the sheet opens after this runs and gives the focus to what is marked (E5-3).
+    first?.setAttribute("data-autofocus", "");
+    first?.focus();
   }, []);
 
   function send() {
@@ -184,8 +237,9 @@ function InviteForm({
   return (
     <form
       ref={form}
+      id={id}
       aria-label={t.formLabel(name)}
-      className="space-y-3 rounded-card bg-background p-4"
+      className={`space-y-3 rounded-card ${id ? "px-2 pt-1" : "bg-background p-4"}`}
       onSubmit={(event) => {
         event.preventDefault();
         send();
@@ -275,14 +329,16 @@ function InviteForm({
           {problem}
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={pending}>
-          {initial ? t.sendAgain : t.send}
-        </Button>
-        <Button variant="link" onClick={onCancel}>
-          {t.collapse}
-        </Button>
-      </div>
+      {!id && (
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" loading={pending}>
+            {initial ? t.sendAgain : t.send}
+          </Button>
+          <Button variant="link" onClick={onCancel}>
+            {t.collapse}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }
