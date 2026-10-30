@@ -98,4 +98,16 @@ describe("job alerts in the database (#53)", () => {
     const right = await newJob({ industry: "cleaning", descriptionZh: "筛选测试" });
     expect(await matchJobAlerts(right, NOW)).toEqual(["match.filter@example.com"]);
   });
+
+  it("searches as the list does (bugs-1): the business's name, every word, and 最低时薪 by the job's lowest pay", async () => {
+    await ensureAccount("match.search@example.com");
+    await createJobAlert("match.search@example.com", alert("q=川味小馆 搜索提醒&minPay=27"), NOW);
+    const mine = async (job: Job) =>
+      (await matchJobAlerts(job, NOW)).filter((email) => email === "match.search@example.com");
+    expect(await mine(await newJob({ titleZh: "搜索提醒", pay: { min: 25, max: 28 } }))).toEqual([]);
+    expect(await mine(await newJob({ titleZh: "别的职位", pay: { min: 27 } }))).toEqual([]);
+    expect(await mine(await newJob({ titleZh: "搜索提醒", pay: { min: 27, max: 30 } }))).toEqual([
+      "match.search@example.com",
+    ]);
+  });
 });

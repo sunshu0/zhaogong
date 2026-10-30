@@ -315,4 +315,28 @@ describe("bugs-1 (user feedback 10-30): 最低时薪, 最新发布 and search", 
     expect(order.indexOf(late)).toBeLessThan(order.indexOf(early));
     expect(order.indexOf(urgent)).toBeLessThan(order.indexOf(late));
   });
+
+  it("search covers the title, description, business, area and address; every word must match, in any field", () => {
+    const shop = { employerName: "川味小馆" };
+    const withAddress = { ...j1, address: "123 Dominion Road" };
+    const finds = (query: string) => matchesFilter(withAddress, { country: "NZ", query }, shop);
+    expect(finds("川味小馆")).toBe(true);
+    expect(finds("服务员 川味")).toBe(true); // title + business
+    expect(finds("服务员　Mt Eden")).toBe(true); // a full-width space, the area's name in English
+    expect(finds("前厅 奥克兰")).toBe(true); // the area in Chinese
+    expect(finds("dominion ROAD")).toBe(true); // the address, any case
+    expect(finds("服务员 叉车")).toBe(false); // one word missing is no match
+    expect(finds("%")).toBe(false); // nothing is a wildcard
+    expect(finds("_")).toBe(false);
+    expect(finds("   ")).toBe(true); // only spaces: no search
+    // Without the business's name the job is still found by everything else.
+    expect(matchesFilter(withAddress, { country: "NZ", query: "川味小馆" })).toBe(false);
+  });
+
+  it("lists 川味小馆's jobs when searched for by its name", async () => {
+    const jobs = await listJobs({ country: "NZ", query: "川味小馆" }, Date.now());
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(jobs.every((j) => j.employerId === "e1")).toBe(true);
+    expect((await listJobs({ country: "NZ", query: "厨房帮工 Mt Eden" }, Date.now())).map((j) => j.id)).toContain("j2");
+  });
 });

@@ -13,6 +13,7 @@ import { normalizeEmploymentTypes } from "@/lib/employment-types";
 import { isBanned, tempBanUntil, type TempBanDays } from "@/lib/employer-ban";
 import { isOpenJob } from "@/lib/job-expiry";
 import { jobRoles } from "@/lib/job-roles";
+import { matchesSearch, searchTerms } from "@/lib/job-search";
 import type { EvidenceImage, EvidenceMessage } from "@/lib/report-evidence";
 import type {
   Account,
@@ -41,7 +42,11 @@ function normalizeJob<T extends Partial<Job>>(job: T): T {
   return job;
 }
 
-export function matchesFilter(job: Job, f: JobFilter): boolean {
+/**
+ * Whether the job is one the filter asks for. `employerName`: the business's, which the search looks in too (bugs-1);
+ * a caller with a search finds it (listJobs, matchJobAlerts).
+ */
+export function matchesFilter(job: Job, f: JobFilter, { employerName }: { employerName?: string } = {}): boolean {
   if (job.country !== f.country || job.status !== "active") return false;
   if (f.regionIds?.length && !f.regionIds.includes(job.regionId)) return false;
   if (f.industries?.length && !f.industries.includes(job.industry)) return false;
@@ -52,12 +57,7 @@ export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (f.visa && !job.visaAccepted.includes(f.visa)) return false;
   if (f.mealsIncluded && !job.mealsIncluded) return false;
   if (f.accommodationIncluded && !job.accommodationIncluded) return false;
-  if (f.query) {
-    const q = f.query.trim().toLowerCase();
-    const text = `${job.titleZh} ${job.titleEn} ${job.descriptionZh} ${job.descriptionEn}`.toLowerCase();
-    if (q && !text.includes(q)) return false;
-  }
-  return true;
+  return matchesSearch(job, f.query, employerName);
 }
 
 async function selectJobs(where?: SQL): Promise<Job[]> {
@@ -77,13 +77,31 @@ export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
     selectJobs(and(eq(t.jobs.country, filter.country), eq(t.jobs.status, "active"))),
     bannedEmployerIds(now),
   ]);
+  const names = searchTerms(filter.query).length ? await employerNames(jobs.map((j) => j.employerId)) : undefined;
   return jobs
-    .filter((j) => !banned.has(j.employerId) && isOpenJob(j, now) && matchesFilter(j, filter))
+    .filter(
+      (j) =>
+        !banned.has(j.employerId) &&
+        isOpenJob(j, now) &&
+        matchesFilter(j, filter, { employerName: names?.get(j.employerId) }),
+    )
     .sort((a, b) => {
       const day = (s: string) => s.slice(0, 10);
       if (day(a.postedAt) !== day(b.postedAt)) return b.postedAt.localeCompare(a.postedAt);
       return Number(b.urgent) - Number(a.urgent) || b.postedAt.localeCompare(a.postedAt);
     });
+}
+
+/** The businesses' names, for the search (bugs-1): one read by primary key, however many jobs. */
+export async function employerNames(ids: readonly string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return new Map();
+  const db = await database();
+  const rows = await db
+    .select({ id: t.employers.id, name: t.employers.name })
+    .from(t.employers)
+    .where(inList(t.employers.id, unique));
+  return new Map(rows.map((r) => [r.id, r.name]));
 }
 
 export async function getJob(id: string): Promise<Job | undefined> {

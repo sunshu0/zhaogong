@@ -5,7 +5,7 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { database } from "@/db/ready";
 import { accounts, jobAlertHits, jobAlerts } from "@/db/schema";
 import { insertIf } from "@/db/write-if";
-import { matchesFilter } from "@/lib/data";
+import { employerNames, matchesFilter } from "@/lib/data";
 import { isOpenJob } from "@/lib/job-expiry";
 import type { CountryCode, Job } from "@/lib/types";
 import type { ExternalSection } from "@/lib/external-jobs/filter";
@@ -122,10 +122,14 @@ export async function matchJobAlerts(job: Job, now = new Date()): Promise<string
     .from(accounts)
     .where(eq(accounts.employerId, job.employerId));
   const skip = new Set(owners.map((o) => o.email));
+  // The search looks in the business's name too (bugs-1).
+  const searched = running.some((alert) => alertFilter(alert).query);
+  const employerName = searched ? (await employerNames([job.employerId])).get(job.employerId) : undefined;
 
   const hits = new Map<string, typeof jobAlertHits.$inferInsert>();
   for (const alert of running) {
-    if (skip.has(alert.email) || hits.has(alert.email) || !matchesFilter(job, alertFilter(alert))) continue;
+    if (skip.has(alert.email) || hits.has(alert.email) || !matchesFilter(job, alertFilter(alert), { employerName }))
+      continue;
     hits.set(alert.email, { email: alert.email, jobId: job.id, alertName: alert.name, createdAt: now.toISOString() });
   }
   if (!hits.size) return [];
