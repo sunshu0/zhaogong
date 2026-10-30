@@ -8,28 +8,21 @@ const noSideScroll = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 
 /**
- * #242, feedback 8 (10-30): each card's points show whole points on up to two lines, leaving out from the end what
- * doesn't fit, and nothing ends in "…". The area and the hours always show; on the demo jobs `whole` (ids) every
- * point does, the contact too. The cards that fall short, by their text.
+ * #242 (导师 10-19), feedback 8 (10-30): each card's points line shows whole points on one line, leaving out from the
+ * end what doesn't fit; the area and the hours always show (the contact is in the bottom row), and nothing ends in
+ * "…". The cards whose first two points are not both on the line, by their text.
  */
-const pointsCut = (cards: Locator, whole: string[] = []) =>
-  cards.evaluateAll(
-    (list, whole) =>
-      list.flatMap((card) => {
-        const line = card.querySelector("p.flex-wrap");
-        if (!line) return [`no points line: ${card.textContent?.slice(0, 40)}`];
-        const { bottom } = line.getBoundingClientRect();
-        const shown = [...line.children].map((point) => point.getBoundingClientRect().bottom <= bottom + 1);
-        const ellipsis = getComputedStyle(line).textOverflow === "ellipsis";
-        const id = card.querySelector("a")?.getAttribute("href")?.split("/").pop() ?? "";
-        const needed = whole.includes(id) ? shown : shown.slice(0, 2);
-        return needed.every(Boolean) && !ellipsis ? [] : [line.textContent ?? ""];
-      }),
-    whole,
+const pointsCut = (cards: Locator) =>
+  cards.evaluateAll((list) =>
+    list.flatMap((card) => {
+      const line = card.querySelector("p.flex-wrap");
+      if (!line) return [`no points line: ${card.textContent?.slice(0, 40)}`];
+      const top = line.getBoundingClientRect().top;
+      const shown = [...line.children].map((point) => point.getBoundingClientRect().top - top < 4);
+      const ellipsis = getComputedStyle(line).textOverflow === "ellipsis";
+      return shown.slice(0, 2).every(Boolean) && !ellipsis ? [] : [line.textContent ?? ""];
+    }),
   );
-
-/** Demo jobs with shifts, whose every point (the contact last) must show (feedback 8). */
-const WHOLE_POINTS = ["j1", "j3", "j5", "j11", "j20"];
 
 test("job cards: title, pay, one line of points, one status and two tags, employer; 3 per phone screen", async ({
   page,
@@ -56,7 +49,7 @@ test("job cards: title, pay, one line of points, one status and two tags, employ
     expect(first.width).toBeCloseTo((await box(list)).width, 0);
     // A21: at least three whole rows on a 375 × 812 phone, below the header, search and count. Measured on three
     // demo jobs: other specs publish jobs with long titles that come first while the suite runs.
-    expect(await pointsCut(cards, WHOLE_POINTS), `${width}: area and hours on every card`).toEqual([]);
+    expect(await pointsCut(cards), `${width}: area and hours on every card`).toEqual([]);
     if (width === 375) {
       let bottom = first.y;
       for (const id of ["j3", "j5", "j11"])
@@ -128,7 +121,7 @@ test("job cards in English (Round 20): still three whole cards on a 375 × 812 p
   const retail = cards.filter({ has: page.locator('a[href="/jobs/j5"]') });
   for (const text of ["$24", "an hour", "Urgent", "20–30 h/wk", "Contact in chat"])
     await expect(retail).toContainText(text);
-  expect(await pointsCut(cards, WHOLE_POINTS), "area and hours on every card").toEqual([]);
+  expect(await pointsCut(cards), "area and hours on every card").toEqual([]);
   expect(await noSideScroll(page)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("job-cards-375-en.png") });
 });

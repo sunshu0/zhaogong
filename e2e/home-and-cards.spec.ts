@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 // User feedback 8 (10-30): on a 375 × 812 phone the home page's jobs come before the features, and a job card's
-// hours and shifts come before the contact, none of them cut. The numbers go to the log (FB8: …), so the same spec
+// points line shows the hours (the contact moved to the bottom row, beside 收藏). The numbers go to the log (FB8: …), so the same spec
 // measures main before the change and the branch after it (#featured is the jobs band's id on both).
 
 const box = async (locator: Locator) => (await locator.boundingBox())!;
@@ -32,7 +32,7 @@ test("FB8: the home page's first job card, and what is above it", async ({ page 
   ).toBeAttached();
 });
 
-test("FB8: job cards on a 375 px phone show the hours and the shifts, and the contact after them", async ({
+test("FB8: job cards on a 375 px phone show the area and the hours on the line, the contact in the bottom row", async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 375, height: 812 });
@@ -52,25 +52,26 @@ test("FB8: job cards on a 375 px phone show the hours and the shifts, and the co
     `FB8: 375x812 /jobs: first card at ${firstY} px; ${heights.join(", ")}; three cards end at ${Math.round(bottom)} px`,
   );
 
-  for (const [id, words] of [
-    ["j1", ["小时/周", "周五至周日晚班", "聊天联系"]],
-    ["j5", ["20–30 小时/周", "早班 7:00–13:00", "聊天联系"]],
-    ["j20", ["10–16 小时/周", "周五至周日晚市，17:00–21:30", "聊天联系"]],
+  for (const [id, hours, contact] of [
+    ["j1", "15–25 小时/周", "聊天联系"],
+    ["j3", "40–45 小时/周", "直接联系"],
+    ["j5", "20–30 小时/周", "聊天联系"],
+    ["j11", "40 小时/周", "直接联系"],
   ] as const) {
-    const line = card(page, id).locator("p.flex-wrap");
-    const lines = await line.evaluate((p) => {
-      const tops = new Set([...p.children].map((point) => Math.round(point.getBoundingClientRect().top)));
-      return tops.size;
+    const job = card(page, id);
+    const line = job.locator("p.flex-wrap");
+    const shown = await line.evaluate((p) => {
+      const top = p.getBoundingClientRect().top;
+      return [...p.children].filter((point) => point.getBoundingClientRect().top - top < 4).map((s) => s.textContent);
     });
-    console.log(`FB8: 375x812 ${id}: points on ${lines} line(s)`);
-    for (const text of words) {
-      const point = line.locator(":scope > span").filter({ hasText: text });
-      // Inside the points box: a point pushed to a third line is hidden by the box.
-      const [p, b] = [await box(point), await box(line)];
-      expect(p.y + p.height, `${id}: ${text}`).toBeLessThanOrEqual(b.y + b.height + 1);
-    }
-    // The hours come before the contact.
-    const text = (await line.textContent()) ?? "";
-    expect(text.indexOf("小时/周"), id).toBeLessThan(text.indexOf("聊天联系"));
+    console.log(`FB8: 375x812 ${id}: on the line: ${shown.join(" | ")}`);
+    // The hours on the line, the contact not there but whole in the bottom row.
+    expect(shown.join(" "), id).toContain(hours);
+    expect(shown.join(" "), id).not.toContain(contact);
+    const label = job.getByText(contact, { exact: true });
+    await expect(label, id).toBeVisible();
+    const [l, c] = [await box(label), await box(job)];
+    expect(l.x + l.width, `${id}: ${contact} inside the card`).toBeLessThanOrEqual(c.x + c.width);
+    expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth), `${id}: ${contact} not cut`).toBe(true);
   }
 });

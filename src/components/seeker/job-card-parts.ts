@@ -1,5 +1,5 @@
-// What a job card shows (Round 19, the job list's sample): the title and the pay lead; up to two light lines of points
-// (place, work type and hours, shifts, how the employer is reached, feedback 8) without 「地区 / 工时 / 联系」 labels; one
+// What a job card shows (Round 19, the job list's sample): the title and the pay lead; one light line of points
+// (place, work type and hours, shifts); how the employer is reached in the bottom row (feedback 8) without 「地区 / 工时 / 联系」 labels; one
 // status, the most important; at most two tags. Pure, for JobCard and its test. Round 20: in the page's language;
 // the shifts are the employer's own words, marked Chinese (`zh`) for the English page.
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
@@ -15,25 +15,29 @@ export const CARD_TAG_LIMIT = 2;
 /** One point of the line; `zh`: the employer's own Chinese, not translated. */
 export type CardPoint = { text: string; zh?: true };
 
-/** The points: place, work type and hours, shifts, then how the employer is reached (A25), in short. */
+/** The points line: place, work type and hours, then the shifts. */
 export function cardPoints(job: Job, regionName: string | undefined, lang: Lang = DEFAULT_LANG): CardPoint[] {
-  const t = pick(seekerJobsMessages, lang).card;
   const work = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang, true)]
     .filter(Boolean)
     .join(" ");
   const shifts = job.shiftsZh?.trim();
   const points: CardPoint[] = [];
-  // The card shows whole points on up to two lines and leaves out from the end those that don't fit (#242). User
-  // feedback 8 (10-30): the hours and the shifts come before the contact, which had pushed the hours off a phone's
-  // one line; the contact is said short so a long shift still leaves it room.
+  // The card shows whole points on one line and leaves out from the end those that don't fit (#242). User feedback 8
+  // (10-30): the contact had come second and pushed the hours off a phone's line; it is now in the card's bottom row
+  // (cardContact), so the area and the hours always show and the shifts, in the employer's words, when they fit.
   // An area named after two places ("Mt Wellington / Sylvia Park") shows the first (gate18). The job page names the
   // area in full.
   const area = regionName?.split(" / ")[0];
   if (area) points.push({ text: area });
   if (work) points.push({ text: work });
   if (shifts) points.push({ text: shifts, zh: true });
-  points.push({ text: job.contactPublic ? t.contactPublicShort : t.contactByChatShort });
   return points;
+}
+
+/** How the employer is reached (A25), short, for the card's bottom row beside 收藏 (feedback 8). */
+export function cardContact(job: Pick<Job, "contactPublic">, lang: Lang = DEFAULT_LANG): string {
+  const t = pick(seekerJobsMessages, lang).card;
+  return job.contactPublic ? t.contactPublicShort : t.contactByChatShort;
 }
 
 export type CardStatus = { kind: "urgent" } | { kind: "verified"; verification: Employer["verification"] } | null;

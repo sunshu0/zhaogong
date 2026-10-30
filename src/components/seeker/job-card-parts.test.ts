@@ -1,23 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 import { formatEmploymentTypes } from "@/lib/employment-types";
-import { cardPoints, cardStatus, cardTags } from "@/components/seeker/job-card-parts";
+import { cardContact, cardPoints, cardStatus, cardTags } from "@/components/seeker/job-card-parts";
 import type { Job } from "@/lib/types";
 
 const j5 = MOCK_JOBS.find((job) => job.id === "j5")!;
 const employer = MOCK_EMPLOYERS.find((e) => e.id === j5.employerId)!;
 
 describe("a job card's parts (Round 19)", () => {
-  it("puts place, work and short hours, the shifts, and how to reach the employer last, short, without labels", () => {
-    // Feedback 8 (10-30): the hours and the shifts before the contact, which is said short.
+  it("puts place, work and short hours, then the shifts, without labels; the contact is apart and short", () => {
+    // Feedback 8 (10-30): the contact left the points line for the bottom row, so the hours stay on a phone's line.
     expect(cardPoints(j5, "Botany").map((p) => p.text)).toEqual([
       "Botany",
       `${formatEmploymentTypes(j5.employmentType)} 20–30 小时/周`,
       "早班 7:00–13:00",
-      "聊天联系",
     ]);
+    expect(cardContact(j5)).toBe("聊天联系");
+    expect(cardContact({ contactPublic: true })).toBe("直接联系");
+    expect(cardContact(j5, "en")).toBe("Contact in chat");
     const bare: Job = { ...j5, employmentType: [], hoursPerWeek: undefined, shiftsZh: " ", contactPublic: true };
-    expect(cardPoints(bare, undefined).map((p) => p.text)).toEqual(["直接联系"]);
+    expect(cardPoints(bare, undefined)).toEqual([]);
     // An area named after two places shows the first, so the rest keeps its room on a phone (#242).
     expect(cardPoints(bare, "Mt Wellington / Sylvia Park")[0]).toEqual({ text: "Mt Wellington" });
   });
@@ -50,7 +52,6 @@ describe("a job card's parts (Round 19)", () => {
       "Botany",
       `${formatEmploymentTypes(j5.employmentType, "en")} 20–30 h/wk`,
       "早班 7:00–13:00",
-      "Contact in chat",
     ]);
     expect(points.filter((p) => p.zh).map((p) => p.text)).toEqual(["早班 7:00–13:00"]);
   });
