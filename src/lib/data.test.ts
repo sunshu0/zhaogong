@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { demoShowcase } from "@/db/demo-showcase";
 import { isOpenJob } from "@/lib/job-expiry";
-import { createJob, getJob, listFeaturedJobs, listJobs, matchesFilter, updateJob } from "@/lib/data";
+import { createEmployer, createJob, getJob, listFeaturedJobs, listJobs, matchesFilter, updateJob } from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
@@ -297,5 +297,22 @@ describe("bugs-1 (user feedback 10-30): 最低时薪, 最新发布 and search", 
     expect(matchesFilter({ ...j1, pay: { min: 25, max: 27 } }, { country: "NZ", minPay: 25 })).toBe(true);
     expect(matchesFilter({ ...j1, pay: { min: 27 } }, { country: "NZ", minPay: 27 })).toBe(true);
     expect(matchesFilter({ ...j1, pay: { min: 26.5 } }, { country: "NZ", minPay: 27 })).toBe(false);
+  });
+
+  it("最新发布: urgent first within a day, then by the full time posted, the later first", async () => {
+    const shop = await createEmployer({ name: "排序测试店", regionId: "akl-cbd" });
+    const day = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const post = async (title: string, time: string, urgent = false) => {
+      const job: Partial<Job> = { ...j1, employerId: shop.id, titleZh: title, postedAt: `${day}T${time}:00.000Z` };
+      delete job.id;
+      return (await createJob({ ...(job as Omit<Job, "id">), expiresAt, urgent })).id;
+    };
+    const early = await post("八点的", "08:00");
+    const late = await post("十点的", "10:00");
+    const urgent = await post("七点的急招", "07:00", true);
+    const order = (await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id);
+    expect(order.indexOf(late)).toBeLessThan(order.indexOf(early));
+    expect(order.indexOf(urgent)).toBeLessThan(order.indexOf(late));
   });
 });

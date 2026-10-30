@@ -67,8 +67,9 @@ async function selectJobs(where?: SQL): Promise<Job[]> {
 }
 
 /**
- * Open jobs at `now` (past their closing date they are left out, ADR 0008), newest first, urgent first within a day.
- * Pages pass `await requestTime()`: reading the clock here would end up in a prerendered shell (#100).
+ * Open jobs at `now` (past their closing date they are left out, ADR 0008), newest first: urgent first within a day,
+ * then by the time posted (bugs-1). Pages pass `await requestTime()`: reading the clock here would end up in a
+ * prerendered shell (#100).
  */
 export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
   // The market and status narrow it in SQL; the rest of the filter is matchesFilter, shared with the tests.
@@ -81,7 +82,7 @@ export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
     .sort((a, b) => {
       const day = (s: string) => s.slice(0, 10);
       if (day(a.postedAt) !== day(b.postedAt)) return b.postedAt.localeCompare(a.postedAt);
-      return Number(b.urgent) - Number(a.urgent);
+      return Number(b.urgent) - Number(a.urgent) || b.postedAt.localeCompare(a.postedAt);
     });
 }
 
