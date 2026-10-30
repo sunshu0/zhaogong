@@ -44,6 +44,25 @@ describe("headerItems", () => {
     expect(labels(headerItems("employer"))).toEqual(["职位管理", "推荐人才", "聊天", "工作台"]);
     expect([showsPostJob("out"), showsPostJob("seeker"), showsPostJob("employer")]).toEqual([true, false, true]);
   });
+
+  it("marks a job section with no job yet and puts it last (user feedback 10-30 #4)", () => {
+    const out = headerItems("out", undefined, ["internship"]);
+    expect(labels(out)).toEqual(["找工作", "专业职位", "实习"]);
+    expect(out.map((item) => Boolean(item.preparing))).toEqual([false, false, true]);
+    expect(labels(headerItems("seeker", undefined, ["internship", "professional"]))).toEqual([
+      "找工作",
+      "聊天",
+      "工作台",
+      "实习",
+      "专业职位",
+    ]);
+    expect(labels(headerItems("employer", undefined, ["professional"]))).toEqual([
+      "职位管理",
+      "推荐人才",
+      "聊天",
+      "工作台",
+    ]);
+  });
 });
 
 describe("activeNavKey", () => {

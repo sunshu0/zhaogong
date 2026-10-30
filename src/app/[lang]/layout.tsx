@@ -7,7 +7,9 @@ import { Suspense, type ReactNode } from "react";
 import { NotForStaff, StaffRedirect } from "@/components/account/staff";
 import { AccountMenu, HeaderPostJob, PostJobLink } from "@/components/seeker/AccountMenu";
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
-import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
+import { HeaderNavShell } from "@/components/ui/HeaderNav";
+import { HeaderNavLive } from "@/components/ui/HeaderNavLive";
+import { PreparingMark } from "@/components/external/PreparingMark";
 import { HeaderSearch } from "@/components/ui/HeaderSearch";
 import { SignInNoticeBar } from "@/components/ui/SignInNoticeBar";
 import { StickyHeader } from "@/components/ui/StickyHeader";
@@ -100,7 +102,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
               <span className="hidden text-body text-muted md:inline xl:hidden">{site.city}</span>
               <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-body md:gap-4">
                 <Suspense fallback={<HeaderNavShell />}>
-                  <HeaderNav />
+                  <HeaderNavLive />
                 </Suspense>
                 <Suspense fallback={null}>
                   <HeaderSearch />
@@ -140,8 +142,18 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
               <NotForStaff>
                 <FooterColumn label={footer.seekers}>
                   <FooterLink href="/jobs">{nav.findJobs}</FooterLink>
-                  <FooterLink href="/internships">{nav.internships}</FooterLink>
-                  <FooterLink href="/professional">{nav.professional}</FooterLink>
+                  <FooterLink href="/internships">
+                    {nav.internships}
+                    <Suspense fallback={null}>
+                      <PreparingMark section="internship" />
+                    </Suspense>
+                  </FooterLink>
+                  <FooterLink href="/professional">
+                    {nav.professional}
+                    <Suspense fallback={null}>
+                      <PreparingMark section="professional" />
+                    </Suspense>
+                  </FooterLink>
                 </FooterColumn>
                 <FooterColumn label={footer.employers}>
                   <li>

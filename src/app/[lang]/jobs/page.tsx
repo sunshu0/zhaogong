@@ -27,6 +27,7 @@ import { JobOrder, OrderWhy } from "@/components/seeker/JobOrder";
 import { jobListQuery, parseJobOrder, withJobOrder } from "@/components/seeker/job-order-query";
 import { jobOrderViewer, orderJobs } from "@/lib/job-ordering.server";
 import { demoDataWanted } from "@/db/ready";
+import { PreparingMark } from "@/components/external/PreparingMark";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await messages(seekerJobsMessages)).list.title };
@@ -45,9 +46,15 @@ export default async function JobsPage({ searchParams }: PageProps<"/[lang]/jobs
           <nav aria-label={t.sections} className="flex gap-2">
             <Link href="/internships" className={`${buttonClass("secondary", { pill: true })} px-3.5`}>
               {t.internships}
+              <Suspense fallback={null}>
+                <PreparingMark section="internship" />
+              </Suspense>
             </Link>
             <Link href="/professional" className={`${buttonClass("secondary", { pill: true })} px-3.5`}>
               {t.professional}
+              <Suspense fallback={null}>
+                <PreparingMark section="professional" />
+              </Suspense>
             </Link>
           </nav>
         </div>

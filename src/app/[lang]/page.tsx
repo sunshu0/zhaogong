@@ -30,6 +30,7 @@ import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 import { messages, serverLang } from "@/i18n/server";
 import { TrackView } from "@/components/ui/TrackView";
 import { demoDataWanted } from "@/db/ready";
+import { PreparingMark } from "@/components/external/PreparingMark";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await messages(seekerHomeMessages);
@@ -126,10 +127,16 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
                 {t.hero.externalBefore}{" "}
                 <Link href="/internships" className="font-medium text-brand underline underline-offset-2">
                   {t.hero.internships}
+                  <Suspense fallback={null}>
+                    <PreparingMark section="internship" />
+                  </Suspense>
                 </Link>{" "}
                 {t.hero.and}{" "}
                 <Link href="/professional" className="font-medium text-brand underline underline-offset-2">
                   {t.hero.professional}
+                  <Suspense fallback={null}>
+                    <PreparingMark section="professional" />
+                  </Suspense>
                 </Link>
                 {t.hero.externalAfter}
               </p>

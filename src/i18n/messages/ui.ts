@@ -14,6 +14,8 @@ const uiZh = {
     findJobs: "找工作",
     internships: "实习",
     professional: "专业职位",
+    // After a job section with no job yet (user feedback 10-30 #4).
+    preparing: "筹备中",
     chat: "聊天",
     chatUnread: (n: number) => `聊天，${n} 条未读消息`,
     mine: "我的",

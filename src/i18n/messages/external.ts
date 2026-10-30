@@ -127,7 +127,8 @@ const externalZh = {
     found: (shown: number, total: number) => `找到 ${shown} 个，共 ${total} 个`,
     total: (total: number) => `共 ${total} 个，最新发布在前`,
     noMatch: "没有符合这些条件的职位。",
-    none: "现在还没有职位。",
+    // No job in the section at all (user feedback 10-30 #4).
+    none: "这个栏目还在筹备，有职位了会显示在这里。",
     clear: "清除筛选",
     tags: "标签",
     closes: (date: string) => `截止 ${date}`,

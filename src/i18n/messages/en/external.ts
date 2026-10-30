@@ -122,7 +122,7 @@ export const externalEn: Messages<(typeof externalMessages)["zh"]> = {
     found: (shown, total) => `${shown} of ${total} found`,
     total: (total) => (total === 1 ? "1 job, newest first" : `${total} jobs, newest first`),
     noMatch: "No jobs match these filters.",
-    none: "No jobs yet.",
+    none: "This section is still being set up; jobs will show here once there are some.",
     clear: "Clear filters",
     tags: "Tags",
     closes: (date) => `Closes ${date}`,

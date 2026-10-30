@@ -8,6 +8,7 @@ import { UnreadBadge } from "@/components/seeker/ChatEntry";
 import { useChat } from "@/components/seeker/chat-client";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
 import { activeNavKey, headerItems, navRole, type NavWords } from "@/components/ui/nav";
+import type { ExternalSection } from "@/lib/external-jobs/filter";
 
 /** The chat link's title, which tells screen readers and tests the unread count. */
 export function chatTitle(unread: number, w: NavWords = uiMessages.zh.nav): string {
@@ -20,15 +21,21 @@ export function chatTitle(unread: number, w: NavWords = uiMessages.zh.nav): stri
  * Only the current page is highlighted.
  * Like BottomNav, rendered in Suspense with HeaderNavShell (nothing highlighted) as the fallback.
  */
-export function HeaderNav() {
-  return <HeaderLinks pathname={useSitePathname()} />;
+export function HeaderNav({ preparing = [] }: { preparing?: readonly ExternalSection[] }) {
+  return <HeaderLinks pathname={useSitePathname()} preparing={preparing} />;
 }
 
 export function HeaderNavShell() {
   return <HeaderLinks pathname={null} />;
 }
 
-function HeaderLinks({ pathname }: { pathname: string | null }) {
+function HeaderLinks({
+  pathname,
+  preparing = [],
+}: {
+  pathname: string | null;
+  preparing?: readonly ExternalSection[];
+}) {
   const hydrated = useHydrated();
   const session = useSession();
   const { totalUnread } = useChat();
@@ -40,7 +47,7 @@ function HeaderLinks({ pathname }: { pathname: string | null }) {
       aria-label={w.main}
       className="hidden items-center gap-4 whitespace-nowrap text-body md:flex lg:absolute lg:left-1/2 lg:-translate-x-1/2 lg:gap-1 xl:static xl:translate-x-0"
     >
-      {headerItems(role, w).map((item) => {
+      {headerItems(role, w, preparing).map((item) => {
         const current = item.key === active;
         return (
           <Link
@@ -54,6 +61,7 @@ function HeaderLinks({ pathname }: { pathname: string | null }) {
           >
             {item.key === "chat" && <MessageSquare aria-hidden="true" className="size-5" />}
             {item.label}
+            {item.preparing && <span className="text-meta font-normal">{w.preparing}</span>}
             {item.key === "chat" && <UnreadBadge count={totalUnread} />}
           </Link>
         );

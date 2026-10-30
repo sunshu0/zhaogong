@@ -4,6 +4,7 @@ import { POST_JOB_PATH } from "@/components/seeker/identity";
 import type { DemoSession } from "@/components/seeker/session";
 import type { Messages } from "@/i18n/messages";
 import { uiMessages } from "@/i18n/messages/ui";
+import type { ExternalSection } from "@/lib/external-jobs/filter";
 
 /** The entries' names (Round 20): the page's language through useMessages(uiMessages).nav, Chinese by default. */
 export type NavWords = Messages<typeof uiMessages.zh>["nav"];
@@ -13,7 +14,8 @@ const ZH: NavWords = uiMessages.zh.nav;
 export type NavRole = "out" | "seeker" | "employer" | "staff";
 export type NavKey =
   "jobs" | "internships" | "professional" | "manage" | "post" | "candidates" | "chat" | "workspace" | "mine" | "admin";
-export type NavItem = { key: NavKey; href: string; label: string };
+/** `preparing`: a job section with no job yet (user feedback 10-30 #4), marked 筹备中 and put last. */
+export type NavItem = { key: NavKey; href: string; label: string; preparing?: boolean };
 
 export const ACCOUNT_PATH = "/account";
 /** 数据与账号 (#54): export the account's data, delete the account. */
@@ -80,7 +82,17 @@ export function bottomNavItems(role: NavRole, w: NavWords = ZH): NavItem[] {
  * job seekers get no 发布招聘 (they open an employer identity from the account menu). Visitors and job seekers see
  * the two job sections beside 找工作 (V6, #376); on phones they stay on the job list.
  */
-export function headerItems(role: NavRole, w: NavWords = ZH): NavItem[] {
+export function headerItems(role: NavRole, w: NavWords = ZH, preparing: readonly ExternalSection[] = []): NavItem[] {
+  const items = roleHeaderItems(role, w).map((item) =>
+    (item.key === "internships" && preparing.includes("internship")) ||
+    (item.key === "professional" && preparing.includes("professional"))
+      ? { ...item, preparing: true }
+      : item,
+  );
+  return [...items.filter((item) => !item.preparing), ...items.filter((item) => item.preparing)];
+}
+
+function roleHeaderItems(role: NavRole, w: NavWords): NavItem[] {
   switch (role) {
     case "out":
       return [
