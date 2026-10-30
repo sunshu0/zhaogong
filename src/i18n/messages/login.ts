@@ -7,6 +7,17 @@ import type { Dictionary } from "@/i18n/messages";
 const loginZh = {
   title: "注册或登录",
   // The demo site (#332): no mail service, so no code can be sent; say so before anyone types an email.
+  // Said before signing in is tried (user feedback 10-30 #1, src/lib/auth/notice.ts): on every page, and under 立即沟通.
+  notice: {
+    site: {
+      closed: "演示站暂时不能登录：可以看职位和企业主页，但不能联系雇主、收藏职位或发布招聘。",
+      invited: "演示站暂时只开放给受邀账号：其他人可以看职位和企业主页，但不能联系雇主、收藏职位或发布招聘。",
+    },
+    chat: {
+      closed: "演示站暂时不能登录，所以还不能联系雇主。",
+      invited: "演示站暂时只开放给受邀账号，受邀的人登录后就能联系雇主。",
+    },
+  },
   noMailer: {
     title: "这个演示站暂时不能登录",
     body: "验证码要用邮件发，演示站还没有接邮件服务。职位、企业主页和外部职位都可以直接看。",

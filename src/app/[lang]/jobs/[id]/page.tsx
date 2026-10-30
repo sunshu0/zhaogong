@@ -18,6 +18,8 @@ import { ShareJobButton } from "@/components/seeker/ShareJob";
 import { Phone } from "lucide-react";
 import { formatPay, placeName } from "@/components/seeker/format";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
+import { loginMessages } from "@/i18n/messages/login";
+import { signInNotice } from "@/lib/auth/notice";
 import { messages, serverLang } from "@/i18n/server";
 import { JobDetail, JobDetailSkeleton } from "@/components/seeker/JobDetail";
 import { contactKinds, isPublic, shareDescription, shareTitle } from "@/components/seeker/job-facts";
@@ -81,10 +83,12 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
   const t = await messages(seekerJobsMessages);
   // The request's time first: the open jobs are counted at it (#100).
   const now = await requestTime();
-  const [employer, open, activities] = await Promise.all([
+  const [employer, open, activities, notice, login] = await Promise.all([
     getEmployer(job.employerId),
     listJobs({ country: job.country }, now),
     employerActivities([job.employerId], now),
+    signInNotice(),
+    messages(loginMessages),
   ]);
   // A banned business's jobs are gone while the ban lasts (ADR 0044): a temporary ban leaves their status as it is.
   if (employer && isBanned(employer, now)) notFound();
@@ -117,6 +121,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
             lang={lang}
           />
         }
+        actionsNote={notice && !isExpired(job, now) ? login.notice.chat[notice] : undefined}
         share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
         actions={
           employer ? (

@@ -6,6 +6,19 @@ import type { loginMessages } from "@/i18n/messages/login";
 
 export const loginEn: Messages<(typeof loginMessages)["zh"]> = {
   title: "Sign in or sign up",
+  notice: {
+    site: {
+      closed:
+        "You can't sign in on this demo site yet: you can browse jobs and business pages, but not contact employers, save jobs or post jobs.",
+      invited:
+        "This demo site is open only to invited accounts for now. Everyone else can browse jobs and business pages, but not contact employers, save jobs or post jobs.",
+    },
+    chat: {
+      closed: "You can't sign in on this demo site yet, so you can't contact the employer.",
+      invited:
+        "This demo site is open only to invited accounts for now; once signed in, they can contact the employer.",
+    },
+  },
   noMailer: {
     title: "You can't sign in on this demo site yet",
     body: "Sign-in codes are sent by email, and the demo site has no email service yet. You can still browse jobs, business pages and external jobs.",

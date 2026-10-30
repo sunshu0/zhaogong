@@ -9,6 +9,7 @@ import { AccountMenu, HeaderPostJob, PostJobLink } from "@/components/seeker/Acc
 import { BottomNav, BottomNavShell } from "@/components/ui/BottomNav";
 import { HeaderNav, HeaderNavShell } from "@/components/ui/HeaderNav";
 import { HeaderSearch } from "@/components/ui/HeaderSearch";
+import { SignInNoticeBar } from "@/components/ui/SignInNoticeBar";
 import { StickyHeader } from "@/components/ui/StickyHeader";
 import { LangSwitch } from "@/components/ui/LangSwitch";
 import { BrandMark } from "@/components/ui/BrandMark";
@@ -110,7 +111,12 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
               </div>
             </div>
           </StickyHeader>
-          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">{children}</main>
+          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">
+            <Suspense fallback={null}>
+              <SignInNoticeBar />
+            </Suspense>
+            {children}
+          </main>
           {/* Phones: the law note, the legal links, the language switch and 统计设置, centred. From 1024 px four
               columns (V6, #376): the site and its law note, 求职者, 雇主, 法律; the switches under them. */}
           <footer

@@ -20,6 +20,7 @@ import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { FORWARD } from "@/components/ui/PageTransition";
 import { EmployerActivityLine } from "@/components/seeker/EmployerActivityLine";
+import { SignedOutNote } from "@/components/ui/SignedOutNote";
 import type { EmployerActivity } from "@/lib/employer-activity";
 
 /**
@@ -43,6 +44,7 @@ export function JobDetail({
   now,
   aside,
   actions,
+  actionsNote,
   share,
   payReference,
   children,
@@ -65,6 +67,8 @@ export function JobDetail({
    * rest icons.
    */
   actions?: ReactNode;
+  /** A line above `actions` for visitors not signed in: why they cannot contact the employer (lib/auth/notice.ts). */
+  actionsNote?: string;
   /** The share button, top right of the header. */
   share?: ReactNode;
   /** 时薪参考 (#85), right under the facts: a part of the sheet (PayReferenceBox look="sheet"). */
@@ -201,7 +205,8 @@ export function JobDetail({
   );
 
   // Below 1024 px the action bar is fixed above the bottom navigation; leave room for it at the end of the page.
-  const room = actions ? "pb-24 lg:pb-0" : "";
+  // A line above the bar for visitors not signed in (actionsNote) makes it taller.
+  const room = actions ? (actionsNote ? "pb-32 lg:pb-0" : "pb-24 lg:pb-0") : "";
   if (!aside && !actions) {
     return (
       <article className={`space-y-3 ${room}`}>
@@ -230,7 +235,8 @@ export function JobDetail({
             <p aria-hidden="true" className="hidden leading-none lg:block">
               <Pay pay={job.pay} country={job.country} size="card" lang={lang} />
             </p>
-            <div className="fixed inset-x-0 bottom-above-nav z-10 flex items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:static lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+            <div className="fixed inset-x-0 bottom-above-nav z-10 flex flex-wrap items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:static lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+              {actionsNote && <SignedOutNote text={actionsNote} className="w-full text-meta text-muted" />}
               {actions}
             </div>
           </div>
