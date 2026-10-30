@@ -34,7 +34,8 @@ describe("job filter", () => {
       { country: "NZ", visa: "student", industries: ["hospitality"], minPay: 25 },
       Date.now(),
     );
-    expect(jobs.map((j) => j.id).sort()).toEqual(["j1", "j20"]); // j20: 川味小馆's, from #88
+    // j20 (川味小馆's, from #88) pays $24–26: its lowest is under $25, so not any more (bugs-1).
+    expect(jobs.map((j) => j.id).sort()).toEqual(["j1"]);
   });
 
   it("filters by 岗位类别: the employer's choice, else what the title names (#96)", () => {
@@ -285,5 +286,16 @@ describe("closed jobs leave the lists when read (R-32, ADR 0008)", () => {
     const ids = async (at: string) => (await listJobs({ country: "NZ" }, Date.parse(at))).map((j) => j.id);
     expect(await ids("2030-06-29T00:00:00.000Z")).toContain(job.id);
     expect(await ids("2030-07-01T00:00:00.000Z")).not.toContain(job.id);
+  });
+});
+
+describe("bugs-1 (user feedback 10-30): 最低时薪, 最新发布 and search", () => {
+  const j1 = MOCK_JOBS.find((j) => j.id === "j1")!; // 川味小馆's 前厅服务员, $25–27, Mt Eden
+
+  it("最低时薪 $27 起: a job's lowest pay must reach it, not its highest; a single figure is its own lowest", () => {
+    expect(matchesFilter({ ...j1, pay: { min: 25, max: 27 } }, { country: "NZ", minPay: 27 })).toBe(false);
+    expect(matchesFilter({ ...j1, pay: { min: 25, max: 27 } }, { country: "NZ", minPay: 25 })).toBe(true);
+    expect(matchesFilter({ ...j1, pay: { min: 27 } }, { country: "NZ", minPay: 27 })).toBe(true);
+    expect(matchesFilter({ ...j1, pay: { min: 26.5 } }, { country: "NZ", minPay: 27 })).toBe(false);
   });
 });

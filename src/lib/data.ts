@@ -47,7 +47,8 @@ export function matchesFilter(job: Job, f: JobFilter): boolean {
   if (f.industries?.length && !f.industries.includes(job.industry)) return false;
   if (f.roles?.length && !jobRoles(job).some((id) => f.roles!.includes(id))) return false;
   if (f.employmentTypes?.length && !job.employmentType.some((type) => f.employmentTypes!.includes(type))) return false;
-  if (f.minPay != null && (job.pay.max ?? job.pay.min) < f.minPay) return false;
+  // 最低时薪 X 起 (bugs-1): the job's lowest pay reaches X, not just the top of its range.
+  if (f.minPay != null && job.pay.min < f.minPay) return false;
   if (f.visa && !job.visaAccepted.includes(f.visa)) return false;
   if (f.mealsIncluded && !job.mealsIncluded) return false;
   if (f.accommodationIncluded && !job.accommodationIncluded) return false;
