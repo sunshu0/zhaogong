@@ -5,6 +5,7 @@
 import { employerNotBannedSql } from "@/db/bans";
 import { and, count, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { inList } from "@/db/in-list";
+import { nzDay } from "@/db/job-stats";
 import { insertIf, nextIdSql } from "@/db/write-if";
 import { database } from "@/db/ready";
 import { fromJob, jobPatch, toAccount, toContactView, toEmployer, toJob, toLogEntry, toReport } from "@/db/rows";
@@ -67,8 +68,8 @@ async function selectJobs(where?: SQL): Promise<Job[]> {
 }
 
 /**
- * Open jobs at `now` (past their closing date they are left out, ADR 0008), newest first: urgent first within a day,
- * then by the time posted (bugs-1). Pages pass `await requestTime()`: reading the clock here would end up in a
+ * Open jobs at `now` (past their closing date they are left out, ADR 0008), newest first: urgent first within an
+ * Auckland day, then by the time posted (bugs-1, newestFirst). Pages pass `await requestTime()`: reading the clock here would end up in a
  * prerendered shell (#100).
  */
 export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
@@ -78,18 +79,27 @@ export async function listJobs(filter: JobFilter, now: number): Promise<Job[]> {
     bannedEmployerIds(now),
   ]);
   const names = searchTerms(filter.query).length ? await employerNames(jobs.map((j) => j.employerId)) : undefined;
-  return jobs
-    .filter(
+  return newestFirst(
+    jobs.filter(
       (j) =>
         !banned.has(j.employerId) &&
         isOpenJob(j, now) &&
         matchesFilter(j, filter, { employerName: names?.get(j.employerId) }),
-    )
-    .sort((a, b) => {
-      const day = (s: string) => s.slice(0, 10);
-      if (day(a.postedAt) !== day(b.postedAt)) return b.postedAt.localeCompare(a.postedAt);
-      return Number(b.urgent) - Number(a.urgent) || b.postedAt.localeCompare(a.postedAt);
-    });
+    ),
+  );
+}
+
+/**
+ * 最新发布在前: by the Auckland day posted (not the UTC one, which turns at 13:00 in Auckland in summer), urgent
+ * first within a day, then the later posted first (bugs-1). Sorts the array it is given.
+ */
+export function newestFirst<J extends Pick<Job, "postedAt" | "urgent">>(jobs: J[]): J[] {
+  const days = new Map(jobs.map((j) => [j, nzDay(new Date(j.postedAt))]));
+  return jobs.sort((a, b) => {
+    const [dayA, dayB] = [days.get(a)!, days.get(b)!];
+    if (dayA !== dayB) return dayB.localeCompare(dayA);
+    return Number(b.urgent) - Number(a.urgent) || b.postedAt.localeCompare(a.postedAt);
+  });
 }
 
 /** The businesses' names, for the search (bugs-1): one read by primary key, however many jobs. */

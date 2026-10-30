@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { demoShowcase } from "@/db/demo-showcase";
 import { isOpenJob } from "@/lib/job-expiry";
-import { createEmployer, createJob, getJob, listFeaturedJobs, listJobs, matchesFilter, updateJob } from "@/lib/data";
+import {
+  createEmployer,
+  createJob,
+  getJob,
+  listFeaturedJobs,
+  listJobs,
+  matchesFilter,
+  newestFirst,
+  updateJob,
+} from "@/lib/data";
 import type { Job } from "@/lib/types";
 import { MOCK_EMPLOYERS, MOCK_JOBS } from "@/mock/data";
 
@@ -314,6 +323,25 @@ describe("bugs-1 (user feedback 10-30): 最低时薪, 最新发布 and search", 
     const order = (await listJobs({ country: "NZ" }, Date.now())).map((j) => j.id);
     expect(order.indexOf(late)).toBeLessThan(order.indexOf(early));
     expect(order.indexOf(urgent)).toBeLessThan(order.indexOf(late));
+  });
+
+  it("最新发布: a day is Auckland's, not UTC's, in summer (NZDT) and in winter (NZST)", () => {
+    const ids = (jobs: { id: string; postedAt: string; urgent: boolean }[]) => newestFirst(jobs).map((j) => j.id);
+    // NZDT (UTC+13): 12:59 and 13:00 on 30 October in Auckland fall on two UTC days but one Auckland day.
+    const urgent1259 = { id: "urgent 12:59", postedAt: "2026-10-29T23:59:00.000Z", urgent: true };
+    const plain1300 = { id: "13:00", postedAt: "2026-10-30T00:00:00.000Z", urgent: false };
+    expect(ids([plain1300, urgent1259])).toEqual(["urgent 12:59", "13:00"]);
+    // Auckland's midnight (11:00 UTC) parts two Auckland days within one UTC day: the later day first.
+    const urgent2359 = { id: "urgent 23:59", postedAt: "2026-10-30T10:59:00.000Z", urgent: true };
+    const plain0000 = { id: "00:00", postedAt: "2026-10-30T11:00:00.000Z", urgent: false };
+    expect(ids([urgent2359, plain0000])).toEqual(["00:00", "urgent 23:59"]);
+    // NZST (UTC+12): 11:59 and 12:00 on 15 July are one Auckland day; midnight is 12:00 UTC.
+    const urgent1159 = { id: "urgent 11:59", postedAt: "2026-07-14T23:59:00.000Z", urgent: true };
+    const plain1200 = { id: "12:00", postedAt: "2026-07-15T00:00:00.000Z", urgent: false };
+    expect(ids([plain1200, urgent1159])).toEqual(["urgent 11:59", "12:00"]);
+    const urgentLate = { id: "urgent 23:59 NZST", postedAt: "2026-07-15T11:59:00.000Z", urgent: true };
+    const plainMidnight = { id: "00:00 NZST", postedAt: "2026-07-15T12:00:00.000Z", urgent: false };
+    expect(ids([urgentLate, plainMidnight])).toEqual(["00:00 NZST", "urgent 23:59 NZST"]);
   });
 
   it("search covers the title, description, business, area and address; every word must match, in any field", () => {
