@@ -31,8 +31,11 @@ export function EmployerPublicPage({
   activity,
   photos = [],
   benefits = [],
+  demo = false,
 }: {
   employer: Employer;
+  /** The demo site's data (demoDataWanted): 演示企业 in place of the verification level (user feedback 10-30 #2). */
+  demo?: boolean;
   jobs: Job[];
   /** 老板活跃度 on its job cards (#381). */
   activity?: EmployerActivity;
@@ -70,7 +73,7 @@ export function EmployerPublicPage({
                 {name}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-body">
-                <VerificationBadge verification={employer.verification} lang={lang} />
+                <VerificationBadge verification={employer.verification} demo={demo} lang={lang} />
                 <span className="inline-flex items-center gap-1 text-muted">
                   <MapPin aria-hidden="true" className="size-4 shrink-0" />
                   {placeName(regionById("NZ", employer.regionId), lang) ?? t.noRegion}
@@ -171,14 +174,17 @@ export function EmployerPublicPage({
               <ShieldCheck aria-hidden="true" className="size-5 text-brand" />
               {t.verification}
             </h2>
-            <VerificationBadge verification={employer.verification} lang={lang} />
-            <p className="text-body leading-relaxed">{verificationNote(employer.verification, "NZ", lang)}</p>
+            <VerificationBadge verification={employer.verification} demo={demo} explain={demo} lang={lang} />
+            {/* 还没有完成企业验证 claims nothing, so a demo business still says it; the levels' notes do claim. */}
+            {(!demo || employer.verification === "unverified") && (
+              <p className="text-body leading-relaxed">{verificationNote(employer.verification, "NZ", lang)}</p>
+            )}
             <dl className="space-y-3">
               <Info term={t.legalName} value={employer.legalName} empty={t.notFilled} />
               <Info term={COUNTRIES.NZ.businessNumberLabel} value={employer.businessNumber} empty={t.notFilled} />
               <Info
                 term={t.accredited}
-                value={employer.verification === "accredited_employer" ? t.accreditedYes : t.accreditedNone}
+                value={!demo && employer.verification === "accredited_employer" ? t.accreditedYes : t.accreditedNone}
                 empty={t.notFilled}
               />
             </dl>
@@ -209,6 +215,7 @@ export function EmployerPublicPage({
                     employer={{ ...employer, name }}
                     activity={activity}
                     headingLevel={3}
+                    demo={demo}
                     lang={lang}
                     action={<StartEmployerChat employer={employer} job={job} variant="secondary" />}
                   />

@@ -14,8 +14,11 @@ export function JobList({
   activities,
   empty,
   look = "classic",
+  demo = false,
   lang = DEFAULT_LANG,
 }: {
+  /** The demo site's data (demoDataWanted): every card says 演示企业 (user feedback 10-30 #2). */
+  demo?: boolean;
   jobs: Job[];
   employers: Map<string, Employer>;
   /** 老板活跃度 by employer (#381), read for the whole list at once (employerActivities). */
@@ -50,6 +53,7 @@ export function JobList({
             employer={employers.get(job.employerId)}
             activity={activities?.get(job.employerId)}
             look={look}
+            demo={demo}
             lang={lang}
           />
         </li>

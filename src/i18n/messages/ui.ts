@@ -51,6 +51,14 @@ const uiZh = {
     business_verified: "已核对新西兰企业登记（NZBN），不是移民局的认证雇主。",
     unverified: "还没有核对企业登记，联系前请自行确认雇主信息。",
   },
+  // VerificationBadge.tsx with `demo` (user feedback 10-30 #2): on the demo site's made-up businesses, instead of
+  // the level, so nothing there reads as checked.
+  demoBusiness: {
+    label: "演示企业",
+    explanation: "演示数据：这家店和它的职位是演示用的，不是真的在招人。",
+    // Before a demo job's title and share text (the page title, the share card, 分享).
+    prefix: "【演示】",
+  },
   // PayReferenceBox.tsx (and the hint from lib/pay-reference.ts). Amounts and the time come formatted.
   payReference: {
     title: "同类职位时薪",

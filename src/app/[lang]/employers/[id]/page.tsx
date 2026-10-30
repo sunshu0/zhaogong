@@ -12,6 +12,7 @@ import { DetailPageSkeleton } from "@/components/ui/Skeleton";
 import { EmployerPublicPage } from "@/components/seeker/EmployerPublicPage";
 import { messages } from "@/i18n/server";
 import { seekerEmployerMessages } from "@/i18n/messages/seeker-employer";
+import { demoDataWanted } from "@/db/ready";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/employers/[id]">): Promise<Metadata> {
   const employer = await getEmployer((await params).id);
@@ -53,6 +54,7 @@ async function PublicEmployer({ params }: Pick<PageProps<"/[lang]/employers/[id]
       activity={activities.get(employer.id)}
       photos={photos}
       benefits={benefits}
+      demo={demoDataWanted()}
     />
   );
 }

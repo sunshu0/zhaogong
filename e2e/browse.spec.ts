@@ -43,8 +43,10 @@ test("list → filter → detail → back to the filtered list", async ({ page }
   await expect(page.getByRole("tab", { name: "中文" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "English" }).click();
   await expect(page.getByRole("tabpanel")).toHaveAttribute("lang", "en");
-  await expect(page.getByText("认证雇主", { exact: true }).filter({ visible: true })).toBeVisible();
-  await expect(page).toHaveTitle("点心师傅 · $30–35/小时 · Northcote · 找工");
+  // The demo data (DEMO_DATA in the tests' server) says so in place of the level (user feedback 10-30 #2).
+  await expect(page.getByText("演示企业", { exact: true }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByText("认证雇主", { exact: true })).toHaveCount(0);
+  await expect(page).toHaveTitle("【演示】点心师傅 · $30–35/小时 · Northcote · 找工");
 
   await page.getByRole("link", { name: "职位列表" }).click();
   await expect(page).toHaveURL("/jobs?industry=hospitality&meals=1");

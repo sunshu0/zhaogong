@@ -36,10 +36,13 @@ export function JobCard({
   look = "classic",
   action,
   activity,
+  demo = false,
   lang = DEFAULT_LANG,
 }: {
   job: Job;
   employer?: Employer;
+  /** The demo site's data (demoDataWanted): 演示企业 where the verification level would be (user feedback 10-30 #2). */
+  demo?: boolean;
   /** 今天在线, 通常 1 小时内回复 (#381): one line under the employer, when there is something to say. */
   activity?: EmployerActivity;
   headingLevel?: 2 | 3;
@@ -58,6 +61,7 @@ export function JobCard({
         headingLevel={headingLevel}
         action={action}
         activity={activity}
+        demo={demo}
         lang={lang}
       />
     );
@@ -110,7 +114,7 @@ export function JobCard({
               {employer.name}
             </span>
             <span className="font-normal">
-              <VerificationBadge verification={employer.verification} lang={lang} />
+              <VerificationBadge verification={employer.verification} demo={demo} lang={lang} />
             </span>
             <EmployerActivityLine activity={activity} lang={lang} inline />
           </p>
@@ -145,6 +149,7 @@ function AppJobCard({
   headingLevel,
   action,
   activity,
+  demo,
   lang,
 }: {
   job: Job;
@@ -152,12 +157,15 @@ function AppJobCard({
   headingLevel: 2 | 3;
   action?: ReactNode;
   activity?: EmployerActivity;
+  demo: boolean;
   lang: Lang;
 }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const t = pick(seekerJobsMessages, lang);
   const points = cardPoints(job, placeName(regionById(job.country, job.regionId), lang), lang);
-  const status = cardStatus(job, employer);
+  // The demo site's data never claims a level (user feedback 10-30 #2): 演示企业 goes by the employer's name instead.
+  const found = cardStatus(job, employer);
+  const status = demo && found?.kind === "verified" ? undefined : found;
   const tags = cardTags(job);
 
   return (
@@ -229,6 +237,11 @@ function AppJobCard({
             <span lang={contentLang(employer.name)} className="truncate">
               {employer.name}
             </span>
+            {demo && (
+              <span className="shrink-0">
+                <VerificationBadge verification={employer.verification} demo lang={lang} />
+              </span>
+            )}
             <EmployerActivityLine activity={activity} lang={lang} inline />
           </p>
         )}

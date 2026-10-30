@@ -26,6 +26,7 @@ import { TrackView } from "@/components/ui/TrackView";
 import { JobOrder, OrderWhy } from "@/components/seeker/JobOrder";
 import { jobListQuery, parseJobOrder, withJobOrder } from "@/components/seeker/job-order-query";
 import { jobOrderViewer, orderJobs } from "@/lib/job-ordering.server";
+import { demoDataWanted } from "@/db/ready";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await messages(seekerJobsMessages)).list.title };
@@ -99,6 +100,7 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
           [...employers].map(([id, employer]) => [id, previewEmployer(currentBan(employer, now), activities.get(id))]),
         )}
         now={now}
+        demo={demoDataWanted()}
       >
         <section aria-label={t.listLabel} className="lg:col-start-2">
           <JobOrder order={order} status={status} query={query} lang={lang} />
@@ -117,6 +119,7 @@ async function Results({ searchParams }: Pick<PageProps<"/[lang]/jobs">, "search
           </div>
           <JobList
             look="app"
+            demo={demoDataWanted()}
             jobs={jobs}
             employers={employers}
             activities={activities}

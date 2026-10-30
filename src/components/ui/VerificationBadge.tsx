@@ -24,15 +24,27 @@ export const VERIFICATION_EXPLANATIONS: Record<EmployerVerification, string> = u
 export function VerificationBadge({
   verification,
   explain = false,
+  demo = false,
   lang = DEFAULT_LANG,
 }: {
   verification: EmployerVerification;
   explain?: boolean;
+  /** The demo site's data (demoDataWanted): 演示企业 in the badge's place, whatever the level (user feedback 10-30 #2). */
+  demo?: boolean;
   /** The page's language (Round 20): it renders on the server and in the browser, so it is told rather than asking. */
   lang?: Lang;
 }) {
-  const explanation = pick(uiMessages, lang).verification[verification];
-  const badge = (
+  const ui = pick(uiMessages, lang);
+  const explanation = demo ? ui.demoBusiness.explanation : ui.verification[verification];
+  const badge = demo ? (
+    <span
+      title={explanation}
+      data-demo-badge=""
+      className={`inline-flex w-fit items-center rounded px-1.5 py-0.5 text-meta leading-none ${STYLES.unverified}`}
+    >
+      {ui.demoBusiness.label}
+    </span>
+  ) : (
     <span
       title={explanation}
       className={`inline-flex w-fit items-center gap-0.5 rounded px-1.5 py-0.5 text-meta leading-none ${STYLES[verification]}`}

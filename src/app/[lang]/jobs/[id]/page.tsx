@@ -34,6 +34,9 @@ import { siteOrigin } from "@/lib/site";
 import type { Employer, Job as JobRecord } from "@/lib/types";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { TrackView } from "@/components/ui/TrackView";
+import { demoDataWanted } from "@/db/ready";
+import { uiMessages } from "@/i18n/messages/ui";
+import { pick } from "@/i18n/messages";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/jobs/[id]">): Promise<Metadata> {
   const lang = await serverLang();
@@ -52,6 +55,20 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/jobs/[id]"
           .join(" · ")
       : shareTitle(job);
   const description = shareDescription(job, await getEmployer(job.employerId));
+  // The demo site's jobs say so wherever they are shared (user feedback 10-30 #2); the share card stays Chinese.
+  if (demoDataWanted()) {
+    const prefix = uiMessages.zh.demoBusiness.prefix;
+    return {
+      title: `${pick(uiMessages, lang).demoBusiness.prefix}${title}`,
+      description: `${prefix}${description}`,
+      openGraph: {
+        title: `${prefix}${shareTitle(job)}`,
+        description: `${prefix}${description}`,
+        type: "website",
+        locale: lang === "en" ? "en_NZ" : "zh_CN",
+      },
+    };
+  }
   return {
     title,
     description,
@@ -90,6 +107,8 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
     signInNotice(),
     messages(loginMessages),
   ]);
+  // The demo site's jobs say so when shared (user feedback 10-30 #2); the shared text stays Chinese.
+  const demoPrefix = demoDataWanted() ? uiMessages.zh.demoBusiness.prefix : "";
   // A banned business's jobs are gone while the ban lasts (ADR 0044): a temporary ban leaves their status as it is.
   if (employer && isBanned(employer, now)) notFound();
   // 时薪参考 (#85): the other open jobs of the industry, in the region or across its area.
@@ -110,6 +129,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
         employer={employer}
         activity={activities.get(job.employerId)}
         now={now}
+        demo={demoDataWanted()}
         lang={lang}
         payReference={
           <PayReferenceBox
@@ -122,7 +142,13 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
           />
         }
         actionsNote={notice && !isExpired(job, now) ? login.notice.chat[notice] : undefined}
-        share={<ShareJobButton path={`/jobs/${job.id}`} title={shareTitle(job)} summary={shareSummary(job)} />}
+        share={
+          <ShareJobButton
+            path={`/jobs/${job.id}`}
+            title={`${demoPrefix}${shareTitle(job)}`}
+            summary={`${demoPrefix}${shareSummary(job)}`}
+          />
+        }
         actions={
           employer ? (
             <>

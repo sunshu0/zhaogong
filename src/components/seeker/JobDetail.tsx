@@ -49,6 +49,7 @@ export function JobDetail({
   payReference,
   children,
   activity,
+  demo = false,
   lang = DEFAULT_LANG,
 }: {
   job: Job;
@@ -69,6 +70,8 @@ export function JobDetail({
   actions?: ReactNode;
   /** A line above `actions` for visitors not signed in: why they cannot contact the employer (lib/auth/notice.ts). */
   actionsNote?: string;
+  /** The demo site's data (demoDataWanted): 演示企业 and why, in place of the verification level. */
+  demo?: boolean;
   /** The share button, top right of the header. */
   share?: ReactNode;
   /** 时薪参考 (#85), right under the facts: a part of the sheet (PayReferenceBox look="sheet"). */
@@ -102,7 +105,7 @@ export function JobDetail({
       </p>
       <EmployerActivityLine activity={activity} lang={lang} className="mt-1" />
       <div className="mt-2">
-        <VerificationBadge verification={employer.verification} explain lang={lang} />
+        <VerificationBadge verification={employer.verification} explain demo={demo} lang={lang} />
       </div>
       <Link
         href={`/employers/${employer.id}`}

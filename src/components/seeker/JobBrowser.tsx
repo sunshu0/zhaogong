@@ -34,11 +34,14 @@ export function JobBrowser({
   jobs,
   employers,
   now,
+  demo = false,
   children,
 }: {
   jobs: PreviewJob[];
   employers: Record<string, PreviewEmployer>;
   now: number;
+  /** The demo site's data (demoDataWanted): the preview says 演示企业 (user feedback 10-30 #2). */
+  demo?: boolean;
   /** The list, laid out by the page; this only listens to its clicks. */
   children: ReactNode;
 }) {
@@ -90,14 +93,24 @@ export function JobBrowser({
           aria-label={t.preview}
           className="overflow-y-auto rounded-card bg-surface ring-1 ring-border xl:sticky xl:top-18 xl:col-start-3 xl:row-span-2 xl:row-start-1 xl:block xl:max-h-[calc(100vh_-_5.5rem)]"
         >
-          <JobPreview key={job.id} job={job} employer={employers[job.employerId]} now={now} />
+          <JobPreview key={job.id} job={job} employer={employers[job.employerId]} now={now} demo={demo} />
         </aside>
       )}
     </ListPlace>
   );
 }
 
-function JobPreview({ job, employer, now }: { job: PreviewJob; employer?: PreviewEmployer; now: number }) {
+function JobPreview({
+  job,
+  employer,
+  now,
+  demo,
+}: {
+  job: PreviewJob;
+  employer?: PreviewEmployer;
+  now: number;
+  demo: boolean;
+}) {
   const lang = useLang();
   const t = useMessages(seekerJobsMessages);
   const region = regionById(job.country, job.regionId);
@@ -178,7 +191,7 @@ function JobPreview({ job, employer, now }: { job: PreviewJob; employer?: Previe
             {employer.name}
           </p>
           <EmployerActivityLine activity={employer.activity} lang={lang} />
-          <VerificationBadge verification={employer.verification} lang={lang} />
+          <VerificationBadge verification={employer.verification} demo={demo} lang={lang} />
         </div>
       )}
 

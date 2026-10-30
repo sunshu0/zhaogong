@@ -29,6 +29,7 @@ import { contentLang } from "@/i18n/lang";
 import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 import { messages, serverLang } from "@/i18n/server";
 import { TrackView } from "@/components/ui/TrackView";
+import { demoDataWanted } from "@/db/ready";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await messages(seekerHomeMessages);
@@ -332,6 +333,7 @@ async function FeaturedBand() {
                 employer={employers.get(job.employerId)}
                 activity={activities.get(job.employerId)}
                 headingLevel={3}
+                demo={demoDataWanted()}
                 lang={lang}
               />
             </li>

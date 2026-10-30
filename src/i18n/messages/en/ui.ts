@@ -47,6 +47,11 @@ export const uiEn: Messages<(typeof uiMessages)["zh"]> = {
     business_verified: "New Zealand business registration (NZBN) checked; not an Immigration NZ accredited employer.",
     unverified: "Business registration not checked yet. Check the employer's details yourself before you contact them.",
   },
+  demoBusiness: {
+    label: "Demo business",
+    explanation: "Demo data: this business and its jobs are made up for the demo, not real openings.",
+    prefix: "[Demo] ",
+  },
   payReference: {
     title: "Pay for similar jobs",
     tooFew: (industry, count, min) =>
