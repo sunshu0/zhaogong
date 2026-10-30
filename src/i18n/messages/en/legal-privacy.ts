@@ -9,18 +9,16 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
   description:
     "What personal information we collect, why, who sees it, how long we keep it, and how you can see, correct and delete it.",
   updated: "Last updated: 30 October 2026",
-  placeholders:
-    "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
   tocLabel: "Contents",
   sections: [
     {
       id: "who",
       heading: "1. Who collects your information",
       body: [
-        'This site is run by [Company name] ([Company address]), a company registered in China. "We" below means that company.',
-        "We do business in New Zealand and serve people in New Zealand, so we follow New Zealand's Privacy Act 2020. Under section 4 of that Act it applies even if the company or the information is outside New Zealand.",
-        "Our staff in China access the site's data (section 6). That is handling personal information within China, so we also follow China's Personal Information Protection Law (Article 3). Section 11 says what rights that law gives you and how to use them.",
-        "Our privacy officer is [Privacy officer's name or role], at [Privacy contact email]. Contact the privacy officer to see, copy, correct or delete your information, to withdraw consent, or to complain; under the Personal Information Protection Law this is also the personal information handler's contact.",
+        '找工 is a personal learning project (non-commercial), run by the project maintainer in Auckland, New Zealand. "We" below means the project maintainer.',
+        "We run this site in New Zealand and serve people in New Zealand, so we follow New Zealand's Privacy Act 2020. Under section 4 of that Act it applies even if the people helping to maintain the site or the information are outside New Zealand.",
+        "The people helping to maintain the site are in China and access the site's data (section 6). That is handling personal information within China, so we also follow China's Personal Information Protection Law (Article 3). Section 11 says what rights that law gives you and how to use them.",
+        "Our privacy officer is the project maintainer, at hello@zhaogongnz.com. Contact the privacy officer to see, copy, correct or delete your information, to withdraw consent, or to complain; under the Personal Information Protection Law this is also the personal information handler's contact.",
       ],
     },
     {
@@ -87,7 +85,7 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
             "Members of the same business's team: the business's chats (including its conversation with Zhaogong moderators), its jobs and who posted them.",
             'Moderators: the content involved when they handle reports and review jobs and business verification. Only moderators can see the chat messages and screenshots attached to a report, and each time one opens them we record which moderator and when; the employer cannot see this evidence and is not told who reported. When a business keeps using the kind of wording described in section 2 in chats, moderators can see those messages, and each time one opens them it is recorded in the same way. When handling a report, business verification or a ban, moderators can talk with the business\'s team: all moderators can see the conversation and which team member wrote each message; the business sees only "Zhaogong moderators", not which moderator. A business that is banned can still see and reply to it.',
             "Providers who store and process data for us: hosting and the database (Cloudflare); the sign-in code emails (Amazon SES, from Amazon Web Services, used only to send the codes). They only keep and process it on our behalf, not for their own use; under section 11 of the Privacy Act 2020 this is not a disclosure to them.",
-            "Our staff in China: when needed to run and maintain the site, deal with reports and reviews, and answer your requests (section 6).",
+            "The people helping to maintain the site in China: when needed to run and maintain the site, deal with reports and reviews, and answer your requests (section 6).",
             "AI posting: when an employer posts a job by chatting, the conversation and the job draft (including contact details the employer chooses to make public) are sent to Anthropic's model to be put in order. Anthropic processes them in the United States. Nothing is sent if you don't post by chatting.",
             "Browser message push: a browser vendor's push service (for example Google, Mozilla, Apple or Microsoft) processes the endpoint and connection information needed to send and deliver the alert. The browser-held keys encrypt the alert. We send only a generic new-message alert, not chat text, contact details, a CV or the other person's name.",
             "If the law requires it, or to prevent a serious threat to someone's safety, we may give information to the authorities (information privacy principle 11).",
@@ -101,8 +99,8 @@ export const legalPrivacyEn: Messages<(typeof legalPrivacyMessages)["zh"]> = {
       body: [
         "The site's data is kept in Cloudflare data centres in Oceania (Cloudflare D1; Cloudflare decides which city), held for us by Cloudflare.",
         "Sign-in code emails are sent by Amazon SES in Sydney, Australia, using your email address and the code. If an email bounces or you mark it as spam, the address stays on SES's suppression list and is not sent to again.",
-        "Staff of the company in China can access this data, to run and maintain the site, deal with reports and reviews, and answer your requests.",
-        "Under section 11 of the Privacy Act 2020, information a provider holds for us is treated as held by us, and our own staff using it is our use of it, not a disclosure to anyone else. So neither is a disclosure overseas under information privacy principle 12, but we remain fully responsible for your information, use and protect it as this page says, and only let staff who need it for their work access it.",
+        "The people in China who help maintain the site can access this data, to run and maintain the site, deal with reports and reviews, and answer your requests.",
+        "Under section 11 of the Privacy Act 2020, information a provider holds for us is treated as held by us, and the people who help us maintain the site using it is our use of it, not a disclosure to anyone else. So neither is a disclosure overseas under information privacy principle 12, but we remain fully responsible for your information, use and protect it as this page says, and only let people who need it for maintaining the site access it.",
         "AI posting content is processed by Anthropic in the United States (section 5). United States law may not protect personal information as fully as New Zealand's does; if you don't want that, post the job by pasting or filling in the form, which sends nothing.",
         "When you turn on browser message push, a browser vendor may process the endpoint and connection information outside New Zealand. Its retention and device-notification behaviour are governed by its privacy policy and your device settings. The alert is encrypted with browser keys; we do not send chat text or contact details to it.",
       ],

@@ -1,12 +1,11 @@
 // #323: the privacy page and the terms of use, laid out the same way from their dictionaries: the title, when it was
-// last updated, a note on the placeholders still to fill in, a table of contents, then numbered sections of
+// last updated, a table of contents, then numbered sections of
 // paragraphs, lists, tables and links to official pages. Server only: no JavaScript of its own.
 import type { LegalBlock } from "@/i18n/messages/legal-privacy";
 
 export interface LegalWords {
   title: string;
   updated: string;
-  placeholders: string;
   tocLabel: string;
   sections: readonly { id: string; heading: string; body: readonly LegalBlock[] }[];
 }
@@ -73,7 +72,6 @@ export function LegalPage({ words }: { words: LegalWords }) {
       <header className="space-y-2">
         <h1 className="text-title font-semibold">{words.title}</h1>
         <p className="text-meta text-muted">{words.updated}</p>
-        <p className="rounded-control bg-warn-soft px-3 py-2 text-meta">{words.placeholders}</p>
       </header>
       <nav aria-label={words.tocLabel} className="rounded-card bg-surface p-4 shadow-card">
         <h2 className="mb-2 text-meta font-semibold text-muted">{words.tocLabel}</h2>

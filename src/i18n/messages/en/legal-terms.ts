@@ -8,16 +8,14 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
   title: "Terms of use",
   description:
     "The rules for using this site: what it is and isn't, the laws job ads must follow, what is not allowed, reporting, accounts and liability.",
-  updated: "Last updated: 27 October 2026",
-  placeholders:
-    "Text in square brackets (such as [Company name]) is not decided yet and will be filled in before launch.",
+  updated: "Last updated: 30 October 2026",
   tocLabel: "Contents",
   sections: [
     {
       id: "about",
       heading: "1. About these terms",
       body: [
-        'This site is run by [Company name] ([Company address]). "We" below means the operator, and "you" means anyone using the site, job seekers and employers alike.',
+        '找工 is a personal learning project (non-commercial), run by the project maintainer in Auckland, New Zealand. "We" below means the project maintainer, and "you" means anyone using the site, job seekers and employers alike.',
         "By using the site you agree to these terms and to the privacy page. If you don't agree, please don't use the site.",
       ],
     },
@@ -98,7 +96,7 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
       id: "report",
       heading: "6. Reporting and taking things down",
       body: [
-        "Every job page has a \"Report this job\" button, and you don't need to sign in to use it. If you are signed in, you can attach messages from your own chats with that business, and screenshots, as evidence; please attach only what bears on the report, and no one else's private details. Only moderators see the evidence, and it is deleted 180 days after the report is handled (Privacy, sections 2, 5 and 9). For problems in chats, or anything else you want us to deal with, write to [Contact email].",
+        "Every job page has a \"Report this job\" button, and you don't need to sign in to use it. If you are signed in, you can attach messages from your own chats with that business, and screenshots, as evidence; please attach only what bears on the report, and no one else's private details. Only moderators see the evidence, and it is deleted 180 days after the report is handled (Privacy, sections 2, 5 and 9). For problems in chats, or anything else you want us to deal with, write to hello@zhaogongnz.com.",
         "Moderators deal with reports. We may take down content that breaks these terms or the law; for serious or repeated breaches we may suspend the account or ban the business, for a time or for good. We will tell you why, and you can write to us to ask for a review.",
         "Complaints about harmful content online are handled under section 24 of New Zealand's Harmful Digital Communications Act 2015: within 48 hours of a valid complaint we tell the person who posted it, who has 48 hours to respond, and we then keep or remove it as the law sets out. You can also contact Netsafe, the agency appointed under that Act.",
         { links: [{ label: "Netsafe (netsafe.org.nz)", href: "https://netsafe.org.nz/" }] },
@@ -151,7 +149,7 @@ export const legalTermsEn: Messages<(typeof legalTermsMessages)["zh"]> = {
     {
       id: "contact",
       heading: "12. Contact us",
-      body: ["[Company name], [Company address], [Contact email]."],
+      body: ["The project maintainer, Auckland, New Zealand, hello@zhaogongnz.com."],
     },
   ],
 };

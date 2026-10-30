@@ -125,7 +125,7 @@ Server Function 没回答时的做法见 [ADR 0024](adr/0024-no-answer-from-the-
 
 ## 页脚、关于和法律页
 
-页脚在 `src/app/[lang]/layout.tsx`：「关于找工」「隐私说明」「使用条款」三个链接，和重新打开统计设置的 `ConsentSettingsButton`。三页是服务器组件：`/about`（`about/page.tsx`，#324，字典 `about`），`/privacy`、`/terms`（#323，共用 `src/components/legal/LegalPage.tsx`，字典 `legal-privacy`、`legal-terms`）。文字里的「[公司名称]」这类占位等用户填，三页用同一套。
+页脚在 `src/app/[lang]/layout.tsx`：「关于找工」「隐私说明」「使用条款」三个链接，和重新打开统计设置的 `ConsentSettingsButton`。三页是服务器组件：`/about`（`about/page.tsx`，#324，字典 `about`），`/privacy`、`/terms`（#323，共用 `src/components/legal/LegalPage.tsx`，字典 `legal-privacy`、`legal-terms`）。运营方、隐私官和联系邮箱是用户 10-30 定的（个人学习项目、项目维护者、hello@zhaogongnz.com），三页说法一致。
 
 ## 点击统计（ADR 0025）
 

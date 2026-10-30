@@ -10,7 +10,7 @@ export const aboutEn: Messages<(typeof aboutMessages)["zh"]> = {
     "找工 is a Chinese-language job listings site for Chinese speakers in New Zealand, starting in Auckland: jobs in hospitality, retail, cleaning, hair and beauty, construction and renovation, warehouse and logistics and more, plus internships and professional jobs imported from company websites.",
   who: {
     heading: "Who runs it",
-    body: "找工 is run by [Company name], [Company address]. 找工 only publishes job listings. It is not an employer, a recruitment agency or an immigration adviser: any employment is between you and the employer.",
+    body: "找工 is a personal learning project (non-commercial), run by the project maintainer in Auckland, New Zealand. 找工 only publishes job listings. It is not an employer, a recruitment agency or an immigration adviser: any employment is between you and the employer.",
   },
   cost: {
     heading: "What it costs",
@@ -38,12 +38,12 @@ export const aboutEn: Messages<(typeof aboutMessages)["zh"]> = {
   },
   data: {
     heading: "Your information",
-    body: "How we collect and use your information is in our privacy statement. You can download or delete your data under Me → Data and account. Privacy officer: [Privacy officer's name or role], email: [Privacy contact email].",
+    body: "How we collect and use your information is in our privacy statement. You can download or delete your data under Me → Data and account. Privacy officer: the project maintainer, email: hello@zhaogongnz.com.",
     privacy: "Privacy statement",
   },
   contact: {
     heading: "Contact us",
-    body: "Email: [Contact email]. For a problem with a job, press “Report this job” on the job page first: that is the quickest way.",
+    body: "Email: hello@zhaogongnz.com. For a problem with a job, press “Report this job” on the job page first: that is the quickest way.",
   },
   footer: {
     label: "About and legal",
