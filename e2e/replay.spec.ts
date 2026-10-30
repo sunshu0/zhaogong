@@ -3,16 +3,18 @@ import { chooseOption, fillSignInCode } from "./helpers";
 
 // A18: the landing page's order, and the replay of a real AI chat post (startChat / nextTurn, not a script).
 
-const features = (page: Page) => page.getByRole("region", { name: "功能展示" });
-const bubbles = (page: Page) => features(page).locator("[data-replay-log] [data-bubble]");
-const transcript = (page: Page) => features(page).locator("ol.sr-only li");
+// Feedback 8 (10-30): the AI chat post and its replay are in the employer band.
+const aiPost = (page: Page) =>
+  page.getByRole("region", { name: "招人？一分钟发布招聘" }).getByRole("article", { name: "AI 对话发帖" });
+const bubbles = (page: Page) => aiPost(page).locator("[data-replay-log] [data-bubble]");
+const transcript = (page: Page) => aiPost(page).locator("ol.sr-only li");
 
-test("the landing page runs hero → features → featured jobs → employers", async ({ page }) => {
+test("the landing page runs hero → latest jobs → features → employers (feedback 8)", async ({ page }) => {
   await page.goto("/");
   const order = [
     page.getByRole("region", { name: /^奥克兰的中文工作/ }),
-    features(page),
-    page.getByRole("region", { name: "精选工作" }),
+    page.getByRole("region", { name: "最新职位" }),
+    page.getByRole("region", { name: "功能展示" }),
     page.getByRole("region", { name: "招人？一分钟发布招聘" }),
   ];
   const ys: number[] = [];
@@ -27,7 +29,7 @@ test("screen readers get the whole conversation, with the three problems and the
   await expect(transcript(page).nth(1)).toContainText("雇主：奶茶店招兼职店员");
   const all = (await transcript(page).allTextContents()).join("\n");
   for (const text of ["低于新西兰成人最低工资", "押金", "限华人", "雇主：24", "都齐了"]) expect(all).toContain(text);
-  await expect(features(page).locator("[data-replay-log]")).toHaveAttribute("aria-hidden", "true");
+  await expect(aiPost(page).locator("[data-replay-log]")).toHaveAttribute("aria-hidden", "true");
 });
 
 test.describe("at 1280 × 800", () => {
@@ -44,13 +46,13 @@ test.describe("at 1280 × 800", () => {
   test("the replay plays message by message when it comes into view, and can play again", async ({ page }) => {
     test.setTimeout(90_000);
     await page.goto("/");
-    await features(page).locator("[data-replay-log]").scrollIntoViewIfNeeded();
+    await aiPost(page).locator("[data-replay-log]").scrollIntoViewIfNeeded();
     // Before the page takes over, the HTML holds all 13 bubbles (for no JavaScript), all but the first round hidden,
     // so counting 13 proves nothing yet (#66: the count passed on that HTML, then the replay started over). Once
     // the replay runs it holds fewer, and 重新播放 shows only when it has played to the end.
     await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
     await expect(bubbles(page).filter({ visible: true }).first()).toBeVisible();
-    const again = features(page).getByRole("button", { name: "重新播放" });
+    const again = aiPost(page).getByRole("button", { name: "重新播放" });
     await expect(again).toBeVisible({ timeout: 40_000 });
     await expect(bubbles(page)).toHaveCount(13);
     await expect(bubbles(page).last()).toContainText("都齐了");
@@ -67,7 +69,7 @@ test("with reduced motion the whole conversation shows at once", async ({ page }
   await page.goto("/");
   await expect(bubbles(page)).toHaveCount(13);
   await expect(bubbles(page).first()).toBeVisible();
-  await expect(features(page).getByRole("button", { name: "重新播放" })).toHaveCount(0);
+  await expect(aiPost(page).getByRole("button", { name: "重新播放" })).toHaveCount(0);
 });
 
 const email = (testInfo: TestInfo) => `replay.${testInfo.project.name}.${Date.now()}@example.com`;

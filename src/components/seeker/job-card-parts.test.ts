@@ -8,16 +8,17 @@ const j5 = MOCK_JOBS.find((job) => job.id === "j5")!;
 const employer = MOCK_EMPLOYERS.find((e) => e.id === j5.employerId)!;
 
 describe("a job card's parts (Round 19)", () => {
-  it("puts place, how to reach the employer, work and short hours, and the shifts last, without labels", () => {
+  it("puts place, work and short hours, the shifts, and how to reach the employer last, short, without labels", () => {
+    // Feedback 8 (10-30): the hours and the shifts before the contact, which is said short.
     expect(cardPoints(j5, "Botany").map((p) => p.text)).toEqual([
       "Botany",
-      "聊天交换联系方式",
       `${formatEmploymentTypes(j5.employmentType)} 20–30 小时/周`,
       "早班 7:00–13:00",
+      "聊天联系",
     ]);
     const bare: Job = { ...j5, employmentType: [], hoursPerWeek: undefined, shiftsZh: " ", contactPublic: true };
-    expect(cardPoints(bare, undefined).map((p) => p.text)).toEqual(["联系方式公开"]);
-    // An area named after two places shows the first, so the contact stays on a phone's line (#242).
+    expect(cardPoints(bare, undefined).map((p) => p.text)).toEqual(["直接联系"]);
+    // An area named after two places shows the first, so the rest keeps its room on a phone (#242).
     expect(cardPoints(bare, "Mt Wellington / Sylvia Park")[0]).toEqual({ text: "Mt Wellington" });
   });
 
@@ -47,9 +48,9 @@ describe("a job card's parts (Round 19)", () => {
     const points = cardPoints(j5, "Botany", "en");
     expect(points.map((p) => p.text)).toEqual([
       "Botany",
-      "Contact in chat",
       `${formatEmploymentTypes(j5.employmentType, "en")} 20–30 h/wk`,
       "早班 7:00–13:00",
+      "Contact in chat",
     ]);
     expect(points.filter((p) => p.zh).map((p) => p.text)).toEqual(["早班 7:00–13:00"]);
   });

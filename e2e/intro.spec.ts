@@ -67,11 +67,11 @@ test("landing: one line of numbers from the data, with the 演示数据 tag, in 
   expect(html).toMatch(/data-hero-counts=""[^>]*>(<[^b][^>]*>)*<b[^>]*>[\d,]+<\/b>/);
 });
 
-test("landing: features with the AI chat post, featured jobs, and the employer before → after", async ({
+test("landing: latest jobs, features, and the employer before → after with the AI chat post (feedback 8)", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
-  const featured = page.getByRole("region", { name: "精选工作" });
+  const featured = page.getByRole("region", { name: "最新职位" });
   const cards = featured.getByRole("listitem").getByRole("link");
   await expect(cards).toHaveCount(6);
   for (const href of await cards.evaluateAll((links) => links.map((a) => a.getAttribute("href")))) {
@@ -79,23 +79,32 @@ test("landing: features with the AI chat post, featured jobs, and the employer b
   }
   await expect(featured.getByText("未验证")).toHaveCount(0);
 
+  // None of the window notices' jobs again (feedback 8).
+  const hrefs = (links: typeof cards) => links.evaluateAll((all) => all.map((a) => a.getAttribute("href")));
+  const noticed = await hrefs(page.getByRole("list", { name: "正在招聘" }).getByRole("link"));
+  expect(noticed.length).toBeGreaterThan(0);
+  for (const href of await hrefs(cards)) expect(noticed).not.toContain(href);
   const features = page.getByRole("region", { name: "功能展示" });
-  const ai = features.getByRole("article", { name: "AI 对话发帖" });
+  await expect(features.getByRole("heading", { level: 3 })).toHaveText([
+    "发布前合规检查",
+    "雇主验证与防骗",
+    "中文为主",
+  ]);
+  const employer = page.getByRole("region", { name: "招人？一分钟发布招聘" });
+  const ai = employer.getByRole("article", { name: "AI 对话发帖" });
   await expect(ai).toBeVisible();
-  const others = features.getByRole("heading", { level: 3 });
-  await expect(others).toHaveText(["AI 对话发帖", "发布前合规检查", "雇主验证与防骗", "中文为主"]);
 
   if (testInfo.project.name === "desktop") {
     const titles = featured.locator("li h3");
     const ys = await Promise.all([0, 1, 2, 3].map(async (i) => Math.round((await titles.nth(i).boundingBox())!.y)));
     for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThan(ys[i - 1]);
-    // The AI chat post on the left, the three other features beside it.
-    const aiBox = (await ai.boundingBox())!;
-    const firstOther = (await features.getByRole("heading", { level: 3, name: "发布前合规检查" }).boundingBox())!;
-    expect(firstOther.x).toBeGreaterThan(aiBox.x + aiBox.width);
+    // The three features side by side; the AI chat post under the employer's before → after.
+    const third = (await features.getByRole("heading", { level: 3, name: "中文为主" }).boundingBox())!;
+    const first = (await features.getByRole("heading", { level: 3, name: "发布前合规检查" }).boundingBox())!;
+    expect(Math.round(third.y)).toBe(Math.round(first.y));
+    expect((await ai.boundingBox())!.y).toBeGreaterThan((await employer.getByRole("figure").boundingBox())!.y);
   }
 
-  const employer = page.getByRole("region", { name: "招人？一分钟发布招聘" });
   await expect(employer.getByText("【急招】Mt Eden 川菜馆招前厅服务员 2 名", { exact: false })).toBeVisible();
   const after = employer.getByRole("figure");
   for (const text of ["前厅服务员", "Front-of-house staff", "$25–27/小时", "接受学签", "联系方式：登录后可见"]) {

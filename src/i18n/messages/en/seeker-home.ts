@@ -39,12 +39,12 @@ export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
   stats: "On 找工",
   demoData: "Demo data",
   featured: {
-    title: "Featured jobs",
-    hint: "Open jobs from verified employers, highest pay first.",
+    title: "Latest jobs",
+    hint: "Verified employers, newest first.",
     all: "See all jobs →",
     recommended: "Jobs for your preferences →",
     browseAll: "Browse all jobs →",
-    loading: "Loading featured jobs",
+    loading: "Loading the latest jobs",
     auckland: "Auckland",
   },
   features: {

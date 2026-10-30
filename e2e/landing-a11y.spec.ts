@@ -4,7 +4,7 @@ import { waitForTitle } from "./helpers/title";
 
 test("/ has no axe violations (WCAG 2.1 A and AA)", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("region", { name: "精选工作" }).getByRole("listitem").first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "最新职位" }).getByRole("listitem").first()).toBeVisible();
   await expect(page.locator("[data-hero-counts]")).toBeVisible();
   await waitForTitle(page);
   const { violations } = await new AxeBuilder({ page })
@@ -25,7 +25,7 @@ test("/ never scrolls sideways at 375, 1280, 1440 or 1920 px", async ({ page }) 
   ]) {
     await page.setViewportSize({ width, height });
     await page.goto("/");
-    await expect(page.getByRole("region", { name: "精选工作" }).getByRole("listitem").first()).toBeVisible();
+    await expect(page.getByRole("region", { name: "最新职位" }).getByRole("listitem").first()).toBeVisible();
     const scrollX = await page.evaluate(() => {
       window.scrollTo(10_000, window.scrollY);
       return window.scrollX;
@@ -45,7 +45,7 @@ test.describe("without JavaScript", () => {
       /^\/login/,
     );
     await expect(page.getByRole("heading", { name: "平台数据" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "精选工作" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "最新职位" })).toBeVisible();
     await expect(page.getByRole("link", { name: "浏览全部职位 →" })).toBeVisible();
   });
 });

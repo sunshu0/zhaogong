@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { employersOf } from "@/components/seeker/employers";
-import { aiFeature, EMPLOYER_EXAMPLE, features, formatCount, heroCounts } from "@/components/seeker/landing";
+import {
+  aiFeature,
+  EMPLOYER_EXAMPLE,
+  features,
+  formatCount,
+  heroCounts,
+  latestVerifiedJobs,
+} from "@/components/seeker/landing";
 import { DEMO_DATA, STAT_MIN_TO_SHOW } from "@/config/landing";
 import { englishSummary, parsePost } from "@/lib/ai-post";
 import { listFeaturedJobs } from "@/lib/data";
@@ -53,6 +60,20 @@ describe("employersOf", () => {
     const employers = await employersOf(jobs);
     for (const job of jobs) expect(employers.get(job.employerId)?.id).toBe(job.employerId);
     expect(employers.size).toBe(new Set(jobs.map((j) => j.employerId)).size);
+  });
+});
+
+describe("latestVerifiedJobs (feedback 8: 最新职位)", () => {
+  const job = (id: string, employerId: string) => ({ id, employerId });
+  // As listJobs gives them: newest first.
+  const jobs = [job("j9", "e1"), job("j8", "e2"), job("j7", "e1"), job("j6", "e3"), job("j5", "e1")];
+
+  it("keeps the list's order, verified employers only, without the window notices' jobs, up to the limit", () => {
+    const verified = new Set(["e1", "e3"]);
+    expect(latestVerifiedJobs(jobs, verified, [], 6).map((j) => j.id)).toEqual(["j9", "j7", "j6", "j5"]);
+    expect(latestVerifiedJobs(jobs, verified, [{ id: "j9" }, { id: "j6" }], 6).map((j) => j.id)).toEqual(["j7", "j5"]);
+    expect(latestVerifiedJobs(jobs, verified, [], 2).map((j) => j.id)).toEqual(["j9", "j7"]);
+    expect(latestVerifiedJobs(jobs, new Set(), [], 6)).toEqual([]);
   });
 });
 

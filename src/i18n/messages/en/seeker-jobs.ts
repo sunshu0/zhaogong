@@ -84,6 +84,8 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     // Short: they share one line with the area and the hours on a phone (#242).
     contactPublic: "Contact shown",
     contactByChat: "Contact in chat",
+    contactPublicShort: "Contact shown",
+    contactByChatShort: "Contact in chat",
   },
   activity: {
     label: "How active the employer is",

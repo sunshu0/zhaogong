@@ -6,9 +6,9 @@ import { Fragment, Suspense } from "react";
 import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
 import { DEMO_DATA } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
-import type { JobFilter } from "@/lib/types";
+import type { Job, JobFilter } from "@/lib/types";
 import { englishSummary, parsePost } from "@/lib/ai-post";
-import { getPlatformStats, listFeaturedJobs, listJobs } from "@/lib/data";
+import { getPlatformStats, listEmployers, listFeaturedJobs, listJobs, newestFirst } from "@/lib/data";
 import { employersOf } from "@/components/seeker/employers";
 import { employerActivities } from "@/db/employer-activity";
 import { filterToQuery, jobsHref, parseFilter } from "@/components/seeker/filter-query";
@@ -16,7 +16,15 @@ import { JobCard } from "@/components/seeker/JobCard";
 import { PostJobLink } from "@/components/seeker/AccountMenu";
 import { buildReplay } from "@/components/seeker/chat-replay";
 import { ChatReplay } from "@/components/seeker/ChatReplay";
-import { aiFeature, EMPLOYER_EXAMPLE, features, formatCount, heroCounts, statLines } from "@/components/seeker/landing";
+import {
+  aiFeature,
+  EMPLOYER_EXAMPLE,
+  features,
+  formatCount,
+  heroCounts,
+  latestVerifiedJobs,
+  statLines,
+} from "@/components/seeker/landing";
 import { BeforeAfter, CheckIcon, FeatureIconSvg } from "@/components/seeker/landing-parts";
 import { WindowNotices } from "@/components/seeker/WindowNotices";
 import { formatPay, placeName } from "@/components/seeker/format";
@@ -58,7 +66,7 @@ const NOTICE_COUNT = 3;
 
 const EMPLOYER_POINTS = ["pointPaste", "pointChecks", "pointShare"] as const;
 
-const FEATURED_COUNT = 6;
+const LATEST_COUNT = 6;
 
 /** The landing page: full-bleed bands, content in the site container. Pictures and numbers come from real data. */
 export default async function Home({ searchParams }: PageProps<"/[lang]">) {
@@ -157,11 +165,12 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
           </div>
         </section>
 
-        <FeaturesBand />
-
-        <Suspense fallback={<FeaturedSkeleton />}>
-          <FeaturedBand />
+        {/* Feedback 8 (10-30): the jobs first, then what the site does; the AI chat post is for employers. */}
+        <Suspense fallback={<LatestSkeleton />}>
+          <LatestBand />
         </Suspense>
+
+        <FeaturesBand />
 
         <EmployerBand />
       </div>
@@ -180,7 +189,7 @@ async function NoScriptLanding() {
   const t = await messages(seekerHomeMessages);
   const [stats, jobs] = await Promise.all([
     getPlatformStats(DEFAULT_COUNTRY).then((all) => statLines(all, lang)),
-    listFeaturedJobs(DEFAULT_COUNTRY, 3),
+    latestJobs(3),
   ]);
   if (stats.length === 0 && jobs.length === 0) return null;
 
@@ -295,10 +304,32 @@ async function HeroCount() {
   );
 }
 
-async function FeaturedBand() {
-  await connection(); // featured jobs change as jobs are published
+/**
+ * 最新职位 (feedback 8): verified employers' open jobs in the job list's order, leaving out the window notices' ones
+ * (latestVerifiedJobs). Without `now`, for the prerendered no-JavaScript summary, closing dates are not checked, as
+ * before.
+ */
+async function latestJobs(limit: number, now?: number): Promise<Job[]> {
+  if (now === undefined) {
+    const [verified, notices] = await Promise.all([
+      listFeaturedJobs(DEFAULT_COUNTRY, Infinity),
+      listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT),
+    ]);
+    return latestVerifiedJobs(newestFirst(verified), new Set(verified.map((j) => j.employerId)), notices, limit);
+  }
+  const [jobs, employers, notices] = await Promise.all([
+    listJobs({ country: DEFAULT_COUNTRY }, now),
+    listEmployers(),
+    listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT, now),
+  ]);
+  const verified = new Set(employers.filter((e) => e.verification !== "unverified").map((e) => e.id));
+  return latestVerifiedJobs(jobs, verified, notices, limit);
+}
+
+async function LatestBand() {
+  await connection(); // the latest jobs change as jobs are published
   const now = await requestTime();
-  const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, FEATURED_COUNT, now);
+  const jobs = await latestJobs(LATEST_COUNT, now);
   const [employers, activities] = await Promise.all([
     employersOf(jobs),
     employerActivities(
@@ -370,8 +401,8 @@ function NoticesSkeleton() {
   );
 }
 
-/** While 精选工作 comes (#167): its heading and three job cards in grey, like the job list's loading page. */
-async function FeaturedSkeleton() {
+/** While 最新职位 comes (#167): its heading and three job cards in grey, like the job list's loading page. */
+async function LatestSkeleton() {
   const t = (await messages(seekerHomeMessages)).featured;
   return (
     <div data-nojs-hide="" className={FULL_BLEED}>
@@ -386,58 +417,48 @@ async function FeaturedSkeleton() {
   );
 }
 
-/** 功能展示: the AI chat post with a replay of a real conversation, then three more features. */
+/** 功能展示: three features, after the latest jobs (feedback 8; the AI chat post is in the employer band). */
 async function FeaturesBand() {
-  const replay = await buildReplay();
   const lang = await serverLang();
   const t = await messages(seekerHomeMessages);
-  const ai = aiFeature(lang);
   return (
     <section aria-labelledby="features-heading" className={`${FULL_BLEED} bg-background`}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <h2 id="features-heading" className="text-2xl font-bold">
           {t.features.title}
         </h2>
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
-          <article aria-labelledby="ai-feature-heading" className={sheetClass()}>
-            <div className="flex items-start gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand text-white">
-                <FeatureIconSvg name="chat" />
+        {/* Visual A (V2): the features open nothing, so they are one sheet split by lines, not cards. */}
+        <ul
+          className={`mt-8 divide-y divide-border lg:grid lg:grid-cols-3 lg:divide-x lg:divide-y-0 ${sheetClass({ padded: false })}`}
+        >
+          {features(lang).map((feature) => (
+            <li key={feature.title} className="flex items-start gap-3 p-4 lg:p-5">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
+                <FeatureIconSvg name={feature.icon} />
               </span>
               <div>
-                <h3 id="ai-feature-heading" className="font-semibold">
-                  {ai.title}
-                </h3>
-                <p className="mt-1 text-body leading-relaxed text-muted">{ai.text}</p>
+                <h3 className="font-semibold">{feature.title}</h3>
+                <p className="mt-1 text-body leading-relaxed text-muted">{feature.text}</p>
               </div>
-            </div>
-            <div className="mt-4">
-              <ChatReplay messages={replay} />
-            </div>
-          </article>
-          {/* Visual A (V2): the features open nothing, so they are one sheet split by lines, not cards. */}
-          <ul className={`divide-y divide-border ${sheetClass({ padded: false })}`}>
-            {features(lang).map((feature) => (
-              <li key={feature.title} className="flex items-start gap-3 p-4 lg:p-5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand">
-                  <FeatureIconSvg name={feature.icon} />
-                </span>
-                <div>
-                  <h3 className="font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-body leading-relaxed text-muted">{feature.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
 }
 
-/** For employers: a WeChat message turned into a job by the same parser the post flow uses. */
+/**
+ * For employers: a WeChat message turned into a job by the same parser the post flow uses, then the AI chat post
+ * with a replay of a real conversation (feedback 8: moved here from 功能展示).
+ */
 async function EmployerBand() {
-  const { draft } = await parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY);
+  const [{ draft }, replay, lang] = await Promise.all([
+    parsePost(EMPLOYER_EXAMPLE, DEFAULT_COUNTRY),
+    buildReplay(),
+    serverLang(),
+  ]);
+  const ai = aiFeature(lang);
   const t = (await messages(seekerHomeMessages)).employers;
   return (
     <section aria-labelledby="employer-heading" className={`${FULL_BLEED} bg-foreground text-white`}>
@@ -473,8 +494,24 @@ async function EmployerBand() {
           message={EMPLOYER_EXAMPLE}
           draft={draft}
           summaryEn={englishSummary(draft, DEFAULT_COUNTRY)}
-          lang={await serverLang()}
+          lang={lang}
         />
+        <article aria-labelledby="ai-feature-heading" className={`text-foreground lg:col-span-2 ${sheetClass()}`}>
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-control bg-brand text-white">
+              <FeatureIconSvg name="chat" />
+            </span>
+            <div>
+              <h3 id="ai-feature-heading" className="font-semibold">
+                {ai.title}
+              </h3>
+              <p className="mt-1 text-body leading-relaxed text-muted">{ai.text}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <ChatReplay messages={replay} />
+          </div>
+        </article>
       </div>
     </section>
   );

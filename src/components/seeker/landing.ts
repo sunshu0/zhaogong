@@ -5,7 +5,7 @@ import { formatNumber } from "@/i18n/format";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
 import { pick } from "@/i18n/messages";
 import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
-import type { PlatformStats } from "@/lib/types";
+import type { Job, PlatformStats } from "@/lib/types";
 
 /** 1234 → "1,234". Counts are shown exactly as counted, never rounded up. */
 export function formatCount(n: number, lang: Lang = DEFAULT_LANG): string {
@@ -39,9 +39,23 @@ export function statLines(stats: PlatformStats, lang: Lang = DEFAULT_LANG) {
   return visibleStats(stats).map(({ key, value }) => ({ key, value, label: t[key](value) }));
 }
 
+/**
+ * 最新职位 (user feedback 8, 10-30): the open jobs of verified employers in the job list's own order (`jobs` from
+ * listJobs: newest first, urgent first within an Auckland day), leaving out the ones the window notices show.
+ */
+export function latestVerifiedJobs<J extends Pick<Job, "id" | "employerId">>(
+  jobs: readonly J[],
+  verified: ReadonlySet<string>,
+  shown: readonly Pick<Job, "id">[],
+  limit: number,
+): J[] {
+  const skip = new Set(shown.map((j) => j.id));
+  return jobs.filter((j) => verified.has(j.employerId) && !skip.has(j.id)).slice(0, limit);
+}
+
 export type FeatureIcon = "chat" | "language" | "check" | "shield";
 
-/** 功能展示: the AI chat post first (with its replay), then three more. Only what the product does now. */
+/** The AI chat post (with its replay), in the employer band since feedback 8. Only what the product does now. */
 export function aiFeature(lang: Lang = DEFAULT_LANG) {
   const t = pick(seekerHomeMessages, lang).features;
   return { title: t.aiTitle, text: t.aiText };

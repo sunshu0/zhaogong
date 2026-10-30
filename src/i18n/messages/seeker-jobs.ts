@@ -87,6 +87,9 @@ const seekerJobsZh = {
     contact: "联系",
     contactPublic: "联系方式公开",
     contactByChat: "聊天交换联系方式",
+    // Short, on the app card's points line after the hours and shifts (feedback 8); elsewhere the words above.
+    contactPublicShort: "直接联系",
+    contactByChatShort: "聊天联系",
   },
   // EmployerActivityLine.tsx (#381, ADR 0038): on job cards and the job page; only what is good, nothing slow.
   activity: {

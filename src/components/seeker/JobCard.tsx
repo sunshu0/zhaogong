@@ -138,7 +138,7 @@ export function JobCard({
 
 /**
  * The Round 19 card (操作质感, an app's feel): a white card with 16px corners and a soft shadow, no border. The title
- * and the pay lead; under them one light line of points (job-card-parts.ts), one status and at most two soft tags,
+ * and the pay lead; under them up to two light lines of points (job-card-parts.ts), one status and at most two soft tags,
  * then the employer with 收藏. The whole card opens the job (the title's link is stretched over it) and
  * gives a little when pressed; 收藏 and an `action` (立即沟通 on an employer's page) sit above the link, so
  * no button has to hang under the card.
@@ -193,9 +193,9 @@ function AppJobCard({
         </p>
       </div>
 
-      {/* One line of whole points (#242): a point that doesn't fit goes to a second line, which is cut off, so
-          nothing ends in "…" mid-word. Screen readers still read every point. */}
-      <p className="mt-2 flex max-h-[1lh] flex-wrap overflow-hidden text-body text-muted">
+      {/* Up to two lines of whole points (#242, feedback 8): a point that doesn't fit goes to a third line, which is
+          cut off, so nothing ends in "…" mid-word. Screen readers still read every point. */}
+      <p className="mt-2 flex max-h-[2lh] flex-wrap overflow-hidden text-body text-muted">
         {points.map((point, i) => (
           <span key={point.text} className="whitespace-nowrap">
             {i > 0 && (

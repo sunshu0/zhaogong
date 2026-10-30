@@ -49,12 +49,12 @@ const homeZh = {
   stats: "平台数据",
   demoData: "演示数据",
   featured: {
-    title: "精选工作",
-    hint: "来自已验证雇主、正在招聘的职位，时薪高的在前。",
+    title: "最新职位",
+    hint: "已验证企业，最新发布在前。",
     all: "查看全部职位 →",
     recommended: "按求职期望推荐 →",
     browseAll: "浏览全部职位 →",
-    loading: "正在加载精选工作",
+    loading: "正在加载最新职位",
     auckland: "奥克兰",
   },
   features: {
