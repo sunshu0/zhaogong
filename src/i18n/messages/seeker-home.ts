@@ -81,6 +81,7 @@ const homeZh = {
     // The scrolling window's name (it takes focus so the keyboard can scroll it).
     log: "对话记录",
     again: "重新播放",
+    showAll: "全部显示",
   },
   // landing-parts.tsx: the before/after card.
   beforeAfter: {

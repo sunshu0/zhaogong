@@ -45,6 +45,8 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const [typing, setTyping] = useState(false);
   const [run, setRun] = useState(0);
   const [started, setStarted] = useState(false);
+  // 全部显示 (WCAG 2.2.2, UI audit 2): the rest at once, the timers stopped.
+  const [skipped, setSkipped] = useState(false);
   // Once the user is in the window (it took focus), the replay no longer scrolls it to the newest message.
   const held = useRef(false);
 
@@ -74,7 +76,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
 
   // Play: each message after a pause, the assistant's after a short "typing".
   useEffect(() => {
-    if (!canAnimate || !started) return;
+    if (!canAnimate || !started || skipped) return;
     const messages = latest.current;
     const timers: number[] = [];
     let at = 300;
@@ -93,7 +95,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
       at += READ_MS + Math.min(m.text.length * 8, 600);
     });
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [canAnimate, started, run, script, firstRound]);
+  }, [canAnimate, started, skipped, run, script, firstRound]);
 
   // Keep the newest message in view inside the window (not the page).
   useEffect(() => {
@@ -173,19 +175,26 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
         )}
       </div>
 
-      {canAnimate && done && (
-        <div className="border-t border-border bg-surface px-4 py-2 text-right">
+      {/* One button that keeps the focus: 全部显示 while it plays, 重新播放 once it has played. */}
+      {canAnimate && (
+        <div className="border-t border-border bg-surface px-3 text-right">
           <button
             type="button"
             onClick={() => {
-              held.current = false;
-              setShown(firstRound);
               setTyping(false);
+              if (!done) {
+                setSkipped(true);
+                setShown(messages.length);
+                return;
+              }
+              held.current = false;
+              setSkipped(false);
+              setShown(firstRound);
               setRun((r) => r + 1);
             }}
-            className="text-sm text-brand underline underline-offset-2"
+            className="inline-flex min-h-11 items-center px-1 text-body text-brand underline underline-offset-2 hover:text-brand-strong"
           >
-            {t.again}
+            {done ? t.again : t.showAll}
           </button>
         </div>
       )}

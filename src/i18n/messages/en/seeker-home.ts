@@ -70,6 +70,7 @@ export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
     fromEmployer: "Employer: ",
     log: "The conversation",
     again: "Play again",
+    showAll: "Show all",
   },
   beforeAfter: {
     before: "Before · a message in a WeChat group",

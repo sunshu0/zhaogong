@@ -110,8 +110,10 @@ test.describe("at 1280 × 800", () => {
 
     await again.click();
     await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
-    await expect(again).toBeVisible({ timeout: 40_000 });
+    // While it plays, 全部显示 shows the rest at once; the same button then says 重新播放 and keeps the focus.
+    await aiPost(page).getByRole("button", { name: "全部显示" }).click();
     await expect(bubbles(page)).toHaveCount(13);
+    await expect(again).toBeFocused();
   });
 });
 
