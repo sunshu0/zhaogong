@@ -192,7 +192,7 @@ export function ChatReportDialog({
           </div>
           {history.length > 0 && (
             <details className="border-t border-border pt-3">
-              <summary className="cursor-pointer text-sm text-muted">{t.history(history.length)}</summary>
+              <summary className="min-h-11 cursor-pointer py-2.5 text-body text-muted">{t.history(history.length)}</summary>
               <ul className="mt-3 space-y-3">
                 {history.map((report) => (
                   <li key={report.id} className="text-sm">
