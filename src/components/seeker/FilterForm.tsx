@@ -421,7 +421,7 @@ function chip({ key, type, name, value, checked, label }: Choice) {
   return (
     <label key={key} className="pressable cursor-pointer">
       <input type={type} name={name} value={value} defaultChecked={checked} className="peer sr-only" />
-      <span className="inline-flex min-h-10 items-center rounded-full bg-background px-3.5 text-body peer-checked:bg-brand-soft peer-checked:font-medium peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:[&>svg]:block">
+      <span className="inline-flex min-h-11 items-center rounded-full bg-background px-3.5 text-body peer-checked:bg-brand-soft peer-checked:font-medium peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:[&>svg]:block">
         <Check aria-hidden="true" strokeWidth={2.5} className="mr-1 -ml-0.5 hidden size-4 shrink-0" />
         {label}
       </span>
