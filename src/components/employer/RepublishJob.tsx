@@ -76,7 +76,7 @@ function Load({
     return (
       <div className={BOX}>
         {!job ? t.notFound : mode === "copy" ? t.cannotCopy : t.cannotRepublish}
-        <Link href="/employer/jobs" className="mt-3 block text-brand underline">
+        <Link href="/employer/jobs" className="mt-3 flex min-h-11 w-fit items-center text-brand underline">
           {t.backToJobs}
         </Link>
       </div>

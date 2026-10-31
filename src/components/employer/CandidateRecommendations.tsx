@@ -98,7 +98,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
             <h2 className="text-subtitle font-semibold">{t.noOpenJobs}</h2>
             <ButtonLink href="/employer/post">{t.postJob}</ButtonLink>
             <p>
-              <Link href="/employer/jobs" className="text-body text-brand underline">
+              <Link href="/employer/jobs" className="inline-flex min-h-11 items-center text-body text-brand underline">
                 {t.manageJobs}
               </Link>
             </p>
@@ -127,7 +127,7 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
                   ? t.hoursRange(job.hoursPerWeek.min, job.hoursPerWeek.max ?? job.hoursPerWeek.min)
                   : t.hoursUnknown}
               </span>
-              <Link href={`/jobs/${job.id}`} className="text-brand underline">
+              <Link href={`/jobs/${job.id}`} className="inline-flex min-h-11 items-center text-brand underline">
                 {t.seeRequirements}
               </Link>
             </div>

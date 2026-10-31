@@ -112,7 +112,7 @@ function List({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
     return (
       <div className="rounded-card bg-surface px-4 py-8 ring-1 ring-border text-center text-body text-muted">
         {t.notFound}
-        <Link href="/employer/jobs" className="mt-3 block text-brand underline">
+        <Link href="/employer/jobs" className="mt-3 flex min-h-11 w-fit items-center text-brand underline">
           {t.backToJobs}
         </Link>
       </div>
