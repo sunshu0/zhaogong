@@ -22,6 +22,7 @@ import {
 import { isFailed, ready, settle } from "@/app/[lang]/admin/load-state";
 import { approveBlocker, moderatorLabel } from "@/app/[lang]/admin/moderation";
 import { BanChoice } from "@/app/[lang]/admin/_components/BanChoice";
+import { ConfirmButton } from "@/app/[lang]/admin/_components/ConfirmButton";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
 import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
@@ -437,14 +438,16 @@ function QueueCard({
 
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
         {reports ? (
-          <Button
+          <ConfirmButton
             variant="secondary"
+            confirmVariant="primary"
             disabled={another("dismiss")}
             loading={busy("dismiss")}
-            onClick={() => run("dismiss", () => dismissReports(job.id))}
+            confirmLabel={t.queue.confirmDismiss}
+            onConfirm={() => run("dismiss", () => dismissReports(job.id))}
           >
             {t.queue.dismiss}
-          </Button>
+          </ConfirmButton>
         ) : (
           <Button
             variant="secondary"
@@ -456,14 +459,16 @@ function QueueCard({
             {t.queue.approve}
           </Button>
         )}
-        <Button
+        <ConfirmButton
           variant="danger-secondary"
+          confirmVariant="danger"
           disabled={another("takedown") || job.status === "removed"}
           loading={busy("takedown")}
-          onClick={() => run("takedown", () => takeDownJob(job.id))}
+          confirmLabel={t.queue.confirmTakeDown}
+          onConfirm={() => run("takedown", () => takeDownJob(job.id))}
         >
           {t.queue.takeDown}
-        </Button>
+        </ConfirmButton>
         {!reports && cannotApprove && (
           <p id={whyNotId} className="w-full text-meta text-danger">
             {cannotApprove}

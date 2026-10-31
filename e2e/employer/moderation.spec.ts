@@ -39,6 +39,7 @@ test("report a job → /admin takes it down → gone from the list and in the lo
   await expect(card).toContainText(`收押金 / 介绍费：打电话说要先交押金（${title}）`);
 
   await card.getByRole("button", { name: "下架" }).click();
+  await card.getByRole("button", { name: "确定下架这个职位" }).click();
   const done = `下架「${title}」（${shop}） · 举报：收押金 / 介绍费`;
   await expect(admin.getByRole("status")).toHaveText(`已处理：${done}`);
   await expect(card).toHaveCount(0);

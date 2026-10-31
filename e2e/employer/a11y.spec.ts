@@ -231,11 +231,9 @@ test("moderation queue, each tab", async ({ browser, page }, testInfo) => {
   await expect(admin.getByRole("article").first()).toBeVisible();
   await expectNoViolations(admin, "/admin flagged");
   await openAdminTab(admin, /被举报/);
-  await admin
-    .getByRole("article")
-    .filter({ has: admin.getByRole("heading", { name: title }) })
-    .getByRole("button", { name: "下架" })
-    .click();
+  const reported = admin.getByRole("article").filter({ has: admin.getByRole("heading", { name: title }) });
+  await reported.getByRole("button", { name: "下架" }).click();
+  await reported.getByRole("button", { name: "确定下架这个职位" }).click();
   await expect(admin.getByRole("status")).toContainText("已处理");
   await expectNoViolations(admin, "/admin after an action");
   await openAdminTab(admin, /操作记录/);

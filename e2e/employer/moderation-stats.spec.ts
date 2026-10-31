@@ -68,6 +68,7 @@ test("审核数据: a report waits in the summary, and taking the job down count
   await openAdminTab(admin, /被举报/);
   const card = admin.getByRole("article").filter({ has: admin.getByRole("heading", { name: title }) });
   await card.getByRole("button", { name: "下架" }).click();
+  await card.getByRole("button", { name: "确定下架这个职位" }).click();
   await expect(card).toHaveCount(0);
 
   const [, handled, time, takenDown] = await thisWeek(admin);
