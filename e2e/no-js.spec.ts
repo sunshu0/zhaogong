@@ -26,7 +26,10 @@ test("a job page shows the job and its facts", async ({ page }) => {
 test("an employer page shows the employer", async ({ page }) => {
   await page.goto("/employers/e1");
   await expect(page.getByRole("heading", { level: 1, name: "川味小馆" })).toBeVisible();
-  await expect(page.getByText("加载企业主页…")).toBeHidden();
+  // React streams a finished part on its own once the page passes 12.8 kB (progressiveChunkSize), and then the
+  // loading placeholder is in the page twice, both hidden; what counts is that none shows.
+  await expect(page.getByText("加载企业主页…").filter({ visible: true })).toHaveCount(0);
+  await expect(page.locator("[data-nojs-hide]:visible")).toHaveCount(0);
 });
 
 test("实习 lists its external jobs, not placeholders (#292)", async ({ page }) => {
