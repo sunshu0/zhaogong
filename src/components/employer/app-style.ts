@@ -26,10 +26,11 @@ export const CHOICE_DOT =
 
 /**
  * The sticky bar at the foot of a form (保存, 预览, 发布): see-through white with the page blurred behind it and a
- * hairline above, like the job page's action bar (#141).
+ * hairline above, like the job page's action bar (#141). The pages that have it hide the bottom nav, so the bar keeps
+ * its buttons above the iPhone's home indicator itself (SAFE_BOTTOM, as BottomNav does).
  */
-export const STICKY_BAR =
-  "sticky bottom-0 z-10 -mx-4 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md backdrop-saturate-150";
+export const SAFE_BOTTOM = "pb-[max(0.75rem,env(safe-area-inset-bottom))]";
+export const STICKY_BAR = `sticky bottom-0 z-10 -mx-4 bg-surface/90 px-4 pt-3 ${SAFE_BOTTOM} shadow-[0_-1px_0_var(--border)] backdrop-blur-md backdrop-saturate-150`;
 
 /** A text action on a bar (取消, 上一步, 返回修改): grey, underlined, 44px high. */
 export const BAR_TEXT_ACTION = "pressable inline-flex min-h-11 shrink-0 items-center text-body text-muted underline";

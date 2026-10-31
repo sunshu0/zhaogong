@@ -6,6 +6,7 @@ import type { CountryCode } from "@/lib/types";
 import { chatAssistantKind, chatTurn } from "@/app/[lang]/employer/actions";
 import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
+import { SAFE_BOTTOM } from "@/components/employer/app-style";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
 import { fieldBorder } from "@/components/ui/input-class";
@@ -158,7 +159,9 @@ export function ChatPost({
             </p>
           )}
 
-          <div className="sticky bottom-0 -mx-4 mt-3 space-y-2 bg-background/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:mx-0 lg:px-0">
+          <div
+            className={`sticky bottom-0 -mx-4 mt-3 space-y-2 bg-background/90 px-4 pt-3 ${SAFE_BOTTOM} shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:mx-0 lg:px-0`}
+          >
             {replies.length > 0 && !pending && (
               <div role="group" aria-label={t.quickRepliesLabel} className="flex flex-wrap gap-2">
                 {replies.map((q) => (
