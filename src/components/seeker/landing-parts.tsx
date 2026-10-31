@@ -132,7 +132,7 @@ export function BeforeAfter({
                 {draft.titleEn}
               </p>
             </div>
-            {draft.pay && <p className="shrink-0 font-semibold text-brand">{formatPay(draft.pay, "NZ", lang)}</p>}
+            {draft.pay && <p className="shrink-0 font-semibold text-accent">{formatPay(draft.pay, "NZ", lang)}</p>}
           </div>
           <p className="mt-2 text-meta text-muted">
             {facts.join(" · ")}
