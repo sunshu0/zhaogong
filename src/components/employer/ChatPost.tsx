@@ -99,16 +99,22 @@ export function ChatPost({
           {/* #342: before anything leaves for the model (the browser tests' fake stands in for it); never for the
               script, which sends nothing. */}
           {(kind === "claude" || kind === "fake") && (
-            <p className="-mt-2 mb-3 text-meta text-muted">
-              {t.sentAbroad}{" "}
-              <Link href="/privacy#share" className="text-brand underline underline-offset-4">
-                {t.sentAbroadPrivacy}
-              </Link>
-              {" · "}
-              <button type="button" onClick={onUseForm} className="text-brand underline underline-offset-4">
+            <div className="-mt-2 mb-3">
+              <p className="text-meta text-muted">
+                {t.sentAbroad}{" "}
+                <Link href="/privacy#share" className="text-brand underline underline-offset-4">
+                  {t.sentAbroadPrivacy}
+                </Link>
+              </p>
+              {/* Out of the sentence, so it is 44 px tall like every button (UI review 1 B). */}
+              <button
+                type="button"
+                onClick={onUseForm}
+                className="pressable inline-flex min-h-11 items-center text-meta text-brand underline underline-offset-4"
+              >
                 {t.sentAbroadForm}
               </button>
-            </p>
+            </div>
           )}
           {/* The live region is the wrapper, so the list keeps its list semantics. */}
           {/* As tall as the conversation: no empty block before the first answers. */}
@@ -169,16 +175,16 @@ export function ChatPost({
               </div>
             )}
             {unavailable && !pending && (
-              <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-                {t.unavailable}
+              <div className="rounded-control bg-warn-soft px-3 pt-2 text-body text-warn">
+                <p>{t.unavailable}</p>
                 <button
                   type="button"
                   onClick={onUseForm}
-                  className="ml-1 font-medium text-brand underline underline-offset-4"
+                  className="pressable inline-flex min-h-11 items-center font-medium text-brand underline underline-offset-4"
                 >
                   {t.useFormInstead}
                 </button>
-              </p>
+              </div>
             )}
             {error && (
               <p role="alert" className="text-body text-danger">

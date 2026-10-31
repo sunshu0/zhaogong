@@ -80,7 +80,11 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
           onChange={(e) => set({ descriptionEn: e.target.value })}
           className={box("descriptionEn", true)}
         />
-        <button type="button" onClick={onRegenerateEn} className="text-body text-brand underline">
+        <button
+          type="button"
+          onClick={onRegenerateEn}
+          className="pressable inline-flex min-h-11 items-center text-body text-brand underline"
+        >
           {t.regenerateEn}
         </button>
       </Field>
