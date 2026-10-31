@@ -96,7 +96,10 @@ export function MyReportsPage() {
         </Panel>
       )}
       <p className="px-1">
-        <Link href="/safety" className="text-body text-brand underline underline-offset-2">
+        <Link
+          href="/safety"
+          className="pressable inline-flex min-h-11 items-center text-body text-brand underline underline-offset-2"
+        >
           {t.guide}
         </Link>
       </p>
