@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { COUNTRIES } from "@/config/countries";
@@ -416,12 +416,13 @@ type Choice = {
   label: string;
 };
 
-/** A pill in the phone's sheet: tap to choose, filled when chosen. */
+/** A pill in the phone's sheet: tap to choose, filled and ticked when chosen (not by colour alone, UI audit 2). */
 function chip({ key, type, name, value, checked, label }: Choice) {
   return (
     <label key={key} className="pressable cursor-pointer">
       <input type={type} name={name} value={value} defaultChecked={checked} className="peer sr-only" />
-      <span className="inline-flex min-h-10 items-center rounded-full bg-background px-3.5 text-body peer-checked:bg-brand-soft peer-checked:font-medium peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+      <span className="inline-flex min-h-10 items-center rounded-full bg-background px-3.5 text-body peer-checked:bg-brand-soft peer-checked:font-medium peer-checked:text-brand peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-checked:[&>svg]:block">
+        <Check aria-hidden="true" strokeWidth={2.5} className="mr-1 -ml-0.5 hidden size-4 shrink-0" />
         {label}
       </span>
     </label>
