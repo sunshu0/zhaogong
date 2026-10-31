@@ -51,7 +51,7 @@ test("a job seeker writes from the job page, the business answers, each sees the
     .last();
   await expect(answer).toBeVisible({ timeout: 20_000 });
   await expect(answer.locator("[data-message-by]")).toHaveText(`${shop} · 王经理`);
-  await expect(log(seeker).locator("[data-message-read]").first()).toHaveText("已读");
+  await expect(log(seeker).locator("[data-message-read]").first()).toHaveText("对方已读");
 
   // And the business sees the reply to its answer the same way.
   await seeker.getByLabel("输入消息").fill("好的，明天见");

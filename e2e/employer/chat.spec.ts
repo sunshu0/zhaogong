@@ -68,7 +68,7 @@ test("a full conversation, from a short message to a published job", async ({ pa
   await expect(card).toContainText("可以预览");
   await page.getByRole("button", { name: "预览并发布" }).click();
 
-  await expect(page.getByRole("heading", { name: /^预览/ })).toBeFocused();
+  await expect(page.getByText(/^预览：/)).toBeFocused();
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
   await expect(page.getByRole("main")).toContainText("全职 / 兼职 / 临时工");
   await publishFromPreview(page);

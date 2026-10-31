@@ -149,7 +149,7 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   await expect(page.getByText("消息已全部读完")).toBeVisible();
   const before = await box(row);
   const read = seeker.getByRole("log", { name: "消息记录" }).locator("[data-message-read]").first();
-  await expect(read).toHaveText("已读", { timeout: 20_000 });
+  await expect(read).toHaveText("对方已读", { timeout: 20_000 });
 
   // 更多 → 标为未读: back in the list with a dot where a count would be, the row as high as before.
   await row.click();
@@ -174,7 +174,7 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   await page.reload();
   await expect(row.locator("[data-unread-mark]")).toBeVisible();
   await seeker.reload();
-  await expect(read).toHaveText("已读");
+  await expect(read).toHaveText("对方已读");
 
   // Opening the chat takes the dot off, on the server too.
   await row.click();

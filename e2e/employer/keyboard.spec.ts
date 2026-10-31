@@ -134,7 +134,7 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "预览", exact: true }).focus();
   await page.keyboard.press("Enter");
 
-  await expect(page.getByRole("heading", { name: /^预览/ })).toBeFocused();
+  await expect(page.getByText(/^预览：/)).toBeFocused();
   await tabUntil(page, (f) => f.label === "发布");
   await page.keyboard.press("Enter");
 
@@ -287,5 +287,5 @@ test("chat with the keyboard only: type, Enter, Shift+Tab to the quick replies",
   for (let i = 0; i < 4; i++) await page.keyboard.press("Shift+Tab");
   expect((await focused(page)).label).toBe("预览并发布");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: /^预览/ })).toBeFocused();
+  await expect(page.getByText(/^预览：/)).toBeFocused();
 });
