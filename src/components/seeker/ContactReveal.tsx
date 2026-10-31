@@ -139,7 +139,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
 function ContactRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <li className="flex items-center gap-3 py-2">
-      <span className="w-10 shrink-0 text-muted">{label}</span>
+      <span className="w-14 shrink-0 text-muted">{label}</span>
       {children}
     </li>
   );
