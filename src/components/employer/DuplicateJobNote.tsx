@@ -54,10 +54,13 @@ export function DuplicateJobNote({ titleZh }: { titleZh: string }) {
     <>
       {status}
       <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-        {/* The other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
-        {t.noteBefore}
-        <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>
-        {t.noteAfter(when, more)}
+        {/* The status above has said this, so screen readers do not read it twice; the link stays for them. The
+            other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
+        <span aria-hidden="true">
+          {t.noteBefore}
+          <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>
+          {t.noteAfter(when, more)}
+        </span>
         <Link href={`/employer/jobs/${first.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
           {t.link}
         </Link>
