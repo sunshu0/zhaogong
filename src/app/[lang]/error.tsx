@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { ErrorFocus } from "@/components/seeker/ErrorFocus";
 import { StatusCard } from "@/components/seeker/StatusCard";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -15,19 +16,21 @@ export default function ErrorPage({ error, retry }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <StatusCard
-      icon={TriangleAlert}
-      title={t.title}
-      actions={
-        <>
-          <Button onClick={() => retry()}>{t.retry}</Button>
-          <ButtonLink href="/" variant="secondary">
-            {t.home}
-          </ButtonLink>
-        </>
-      }
-    >
-      {t.body}
-    </StatusCard>
+    <ErrorFocus>
+      <StatusCard
+        icon={TriangleAlert}
+        title={t.title}
+        actions={
+          <>
+            <Button onClick={() => retry()}>{t.retry}</Button>
+            <ButtonLink href="/" variant="secondary">
+              {t.home}
+            </ButtonLink>
+          </>
+        }
+      >
+        {t.body}
+      </StatusCard>
+    </ErrorFocus>
   );
 }

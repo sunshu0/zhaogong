@@ -245,7 +245,7 @@ async function openOnServer(
 ) {
   const snapshot = await changeMyChat({ type: "open", conversation }).catch(() => undefined);
   if (snapshot === undefined) {
-    // No answer (#253): said, rather than a 发起聊天 that does nothing; a refusal (null) stays as it was.
+    // No answer (#253): said, rather than a 发起聊天 that does nothing.
     setUnreached(scope, true);
     toast(pick(chatMessages, lang).delivery.openFailed, 8000);
     return null;
@@ -253,6 +253,9 @@ async function openOnServer(
   if (snapshot?.scope !== scope) return null;
   keep(snapshot);
   if (snapshot.notice) toast(snapshot.notice, 8000);
+  // Refused with no reason of its own (the job closed or expired, the application or the candidate's page gone since
+  // the page loaded): said too, so the button does not just spring back (UI review 3, B7 B8).
+  else if (!snapshot.opened) toast(pick(chatMessages, lang).delivery.openRefused, 8000);
   return snapshot.opened ?? null;
 }
 

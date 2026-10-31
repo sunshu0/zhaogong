@@ -100,6 +100,7 @@ const chatZh = {
     retry: "重试",
     unsent: "未送出",
     openFailed: "网络有问题，没能发起聊天，请稍后再试。",
+    openRefused: "没能发起聊天：职位可能已停止招聘，或对方已不再公开。请刷新页面再看。",
   },
   // messages/actions.ts: the sizes of a conversation (SHARED_MESSAGES_MAX in src/db/conversations.ts) and of the own
   // record (src/lib/chat-server/own-limits.ts).

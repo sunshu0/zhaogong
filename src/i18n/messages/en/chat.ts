@@ -88,6 +88,8 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     retry: "Try again",
     unsent: "Not sent yet",
     openFailed: "Network problem: the chat didn't open. Try again later.",
+    openRefused:
+      "The chat didn't open: the job may have closed, or the person is no longer listed. Reload the page to check.",
   },
   limits: {
     messagesFull: (max) =>

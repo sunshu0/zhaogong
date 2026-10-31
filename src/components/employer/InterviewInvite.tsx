@@ -227,6 +227,7 @@ function InviteForm({
   const setProblem = onProblem ?? setShown;
   // #304: the two ways to give the time are one group: arrow keys move between them, one Tab stop, "1 of 2".
   const timeChoice = useId();
+  const noteId = useId();
   // #248: the form takes the place of 邀请面试 / 改时间, and with it the focus: its chosen time option, else the first.
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -324,16 +325,20 @@ function InviteForm({
           />
         </label>
       </div>
-      <label className="block text-body">
-        <span className="mb-1 block text-meta text-muted">{t.noteLabel}</span>
+      {/* A text box's label sits beside it (design-system「表单」), so what is typed is not part of its name. */}
+      <div className="text-body">
+        <label htmlFor={noteId} className="mb-1 block text-meta text-muted">
+          {t.noteLabel}
+        </label>
         <textarea
+          id={noteId}
           rows={2}
           value={note}
           maxLength={INTERVIEW_NOTE_MAX}
           onChange={(event) => setNote(event.target.value)}
           className={inputClass({ multiline: true })}
         />
-      </label>
+      </div>
       <p className="text-meta text-muted">{t.noContactNote}</p>
       {problem && (
         <p role="alert" className="text-meta text-danger">

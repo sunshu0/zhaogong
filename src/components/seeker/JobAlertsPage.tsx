@@ -150,6 +150,10 @@ function AlertRow({
   const [busy, setBusy] = useState(false);
   const renameButton = useRef<HTMLButtonElement>(null);
   const backToRename = useRef(false);
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  // Set when 删除 or 取消 swaps the buttons, so the focus follows (#202); not on the first render.
+  const confirmSwapped = useRef(false);
   const act = (work: () => Promise<void>) => async () => {
     setBusy(true);
     await work();
@@ -165,6 +169,18 @@ function AlertRow({
     backToRename.current = false;
     renameButton.current?.focus();
   }, [renaming]);
+  // 删除 gives way to 确认删除 and 取消, and 取消 back to 删除: the focus moves to the button that took the pressed
+  // one's place (#202).
+  useEffect(() => {
+    if (!confirmSwapped.current) return;
+    confirmSwapped.current = false;
+    (confirming ? confirmButton : deleteButton).current?.focus();
+  }, [confirming]);
+  const swapConfirm = (next: boolean) => {
+    confirmSwapped.current = true;
+    setConfirming(next);
+  };
+  const warningId = `alert-delete-warning-${alert.id}`;
 
   return (
     <Group>
@@ -237,16 +253,28 @@ function AlertRow({
           </button>
           {confirming ? (
             <span className="flex items-center gap-2 text-body">
-              {a.deleteWarning}
-              <button type="button" className={`${SMALL} text-danger`} onClick={act(onDelete)} {...busyProps(busy)}>
+              <span id={warningId}>{a.deleteWarning}</span>
+              <button
+                ref={confirmButton}
+                type="button"
+                className={`${SMALL} text-danger`}
+                aria-describedby={warningId}
+                onClick={act(onDelete)}
+                {...busyProps(busy)}
+              >
                 {a.confirmDelete}
               </button>
-              <button type="button" className={SMALL} onClick={() => setConfirming(false)}>
+              <button type="button" className={SMALL} onClick={() => swapConfirm(false)}>
                 {a.cancel}
               </button>
             </span>
           ) : (
-            <button type="button" className={`${SMALL} text-danger`} onClick={() => setConfirming(true)}>
+            <button
+              ref={deleteButton}
+              type="button"
+              className={`${SMALL} text-danger`}
+              onClick={() => swapConfirm(true)}
+            >
               {a.delete}
             </button>
           )}

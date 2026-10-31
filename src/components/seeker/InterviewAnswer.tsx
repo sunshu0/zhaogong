@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { answerMyInterview } from "@/app/[lang]/me/interview-actions";
 import { downloadInterviewIcs } from "@/components/seeker/interview-client";
 import {
@@ -38,6 +38,7 @@ export function InterviewAnswer({
   const [mode, setMode] = useState<Mode>("choose");
   const [slot, setSlot] = useState("");
   const [reply, setReply] = useState("");
+  const replyId = useId();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const status = useRef<HTMLParagraphElement>(null);
@@ -122,9 +123,13 @@ export function InterviewAnswer({
             void answer({ kind: mode, reply });
           }}
         >
-          <label className="block text-body">
-            <span className="mb-1 block font-medium">{mode === "counter" ? t.answer.myTimes : t.answer.reason}</span>
+          {/* A text box's label sits beside it (design-system「表单」), so what is typed is not part of its name. */}
+          <div className="text-body">
+            <label htmlFor={replyId} className="mb-1 block font-medium">
+              {mode === "counter" ? t.answer.myTimes : t.answer.reason}
+            </label>
             <textarea
+              id={replyId}
               rows={2}
               value={reply}
               maxLength={REPLY_MAX}
@@ -132,7 +137,7 @@ export function InterviewAnswer({
               placeholder={mode === "counter" ? t.answer.timesPlaceholder : ""}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-body focus:border-brand"
             />
-          </label>
+          </div>
           {/* #341: the reply's length against its limit, as the reports' and the application's notes show it. */}
           <p className="text-right text-meta text-muted">
             {reply.length} / {REPLY_MAX}

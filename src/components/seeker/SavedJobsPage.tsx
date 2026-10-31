@@ -35,7 +35,8 @@ export function SavedJobsPage() {
   const applied = useAppliedJobIds();
   // undefined: loading.
   const [jobs, setJobs] = useState<SavedJobView[] | null | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
+  // A change (进度, 取消收藏) that got no answer: said above the list with 重试, which sends it again; the list stays.
+  const [failedChange, setFailedChange] = useState<(() => Promise<SavedJobView[] | null>) | null>(null);
   // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
   // is not hidden behind it.
   const [failedFor, setFailedFor] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export function SavedJobsPage() {
     };
   }, [signedIn, scope, asked]);
 
-  if (!hydrated || (signedIn && jobs === undefined && !error && !loadFailed))
+  if (!hydrated || (signedIn && jobs === undefined && !loadFailed))
     return <SkeletonList count={2} label={t.pages.loadingSaved} />;
 
   if (!session) {
@@ -81,13 +82,6 @@ export function SavedJobsPage() {
       />
     );
 
-  if (error)
-    return (
-      <p role="alert" className="text-body text-danger">
-        {error}
-      </p>
-    );
-
   if (!jobs || jobs.length === 0) {
     return (
       <div className={`py-10 text-center ${sheetClass()}`}>
@@ -101,17 +95,18 @@ export function SavedJobsPage() {
   }
 
   async function change(run: () => Promise<SavedJobView[] | null>) {
-    setError(null);
+    setFailedChange(null);
     try {
       setJobs(await run());
     } catch {
-      setError(s.saveFailed);
+      setFailedChange(() => run);
     }
   }
 
   return (
     <div>
       <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
+      {failedChange && <RetryLine text={s.saveFailed} onRetry={() => void change(failedChange)} className="mb-2" />}
       <ul aria-label={s.list} className="space-y-3">
         {jobs.map((job) => (
           <li key={job.jobId} className={cardClass()}>

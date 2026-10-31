@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ErrorFocus } from "@/components/seeker/ErrorFocus";
 import { StatusCard } from "@/components/seeker/StatusCard";
 import "./globals.css";
 
@@ -19,30 +20,32 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full bg-background px-4 py-10">
-        <StatusCard
-          icon={TriangleAlert}
-          title={
-            <>
-              找工暂时打不开 <span lang="en">· 找工 can&apos;t open right now</span>
-            </>
-          }
-          actions={
-            <>
-              <Button onClick={() => retry()}>
-                重试 <span lang="en">· Try again</span>
-              </Button>
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, past the failed layout */}
-              <a href="/" className="pressable inline-flex min-h-11 items-center px-4 text-body text-brand">
-                回首页 <span lang="en">· Home</span>
-              </a>
-            </>
-          }
-        >
-          可能是网络不稳定，或者我们这边出了错。稍后再试一次。
-          <span lang="en" className="mt-1 block">
-            The network may be unsteady, or something went wrong on our side. Try again in a moment.
-          </span>
-        </StatusCard>
+        <ErrorFocus>
+          <StatusCard
+            icon={TriangleAlert}
+            title={
+              <>
+                找工暂时打不开 <span lang="en">· 找工 can&apos;t open right now</span>
+              </>
+            }
+            actions={
+              <>
+                <Button onClick={() => retry()}>
+                  重试 <span lang="en">· Try again</span>
+                </Button>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load, past the failed layout */}
+                <a href="/" className="pressable inline-flex min-h-11 items-center px-4 text-body text-brand">
+                  回首页 <span lang="en">· Home</span>
+                </a>
+              </>
+            }
+          >
+            可能是网络不稳定，或者我们这边出了错。稍后再试一次。
+            <span lang="en" className="mt-1 block">
+              The network may be unsteady, or something went wrong on our side. Try again in a moment.
+            </span>
+          </StatusCard>
+        </ErrorFocus>
       </body>
     </html>
   );

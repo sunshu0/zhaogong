@@ -8,10 +8,10 @@ import {
   type Refused,
   type TempBan,
 } from "@/app/[lang]/admin/actions";
-import { isFailed } from "@/app/[lang]/admin/load-state";
+import { isFailed, settle } from "@/app/[lang]/admin/load-state";
 import { Cancel } from "@/app/[lang]/admin/_components/Cancel";
 import { Empty, Loading } from "@/app/[lang]/admin/_components/Empty";
-import { LoadFailed } from "@/app/[lang]/admin/_components/Failed";
+import { LoadFailed, TryAgain } from "@/app/[lang]/admin/_components/Failed";
 import { useAdminLoad } from "@/app/[lang]/admin/_components/use-admin-load";
 import { StartChatButton } from "@/app/[lang]/admin/_components/ModeratorChats";
 import { Button } from "@/components/ui/Button";
@@ -43,15 +43,20 @@ export function TempBans({
   const [pending, start] = useTransition();
   const [pressed, setPressed] = useState<string>();
   const [confirming, setConfirming] = useState<string>();
+  // #183: the business whose 提前解除 or 改成永久 got no answer; said in its row, the list stays (not the error page).
+  const [failedFor, setFailedFor] = useState<string>();
 
   if (isFailed(answer)) return <LoadFailed what={t.listName} onRetry={reload} />;
   if (!answer) return <Loading cards={1} />;
   if ("refused" in answer) return <Empty>{answer.error_zh}</Empty>;
 
-  const act = (key: string, action: () => Promise<AdminResult>) => {
+  const act = (employerId: string, key: string, action: () => Promise<AdminResult>) => {
     setPressed(key);
+    setFailedFor(undefined);
     start(async () => {
-      onDone(await action());
+      const result = await settle(action);
+      if (!result) return setFailedFor(employerId);
+      onDone(result);
       setConfirming(undefined);
       reload();
     });
@@ -78,7 +83,7 @@ export function TempBans({
                   variant="secondary"
                   disabled={pending && pressed !== `lift-${b.employerId}`}
                   loading={pending && pressed === `lift-${b.employerId}`}
-                  onClick={() => act(`lift-${b.employerId}`, () => liftEmployerTempBan(b.employerId))}
+                  onClick={() => act(b.employerId, `lift-${b.employerId}`, () => liftEmployerTempBan(b.employerId))}
                 >
                   {t.lift}
                 </Button>
@@ -88,7 +93,9 @@ export function TempBans({
                       variant="danger"
                       disabled={pending && pressed !== `perm-${b.employerId}`}
                       loading={pending && pressed === `perm-${b.employerId}`}
-                      onClick={() => act(`perm-${b.employerId}`, () => makeEmployerBanPermanent(b.employerId))}
+                      onClick={() =>
+                        act(b.employerId, `perm-${b.employerId}`, () => makeEmployerBanPermanent(b.employerId))
+                      }
                     >
                       {t.confirmPermanent(b.employerName)}
                     </Button>
@@ -101,6 +108,7 @@ export function TempBans({
                 )}
                 <StartChatButton employerId={b.employerId} from="temp_ban" onOpen={onChat} onDone={onDone} />
               </div>
+              {failedFor === b.employerId && <TryAgain />}
             </li>
           ))}
         </ul>

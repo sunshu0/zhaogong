@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useSession } from "@/components/seeker/session-client";
 import { identityScope } from "@/components/seeker/identity-scope";
 import { Button } from "@/components/ui/Button";
+import { busyProps } from "@/components/ui/busy";
 import { Section } from "@/components/ui/Section";
 import { useMessages } from "@/i18n/client";
 import { pushMessages } from "@/i18n/messages/push";
@@ -175,16 +176,19 @@ export function PushSettings() {
           {notice || t[state]}
         </p>
         <div className="flex flex-wrap gap-2">
+          {/* On its way: busyProps, not disabled, so the pressed button keeps the focus (#202). */}
           <Button
-            disabled={pending || ["checking", "unsupported", "coordination", "unavailable", "denied"].includes(state)}
+            disabled={["checking", "unsupported", "coordination", "unavailable", "denied"].includes(state)}
             onClick={() => start(() => change("enable"))}
+            {...busyProps(pending)}
           >
             {pending ? t.working : t.enable}
           </Button>
           <Button
             variant="secondary"
-            disabled={pending || state === "checking"}
+            disabled={state === "checking"}
             onClick={() => start(() => change("disable"))}
+            {...busyProps(pending)}
           >
             {t.disable}
           </Button>

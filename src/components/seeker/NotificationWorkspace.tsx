@@ -121,7 +121,12 @@ function NotificationContent({ item, hasLink }: { item: Notification; hasLink: b
           <strong className={`text-body ${item.unread ? "font-semibold" : "font-medium"}`}>
             <Marked text={item.title} marks={item.marks} />
           </strong>
-          {item.unread && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label={t.unread} />}
+          {item.unread && (
+            <>
+              <span className="size-2 shrink-0 rounded-full bg-brand" aria-hidden="true" />
+              <span className="sr-only">{t.unread}</span>
+            </>
+          )}
         </span>
         <span className="mt-0.5 block text-body text-muted">
           <Marked text={item.detail} marks={item.marks} />
