@@ -147,7 +147,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
               </p>
               {m.quickReplies.length > 0 && (
                 // Shortened chips the transcript does without, as before.
-                <p aria-hidden="true" className="mt-1.5 flex flex-wrap gap-1.5">
+                <p aria-hidden="true" lang="zh-CN" className="mt-1.5 flex flex-wrap gap-1.5">
                   {m.quickReplies.map((label) => (
                     <span key={label} className="rounded-full bg-brand-soft px-2.5 py-0.5 text-meta text-brand">
                       {label.length > 14 ? `${label.slice(0, 14)}…` : label}
