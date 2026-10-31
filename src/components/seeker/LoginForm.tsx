@@ -257,19 +257,33 @@ export function LoginForm({
   function submitEmail(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const value = normalizeEmail(String(new FormData(e.currentTarget).get("email") ?? ""));
-    if (!isValidEmail(value)) return setError(t.email.invalid);
+    if (!isValidEmail(value)) {
+      setError(t.email.invalid);
+      emailInput.current?.focus(); // UI audit 1 B: to the box that needs fixing
+      return;
+    }
     sendCode(value);
   }
 
   function submitCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const code = normalizeCode(String(new FormData(e.currentTarget).get("code") ?? ""));
-    if (!isValidCode(code)) return setError(t.code.invalid);
+    if (!isValidCode(code)) {
+      setError(t.code.invalid);
+      codeInput.current?.focus();
+      codeInput.current?.select();
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await signInAccount(email, code, role).catch(() => null);
       if (!result) return setError(t.networkError);
-      if (!result.ok) return setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        codeInput.current?.focus(); // a wrong or used-up code: ready to type the next one
+        codeInput.current?.select();
+        return;
+      }
       finishSignIn(result.account, result.reload);
     });
   }
@@ -321,6 +335,8 @@ export function LoginForm({
           type="email"
           inputMode="email"
           autoComplete="email"
+          spellCheck={false}
+          autoCapitalize="none"
           defaultValue={email}
           ref={emailInput}
           onBlur={(e) => setLeftEmail(e.currentTarget.value)}
@@ -398,6 +414,8 @@ export function LoginForm({
           name="code"
           inputMode="numeric"
           autoComplete="one-time-code"
+          spellCheck={false}
+          autoCapitalize="none"
           // #290: room for a pasted "123 456" or full-width digits, cleaned to the six digits as they come in (a
           // maxLength of 6 cut the paste before it could be cleaned).
           maxLength={16}

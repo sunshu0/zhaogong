@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Flag } from "lucide-react";
 import { useChat, type Conversation } from "@/components/seeker/chat-client";
 import { useSession } from "@/components/seeker/session-client";
@@ -76,6 +76,11 @@ export function ChatReportDialog({
   const { messages, reports, reportConversation } = useChat();
   const isEmployer = useSession()?.activeRole === "employer";
   const [sent, setSent] = useState(false);
+  const sentNote = useRef<HTMLParagraphElement>(null);
+  // The form and its buttons go away: the focus goes to what replaced them (UI audit 1, as ReportJob does).
+  useEffect(() => {
+    if (sent) sentNote.current?.focus();
+  }, [sent]);
   const [reason, setReason] = useState<ChatReportReason | "">(presetReason ?? "");
   const [note, setNote] = useState("");
   const noteId = useId();
@@ -85,8 +90,18 @@ export function ChatReportDialog({
   const thread = messages[conversation.id] ?? [];
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!reason) return setError(t.noReason);
-    if (reason === "other" && !note.trim()) return setError(t.noNote);
+    // UI audit 1: the focus goes to what needs fixing.
+    const form = event.currentTarget as HTMLFormElement;
+    if (!reason) {
+      setError(t.noReason);
+      form.querySelector<HTMLElement>('[aria-haspopup="listbox"]')?.focus();
+      return;
+    }
+    if (reason === "other" && !note.trim()) {
+      setError(t.noNote);
+      form.querySelector<HTMLElement>("textarea")?.focus();
+      return;
+    }
     const ok = reportConversation(conversation.id, reason, note, range === "" ? undefined : Number(range));
     if (!ok) return setError(t.notSaved);
     setSent(true);
@@ -96,7 +111,7 @@ export function ChatReportDialog({
     <ChatDialog title={t.dialogTitle} onClose={onClose}>
       {sent ? (
         <div className="space-y-3">
-          <p role="status" className="font-medium text-ok">
+          <p ref={sentNote} tabIndex={-1} role="status" className="font-medium text-ok outline-none">
             {t.sentTitle}
           </p>
           <p className="text-body text-muted">{t.sentNote}</p>

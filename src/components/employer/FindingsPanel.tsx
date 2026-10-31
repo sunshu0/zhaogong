@@ -8,6 +8,17 @@ import { employerPostMessages } from "@/i18n/messages/employer-post";
 import type { RequiredField } from "@/lib/ai-post";
 import type { Finding, FindingLevel, JobDraft } from "@/lib/compliance";
 
+/**
+ * A finding's link scrolls to the field (`#field-<name>`); the focus goes into its control (`#in-<name>`, or the first
+ * control of a group), so the employer can type at once (UI audit 1 B). The scroll stays the link's.
+ */
+function focusField(field: string) {
+  const control =
+    document.getElementById(`in-${field}`) ??
+    document.getElementById(`field-${field}`)?.querySelector<HTMLElement>("input, select, textarea, button");
+  control?.focus({ preventScroll: true });
+}
+
 /** The fields a finding can point at, in Chinese (the moderation queue's language). */
 export const FIELD_LABELS: Partial<Record<keyof JobDraft, string>> = employerPostMessages.zh.findings.fields;
 
@@ -89,7 +100,7 @@ export function FindingsPanel({ findings, missing }: { findings: Finding[]; miss
         <ul className="mt-2 space-y-2">
           {findings.map((f, i) => (
             <li key={`${f.rule}-${f.field}-${i}`}>
-              <a href={`#field-${f.field}`} className="pressable block">
+              <a href={`#field-${f.field}`} onClick={() => focusField(f.field)} className="pressable block">
                 <span className="mb-1 block text-meta text-muted">{labels[f.field] ?? f.field}</span>
                 <FindingItem finding={f} lang={lang} />
               </a>
@@ -101,7 +112,7 @@ export function FindingsPanel({ findings, missing }: { findings: Finding[]; miss
               {missing.map((field, i) => (
                 <span key={field}>
                   {i > 0 && t.missingJoin}
-                  <a href={`#field-${field}`} className="underline">
+                  <a href={`#field-${field}`} onClick={() => focusField(field)} className="underline">
                     {labels[field]}
                   </a>
                 </span>

@@ -182,7 +182,11 @@ function PhrasesDialog({ role, kept, onClose }: { role: PhraseRole; kept: ChatPh
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (pick === "own" && !own.trim()) return setError(t.openerEmpty);
+    if (pick === "own" && !own.trim()) {
+      setError(t.openerEmpty);
+      (event.currentTarget as HTMLFormElement).querySelector<HTMLElement>("textarea")?.focus(); // UI audit 1
+      return;
+    }
     setSaving(true);
     const answer = await saveChatPhrases({
       role,

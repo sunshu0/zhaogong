@@ -241,6 +241,9 @@
  */
 :root {
   --bottom-nav-space: 0px;
+  /* UI audits 1 and 2: what gets the focus is scrolled clear of the sticky header and the bottom bar. */
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: var(--bottom-nav-space);
 }
 @media (width < 48rem) {
   :root:has(#bottom-nav) {

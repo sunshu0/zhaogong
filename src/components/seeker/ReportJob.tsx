@@ -62,7 +62,12 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     const reason = String(data.get("reason") ?? "");
     const note = String(data.get("note") ?? "");
     const parsed = parseReport({ reason, note }, lang);
-    if (!parsed.ok) return setError(parsed.error);
+    if (!parsed.ok) {
+      setError(parsed.error);
+      // UI audit 1: to what needs fixing — the reasons when none is chosen, else the note.
+      e.currentTarget.querySelector<HTMLElement>(reason ? "textarea" : 'input[name="reason"]')?.focus();
+      return;
+    }
     setError(null);
     startTransition(async () => {
       let files: FormData | undefined;
