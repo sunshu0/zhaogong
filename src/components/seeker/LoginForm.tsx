@@ -16,7 +16,12 @@ import { contentLang } from "@/i18n/lang";
 import { VERIFICATION_LABELS } from "@/i18n/labels";
 import { loginMessages } from "@/i18n/messages/login";
 import type { EmployerVerification } from "@/lib/types";
-import { businessChoice, defaultBusinessChoice, reconcileIdentity } from "@/components/seeker/identity";
+import {
+  businessChoice,
+  defaultBusinessChoice,
+  parseBusinessChoice,
+  reconcileIdentity,
+} from "@/components/seeker/identity";
 import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
 import { emailTypoFix } from "@/components/seeker/email-typos";
 import { placeName } from "@/components/seeker/format";
@@ -58,6 +63,10 @@ const fixButtonClass =
   "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50 aria-disabled:opacity-50";
 
 const ROLES: readonly ActiveRole[] = ["seeker", "employer"];
+/** The tries a wrong code can leave (lib/auth/config MAX_ATTEMPTS is 5; server-only, so not imported here). */
+const WRONG_CODE_TRIES = [0, 1, 2, 3, 4, 5];
+/** A new business's name, as long as identity.ts NAME_MAX allows. */
+const NAME_MAX = 40;
 
 /**
  * 注册或登录 (the email code does both; A12-1: the code is checked and the session started on the server). Job seekers: email → code → `next`. Employers: email → code → their
@@ -87,6 +96,10 @@ export function LoginForm({
   // How long a code works and how soon another may be asked for, as the server says (lib/auth/config.ts).
   const [codeTimes, setCodeTimes] = useState({ validMinutes: 10, resendMinutes: 1 });
   const [error, setError] = useState<string | null>(null);
+  // UI review 1 B: the box is marked (red, aria-invalid) only when the error is about what is in it — not for a
+  // network error, a sign-in limit or 只开放给受邀的账号.
+  const emailWrong = error === t.email.invalid;
+  const codeWrong = error === t.code.invalid || WRONG_CODE_TRIES.some((left) => error === t.errors.wrongCode(left));
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
   const [checkedFor, setCheckedFor] = useState<string | null>(null);
@@ -345,9 +358,9 @@ export function LoginForm({
             if (typoFix) setLeftEmail(e.currentTarget.value);
           }}
           placeholder="you@example.com"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "login-error" : undefined}
-          className={inputClass({ tone: error ? "danger" : undefined })}
+          aria-invalid={emailWrong || undefined}
+          aria-describedby={emailWrong ? "login-error" : undefined}
+          className={inputClass({ tone: emailWrong ? "danger" : undefined })}
         />
       </label>
       {error && <ErrorText>{error}</ErrorText>}
@@ -425,9 +438,9 @@ export function LoginForm({
           }}
           placeholder={t.code.placeholder}
           autoFocus
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "login-error" : undefined}
-          className={`${inputClass({ tone: error ? "danger" : undefined })} font-figure tracking-[0.4em]`}
+          aria-invalid={codeWrong || undefined}
+          aria-describedby={codeWrong ? "login-error" : undefined}
+          className={`${inputClass({ tone: codeWrong ? "danger" : undefined })} font-figure tracking-[0.4em]`}
         />
       </label>
       {error && <ErrorText>{error}</ErrorText>}
@@ -491,6 +504,10 @@ function BusinessStep({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const regions = COUNTRIES.NZ.regions;
+  const nameInput = useRef<HTMLInputElement>(null);
+  // UI review 1 B: 请填写店名 and 店名最多… go under the name box and mark it; 请选择地区 marks the area.
+  const nameWrong = error === t.identity.nameMissing || error === t.identity.nameTooLong(NAME_MAX);
+  const areaWrong = error === t.identity.areaMissing;
   // ADR 0044: the account's business is banned; nothing to set up here until it is over.
   const [banned, setBanned] = useState<string | null>(null);
   useEffect(() => {
@@ -511,6 +528,13 @@ function BusinessStep({
       choice === "new"
         ? { kind: "new", name: String(data.get("name") ?? ""), regionId: String(data.get("regionId") ?? "") }
         : { kind: "existing", employerId: choice };
+    // The server checks the same; asked here first, the person goes straight back to the box.
+    const checked = choice === "new" ? parseBusinessChoice(payload, "NZ", lang) : null;
+    if (checked && !checked.ok) {
+      setError(checked.error);
+      if (checked.error !== t.identity.areaMissing) nameInput.current?.focus();
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await openEmployerForAccount(email, payload).catch(() => null);
@@ -570,19 +594,31 @@ function BusinessStep({
         <div className="space-y-4">
           <label className="block">
             <span className={labelClass}>{t.hiring.nameLabel}</span>
-            <input name="name" maxLength={40} autoComplete="organization" className={inputClass()} />
+            <input
+              ref={nameInput}
+              name="name"
+              maxLength={NAME_MAX}
+              autoComplete="organization"
+              aria-invalid={nameWrong || undefined}
+              aria-describedby={nameWrong ? "business-name-error" : undefined}
+              className={inputClass({ tone: nameWrong ? "danger" : undefined })}
+            />
           </label>
+          {nameWrong && <ErrorText id="business-name-error">{error}</ErrorText>}
           <Select
             name="regionId"
             label={t.hiring.areaLabel}
             placeholder={t.hiring.areaPlaceholder}
             required
+            tone={areaWrong ? "danger" : undefined}
+            aria-describedby={areaWrong ? "business-area-error" : undefined}
             options={regions.map((r) => ({ value: r.id, label: placeName(r, lang) ?? r.nameZh }))}
           />
+          {areaWrong && <ErrorText id="business-area-error">{error}</ErrorText>}
         </div>
       )}
 
-      {error && <ErrorText>{error}</ErrorText>}
+      {error && !nameWrong && !areaWrong && <ErrorText>{error}</ErrorText>}
       <Button type="submit" size="lg" block loading={pending}>
         {pending ? t.hiring.submitting : t.hiring.submit}
       </Button>
@@ -678,9 +714,9 @@ function Placeholder() {
   );
 }
 
-function ErrorText({ children }: { children: string }) {
+function ErrorText({ children, id = "login-error" }: { children: string; id?: string }) {
   return (
-    <p id="login-error" role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
+    <p id={id} role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-body text-danger">
       {children}
     </p>
   );
