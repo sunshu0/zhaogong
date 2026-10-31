@@ -61,7 +61,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
           rows={5}
           value={form.descriptionZh}
           onChange={(e) => set({ descriptionZh: e.target.value })}
-          className={`py-2 ${box("descriptionZh")}`}
+          className={box("descriptionZh", true)}
         />
       </Field>
       <Field
@@ -78,7 +78,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
           rows={4}
           value={form.descriptionEn}
           onChange={(e) => set({ descriptionEn: e.target.value })}
-          className={`py-2 ${box("descriptionEn")}`}
+          className={box("descriptionEn", true)}
         />
         <button type="button" onClick={onRegenerateEn} className="text-body text-brand underline">
           {t.regenerateEn}
@@ -151,7 +151,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
                   value={form[key]}
                   onChange={(e) => set({ [key]: e.target.value })}
                   placeholder={placeholder}
-                  className={`h-11 ${box("contact")}`}
+                  className={box("contact")}
                   {...aria("contact")}
                 />
               </label>

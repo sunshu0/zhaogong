@@ -9,7 +9,8 @@ import type { CountryCode, VisaAccepted } from "@/lib/types";
 import { FindingItem } from "@/components/employer/FindingsPanel";
 import type { PostForm } from "@/components/employer/post-form";
 import { ChoicePill } from "@/components/employer/ChoicePill";
-import { fieldTone, type FieldState } from "@/components/employer/field-tone";
+import { selectTone, type FieldState } from "@/components/employer/field-tone";
+import { inputClass } from "@/components/ui/input-class";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
@@ -21,7 +22,8 @@ export type FieldKit = {
   set: (patch: Partial<PostForm>) => void;
   config: CountryConfig;
   state: (field: keyof JobDraft) => FieldState;
-  box: (field: keyof JobDraft) => string;
+  /** The field's input (or `multiline` textarea) in inputClass, its border in the field's tone. */
+  box: (field: keyof JobDraft, multiline?: boolean) => string;
   aria: (field: keyof JobDraft) => FieldAria;
   visaChoices: VisaAccepted[];
 };
@@ -62,7 +64,7 @@ export function fieldKit({
     missing: (missing as (keyof JobDraft)[]).includes(field),
     findings: findings.filter((f) => f.field === field),
   });
-  const box = (field: keyof JobDraft) => `w-full rounded-control border bg-background px-3 ${fieldTone(state(field))}`;
+  const box = (field: keyof JobDraft, multiline = false) => inputClass({ tone: selectTone(state(field)), multiline });
   const aria = (field: keyof JobDraft) => fieldAria(field, state(field));
   return { form, set, config: COUNTRIES[country], state, box, aria, visaChoices };
 }
@@ -183,7 +185,7 @@ export function RangeInputs({
         {...aria}
         value={min ?? ""}
         onChange={(e) => onMin(numberOrUndefined(e.target.value))}
-        className={`h-11 ${className}`}
+        className={className}
       />
       <span aria-hidden="true">–</span>
       <input
@@ -196,7 +198,7 @@ export function RangeInputs({
         value={max ?? ""}
         onChange={(e) => onMax(numberOrUndefined(e.target.value))}
         placeholder={t.rangeMaxPlaceholder}
-        className={`h-11 ${className}`}
+        className={className}
       />
       <span className="shrink-0 text-body text-muted">{unit}</span>
     </div>

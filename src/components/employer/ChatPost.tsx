@@ -8,6 +8,7 @@ import type { AssistantKind } from "@/lib/ai-post/model";
 import { DraftCard } from "@/components/employer/DraftCard";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
+import { fieldBorder } from "@/components/ui/input-class";
 import { useMessages } from "@/i18n/client";
 import { contentLang } from "@/i18n/lang";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
@@ -196,7 +197,8 @@ export function ChatPost({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
                 placeholder={t.inputPlaceholder}
-                className="min-h-11 flex-1 resize-y rounded-control border border-border bg-surface px-3 py-2 text-base"
+                // inputClass() but two rows high: its multiline box is 96 px, too tall under a conversation.
+                className={`min-h-11 flex-1 resize-y rounded-control border bg-surface px-3 py-2 text-base outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/30 ${fieldBorder()}`}
               />
               <Button type="submit" loading={pending} disabled={!text.trim()}>
                 {t.send}

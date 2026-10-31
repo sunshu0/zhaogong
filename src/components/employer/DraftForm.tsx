@@ -63,7 +63,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
           value={form.titleZh}
           onChange={(e) => set({ titleZh: e.target.value })}
           placeholder={t.titleZhPlaceholder}
-          className={`h-11 ${box("titleZh")}`}
+          className={box("titleZh")}
         />
       </Field>
       <Field name="titleEn" label={t.titleEn} required {...state("titleEn")}>
@@ -74,7 +74,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
           value={form.titleEn}
           onChange={(e) => set({ titleEn: e.target.value })}
           placeholder={t.titleEnPlaceholder}
-          className={`h-11 ${box("titleEn")}`}
+          className={box("titleEn")}
         />
       </Field>
       <Field name="industry" label={t.industry} required {...state("industry")}>
@@ -152,7 +152,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
           {...aria("address")}
           value={form.address}
           onChange={(e) => set({ address: e.target.value })}
-          className={`h-11 ${box("address")}`}
+          className={box("address")}
         />
       </Field>
       <Group name="hoursPerWeek" legend={t.hoursPerWeek} {...state("hoursPerWeek")}>
@@ -174,7 +174,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
           value={form.shiftsZh}
           onChange={(e) => set({ shiftsZh: e.target.value })}
           placeholder={t.shiftsPlaceholder}
-          className={`h-11 ${box("shiftsZh")}`}
+          className={box("shiftsZh")}
         />
       </Field>
     </Section>
