@@ -43,8 +43,8 @@ const employerPhotosZh = {
   benefits: {
     heading: "福利",
     hint: "勾选你们店真的有的。法律规定人人都有的（带薪年假、KiwiSaver 等）不用勾。",
-    save: "保存福利",
-    saved: "福利已保存。",
+    saving: "正在保存…",
+    saved: "已自动保存，企业主页上马上能看到。",
     failed: "没有保存成功，请再试一次。",
     labels: {
       meals: "包餐",

@@ -129,7 +129,7 @@
 | `myCompanyPhotos()` | | `CompanyPhotosSnapshot`：`{ scope, employerId, photos, benefits, canEdit, banned? }`。`photos` 按上传时间从旧到新，每张 `{ id, status, reason, uploadedAt, reviewedAt }`：等审、通过的，和 30 天内被退回的（只有理由，没有图）；删掉的不列；顺手清理本企业的（同 `purgeExpiredPhotos`） | `null` |
 | `uploadCompanyPhoto(form)` | `FormData`，字段 `photo`：浏览器先缩到长边 1600 像素（WebP，不行就 JPEG） | `{ snapshot, said: "已上传，等审核员看过就会公开。" }`：服务器按字节认类型（JPG、PNG、WebP），去掉元数据，先占一行（等审）再存文件，存不进就删掉那一行；存完再看那一行还在不在（同时删号、删照片），不在就删掉刚存的文件、回答「上传没有成功」 | `{ snapshot, said, error: true }`：「只能上传 JPG、PNG 或 WebP 图片。」「这张图片不完整，请重新保存后再上传。」「这张照片太大了…」（2 MB 以上）、「已经有 6 张了：删掉一张再上传。」「今天上传的照片太多了，请明天再试。」（24 小时 20 次，退回的、删掉的也算）、「上传没有成功，请再试一次。」 |
 | `removeCompanyPhoto(id)` | 本企业照片的编号，什么状态都行 | `{ snapshot, said: "照片已删除。" }`：先把行标成删掉（`status = "removed"`，谁都看不到、不导出），再删文件；行留一天照样算进当天的上传次数，之后清理时删掉；文件没删掉的写服务器日志，清理时补删 | 只有管理员；别家的照片当作没有，照样回答「照片已删除。」 |
-| `saveCompanyBenefits(benefits)` | 勾选的福利，只认 `BENEFITS` 里的 8 项（`src/lib/company-photos.ts`） | `{ snapshot, said: "福利已保存。" }`：马上显示在企业主页上，不用审核；还没有企业主页的企业建一个空的 | 只有管理员；不是数组时 `null` |
+| `saveCompanyBenefits(benefits)` | 勾选的福利，只认 `BENEFITS` 里的 8 项（`src/lib/company-photos.ts`） | `{ snapshot, said: "已自动保存，企业主页上马上能看到。" }`（页面每勾一项就调一次）：马上显示在企业主页上，不用审核；还没有企业主页的企业建一个空的 | 只有管理员；不是数组时 `null` |
 
 照片文件只经 `GET /api/company-photos/[id]` 交出（见「页面路由」）。被退回时雇主的通知里有一条「有一张门店照片被退回」（`src/app/[lang]/employer/photo-notifications.ts`，读通知不写数据库），点进 `/employer/photos`。删号时企业跟着最后一个人删掉的话，照片的行和文件一起删；「导出我的数据」列出照片的编号、状态和时间，没有图（和照片页一样：不含删掉的、30 天前退回的）。
 

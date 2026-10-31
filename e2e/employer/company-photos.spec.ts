@@ -56,10 +56,9 @@ test("a photo shows on the public page only once approved; one sent back loses i
   const first = (await page.getByRole("img", { name: "第 1 张门店照片" }).getAttribute("src"))!;
   const employerId = await businessId(page);
 
-  // Benefits show at once, with nothing to review.
+  // Benefits save themselves on the tick and show at once, with nothing to review.
   await page.getByRole("checkbox", { name: "包餐" }).check();
-  await page.getByRole("button", { name: "保存福利" }).click();
-  await expect(page.getByRole("main").getByRole("status")).toHaveText("福利已保存。");
+  await expect(page.getByText("已自动保存，企业主页上马上能看到。")).toBeVisible();
 
   // Waiting: the business sees its photo, never cached; a visitor gets nothing.
   const own = await page.request.get(first);

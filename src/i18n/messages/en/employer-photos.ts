@@ -43,8 +43,8 @@ export const employerPhotosEn: Messages<(typeof employerPhotosMessages)["zh"]> =
   benefits: {
     heading: "Benefits",
     hint: "Tick what your shop really offers. Leave out what the law gives everyone (paid annual leave, KiwiSaver and so on).",
-    save: "Save benefits",
-    saved: "Benefits saved.",
+    saving: "Saving…",
+    saved: "Saved automatically: your business page shows it now.",
     failed: "That didn't save. Please try again.",
     labels: {
       meals: "Meals",
