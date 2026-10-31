@@ -11,6 +11,12 @@ export const WIDE_ON_DESKTOP = "lg:mr-0 lg:ml-[calc(50%_-_min(36rem,_50vw_-_1.5r
  */
 export const FULL_BLEED = "ml-[calc(50%_-_50vw)] w-screen";
 
+/**
+ * Side padding that keeps clear of a phone's notch in landscape (viewportFit "cover"): 1rem, or the safe area when it
+ * is wider (UI audit 2).
+ */
+export const SAFE_X = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
+
 /** The site-wide content container: the main column's 48rem below 1024 px, min(72rem, window − 3rem) from 1024 px, like the header. */
 export const SITE_CONTAINER = "mx-auto w-full max-w-3xl px-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0";
 

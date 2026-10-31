@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SAFE_X } from "@/components/ui/wide";
 import localFont from "next/font/local";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -98,7 +99,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
             {nav.skip}
           </a>
           <StickyHeader>
-            <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:h-16 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
+            <div
+              className={`relative mx-auto flex h-14 max-w-3xl items-center gap-2 ${SAFE_X} md:gap-4 lg:h-16 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0`}
+            >
               <Link
                 href="/"
                 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xl font-bold text-brand lg:text-[1.375rem]"
@@ -120,7 +123,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
               </div>
             </div>
           </StickyHeader>
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-4 outline-none">
+          <main id="main" tabIndex={-1} className={`mx-auto w-full max-w-3xl flex-1 ${SAFE_X} py-4 outline-none`}>
             <Suspense fallback={null}>
               <SignInNoticeBar />
             </Suspense>
