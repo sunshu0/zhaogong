@@ -21,7 +21,7 @@ const SIZES: Record<ButtonSize, string> = { md: "min-h-11", lg: "min-h-12 text-s
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-accent px-4 font-semibold text-white hover:bg-accent-strong active:bg-accent-strong",
   secondary: "border-[1.5px] border-brand bg-surface px-4 font-semibold text-brand hover:bg-brand-soft",
-  danger: "bg-danger px-4 text-white hover:opacity-90",
+  danger: "bg-danger px-4 text-white hover:bg-danger-strong active:bg-danger-strong",
   "danger-secondary": "border border-danger/40 bg-surface px-4 text-danger hover:border-danger hover:bg-danger-soft",
   link: "px-1 text-brand underline-offset-4 hover:underline",
 };

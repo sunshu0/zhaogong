@@ -35,6 +35,11 @@ describe("pressed and hovered things keep their text at 4.5:1", () => {
     expect(contrast("#ffffff", token("accent-strong"))).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("white on the danger button at rest, hovered and pressed (UI audit 1)", () => {
+    expect(contrast("#ffffff", token("danger"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#ffffff", token("danger-strong"))).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("pay and every text colour on the page, the cards and the soft fills (#375, visual A)", () => {
     for (const text of ["foreground", "muted", "brand", "accent", "danger", "warn", "ok"])
       for (const ground of ["surface", "background"])

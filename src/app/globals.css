@@ -22,6 +22,7 @@
   --warn-soft: #fef3e2;
   --danger: #b42318; /* 6.6:1; 5.8:1 on --danger-soft */
   --danger-soft: #fdecea;
+  --danger-strong: #912018; /* a pressed or hovered danger button; white on it 8.7:1 */
   --ok: #157a3a; /* 5.4:1; 4.8:1 on --ok-soft */
   --ok-soft: #e6f4ea;
   --neutral-soft: #f1ece4; /* grey tags, the unverified badge, quiet buttons; --muted on it 6.1:1 */
@@ -63,6 +64,7 @@
   --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-strong: var(--danger-strong);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-neutral-soft: var(--neutral-soft);
