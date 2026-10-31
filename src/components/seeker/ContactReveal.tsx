@@ -92,24 +92,33 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                   {DIALABLE.test(current.contact.phone) ? (
                     <a
                       href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
-                      className="text-brand underline underline-offset-2"
+                      translate="no"
+                      className="min-w-0 text-brand underline underline-offset-2"
                     >
                       {current.contact.phone}
                     </a>
                   ) : (
-                    <span lang={contentLang(current.contact.phone)}>{current.contact.phone}</span>
+                    <span lang={contentLang(current.contact.phone)} translate="no" className="min-w-0 break-all">
+                      {current.contact.phone}
+                    </span>
                   )}
                 </ContactRow>
               )}
               {current.contact.wechat && (
                 <ContactRow label={t.contact.rows.wechat}>
-                  <span className="font-mono">{current.contact.wechat}</span>
+                  <span translate="no" className="min-w-0 font-mono break-all">
+                    {current.contact.wechat}
+                  </span>
                   <CopyButton text={current.contact.wechat} className="ml-auto" />
                 </ContactRow>
               )}
               {current.contact.email && (
                 <ContactRow label={t.contact.rows.email}>
-                  <a href={`mailto:${current.contact.email}`} className="text-brand underline underline-offset-2">
+                  <a
+                    href={`mailto:${current.contact.email}`}
+                    translate="no"
+                    className="min-w-0 break-all text-brand underline underline-offset-2"
+                  >
                     {current.contact.email}
                   </a>
                 </ContactRow>

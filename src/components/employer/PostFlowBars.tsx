@@ -89,7 +89,7 @@ export function PreviewBar({
         {t.backToEdit}
       </button>
       {/* The shop's name is the employer's own, so it says which language it is in (ADR 0023 §6). */}
-      <p className="flex-1 text-meta text-muted">
+      <p className="min-w-0 flex-1 break-words text-meta text-muted">
         {t.postingAsBefore}
         <span lang={contentLang(shopName)}>{shopName}</span>
         {t.postingAsAfter}

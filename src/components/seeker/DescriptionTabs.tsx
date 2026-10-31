@@ -71,7 +71,7 @@ export function DescriptionTabs({ zh, en, plain = false }: { zh: string; en: str
         id={`${id}-panel`}
         aria-labelledby={`${id}-${current}`}
         lang={TABS.find((tab) => tab.key === current)?.lang}
-        className="text-body leading-relaxed whitespace-pre-line"
+        className="text-body leading-relaxed break-words whitespace-pre-line"
       >
         {text[current]}
       </div>

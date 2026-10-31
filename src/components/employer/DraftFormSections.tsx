@@ -101,9 +101,15 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
   ] as const;
   // The three ways to be contacted: form key, label, input type, placeholder.
   const contactFields = [
-    { key: "phone", label: t.contactPhone, type: "tel", placeholder: t.contactPhonePlaceholder },
-    { key: "wechat", label: t.contactWechat, type: "text", placeholder: "" },
-    { key: "email", label: t.contactEmail, type: "email", placeholder: t.contactEmailPlaceholder },
+    { key: "phone", label: t.contactPhone, type: "tel", placeholder: t.contactPhonePlaceholder, autoComplete: "tel" },
+    { key: "wechat", label: t.contactWechat, type: "text", placeholder: "", autoComplete: "off" },
+    {
+      key: "email",
+      label: t.contactEmail,
+      type: "email",
+      placeholder: t.contactEmailPlaceholder,
+      autoComplete: "email",
+    },
   ] as const;
   return (
     <Section title={t.contactSection}>
@@ -131,11 +137,17 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
       {form.contactPublic ? (
         <Group name="contact" legend={t.contactLegend} required hint={t.contactHint} {...state("contact")}>
           <div className="space-y-2">
-            {contactFields.map(({ key, label, type, placeholder }) => (
+            {contactFields.map(({ key, label, type, placeholder, autoComplete }) => (
               <label key={key} className="flex items-center gap-2">
                 <span className={`${labelWidth} shrink-0 text-body`}>{label}</span>
                 <input
                   type={type}
+                  name={`contact-${key}`}
+                  autoComplete={autoComplete}
+                  // UI audit 1 B: a WeChat ID or an address is not a word to correct or capitalise.
+                  spellCheck={false}
+                  autoCapitalize={key === "phone" ? undefined : "none"}
+                  autoCorrect={key === "phone" ? undefined : "off"}
                   value={form[key]}
                   onChange={(e) => set({ [key]: e.target.value })}
                   placeholder={placeholder}

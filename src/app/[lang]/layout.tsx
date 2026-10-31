@@ -97,7 +97,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
                 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xl font-bold text-brand lg:text-[1.375rem]"
               >
                 <BrandMark className="size-8 lg:size-9" />
-                {site.name}
+                <span translate="no">{site.name}</span>
               </Link>
               <span className="hidden text-body text-muted md:inline xl:hidden">{site.city}</span>
               <div className="ml-auto flex items-center gap-2 whitespace-nowrap text-body md:gap-4">
@@ -134,7 +134,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
                   aria-hidden="true"
                 >
                   <BrandMark className="size-7" />
-                  {site.name}
+                  <span translate="no">{site.name}</span>
                 </Link>
                 <p className="hidden text-body text-foreground lg:mt-2 lg:block">{footer.tagline}</p>
                 <p className="lg:mt-2">{site.lawNote}</p>

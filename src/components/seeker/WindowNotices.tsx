@@ -90,7 +90,7 @@ function Notice({
       >
         {stamp}
       </span>
-      <h3 className="pr-10 text-title font-black group-hover:text-brand">
+      <h3 className="pr-10 text-title font-black break-words group-hover:text-brand">
         <Link
           href={`/jobs/${job.id}`}
           transitionTypes={FORWARD}

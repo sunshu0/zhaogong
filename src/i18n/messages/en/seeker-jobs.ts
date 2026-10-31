@@ -135,7 +135,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
   },
   filter: {
     search: "Search jobs",
-    searchPlaceholder: "Search jobs, e.g. waiter, chef",
+    searchPlaceholder: "Search jobs, e.g. waiter, chef…",
     open: "Filters",
     openWithCount: (n) => `Filters · ${n}`,
     title: "Filters",
