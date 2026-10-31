@@ -11,8 +11,9 @@ import {
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
+import { busyFor } from "@/components/employer/busy-for";
 import { APP_SHEET, BACK_LINK, noticeClass } from "@/components/employer/app-style";
-import { Button } from "@/components/ui/Button";
+import { Button, Spinner } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -59,6 +60,9 @@ function Photos({ me }: { me: EmployerIdentity }) {
   const messageRef = useFocusOnChange<HTMLParagraphElement>(message);
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [busy, startTransition] = useTransition();
+  // Which change is on its way (UI review 3): 删除 under one photo, the upload or the benefits; only its control says so.
+  const [pressed, setPressed] = useState<string>();
+  const working = busy ? pressed : undefined;
   const input = useRef<HTMLInputElement>(null);
 
   /** Asks for the snapshot; `live` says whether its answer is still wanted. */
@@ -91,7 +95,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
     setBenefits(result.snapshot.benefits);
     setMessage({ ok: !result.error, text: result.said });
   };
-  const act = (run: () => Promise<CompanyPhotosResult | null>) =>
+  const act = (key: string, run: () => Promise<CompanyPhotosResult | null>) => {
+    setPressed(key);
     startTransition(async () => {
       try {
         answered(await run());
@@ -99,11 +104,12 @@ function Photos({ me }: { me: EmployerIdentity }) {
         setMessage({ ok: false, text: t.failed });
       }
     });
+  };
 
   const upload = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
-    act(async () => {
+    act("upload", async () => {
       const form = new FormData();
       form.set("photo", await smaller(file), file.name);
       return uploadCompanyPhoto(form);
@@ -117,6 +123,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
   if (state === null) return <p className="text-body">{t.noBusiness}</p>;
   const shown = state.photos.filter((photo) => photo.status !== "rejected").length;
   const full = shown >= PHOTOS_MAX;
+  const uploading = working === "upload";
+  const uploadHeld = full || (working !== undefined && !uploading);
 
   return (
     <div className="space-y-5">
@@ -164,7 +172,11 @@ function Photos({ me }: { me: EmployerIdentity }) {
                     {photo.status === "approved" ? t.approved : photo.status === "pending" ? t.pending : ""}
                   </span>
                   {state.canEdit && (
-                    <RemovePhoto n={i + 1} busy={busy} onRemove={() => act(() => removeCompanyPhoto(photo.id))} />
+                    <RemovePhoto
+                      n={i + 1}
+                      {...busyFor(working, `remove:${photo.id}`)}
+                      onRemove={() => act(`remove:${photo.id}`, () => removeCompanyPhoto(photo.id))}
+                    />
                   )}
                 </div>
               </li>
@@ -175,16 +187,17 @@ function Photos({ me }: { me: EmployerIdentity }) {
         )}
         {state.canEdit && (
           <div className="space-y-1">
-            <label className={`inline-flex ${full || busy ? "pointer-events-none opacity-60" : ""}`}>
-              <span className="pressable inline-flex min-h-11 cursor-pointer items-center rounded-control bg-brand px-4 text-body font-medium text-white">
-                {busy ? t.uploading : t.choose}
+            <label className={`inline-flex ${uploadHeld || uploading ? "pointer-events-none opacity-60" : ""}`}>
+              <span className="pressable inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-control bg-brand px-4 text-body font-medium text-white">
+                {uploading && <Spinner />}
+                {uploading ? t.uploading : t.choose}
               </span>
               <input
                 ref={input}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 className="sr-only"
-                disabled={full || busy}
+                disabled={uploadHeld || uploading}
                 onChange={(event) => upload(event.currentTarget.files)}
               />
             </label>
@@ -214,7 +227,11 @@ function Photos({ me }: { me: EmployerIdentity }) {
           ))}
         </div>
         {state.canEdit && (
-          <Button variant="secondary" loading={busy} onClick={() => act(() => saveCompanyBenefits(benefits))}>
+          <Button
+            variant="secondary"
+            {...busyFor(working, "benefits")}
+            onClick={() => act("benefits", () => saveCompanyBenefits(benefits))}
+          >
             {words.benefits.save}
           </Button>
         )}
@@ -227,7 +244,17 @@ function Photos({ me }: { me: EmployerIdentity }) {
  * 删除 under one photo: a photo once gone has to be taken and sent for review again, so the press asks first —
  * 确认删除 and 取消 take the place of 删除, with the focus (#189, as 移除 on the team page).
  */
-function RemovePhoto({ n, busy, onRemove }: { n: number; busy: boolean; onRemove: () => void }) {
+function RemovePhoto({
+  n,
+  loading,
+  disabled,
+  onRemove,
+}: {
+  n: number;
+  loading: boolean;
+  disabled: boolean;
+  onRemove: () => void;
+}) {
   const t = useMessages(employerPhotosMessages).photos;
   const [confirming, setConfirming] = useState(false);
   const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
@@ -236,7 +263,8 @@ function RemovePhoto({ n, busy, onRemove }: { n: number; busy: boolean; onRemove
       <Button
         variant="link"
         aria-label={t.confirmRemoveLabel(n)}
-        loading={busy}
+        loading={loading}
+        disabled={disabled}
         onClick={() => {
           setConfirming(false);
           onRemove();
@@ -250,7 +278,13 @@ function RemovePhoto({ n, busy, onRemove }: { n: number; busy: boolean; onRemove
     </div>
   ) : (
     <div ref={opener}>
-      <Button variant="link" aria-label={t.removeLabel(n)} loading={busy} onClick={() => setConfirming(true)}>
+      <Button
+        variant="link"
+        aria-label={t.removeLabel(n)}
+        loading={loading}
+        disabled={disabled}
+        onClick={() => setConfirming(true)}
+      >
         {t.remove}
       </Button>
     </div>

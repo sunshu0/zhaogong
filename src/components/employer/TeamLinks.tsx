@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { CopyButton } from "@/components/seeker/CopyButton";
 import { inputClass } from "@/components/ui/input-class";
-import { busyProps } from "@/components/ui/busy";
+import { busyFor } from "@/components/employer/busy-for";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { LINK_DAYS } from "@/components/employer/team";
 import { useLang, useMessages } from "@/i18n/client";
@@ -21,14 +21,15 @@ const INPUT = inputClass();
 export function TeamLinks({
   team,
   full,
-  disabled,
+  working,
   onMade,
   onRevoke,
 }: {
   team: MyTeam;
   /** The team has no place left (members, invitations and links): 生成 waits, and the invite form says why. */
   full: boolean;
-  disabled: boolean;
+  /** The team change on its way, if any (TeamPage): its button is busy, the others here wait. */
+  working: string | undefined;
   /** Reloads the team once a link was made. */
   onMade: () => void;
   onRevoke: (id: string) => void;
@@ -85,9 +86,9 @@ export function TeamLinks({
         <Button
           variant="secondary"
           onClick={make}
-          disabled={full}
+          loading={pending}
+          disabled={full || working !== undefined}
           aria-describedby={full ? "team-full" : undefined}
-          {...busyProps(disabled || pending)}
         >
           {t.create}
         </Button>
@@ -104,7 +105,12 @@ export function TeamLinks({
                   {t.openRow(link.createdBy, formatDate(link.createdAt, lang), formatDate(link.expiresAt, lang))}
                   {link.expired && <span className="ml-2 text-meta text-muted">{t.expired}</span>}
                 </span>
-                <Button variant="link" onClick={() => onRevoke(link.id)} {...busyProps(disabled || pending)}>
+                <Button
+                  variant="link"
+                  onClick={() => onRevoke(link.id)}
+                  {...busyFor(working, `revoke:${link.id}`)}
+                  disabled={pending || busyFor(working, `revoke:${link.id}`).disabled}
+                >
                   {t.revoke}
                 </Button>
               </li>
