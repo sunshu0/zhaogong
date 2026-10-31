@@ -178,7 +178,7 @@ export const seekerProfileEn: Messages<(typeof seekerProfileMessages)["zh"]> = {
     noEmailInLink: "The shared link doesn't show your email.",
     share: "Share link",
     shareHint:
-      "Off unless you turn it on. Then anyone with the link can see this CV without signing in (without your email), such as an employer who isn't on 找工. You can turn it off any time.",
+      "Off unless you turn it on. Then anyone with the link can see this CV without signing in (without your email), such as an employer who isn't on 找工. Once you turn it off, this address stops working for good; turning it on again gives a new one.",
     shareLoading: "Checking the share link…",
     shareWhat: "the share link",
     shareOn: "On: ",
