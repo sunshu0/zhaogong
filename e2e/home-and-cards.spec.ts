@@ -53,7 +53,7 @@ test("FB8: job cards on a 375 px phone show the area and the hours on the line, 
   );
 
   for (const [id, hours, contact] of [
-    ["j1", "15–25 小时/周", "聊天联系"],
+    ["j1", "15–25 小时/周", "直接联系"],
     ["j3", "40–45 小时/周", "直接联系"],
     ["j5", "20–30 小时/周", "聊天联系"],
     ["j11", "40 小时/周", "直接联系"],
