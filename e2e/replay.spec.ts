@@ -108,12 +108,15 @@ test.describe("at 1280 × 800", () => {
     await expect(bubbles(page)).toHaveCount(13);
     await expect(bubbles(page).last()).toContainText("都齐了");
 
+    // While it plays, the same button says 全部显示 and shows the rest at once; then it says 重新播放 again and keeps
+    // the focus. One locator for both names, so a replay that ends first does not race the click.
+    const control = aiPost(page).getByRole("button", { name: /^(全部显示|重新播放)$/ });
     await again.click();
-    await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
-    // While it plays, 全部显示 shows the rest at once; the same button then says 重新播放 and keeps the focus.
-    await aiPost(page).getByRole("button", { name: "全部显示" }).click();
+    await expect(control).toHaveText("全部显示");
+    await control.click();
     await expect(bubbles(page)).toHaveCount(13);
-    await expect(again).toBeFocused();
+    await expect(control).toHaveText("重新播放");
+    await expect(control).toBeFocused();
   });
 });
 
