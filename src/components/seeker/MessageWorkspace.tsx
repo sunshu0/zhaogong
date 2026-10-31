@@ -273,6 +273,7 @@ function ConversationRow({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      aria-current={selected || undefined}
       data-conversation-row={conversation.id}
       className={`pressable-row flex w-full items-center gap-3 rounded-control px-3 py-3 text-left hover:bg-background ${selected ? "bg-brand-soft hover:bg-brand-soft" : ""}`}
     >
@@ -390,6 +391,7 @@ function ModeratorRow({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      aria-current={selected || undefined}
       data-moderator-chat=""
       className={`pressable-row flex w-full items-center gap-3 rounded-control px-3 py-3 text-left hover:bg-background ${selected ? "bg-brand-soft hover:bg-brand-soft" : ""}`}
     >

@@ -55,7 +55,7 @@ test("latest remains the default; recommended explains the signed-out fallback a
     "href",
     "/login?next=%2Fjobs%3Fregion%3Dakl-mt-eden%26type%3Dpart_time%26sort%3Drecommended",
   );
-  await page.getByRole("link", { name: "去掉条件：Mt Eden / Dominion Rd" }).click();
+  await page.getByRole("link", { name: "Mt Eden / Dominion Rd，去掉这个条件" }).click();
   await expect(page).toHaveURL("/jobs?type=part_time&sort=recommended");
   // 清除 in the sheet clears the filters, not the order.
   if (!desktop) {

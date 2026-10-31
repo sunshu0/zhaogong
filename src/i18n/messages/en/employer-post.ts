@@ -147,6 +147,7 @@ export const employerPostEn: Messages<(typeof employerPostMessages)["zh"]> = {
 
   form: {
     notRecognised: "Not picked up — please fill this in",
+    required: " (required)",
     chooseOne: "Choose one",
     rangeMin: "Lowest",
     rangeMax: "Highest (optional)",

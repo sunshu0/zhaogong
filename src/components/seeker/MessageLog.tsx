@@ -174,7 +174,8 @@ function MessageBubble({
               {delivery.unsent}
             </span>
           ) : (
-            <span data-message-read="" aria-label={mine ? t.counterpartRead(readLabel) : readLabel}>
+            <span data-message-read="">
+              {mine && <span className="sr-only">{t.counterpart}</span>}
               {readLabel}
             </span>
           )}

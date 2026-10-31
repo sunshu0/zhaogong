@@ -91,11 +91,11 @@ test("employer uploads and removes an avatar without changing the seeker avatar"
     page
       .locator("article")
       .filter({ has: page.getByRole("link", { name: new RegExp(title) }) })
-      .getByRole("img", { name: `${shop}头像` }),
+      .locator('img[alt=""]'), // beside the name, so decoration (UI audit 2)
   ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await searchJobList(page, title);
-  await expect(jobCard(page, title).getByRole("img", { name: `${shop}头像` })).toBeVisible();
+  await expect(jobCard(page, title).locator('img[alt=""]')).toBeVisible();
   await openFromList(page, jobCard(page, title).getByRole("link", { name: new RegExp(`^${title}`) }));
   const employer = page.getByRole("region", { name: "雇主", exact: true });
   await expect(employer.getByRole("img", { name: `${shop}头像` })).toBeVisible();

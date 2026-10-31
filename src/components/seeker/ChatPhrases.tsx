@@ -333,7 +333,7 @@ function PhrasesDialog({ role, kept, onClose }: { role: PhraseRole; kept: ChatPh
             {error}
           </p>
         )}
-        <Button type="submit" loading={saving} disabled={saving}>
+        <Button type="submit" loading={saving}>
           {saving ? t.saving : t.save}
         </Button>
       </form>

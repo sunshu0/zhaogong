@@ -155,7 +155,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     visaChip: (visa) => `Visa: ${visa}`,
     queryChip: (query) => `“${query}”`,
     chosen: (n) => `${n} chosen`,
-    remove: (label) => `Remove filter: ${label}`,
+    remove: (label) => `${label}, remove this filter`,
     clearAll: "Clear all",
   },
   save: {

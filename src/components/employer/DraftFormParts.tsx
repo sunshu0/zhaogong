@@ -103,12 +103,26 @@ function Notes({ name, missing, findings, hint }: FieldState & { name: string; h
 type LabelledProps = FieldState & { name: string; required?: boolean; hint?: string; children: ReactNode };
 
 /** One control with its label: id `field-<name>` for the findings links, the control's id `in-<name>`. */
+/** The red star, and 必填 for screen readers (UI audit 1 B). */
+function RequiredMark() {
+  const t = useMessages(employerPostMessages).form;
+  return (
+    <>
+      <span aria-hidden="true" className="text-danger">
+        {" "}
+        *
+      </span>
+      <span className="sr-only">{t.required}</span>
+    </>
+  );
+}
+
 export function Field({ name, label, required, hint, children, ...state }: LabelledProps & { label: string }) {
   return (
     <div id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
       <label htmlFor={`in-${name}`} className="block text-body font-medium">
         {label}
-        {required && <span className="text-danger"> *</span>}
+        {required && <RequiredMark />}
       </label>
       {children}
       <Notes name={name} {...state} hint={hint} />
@@ -126,7 +140,7 @@ export function Group({ name, legend, required, hint, children, ...state }: Labe
     >
       <legend className="mb-1.5 text-body font-medium">
         {legend}
-        {required && <span className="text-danger"> *</span>}
+        {required && <RequiredMark />}
       </legend>
       {children}
       <Notes name={name} {...state} hint={hint} />

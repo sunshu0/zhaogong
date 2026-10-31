@@ -108,7 +108,7 @@ export function JobCard({
           <p className="flex min-w-0 items-center gap-1.5 text-body font-semibold">
             {/* Small in a row: the avatar component's own sizes are for chats and profile pages. */}
             <span className="shrink-0 *:size-7 *:text-meta">
-              <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} />
+              <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} decorative />
             </span>
             <span lang={contentLang(employer.name)} className="truncate">
               {employer.name}
@@ -232,7 +232,7 @@ function AppJobCard({
         {employer && (
           <p className="flex min-w-0 items-center gap-1.5 text-body">
             <span className="shrink-0 *:size-7 *:text-meta">
-              <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} />
+              <EmployerAvatar employerId={employer.id} fallback={employer.name} industry={job.industry} decorative />
             </span>
             <span lang={contentLang(employer.name)} className="truncate">
               {employer.name}

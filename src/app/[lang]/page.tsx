@@ -203,9 +203,9 @@ async function NoScriptLanding() {
               </h2>
               <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {stats.map((stat) => (
-                  <div key={stat.key}>
-                    <dd className="text-lg font-semibold text-brand">{stat.value}</dd>
+                  <div key={stat.key} className="flex flex-col-reverse">
                     <dt className="text-xs text-muted">{stat.label}</dt>
+                    <dd className="text-lg font-semibold text-brand">{stat.value}</dd>
                   </div>
                 ))}
               </dl>

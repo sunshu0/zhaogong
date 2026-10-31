@@ -639,7 +639,7 @@ test("按岗位类别筛选: home → 查看全部职位 → 岗位类别 → �
   await page.getByRole("group", { name: "岗位类别" }).getByText("前厅服务", { exact: true }).click();
   if (isPhone(testInfo)) await page.getByRole("button", { name: "查看职位" }).click();
   await expect(page).toHaveURL("/jobs?role=front_of_house");
-  await expect(page.getByRole("link", { name: "去掉条件：前厅服务" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "前厅服务，去掉这个条件" })).toBeVisible();
   await expect(page.getByRole("link", { name: /^前厅服务员/ }).first()).toBeVisible();
 });
 

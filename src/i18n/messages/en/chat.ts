@@ -103,7 +103,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
   log: {
     label: "Messages",
     empty: "No messages yet",
-    counterpartRead: (state) => `The other person: ${state}`,
+    counterpart: "The other person: ",
     warningsLabel: "Rule reminder",
     sentWarningsLabel: "Rule reminder on your message",
     reportMessage: "Report this message",

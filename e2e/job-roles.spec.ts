@@ -41,7 +41,7 @@ test("直接填表: the title's 岗位类别 is ticked, at most two, and the lis
 
   const query = `q=${encodeURIComponent(title)}`;
   await page.goto(`/jobs?role=cashier&${query}`);
-  await expect(page.getByRole("link", { name: "去掉条件：收银" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "收银，去掉这个条件" })).toBeVisible();
   await expect(jobCard(page, title)).toBeVisible();
   await page.goto(`/jobs?role=front_of_house&${query}`);
   await expect(page.getByText("找到 0 个职位").filter({ visible: true })).toBeVisible();

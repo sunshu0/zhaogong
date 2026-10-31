@@ -116,7 +116,8 @@ const chatZh = {
     label: "消息记录",
     empty: "尚未发送消息",
     /** The read state as the sender hears it: 「对方已读」. */
-    counterpartRead: (state: string) => `对方${state}`,
+    /** Before the read state of one's own message, for screen readers only: 「对方已读」. */
+    counterpart: "对方",
     warningsLabel: "合规提醒",
     /** Under a message of one's own that hits the chat rules (#384). */
     sentWarningsLabel: "我发出的消息的合规提醒",

@@ -19,18 +19,18 @@ test("seeker sees employer activity and receipts only change when the counterpar
   // One small line where it fits; it wraps rather than cutting words off at 375 px.
   expect(await activity.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   const log = page.getByRole("log");
-  await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(1);
+  await expect(log.getByText("对方已读", { exact: true })).toHaveCount(1);
   await expect(log.getByLabel("我已读", { exact: true })).toHaveCount(2);
   await page.getByLabel("输入消息").fill("请查看我的新消息");
   await page.getByRole("button", { name: "发送", exact: true }).click();
-  await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(1);
+  await expect(log.getByText("对方未读", { exact: true })).toHaveCount(1);
   await page.reload();
-  await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(1);
+  await expect(log.getByText("对方未读", { exact: true })).toHaveCount(1);
   // The employer reads my message and replies.
   await counterpartActs(page, "north-tea", { readMine: true, reply: "新的回复已送达" });
-  await expect(log.getByLabel("对方已读", { exact: true })).toHaveCount(2);
+  await expect(log.getByText("对方已读", { exact: true })).toHaveCount(2);
   await expect(log.getByLabel("我已读", { exact: true })).toHaveCount(3);
-  await expect(log.getByLabel("对方未读", { exact: true })).toHaveCount(0);
+  await expect(log.getByText("对方未读", { exact: true })).toHaveCount(0);
   await waitForTitle(page);
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -54,7 +54,7 @@ test("employer sees candidate activity and counts distinct daily replies rather 
   await expect(activity).toContainText("你今日已回复 1 位求职者");
   await send("再补充一条消息");
   await expect(activity).toContainText("你今日已回复 1 位求职者");
-  await expect(page.getByRole("log").getByLabel("对方未读", { exact: true })).toHaveCount(2);
+  await expect(page.getByRole("log").getByText("对方未读", { exact: true })).toHaveCount(2);
   await page.reload();
   await expect(activity).toContainText("你今日已回复 1 位求职者");
   await page.goto("/messages?conversation=candidate-chen");

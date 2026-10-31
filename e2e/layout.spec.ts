@@ -243,7 +243,7 @@ test("job list below 1024 px: filters in a bottom sheet; Esc or a tap outside cl
   // Closed by default; the active filter shows as a chip under the bar; search and 筛选 share one row.
   await expect(panel).toBeHidden();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "餐饮，去掉这个条件" })).toBeVisible();
   expect(Math.abs((await box(search)).y - (await box(toggle)).y)).toBeLessThan(4);
 
   // Job rows use the full width of the search bar at every viewport.
@@ -335,7 +335,7 @@ test("job list from 1024 px: the filters are a column left of the list, and a ch
   await expect(page).toHaveURL(/region=akl-albany/);
   await expect(page).toHaveURL(/industry=hospitality/);
   await expect(page.getByRole("group", { name: "地区" }).getByLabel("Albany")).toBeChecked();
-  await expect(page.getByRole("link", { name: "去掉条件：Albany" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Albany，去掉这个条件" })).toBeVisible();
   await expect(page.getByRole("button", { name: "地区 · Albany" })).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("group", { name: "地区" }).getByLabel("Takapuna").check();
   await expect(page).toHaveURL(/region=akl-takapuna,akl-albany|region=akl-albany,akl-takapuna/);

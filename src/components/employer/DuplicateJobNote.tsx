@@ -40,7 +40,7 @@ export function DuplicateJobNote({ titleZh }: { titleZh: string }) {
   const more = twins.length > 1 ? t.andMore(twins.length) : "";
   const when = first.status === "pending_review" ? t.pendingReview : t.closesOn(closeDateZh(first.expiresAt, lang));
   return (
-    <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
+    <p role="status" className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
       {/* The other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
       {t.noteBefore}
       <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>

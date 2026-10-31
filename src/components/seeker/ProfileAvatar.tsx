@@ -53,20 +53,25 @@ export function EmployerAvatar({
   fallback,
   industry,
   large = false,
+  decorative = false,
 }: {
   employerId: string;
   fallback: string;
   industry?: Industry;
   large?: boolean;
+  /** The name is right beside it (a job card): no alt, hidden from screen readers (UI audit 2). */
+  decorative?: boolean;
 }) {
   const t = useMessages(seekerProfileMessages).avatar;
   const profile = usePublicEmployerProfile(employerId);
   if (!profile?.avatar && industry) return <IndustryAvatar industry={industry} large={large} />;
-  return <AvatarImage avatar={profile?.avatar} fallback={fallback} alt={t.alt(fallback)} large={large} />;
+  return (
+    <AvatarImage avatar={profile?.avatar} fallback={fallback} alt={decorative ? "" : t.alt(fallback)} large={large} />
+  );
 }
 
+/** Always beside the person's name (the list row, the thread's head), so it is decoration (UI audit 1). */
 export function CounterpartAvatar({ conversation, isEmployer }: { conversation: Conversation; isEmployer: boolean }) {
-  const t = useMessages(seekerProfileMessages).avatar;
   const { candidates } = useCandidateDirectory();
   const employer = usePublicEmployerProfile(conversation.employerId ?? "");
   const candidateId =
@@ -77,7 +82,6 @@ export function CounterpartAvatar({ conversation, isEmployer }: { conversation: 
     <AvatarImage
       avatar={isEmployer ? candidate?.avatar : employer?.avatar}
       fallback={conversation.avatar || conversation.person}
-      alt={t.alt(conversation.person)}
     />
   );
 }

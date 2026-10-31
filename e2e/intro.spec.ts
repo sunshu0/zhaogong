@@ -139,7 +139,7 @@ test("the search box opens the job list for the keyword", async ({ page }) => {
     .click();
   await expect(page).toHaveURL("/jobs?q=%E7%82%B9%E5%BF%83");
   await expect(page.getByRole("main").getByRole("heading", { level: 2, name: "点心师傅" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "去掉条件：“点心”" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "“点心”，去掉这个条件" })).toBeVisible();
 });
 
 test("a quick filter opens the filtered job list; the logo leads back to the intro", async ({ page }) => {
@@ -150,7 +150,7 @@ test("a quick filter opens the filtered job list; the logo leads back to the int
     .click();
   await expect(page).toHaveURL("/jobs?meals=1");
   await expect(page.getByRole("heading", { level: 1, name: "奥克兰中文工作" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "去掉条件：包餐" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "包餐，去掉这个条件" })).toBeVisible();
   await page.getByRole("banner").getByRole("link", { name: "找工", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByRole("heading", { level: 1, name: /^奥克兰的中文工作/ })).toBeVisible();

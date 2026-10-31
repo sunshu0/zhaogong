@@ -102,8 +102,8 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
   await expect(page.getByRole("heading", { name: "核对职位信息" })).toBeFocused();
   const stops = (await tabUntil(page, (f) => f.label === "预览")).map((s) => s.label);
   for (const field of [
-    "职位名称（中文） *",
-    "职位名称（英文） *",
+    "职位名称（中文） *（必填）",
+    "职位名称（英文） *（必填）",
     "兼职",
     "急招",
     "地址（可不填）",
@@ -114,8 +114,8 @@ test("post a job with the keyboard only", async ({ page }, testInfo) => {
     "包住",
     "学签",
     "普通话",
-    "中文描述 *",
-    "英文描述 *",
+    "中文描述 *（必填）",
+    "英文描述 *（必填）",
     "按表格重新生成",
     "企业主页",
   ]) {

@@ -53,73 +53,78 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
         {t.contact.title}
       </h2>
 
-      {!hydrated ? (
-        <div className="mt-2 h-16 animate-pulse rounded-lg bg-background" aria-hidden="true" />
-      ) : !session ? (
-        <>
-          <p className="mt-1 text-sm text-muted">
-            {kinds.length ? t.contact.signInFor(kinds.join(t.detail.listJoin)) : t.contact.signInForAny}
-          </p>
-          <Link
-            href={`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`}
-            className={`mt-3 ${buttonClass("secondary", { block: true })}`}
-          >
-            {t.contact.signIn}
-          </Link>
-        </>
-      ) : !current ? (
-        <p className="mt-1 text-sm text-muted">{t.contact.loading}</p>
-      ) : current.failed ? (
-        <RetryLine
-          className="mt-1"
-          text={t.contact.noAnswer}
-          onRetry={() => {
-            setLoaded(null);
-            setAsked((n) => n + 1);
-          }}
-        />
-      ) : !current.contact ? (
-        <p className="mt-1 text-sm text-danger">{t.contact.failed}</p>
-      ) : (
-        <>
-          <ul className="mt-2 divide-y divide-border text-sm">
-            {current.contact.phone && (
-              <ContactRow label={t.contact.rows.phone}>
-                {DIALABLE.test(current.contact.phone) ? (
-                  <a
-                    href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
-                    className="text-brand underline underline-offset-2"
-                  >
-                    {current.contact.phone}
-                  </a>
-                ) : (
-                  <span lang={contentLang(current.contact.phone)}>{current.contact.phone}</span>
-                )}
-              </ContactRow>
-            )}
-            {current.contact.wechat && (
-              <ContactRow label={t.contact.rows.wechat}>
-                <span className="font-mono">{current.contact.wechat}</span>
-                <CopyButton text={current.contact.wechat} className="ml-auto" />
-              </ContactRow>
-            )}
-            {current.contact.email && (
-              <ContactRow label={t.contact.rows.email}>
-                <a href={`mailto:${current.contact.email}`} className="text-brand underline underline-offset-2">
-                  {current.contact.email}
-                </a>
-              </ContactRow>
-            )}
-          </ul>
-          <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{t.contact.warning}</p>
-          <p className="mt-2 text-xs text-muted">
-            {t.contact.signedInAs(session.email)} ·{" "}
-            <Link href="/me" className="underline underline-offset-2">
-              {t.contact.mine}
+      {/* Loading → the contact details or the failure, announced (UI audit 1). */}
+      <div aria-live="polite">
+        {!hydrated ? (
+          <div className="mt-2 h-16 animate-pulse rounded-lg bg-background" aria-hidden="true" />
+        ) : !session ? (
+          <>
+            <p className="mt-1 text-sm text-muted">
+              {kinds.length ? t.contact.signInFor(kinds.join(t.detail.listJoin)) : t.contact.signInForAny}
+            </p>
+            <Link
+              href={`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`}
+              className={`mt-3 ${buttonClass("secondary", { block: true })}`}
+            >
+              {t.contact.signIn}
             </Link>
+          </>
+        ) : !current ? (
+          <p className="mt-1 text-sm text-muted">{t.contact.loading}</p>
+        ) : current.failed ? (
+          <RetryLine
+            className="mt-1"
+            text={t.contact.noAnswer}
+            onRetry={() => {
+              setLoaded(null);
+              setAsked((n) => n + 1);
+            }}
+          />
+        ) : !current.contact ? (
+          <p role="alert" className="mt-1 text-sm text-danger">
+            {t.contact.failed}
           </p>
-        </>
-      )}
+        ) : (
+          <>
+            <ul className="mt-2 divide-y divide-border text-sm">
+              {current.contact.phone && (
+                <ContactRow label={t.contact.rows.phone}>
+                  {DIALABLE.test(current.contact.phone) ? (
+                    <a
+                      href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
+                      className="text-brand underline underline-offset-2"
+                    >
+                      {current.contact.phone}
+                    </a>
+                  ) : (
+                    <span lang={contentLang(current.contact.phone)}>{current.contact.phone}</span>
+                  )}
+                </ContactRow>
+              )}
+              {current.contact.wechat && (
+                <ContactRow label={t.contact.rows.wechat}>
+                  <span className="font-mono">{current.contact.wechat}</span>
+                  <CopyButton text={current.contact.wechat} className="ml-auto" />
+                </ContactRow>
+              )}
+              {current.contact.email && (
+                <ContactRow label={t.contact.rows.email}>
+                  <a href={`mailto:${current.contact.email}`} className="text-brand underline underline-offset-2">
+                    {current.contact.email}
+                  </a>
+                </ContactRow>
+              )}
+            </ul>
+            <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{t.contact.warning}</p>
+            <p className="mt-2 text-xs text-muted">
+              {t.contact.signedInAs(session.email)} ·{" "}
+              <Link href="/me" className="underline underline-offset-2">
+                {t.contact.mine}
+              </Link>
+            </p>
+          </>
+        )}
+      </div>
     </section>
   );
 }

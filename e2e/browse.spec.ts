@@ -31,7 +31,7 @@ test("list → filter → detail → back to the filtered list", async ({ page }
     await expect(page.locator("#job-filters")).toBeHidden(); // 查看职位 closes the panel
     await expect(page.getByRole("button", { name: "筛选 · 2" })).toBeVisible();
   }
-  await expect(page.getByRole("link", { name: "去掉条件：餐饮" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "餐饮，去掉这个条件" })).toBeVisible();
   await expect(page.getByRole("link", { name: /超市理货员/ })).toHaveCount(0); // retail, no meals
 
   await openFromList(page, page.getByRole("link", { name: /点心师傅/ }));

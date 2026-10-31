@@ -160,7 +160,7 @@ const seekerJobsZh = {
     visaChip: (visa: string) => `签证：${visa}`,
     queryChip: (query: string) => `“${query}”`,
     chosen: (n: number) => `已选 ${n}`,
-    remove: (label: string) => `去掉条件：${label}`,
+    remove: (label: string) => `${label}，去掉这个条件`,
     clearAll: "全部清除",
   },
   // SaveJobButton.tsx, saved-client.ts

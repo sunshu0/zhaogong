@@ -165,6 +165,7 @@ const employerPostZh = {
   /** DraftForm.tsx, DraftFormParts.tsx, DraftFormSections.tsx: the job form. */
   form: {
     notRecognised: "没有识别到，请填写",
+    required: "（必填）",
     chooseOne: "请选择",
     rangeMin: "最低",
     rangeMax: "最高（可不填）",

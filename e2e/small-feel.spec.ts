@@ -94,7 +94,7 @@ test.describe("phone", () => {
 
   test("the small controls are 44 px to press", async ({ page }, testInfo) => {
     await page.goto("/jobs?industry=hospitality");
-    await expectTouchSized(page.getByRole("link", { name: /^去掉条件：/ }).first(), "已选筛选");
+    await expectTouchSized(page.getByRole("link", { name: /，去掉这个条件$/ }).first(), "已选筛选");
     const sections = page.getByRole("navigation", { name: "外部职位分区" });
     await expect(sections.getByRole("link")).toHaveCount(2);
     for (const link of await sections.getByRole("link").all()) await expectTouchSized(link, "分类药丸");
