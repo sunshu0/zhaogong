@@ -14,6 +14,16 @@ export const employerPostEn: Messages<(typeof employerPostMessages)["zh"]> = {
     republishTitle: "Repost a job",
   },
 
+  askFirst: {
+    cancel: "Cancel",
+    startOver: "This clears the chat, the pasted text and everything in the form.",
+    confirmStartOver: "Yes, clear it",
+    emptyForm: "What you've filled in will be cleared for an empty form.",
+    confirmEmptyForm: "Yes, empty form",
+    regenerateEn: "The English description you changed will be replaced by one written from the form.",
+    confirmRegenerateEn: "Yes, write it again",
+  },
+
   postFlow: {
     restored: "Picking up where you left off (the draft is only kept in this tab).",
     startOver: "Clear and start over",

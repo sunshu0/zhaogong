@@ -5,6 +5,7 @@ import { LANGUAGE_LABELS, VISA_LABELS } from "@/i18n/labels";
 import type { LanguageRequirement, VisaAccepted } from "@/lib/types";
 import { Chip, Field, Group, Section, toggle, type FieldKit } from "@/components/employer/DraftFormParts";
 import { CHOICE_DOT } from "@/components/employer/app-style";
+import { AskFirst } from "@/components/employer/AskFirst";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
 
@@ -48,8 +49,18 @@ export function RequirementsSection({ kit }: { kit: FieldKit }) {
   );
 }
 
-export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onRegenerateEn: () => void }) {
+export function DescriptionSection({
+  kit,
+  englishByHand,
+  onRegenerateEn,
+}: {
+  kit: FieldKit;
+  /** The English description was changed by hand: 按表格重新生成 asks before it replaces it. */
+  englishByHand: boolean;
+  onRegenerateEn: () => void;
+}) {
   const t = useMessages(employerPostMessages).form;
+  const ask = useMessages(employerPostMessages).askFirst;
   const { form, set, state, box, aria } = kit;
   return (
     <Section title={t.descriptionSection}>
@@ -80,13 +91,15 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
           onChange={(e) => set({ descriptionEn: e.target.value })}
           className={box("descriptionEn", true)}
         />
-        <button
-          type="button"
-          onClick={onRegenerateEn}
+        <AskFirst
+          ask={englishByHand}
+          question={ask.regenerateEn}
+          confirmLabel={ask.confirmRegenerateEn}
+          onConfirm={onRegenerateEn}
           className="pressable inline-flex min-h-11 items-center text-body text-brand underline"
         >
           {t.regenerateEn}
-        </button>
+        </AskFirst>
       </Field>
     </Section>
   );

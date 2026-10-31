@@ -40,6 +40,7 @@ export function DraftEditor({
           missing={state.missing}
           country={country}
           visaChoices={state.visaChoices}
+          englishByHand={state.englishByHand}
           onRegenerateEn={state.regenerateEnglish}
         />
       </div>

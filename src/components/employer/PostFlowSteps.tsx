@@ -13,6 +13,7 @@ import type { Mode, Step } from "@/components/employer/post-flow-state";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
+import { AskFirst } from "@/components/employer/AskFirst";
 import { inputClass } from "@/components/ui/input-class";
 import { pillTab } from "@/components/employer/Tabs";
 import { useLang, useMessages } from "@/i18n/client";
@@ -71,6 +72,7 @@ export function PasteStep({
   pending,
   onParse,
   onEmptyForm,
+  formFilled,
 }: {
   headingRef: HeadingRef;
   text: string;
@@ -78,8 +80,11 @@ export function PasteStep({
   pending: boolean;
   onParse: () => void;
   onEmptyForm: () => void;
+  /** The form has something in it (back from it with 上一步): an empty one asks first. */
+  formFilled: boolean;
 }) {
   const t = useMessages(employerPostMessages).steps;
+  const ask = useMessages(employerPostMessages).askFirst;
   return (
     <section onFocus={keepFocusClear} className={`space-y-3 ${CLEAR_OF_STICKY_BARS}`}>
       <h1 ref={headingRef} tabIndex={-1} className="text-title font-semibold outline-none">
@@ -111,9 +116,15 @@ export function PasteStep({
           {t.tryExample}
         </button>
       </div>
-      <button type="button" onClick={onEmptyForm} className="pressable min-h-11 text-body text-muted underline">
+      <AskFirst
+        ask={formFilled}
+        question={ask.emptyForm}
+        confirmLabel={ask.confirmEmptyForm}
+        onConfirm={onEmptyForm}
+        className="pressable min-h-11 text-body text-muted underline"
+      >
         {t.emptyForm}
-      </button>
+      </AskFirst>
     </section>
   );
 }

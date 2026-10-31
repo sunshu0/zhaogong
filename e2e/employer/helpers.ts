@@ -125,7 +125,10 @@ export async function openTheForm(page: Page) {
   const startOver = page.getByRole("button", { name: "清空重来", exact: true });
   const formMode = page.getByRole("button", { name: "直接填表", exact: true });
   await expect(startOver.or(formMode).first()).toBeVisible();
-  if (await startOver.isVisible()) await startOver.click();
+  if (await startOver.isVisible()) {
+    await startOver.click();
+    await page.getByRole("button", { name: "确定清空", exact: true }).click(); // it asks first (UI review 1 B)
+  }
   await formMode.click();
   await expect(page.getByLabel(/把微信群里的招聘消息粘贴进来/)).toBeVisible();
 }

@@ -2,7 +2,8 @@
 import type { RefObject } from "react";
 import type { CountryCode, Employer } from "@/lib/types";
 import { ChatPost } from "@/components/employer/ChatPost";
-import { completeJob } from "@/components/employer/post-form";
+import { completeJob, emptyForm, type PostForm } from "@/components/employer/post-form";
+import { AskFirst } from "@/components/employer/AskFirst";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { usePosting, type Posting as PostingController } from "@/components/employer/post-flow-state";
 import { BottomBar, FormBar, PreviewBar } from "@/components/employer/PostFlowBars";
@@ -25,6 +26,7 @@ export function PostFlow({ country }: { country: CountryCode }) {
 
 function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }) {
   const t = useMessages(employerPostMessages).postFlow;
+  const ask = useMessages(employerPostMessages).askFirst;
   const posting = usePosting(me.email, country);
   // #202: the step's heading takes the focus on a new step, and when 清空重来 removes the button that was pressed.
   const heading = useFocusOnChange<HTMLHeadingElement>(`${posting.step}:${posting.restored}`);
@@ -71,9 +73,16 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
       {posting.restored && (
         <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
           {t.restored}
-          <button type="button" onClick={posting.startOver} className="pressable min-h-11 underline">
+          {/* A kept draft always has something in it, so this one always asks. */}
+          <AskFirst
+            ask
+            question={ask.startOver}
+            confirmLabel={ask.confirmStartOver}
+            onConfirm={posting.startOver}
+            className="pressable min-h-11 underline"
+          >
             {t.startOver}
-          </button>
+          </AskFirst>
         </p>
       )}
       {/* #178: a step that fails shows 重试 in its place; the posting state is up here, so nothing typed is lost. */}
@@ -123,6 +132,7 @@ function CurrentStep({ view }: { view: PostingView }) {
           pending={posting.pending}
           onParse={posting.parse}
           onEmptyForm={posting.startEmptyForm}
+          formFilled={formFilled(posting.form.form)}
         />
       );
     case "form":
@@ -175,4 +185,9 @@ function StepBar({ view }: { view: PostingView }) {
       />
     </BottomBar>
   );
+}
+
+/** Something is in the form: it differs from an empty one. */
+function formFilled(form: PostForm) {
+  return JSON.stringify(form) !== JSON.stringify(emptyForm());
 }

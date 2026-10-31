@@ -22,6 +22,17 @@ const employerPostZh = {
   },
 
   /** PostFlow.tsx: the kept draft and the step's own error boundary. */
+  /** AskFirst.tsx: the question before an action throws away what was written (UI review 1 B). */
+  askFirst: {
+    cancel: "取消",
+    startOver: "清空后，对话、粘贴的文字和表单里填的都会丢掉。",
+    confirmStartOver: "确定清空",
+    emptyForm: "表单里已经填的内容会清空，换成一张空表。",
+    confirmEmptyForm: "确定换成空表",
+    regenerateEn: "你手改过的英文描述会被按表格重新生成的那段替换。",
+    confirmRegenerateEn: "确定重新生成",
+  },
+
   postFlow: {
     restored: "接着上次没写完的继续（草稿只存在这个标签页里）。",
     startOver: "清空重来",

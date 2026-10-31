@@ -32,11 +32,22 @@ type Props = {
   country: CountryCode;
   /** The visas this employer may offer (AEWV holders only for accredited employers). */
   visaChoices: VisaAccepted[];
+  /** The English description was changed by hand, so 按表格重新生成 asks first. */
+  englishByHand: boolean;
   onRegenerateEn: () => void;
 };
 
 /** The job form, one section per topic; each field shows what the parser missed and what the checks found. */
-export function DraftForm({ form, set, findings, missing, country, visaChoices, onRegenerateEn }: Props) {
+export function DraftForm({
+  form,
+  set,
+  findings,
+  missing,
+  country,
+  visaChoices,
+  englishByHand,
+  onRegenerateEn,
+}: Props) {
   const kit = fieldKit({ form, set, findings, missing, country, visaChoices });
   return (
     <div className="space-y-6">
@@ -44,7 +55,7 @@ export function DraftForm({ form, set, findings, missing, country, visaChoices, 
       <PlaceSection kit={kit} />
       <PaySection kit={kit} />
       <RequirementsSection kit={kit} />
-      <DescriptionSection kit={kit} onRegenerateEn={onRegenerateEn} />
+      <DescriptionSection kit={kit} englishByHand={englishByHand} onRegenerateEn={onRegenerateEn} />
       <ContactSection kit={kit} />
     </div>
   );

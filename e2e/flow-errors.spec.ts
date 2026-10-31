@@ -48,6 +48,7 @@ test("a posting step that fails shows 重试 in its place and keeps the form; th
   await expect(page.getByRole("status").filter({ hasText: "接着上次没写完的继续" })).toBeVisible();
   await expect(page.getByLabel("职位名称（中文）")).toHaveValue(`${name}甲`);
   await page.getByRole("button", { name: "清空重来" }).click();
+  await page.getByRole("button", { name: "确定清空", exact: true }).click();
   await expect(page.getByRole("button", { name: "直接填表", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("button", { name: "直接填表", exact: true })).toBeVisible();
