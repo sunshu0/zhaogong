@@ -222,7 +222,7 @@ function Listbox({
       tabIndex={0}
       data-autofocus
       onKeyDown={onKeyDown}
-      className="space-y-0.5 outline-none"
+      className="group space-y-0.5 outline-none"
     >
       {choices.map((option, index) => {
         const selected = option.value === value;
@@ -235,7 +235,10 @@ function Listbox({
             onClick={() => onPick(option.value)}
             onPointerMove={() => setActive(index)}
             className={`pressable-row flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-control px-3 md:min-h-10 ${
-              index === active ? "bg-background" : ""
+              // Keyboard: a brand ring (3:1 on the menu, UI audit 1); the pointer: the tint only.
+              index === active
+                ? "bg-background group-focus-visible:ring-2 group-focus-visible:ring-brand group-focus-visible:ring-inset"
+                : ""
             } ${selected ? "font-medium text-brand" : ""}`}
           >
             <span lang={option.lang}>{option.label}</span>
