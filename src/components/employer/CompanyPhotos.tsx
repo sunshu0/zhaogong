@@ -10,6 +10,7 @@ import {
 } from "@/app/[lang]/employer/photo-actions";
 import { EmployerGate, type EmployerIdentity } from "@/components/employer/EmployerGate";
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
+import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { APP_SHEET, BACK_LINK, noticeClass } from "@/components/employer/app-style";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -162,14 +163,7 @@ function Photos({ me }: { me: EmployerIdentity }) {
                     {photo.status === "approved" ? t.approved : photo.status === "pending" ? t.pending : ""}
                   </span>
                   {state.canEdit && (
-                    <Button
-                      variant="link"
-                      aria-label={t.removeLabel(i + 1)}
-                      loading={busy}
-                      onClick={() => act(() => removeCompanyPhoto(photo.id))}
-                    >
-                      {t.remove}
-                    </Button>
+                    <RemovePhoto n={i + 1} busy={busy} onRemove={() => act(() => removeCompanyPhoto(photo.id))} />
                   )}
                 </div>
               </li>
@@ -224,6 +218,40 @@ function Photos({ me }: { me: EmployerIdentity }) {
           </Button>
         )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * 删除 under one photo: a photo once gone has to be taken and sent for review again, so the press asks first —
+ * 确认删除 and 取消 take the place of 删除, with the focus (#189, as 移除 on the team page).
+ */
+function RemovePhoto({ n, busy, onRemove }: { n: number; busy: boolean; onRemove: () => void }) {
+  const t = useMessages(employerPhotosMessages).photos;
+  const [confirming, setConfirming] = useState(false);
+  const { opener, form } = useSwapFocus<HTMLDivElement, HTMLDivElement>(confirming);
+  return confirming ? (
+    <div ref={form} className="flex flex-wrap justify-end gap-x-2">
+      <Button
+        variant="link"
+        aria-label={t.confirmRemoveLabel(n)}
+        loading={busy}
+        onClick={() => {
+          setConfirming(false);
+          onRemove();
+        }}
+      >
+        {t.confirmRemove}
+      </Button>
+      <Button variant="link" onClick={() => setConfirming(false)}>
+        {t.cancel}
+      </Button>
+    </div>
+  ) : (
+    <div ref={opener}>
+      <Button variant="link" aria-label={t.removeLabel(n)} loading={busy} onClick={() => setConfirming(true)}>
+        {t.remove}
+      </Button>
     </div>
   );
 }
