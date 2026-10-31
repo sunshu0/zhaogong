@@ -94,7 +94,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
           {/* The first Tab stop, seen only when focused, above the sticky header (UI audits 1 and 2). */}
           <a
             href="#main"
-            className="sr-only z-30 rounded-control bg-surface px-4 py-3 font-medium text-brand shadow-pop focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+            className="sr-only z-30 rounded-control bg-surface font-medium text-brand shadow-pop focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:px-4 focus:py-3"
           >
             {nav.skip}
           </a>
