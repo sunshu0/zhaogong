@@ -91,7 +91,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                     <a
                       href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
                       translate="no"
-                      className="inline-flex min-h-11 min-w-0 items-center break-all text-brand underline underline-offset-2"
+                      className="pressable inline-flex min-h-11 min-w-0 items-center break-all text-brand underline underline-offset-2"
                     >
                       {current.contact.phone}
                     </a>
@@ -115,7 +115,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                   <a
                     href={`mailto:${current.contact.email}`}
                     translate="no"
-                    className="inline-flex min-h-11 min-w-0 items-center break-all text-brand underline underline-offset-2"
+                    className="pressable inline-flex min-h-11 min-w-0 items-center break-all text-brand underline underline-offset-2"
                   >
                     {current.contact.email}
                   </a>

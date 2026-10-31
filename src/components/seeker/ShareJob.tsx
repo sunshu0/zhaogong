@@ -29,7 +29,7 @@ export function ShareJobButton(props: ShareProps) {
         aria-label={t.label}
         title={t.title}
         onClick={() => setOpen(true)}
-        className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-background hover:text-brand"
+        className="pressable flex size-11 shrink-0 items-center justify-center rounded-control text-muted hover:bg-background hover:text-brand"
       >
         <Share2 aria-hidden="true" className="size-5" />
       </button>

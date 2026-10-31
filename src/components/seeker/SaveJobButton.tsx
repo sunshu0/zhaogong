@@ -43,7 +43,7 @@ export function SaveJobButton({
   const shape =
     look === "bar"
       ? "pressable flex size-12 shrink-0 justify-center rounded-control border border-brand/40 bg-surface hover:bg-brand-soft"
-      : `relative z-10 inline-flex -my-1.5 min-h-11 min-w-11 gap-1 rounded-control px-1.5 text-meta hover:text-brand ${
+      : `pressable relative z-10 inline-flex -my-1.5 min-h-11 min-w-11 gap-1 rounded-control px-1.5 text-meta hover:text-brand ${
           on ? "text-brand" : "text-muted"
         }`;
   return (
