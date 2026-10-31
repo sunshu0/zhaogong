@@ -11,7 +11,9 @@ test.use({ reducedMotion: "reduce" });
 const PHONE = { width: 375, height: 667 };
 
 const saveButton = (page: Page, title: string) =>
-  page.getByRole("button", { name: `收藏：${title}` }).filter({ visible: true });
+  page
+    .getByRole("button", { name: new RegExp(`^已?收藏：${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) })
+    .filter({ visible: true });
 
 /** The page's Server Function calls (POSTs to `path`): held until release(), or cut while `cut` is on. */
 async function interceptCalls(page: Page, path: string) {
@@ -84,7 +86,7 @@ test.describe("phone", () => {
     await expect(bar.getByRole("button", { name: "收藏：点心师傅", exact: true })).toBeVisible();
     await expect(bar).toContainText("立即沟通");
     // The header's 收藏 is the desktop's: hidden here, so only the bar's is there to press.
-    await expect(page.getByRole("button", { name: "收藏：点心师傅", includeHidden: true })).toHaveCount(2);
+    await expect(page.getByRole("button", { name: /^收藏：点心师傅$/, includeHidden: true })).toHaveCount(2);
     await expect(saveButton(page, "点心师傅")).toHaveCount(1);
     await expectTouchSized(saveButton(page, "点心师傅"), "收藏 in the bar");
     await page.screenshot({ path: testInfo.outputPath("job-bar.png") });

@@ -103,7 +103,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
 function EmploymentTypeGroup({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state } = kit;
+  const { form, set, state, aria } = kit;
   const chosenTypes = form.employmentType ?? [];
   return (
     <Group name="employmentType" legend={t.employmentType} required {...state("employmentType")}>
@@ -113,6 +113,7 @@ function EmploymentTypeGroup({ kit }: { kit: FieldKit }) {
             key={value}
             type="checkbox"
             name="employmentType"
+            aria={aria("employmentType")}
             checked={chosenTypes.includes(value as EmploymentType)}
             onChange={() =>
               set({ employmentType: normalizeEmploymentTypes(toggle(chosenTypes, value as EmploymentType)) })
@@ -163,6 +164,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
           unit={t.hoursUnit}
           step="1"
           className={box("hoursPerWeek")}
+          aria={aria("hoursPerWeek")}
         />
       </Group>
       <Field name="shiftsZh" label={t.shifts} {...state("shiftsZh")}>
@@ -182,7 +184,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
 function PaySection({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, box, config } = kit;
+  const { form, set, state, box, aria, config } = kit;
   const wage = config.minimumWage;
   const hint = t.payHint(
     lang === "en" ? config.nameEn : config.nameZh,
@@ -200,6 +202,7 @@ function PaySection({ kit }: { kit: FieldKit }) {
           unit={t.payUnit(config.currencySymbol)}
           step="0.01"
           className={box("pay")}
+          aria={aria("pay")}
         />
       </Group>
       <PayReferenceHint

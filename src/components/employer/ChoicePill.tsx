@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import type { ReactNode } from "react";
 import { CHOICE_DOT, CHOICE_PILL } from "@/components/employer/app-style";
+import type { FieldAria } from "@/components/employer/DraftFormParts";
 
 const BOX =
   "peer size-5 shrink-0 cursor-pointer appearance-none rounded-[6px] border-2 border-muted/60 bg-surface transition-colors duration-(--duration-press) checked:border-brand checked:bg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed";
@@ -15,8 +16,11 @@ export function ChoicePill({
   checked,
   disabled,
   onChange,
+  aria,
   children,
 }: {
+  /** A form group's notes and state, on the input (UI audit 1 #11). */
+  aria?: FieldAria;
   type: "radio" | "checkbox";
   name?: string;
   checked: boolean;
@@ -24,7 +28,7 @@ export function ChoicePill({
   onChange: () => void;
   children: ReactNode;
 }) {
-  const input = { name, checked, disabled, onChange };
+  const input = { name, checked, disabled, onChange, ...aria };
   return (
     <label className={CHOICE_PILL}>
       {type === "radio" ? (

@@ -104,7 +104,7 @@ test("an account with a job seeker's data cannot be made a moderator (ADR 0043)"
   browser,
 }, testInfo) => {
   const email = await signIn(page, "/jobs/j3");
-  const save = page.getByRole("button", { name: "收藏：点心师傅" }).filter({ visible: true });
+  const save = page.getByRole("button", { name: /^已?收藏：点心师傅$/ }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveAttribute("aria-pressed", "true");
   await expect(save).not.toHaveAttribute("aria-busy");

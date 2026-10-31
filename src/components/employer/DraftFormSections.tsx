@@ -11,7 +11,7 @@ import { employerPostMessages } from "@/i18n/messages/employer-post";
 export function RequirementsSection({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, visaChoices } = kit;
+  const { form, set, state, aria, visaChoices } = kit;
   return (
     <Section title={t.requirementsSection}>
       <Group name="visaAccepted" legend={t.visaAccepted} required hint={t.visaHint} {...state("visaAccepted")}>
@@ -20,6 +20,7 @@ export function RequirementsSection({ kit }: { kit: FieldKit }) {
             <Chip
               key={visa}
               type="checkbox"
+              aria={aria("visaAccepted")}
               checked={form.visaAccepted.includes(visa)}
               onChange={() => set({ visaAccepted: toggle<VisaAccepted>(form.visaAccepted, visa) })}
             >
@@ -34,6 +35,7 @@ export function RequirementsSection({ kit }: { kit: FieldKit }) {
             <Chip
               key={value}
               type="checkbox"
+              aria={aria("languages")}
               checked={form.languages.includes(value as LanguageRequirement)}
               onChange={() => set({ languages: toggle(form.languages, value as LanguageRequirement) })}
             >
@@ -89,7 +91,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
 export function ContactSection({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, box } = kit;
+  const { form, set, state, box, aria } = kit;
   // 电话 / 微信号 / 邮箱 fit in three characters; "WeChat ID" needs more room before the input.
   const labelWidth = lang === "en" ? "w-20" : "w-12";
   // The employer's choice first: private (the default, swapped in chat) or shown to signed-in job seekers.
@@ -138,6 +140,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
                   onChange={(e) => set({ [key]: e.target.value })}
                   placeholder={placeholder}
                   className={`h-11 ${box("contact")}`}
+                  {...aria("contact")}
                 />
               </label>
             ))}

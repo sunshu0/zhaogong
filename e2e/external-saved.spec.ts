@@ -6,7 +6,9 @@ import { chooseOption, fillSignInCode, freshEmail, selectTrigger, signIn } from 
 // notification a moderator's 通过 sends is in src/app/[lang]/me/alerts/external-alerts.test.ts.
 
 const saveButton = (page: Page, title: string) =>
-  page.getByRole("button", { name: `收藏：${title}` }).filter({ visible: true });
+  page
+    .getByRole("button", { name: new RegExp(`^已?收藏：${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) })
+    .filter({ visible: true });
 
 test("收藏 an external job signed out: sign in, back on the section with it saved; 收藏和进度 keeps it", async ({
   page,

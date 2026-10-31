@@ -38,9 +38,18 @@ test("paste → findings hold publishing → fix → publish → the job is on t
   await expect(preview).toHaveAccessibleDescription(/3 个问题要处理/);
   await preview.focus();
   await page.keyboard.press("Enter");
-  await expect(
-    page.getByRole("group", { name: /时薪/ }).getByRole("spinbutton", { name: "最低", exact: true }),
-  ).toBeFocused();
+  const payMin = page.getByRole("group", { name: /时薪/ }).getByRole("spinbutton", { name: "最低", exact: true });
+  await expect(payMin).toBeFocused();
+  // A group's inputs say it too, so the press lands on something that tells why.
+  await expect(payMin).toHaveAttribute("aria-invalid", "true");
+  await expect(payMin).toHaveAccessibleDescription(/最低工资/);
+  // A note that only sends the job to a person (KTV, review) does not hold the form back: the press passes it by.
+  const titleZh = page.getByLabel("职位名称（中文）");
+  await titleZh.fill("KTV店员");
+  await expect(titleZh).not.toHaveAttribute("aria-invalid");
+  await preview.focus();
+  await page.keyboard.press("Enter");
+  await expect(payMin).toBeFocused();
 
   // Fix pay and wording, then the preview opens.
   await page.getByRole("group", { name: /时薪/ }).getByRole("spinbutton", { name: "最低", exact: true }).fill("24.5");

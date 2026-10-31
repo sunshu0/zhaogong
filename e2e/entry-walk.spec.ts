@@ -569,7 +569,9 @@ test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 �
   // The list's card has a 收藏 button of the same name: wait for the job page, or the click can land on the card's
   // button just as the list hides (the test build navigates more slowly than next dev, #139).
   await expect(page).toHaveURL(/\/external\//);
-  const save = page.getByRole("button", { name: "收藏：Firmware Intern (Summer 2026/27)" }).filter({ visible: true });
+  const save = page
+    .getByRole("button", { name: /^已?收藏：Firmware Intern \(Summer 2026\/27\)$/ })
+    .filter({ visible: true });
   await save.click();
   await expect(save).toHaveAccessibleName("已收藏：Firmware Intern (Summer 2026/27)");
   await expect(save).not.toHaveAttribute("aria-busy");

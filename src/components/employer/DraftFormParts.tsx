@@ -34,11 +34,13 @@ export const noteId = (name: string) => `note-${name}`;
 
 const hasNotes = ({ missing, findings }: FieldState) => missing || findings.length > 0;
 
-/** Describes the control by its notes; invalid while it is missing or has a finding that must be fixed. */
+/** Missing, or a finding that must be fixed: a review-level one (发布后人工审核) does not hold the form back. */
+const holdsBack = ({ missing, findings }: FieldState) => missing || findings.some((f) => f.level !== "review");
+
+/** Describes the control by its notes; invalid while it holds the form back. */
 export function fieldAria(name: string, state: FieldState): FieldAria {
   if (!hasNotes(state)) return {};
-  const invalid = state.missing || state.findings.some((f) => f.level !== "review");
-  return { "aria-describedby": noteId(name), ...(invalid ? { "aria-invalid": true } : {}) };
+  return { "aria-describedby": noteId(name), ...(holdsBack(state) ? { "aria-invalid": true } : {}) };
 }
 
 export function fieldKit({
@@ -86,7 +88,7 @@ function Notes({ name, missing, findings, hint }: FieldState & { name: string; h
     <>
       {/* One element with an id, so the control can be described by it (fieldAria). */}
       {hasNotes({ missing, findings }) && (
-        <div id={noteId(name)} className="space-y-1.5">
+        <div id={noteId(name)} data-holds-form={holdsBack({ missing, findings }) || undefined} className="space-y-1.5">
           {missing && <p className="text-meta text-warn">{t.notRecognised}</p>}
           {findings.map((f, i) => (
             <FindingItem key={i} finding={f} lang={lang} />
@@ -143,6 +145,7 @@ export function RangeInputs({
   unit,
   step,
   className,
+  aria,
 }: {
   min?: number;
   max?: number;
@@ -151,6 +154,8 @@ export function RangeInputs({
   unit: string;
   step: string;
   className: string;
+  /** The group's notes and state, on each input (UI audit 1 #11). */
+  aria?: FieldAria;
 }) {
   const t = useMessages(employerPostMessages).form;
   return (
@@ -161,6 +166,7 @@ export function RangeInputs({
         min="0"
         step={step}
         aria-label={t.rangeMin}
+        {...aria}
         value={min ?? ""}
         onChange={(e) => onMin(numberOrUndefined(e.target.value))}
         className={`h-11 ${className}`}
@@ -172,6 +178,7 @@ export function RangeInputs({
         min="0"
         step={step}
         aria-label={t.rangeMax}
+        {...aria}
         value={max ?? ""}
         onChange={(e) => onMax(numberOrUndefined(e.target.value))}
         placeholder={t.rangeMaxPlaceholder}

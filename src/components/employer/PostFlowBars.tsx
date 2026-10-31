@@ -39,13 +39,13 @@ export function FormBar({
       </p>
       {/* Not ready: aria-disabled, not disabled, so the keyboard and screen readers still reach it and hear why; a
           press goes to the first field that holds the form back (UI audit 1 #10). It looks as disabled as before:
-          dimmed, the not-allowed cursor, no press colour. */}
+          dimmed, the not-allowed cursor, pressed as hovered. */}
       <Button
         size="lg"
         aria-disabled={!form.ready || undefined}
         aria-describedby={form.ready ? undefined : statusId}
         onClick={() => (form.ready ? onPreview() : focusFirstProblem())}
-        className="px-6 aria-disabled:pointer-events-auto! aria-disabled:cursor-not-allowed aria-disabled:active:bg-accent"
+        className="px-6 aria-disabled:pointer-events-auto! aria-disabled:cursor-not-allowed"
       >
         {t.preview}
       </Button>
@@ -53,9 +53,10 @@ export function FormBar({
   );
 }
 
-/** The first field with notes (不能发布：…, 没有识别到…), top to bottom: its control, or a group's first one. */
+/** The first field that holds the form back (不能发布：…, 没有识别到…; not a review-level note), top to bottom: its
+ *  control, or a group's first one. */
 function focusFirstProblem() {
-  const note = document.querySelector<HTMLElement>('[id^="note-"]');
+  const note = document.querySelector<HTMLElement>('[id^="note-"][data-holds-form]');
   const field = note?.closest<HTMLElement>('[id^="field-"]');
   field?.querySelector<HTMLElement>("input, textarea, button")?.focus();
 }
