@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Employer, Job } from "@/lib/types";
 import { JobCard, JobCardSkeleton } from "@/components/seeker/JobCard";
 import type { EmployerActivity } from "@/lib/employer-activity";
+import { sheetClass } from "@/components/ui/Card";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { uiMessages } from "@/i18n/messages/ui";
 import { DEFAULT_LANG, type Lang } from "@/i18n/lang";
@@ -33,9 +34,8 @@ export function JobList({
   const t = pick(seekerJobsMessages, lang).list;
   if (jobs.length === 0) {
     return (
-      <div
-        className={`px-4 py-10 text-center ${look === "app" ? "rounded-card bg-surface shadow-card" : "rounded-md border border-border bg-surface"}`}
-      >
+      // An empty list's prompt opens nothing, so it is a sheet (design system, UI audit 2).
+      <div className={`${sheetClass({ padded: false })} px-4 py-10 text-center`}>
         <p className="font-medium">{t.emptyTitle}</p>
         <p className="mt-1 text-body text-muted">{t.emptyHint}</p>
         {empty && <div className="mt-4">{empty}</div>}
