@@ -30,6 +30,7 @@ export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
   counts: {
     openJobs: (n) => (n === 1 ? "open job, from" : "open jobs, from"),
     verifiedEmployers: (n) => (n === 1 ? "verified employer" : "verified employers"),
+    demoEmployers: (n) => (n === 1 ? "demo business" : "demo businesses"),
     employersPosting: (n) => (n === 1 ? "employer has posted jobs" : "employers have posted jobs"),
     jobsPosted: (n) => (n === 1 ? "job posted" : "jobs posted"),
     hiresConfirmed: (n) => (n === 1 ? "person found work here" : "people found work here"),
@@ -67,6 +68,7 @@ export const seekerHomeEn: Messages<(typeof seekerHomeMessages)["zh"]> = {
     tag: "A real chat, replayed",
     fromAssistant: "Assistant: ",
     fromEmployer: "Employer: ",
+    log: "The conversation",
     again: "Play again",
   },
   beforeAfter: {

@@ -72,6 +72,9 @@ export function JobBrowser({
 
   function onClickCapture(event: MouseEvent<HTMLDivElement>) {
     if (!wide || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    // Enter on the link (a click with no pointer, detail 0) opens the job page as below 1280 px: the preview would
+    // leave keyboard and screen reader users where they were, told nothing (UI review 2).
+    if (event.detail === 0) return;
     const link = (event.target as Element).closest<HTMLAnchorElement>("article a[href]");
     const id = link?.getAttribute("href")?.match(JOB_HREF)?.[1];
     if (!id || !jobs.some((j) => j.id === id)) return;

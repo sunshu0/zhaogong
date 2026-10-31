@@ -13,12 +13,16 @@ test("landing: headline, search, quick filters, the open jobs counted, and three
   const quick = hero.getByRole("list", { name: "快捷筛选" }).getByRole("link");
   await expect(quick).toHaveText(["接受学签", "包餐", "兼职", "市中心"]);
   await expect(quick.first()).toHaveAttribute("href", "/jobs?visa=student");
-  await expect(hero.locator("[data-hero-counts]")).toHaveText(/^[\d,]+ 个职位在招，来自 [\d,]+ 家已验证雇主/);
+  // The tests' server runs on demo data: its businesses are 演示企业, none counted as verified (feedback 10-30 #2).
+  await expect(hero.locator("[data-hero-counts]")).toHaveText(/^[\d,]+ 个职位在招，来自 [\d,]+ 家演示企业/);
 
   // 橱窗告示: three open jobs, each a link to its page with the pay large; turned on desktop, straight and
   // scrolling sideways on phones.
   const notices = hero.getByRole("list", { name: "正在招聘" }).getByRole("listitem");
   await expect(notices).toHaveCount(3);
+  // Headings go h1 → h2 → h3: a heading for screen readers over the notices' h3 titles (UI review 2).
+  await expect(hero.getByRole("heading", { level: 2, name: "正在招聘" })).toBeAttached();
+  await expect(notices.first().getByRole("heading", { level: 3 })).toBeVisible();
   for (let i = 0; i < 3; i++) {
     await expect(notices.nth(i).getByRole("link")).toHaveAttribute("href", /^\/jobs\/[^/]+$/);
     await expect(notices.nth(i)).toContainText("/小时");
@@ -56,7 +60,7 @@ test("landing: one line of numbers from the data, with the 演示数据 tag, in 
     .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
     .map((s) => s.label);
   await expect(line).toHaveText(
-    new RegExp(`^[\\d,]+ 个职位在招，来自 [\\d,]+ 家已验证雇主${shown.map((label) => ` · [\\d,]+ ${label}`).join("")}`),
+    new RegExp(`^[\\d,]+ 个职位在招，来自 [\\d,]+ 家演示企业${shown.map((label) => ` · [\\d,]+ ${label}`).join("")}`),
   );
   if (DEMO_DATA) await expect(line.getByText("演示数据", { exact: true })).toBeVisible();
   // No second set of the same numbers further down.

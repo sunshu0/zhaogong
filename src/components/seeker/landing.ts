@@ -15,18 +15,21 @@ export function formatCount(n: number, lang: Lang = DEFAULT_LANG): string {
 /**
  * The home page's one line of numbers (#51): open jobs and the verified employers among them, then the platform's
  * hires and contacts where they may be shown (visibleStats: past their thresholds, or all while it is demo data).
- * Jobs and employers ever posted are left out: they would repeat the first two.
+ * Jobs and employers ever posted are left out: they would repeat the first two. On demo data (`demo`) the second
+ * figure is all the jobs' employers, called 演示企业 as on the cards: no demo business is claimed verified (user
+ * feedback 10-30 #2).
  */
 export function heroCounts(
   openJobs: number,
-  verifiedEmployers: number,
+  employers: number,
   stats: PlatformStats,
   lang: Lang = DEFAULT_LANG,
+  demo = false,
 ): { value: number; label: string }[] {
   const t = pick(seekerHomeMessages, lang).counts;
   return [
     { value: openJobs, label: t.openJobs(openJobs) },
-    { value: verifiedEmployers, label: t.verifiedEmployers(verifiedEmployers) },
+    { value: employers, label: demo ? t.demoEmployers(employers) : t.verifiedEmployers(employers) },
     ...visibleStats(stats)
       .filter((s) => s.key === "hiresConfirmed" || s.key === "contactViews")
       .map(({ key, value }) => ({ value, label: t[key](value) })),

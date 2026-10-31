@@ -20,8 +20,8 @@ const noop = () => () => {};
 
 /**
  * A replay of a real AI chat post (see chat-replay.ts): messages appear one at a time once the window is about
- * 30% in view, the assistant "typing" first. Screen readers get the whole conversation as a list; with reduced
- * motion or without JavaScript the whole conversation shows at once.
+ * 30% in view, the assistant "typing" first. With reduced motion or without JavaScript the whole conversation
+ * shows at once.
  */
 export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const t = useMessages(seekerHomeMessages).replay;
@@ -108,22 +108,15 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
         <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">{t.tag}</span>
       </div>
 
-      <ol className="sr-only">
-        {messages.map((m) => (
-          <li key={m.id}>
-            {m.from === "assistant" ? t.fromAssistant : t.fromEmployer}
-            {/* The conversation itself stays Chinese: AI posting is Chinese in the first round (Round 20). */}
-            <span lang="zh-CN">{m.text}</span>
-          </li>
-        ))}
-      </ol>
-
+      {/* The window scrolls, so it takes focus for the keyboard (UI review 2); screen readers read it as it is,
+          each message after who said it. */}
       <div
         ref={log}
-        aria-hidden="true"
-        lang="zh-CN"
+        role="region"
+        aria-label={t.log}
+        tabIndex={0}
         data-replay-log=""
-        className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4"
+        className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
       >
         {visible.map((m, i) => (
           <div
@@ -134,7 +127,10 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
             }`}
           >
             <div className="max-w-[85%]">
+              <span className="sr-only">{m.from === "assistant" ? t.fromAssistant : t.fromEmployer}</span>
+              {/* The conversation itself stays Chinese: AI posting is Chinese in the first round (Round 20). */}
               <p
+                lang="zh-CN"
                 className={`rounded-card px-3.5 py-2.5 text-body leading-relaxed whitespace-pre-line ${
                   m.from === "employer"
                     ? "rounded-br-sm bg-brand text-white"
@@ -144,7 +140,8 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
                 {m.text}
               </p>
               {m.quickReplies.length > 0 && (
-                <p className="mt-1.5 flex flex-wrap gap-1.5">
+                // Shortened chips the transcript does without, as before.
+                <p aria-hidden="true" className="mt-1.5 flex flex-wrap gap-1.5">
                   {m.quickReplies.map((label) => (
                     <span key={label} className="rounded-full bg-brand-soft px-2.5 py-0.5 text-meta text-brand">
                       {label.length > 14 ? `${label.slice(0, 14)}…` : label}
@@ -156,7 +153,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
           </div>
         ))}
         {typing && (
-          <div className="flex justify-start">
+          <div aria-hidden="true" className="flex justify-start">
             <p className="flex gap-1 rounded-card rounded-bl-sm bg-surface px-3.5 py-3 ring-1 ring-border">
               {[0, 150, 300].map((delay) => (
                 <span

@@ -48,6 +48,12 @@ describe("heroCounts (#51: the home page's one line of numbers)", () => {
       ]);
   });
 
+  it("calls the employers 演示企业 on demo data, as the cards do, never verified (feedback 10-30 #2)", () => {
+    expect(heroCounts(16, 8, stats, "zh", true)[1]).toEqual({ value: 8, label: "家演示企业" });
+    expect(heroCounts(16, 8, stats, "en", true)[1].label).toBe("demo businesses");
+    expect(heroCounts(1, 1, stats, "en", true)[1].label).toBe("demo business");
+  });
+
   it("leaves out hires and contacts below their thresholds unless the data is demo data", () => {
     const low = { ...stats, hiresConfirmed: STAT_MIN_TO_SHOW.hiresConfirmed - 1, contactViews: 0 };
     expect(heroCounts(3, 1, low)).toHaveLength(DEMO_DATA ? 4 : 2);

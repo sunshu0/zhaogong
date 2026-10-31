@@ -195,6 +195,21 @@ test("the whole card opens the job (its preview from 1280 px), and latest cards 
   await expect(featured.locator("article h2")).toHaveCount(0);
 });
 
+test("from 1280 px Enter on a card's link opens the job page, not the preview (UI review 2)", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "The preview column is a desktop layout");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/jobs");
+  const card = page.getByRole("region", { name: "职位列表" }).locator("article").nth(1);
+  const href = (await card.getByRole("link").getAttribute("href"))!;
+  // The list's script is there once the preview column is.
+  await expect(page.getByRole("complementary", { name: "职位预览" })).toBeVisible();
+  await card.getByRole("link").focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(href);
+});
+
 test("mobile header and bottom bar actions have touch-sized targets", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Touch target check only applies to the phone layout");
   await page.goto("/");

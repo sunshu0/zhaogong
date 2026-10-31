@@ -41,6 +41,8 @@ const homeZh = {
   counts: {
     openJobs: sameFor("个职位在招，来自"),
     verifiedEmployers: sameFor("家已验证雇主"),
+    // On demo data, in place of verifiedEmployers (the cards' 演示企业, user feedback 10-30 #2).
+    demoEmployers: sameFor("家演示企业"),
     employersPosting: sameFor("家雇主发布过招聘"),
     jobsPosted: sameFor("个职位"),
     hiresConfirmed: sameFor("人通过这里找到工作"),
@@ -76,6 +78,8 @@ const homeZh = {
     tag: "真实对话回放",
     fromAssistant: "助手：",
     fromEmployer: "雇主：",
+    // The scrolling window's name (it takes focus so the keyboard can scroll it).
+    log: "对话记录",
     again: "重新播放",
   },
   // landing-parts.tsx: the before/after card.

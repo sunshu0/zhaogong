@@ -26,31 +26,50 @@ const PLACES = [
 export function WindowNotices({
   jobs,
   employers,
+  demo = false,
   lang = DEFAULT_LANG,
 }: {
   jobs: Job[];
   employers: Map<string, Employer>;
+  /** The demo site's data (demoDataWanted): 演示企业 in place of the level, as on the cards (user feedback 10-30 #2). */
+  demo?: boolean;
   /** The page's language (Round 20). */
   lang?: Lang;
 }) {
   if (jobs.length === 0) return null;
   const t = pick(seekerHomeMessages, lang).window;
   return (
-    <ul
-      aria-label={t.label}
-      data-window-notices=""
-      className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-3 pb-6 lg:relative lg:mx-0 lg:block lg:h-[26rem] lg:overflow-visible lg:p-0"
-    >
-      {jobs.slice(0, PLACES.length).map((job, i) => (
-        <li key={job.id} className={`w-[15rem] shrink-0 snap-start lg:absolute lg:w-[14.75rem] ${PLACES[i]}`}>
-          <Notice job={job} employer={employers.get(job.employerId)} lang={lang} stamp={t.stamp} />
-        </li>
-      ))}
-    </ul>
+    <div>
+      {/* Headings go h1 → h2 → h3 (UI review 2): the notices' titles are h3 under this one. */}
+      <h2 className="sr-only">{t.label}</h2>
+      <ul
+        aria-label={t.label}
+        data-window-notices=""
+        className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-3 pb-6 lg:relative lg:mx-0 lg:block lg:h-[26rem] lg:overflow-visible lg:p-0"
+      >
+        {jobs.slice(0, PLACES.length).map((job, i) => (
+          <li key={job.id} className={`w-[15rem] shrink-0 snap-start lg:absolute lg:w-[14.75rem] ${PLACES[i]}`}>
+            <Notice job={job} employer={employers.get(job.employerId)} demo={demo} lang={lang} stamp={t.stamp} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
-function Notice({ job, employer, lang, stamp }: { job: Job; employer?: Employer; lang: Lang; stamp: string }) {
+function Notice({
+  job,
+  employer,
+  demo,
+  lang,
+  stamp,
+}: {
+  job: Job;
+  employer?: Employer;
+  demo: boolean;
+  lang: Lang;
+  stamp: string;
+}) {
   const region = placeName(regionById(job.country, job.regionId), lang);
   const hours = [formatEmploymentTypes(job.employmentType, lang), formatHours(job.hoursPerWeek, lang)]
     .filter(Boolean)
@@ -94,7 +113,7 @@ function Notice({ job, employer, lang, stamp }: { job: Job; employer?: Employer;
           <span lang={contentLang(employer.name)} className="truncate">
             {employer.name}
           </span>
-          <VerificationBadge verification={employer.verification} lang={lang} />
+          <VerificationBadge verification={employer.verification} demo={demo} lang={lang} />
         </p>
       )}
     </article>

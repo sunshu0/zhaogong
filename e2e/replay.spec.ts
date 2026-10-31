@@ -7,7 +7,7 @@ import { chooseOption, fillSignInCode } from "./helpers";
 const aiPost = (page: Page) =>
   page.getByRole("region", { name: "招人？一分钟发布招聘" }).getByRole("article", { name: "AI 对话发帖" });
 const bubbles = (page: Page) => aiPost(page).locator("[data-replay-log] [data-bubble]");
-const transcript = (page: Page) => aiPost(page).locator("ol.sr-only li");
+const log = (page: Page) => aiPost(page).getByRole("region", { name: "对话记录" });
 
 test("the landing page runs hero → latest jobs → features → employers (feedback 8)", async ({ page }) => {
   await page.goto("/");
@@ -22,14 +22,32 @@ test("the landing page runs hero → latest jobs → features → employers (fee
   expect([...ys].sort((a, b) => a - b)).toEqual(ys);
 });
 
-test("screen readers get the whole conversation, with the three problems and the fix", async ({ page }) => {
+test("screen readers get the whole conversation once, each message after who said it, with the three problems and the fix", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(transcript(page)).toHaveCount(13);
-  await expect(transcript(page).first()).toContainText("助手：你好！");
-  await expect(transcript(page).nth(1)).toContainText("雇主：奶茶店招兼职店员");
-  const all = (await transcript(page).allTextContents()).join("\n");
+  // One copy (UI review 2: the window is no longer hidden from screen readers beside a second, hidden list).
+  await expect(aiPost(page).locator("[aria-hidden=true] [data-bubble], ol.sr-only")).toHaveCount(0);
+  await expect(bubbles(page)).toHaveCount(13);
+  await expect(bubbles(page).first()).toContainText("助手：你好！");
+  await expect(bubbles(page).nth(1)).toContainText("雇主：奶茶店招兼职店员");
+  const all = (await bubbles(page).allTextContents()).join("\n");
   for (const text of ["低于新西兰成人最低工资", "押金", "限华人", "雇主：24", "都齐了"]) expect(all).toContain(text);
-  await expect(aiPost(page).locator("[data-replay-log]")).toHaveAttribute("aria-hidden", "true");
+});
+
+test("the conversation window scrolls from the keyboard (UI review 2)", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(bubbles(page)).toHaveCount(13);
+  const chat = log(page);
+  await expect(chat).toHaveAttribute("tabindex", "0");
+  // It opens on the newest message; Home from the keyboard goes back to the first.
+  await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  await chat.focus();
+  await expect(chat).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBe(0);
 });
 
 test.describe("at 1280 × 800", () => {

@@ -250,12 +250,15 @@ async function NoScriptLanding() {
 async function HeroNotices() {
   await connection();
   const jobs = await listFeaturedJobs(DEFAULT_COUNTRY, NOTICE_COUNT, await requestTime());
-  return <WindowNotices jobs={jobs} employers={await employersOf(jobs)} lang={await serverLang()} />;
+  return (
+    <WindowNotices jobs={jobs} employers={await employersOf(jobs)} demo={demoDataWanted()} lang={await serverLang()} />
+  );
 }
 
 /**
  * The home page's one line of numbers (#51): 「N 个职位在招，来自 M 家已验证雇主」 from the open jobs, then hires and
- * contacts where they may be shown (heroCounts), per request; while the data is demo data it says so.
+ * contacts where they may be shown (heroCounts), per request; while the data is demo data it says so, and the
+ * employers are 演示企业 as on the cards, none counted as verified (user feedback 10-30 #2).
  */
 async function HeroCount() {
   const now = await requestTime();
@@ -264,10 +267,11 @@ async function HeroCount() {
     getPlatformStats(DEFAULT_COUNTRY),
   ]);
   const employers = await employersOf(jobs);
-  const verified = [...employers.values()].filter((e) => e.verification !== "unverified").length;
+  const demo = demoDataWanted();
+  const counted = demo ? employers.size : [...employers.values()].filter((e) => e.verification !== "unverified").length;
   const lang = await serverLang();
   const t = await messages(seekerHomeMessages);
-  const [open, by, ...more] = heroCounts(jobs.length, verified, stats, lang);
+  const [open, by, ...more] = heroCounts(jobs.length, counted, stats, lang, demo);
   const figure = (n: number) => <b className="font-figure text-[1.375rem] text-foreground">{formatCount(n, lang)}</b>;
   // #345: a Chinese part stays whole (a Chinese line may break between any two characters). An English label can be
   // wider than a 320 px screen, so there the part may wrap, and only the dot and the figure keep to the label's first
@@ -330,6 +334,8 @@ async function LatestBand() {
   await connection(); // the latest jobs change as jobs are published
   const now = await requestTime();
   const jobs = await latestJobs(LATEST_COUNT, now);
+  // None yet (every verified employer's jobs are in the window notices, or no employer is verified): no band.
+  if (jobs.length === 0) return null;
   const [employers, activities] = await Promise.all([
     employersOf(jobs),
     employerActivities(
