@@ -38,6 +38,7 @@ import {
   answerExchange,
   chatView,
   markConversationRead,
+  markConversationUnread,
   openConversation,
   parseChats as parseStoredChats,
   pinConversation,
@@ -136,7 +137,8 @@ const isEmpty = (record: ChatRecord) =>
   !record.extra.length &&
   !Object.keys(record.exchanges).length &&
   !record.reports.length &&
-  !record.pinned;
+  !record.pinned &&
+  !record.unreadMarks;
 
 // The server's records are the truth (#10); this browser's copy is a cache, refreshed once per identity per page
 // load, after sending what the outbox still holds. Records from before #10 that only this browser has are handed
@@ -344,7 +346,8 @@ export function useChat() {
     totalUnread: session ? Object.values(view.unread).reduce((total, count) => total + count, moderatorUnread) : 0,
     markRead(id: string) {
       if (!view.messages[id]) return;
-      if (!view.unread[id] && view.messages[id].every((message) => message.from === "me" || message.readAt)) return;
+      const allRead = !view.unread[id] && view.messages[id].every((message) => message.from === "me" || message.readAt);
+      if (allRead && !view.unreadMarks[id]) return;
       change((current) => markConversationRead(current, id, new Date().toISOString()));
       sendChange(scope, { type: "read", conversationId: id });
     },
@@ -355,6 +358,16 @@ export function useChat() {
       if (pinned && pinsFull(record, id, shown)) return void toast(pick(chatMessages, lang).limits.pinsFull(PINS_MAX));
       change((current) => pinConversation(current, id, pinned, new Date().toISOString(), shown));
       sendChange(scope, { type: "pin", conversationId: id, pinned });
+    },
+    /**
+     * C7 第 2 块: a dot in the list until the conversation is opened again. Only this identity's (its team's) list; the
+     * other side's 已读 and every unread count stay as they are.
+     */
+    markUnread(id: string, marked: boolean) {
+      if (!view.messages[id]) return;
+      const shown = new Set(view.conversations.map((c) => c.id));
+      change((current) => markConversationUnread(current, id, marked, new Date().toISOString(), shown));
+      sendChange(scope, { type: "unreadMark", conversationId: id, marked });
     },
     send(id: string, text: string) {
       // Over the server's limit it would show as sent and then be dropped there (#259): not sent at all.

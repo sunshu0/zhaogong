@@ -47,6 +47,8 @@ const chatZh = {
     filterEmpty: (filter: string) => `「${filter}」里还没有会话。`,
     /** Read before a pinned conversation's time. */
     pinned: "已置顶",
+    /** C7 第 2 块: read where a conversation marked unread shows its dot. */
+    markedUnread: "标为未读",
     /** Read with emptyEmployer or emptySeeker after it on the same line (the English ends with a space). */
     empty: "还没有聊天。",
     emptyEmployer: "求职者在你的职位上找你聊，或者你在推荐人才里点「发起聊天」，就会出现在这里。",
@@ -67,6 +69,7 @@ const chatZh = {
     report: "举报",
     pin: "置顶",
     unpin: "取消置顶",
+    markUnread: "标为未读",
     back: "返回会话列表",
     paused: "对方暂时不能回复，现在发不了消息。",
     more: (person: string) => `更多：${person}`,

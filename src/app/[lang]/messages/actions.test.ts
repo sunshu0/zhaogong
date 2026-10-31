@@ -1039,3 +1039,92 @@ describe("pins in the chat list (C7, ADR 0053)", () => {
     expect(Object.keys((await my())!.pinned!).sort()).toEqual(["candidate-chen", "candidate-lin"]);
   });
 });
+
+describe("unread marks in the chat list (C7 第 2 块)", () => {
+  /** A demo business with an admin and a member, an open job, and a job seeker who wrote about it. */
+  async function team(tag: string) {
+    const shop = await createEmployer({ name: `${tag}茶楼`, regionId: "akl-cbd" });
+    const boss = `demo.${tag}.boss@example.com`;
+    const staff = `demo.${tag}.staff@example.com`;
+    await ensureAccount(boss);
+    await openEmployerIdentity(boss, shop.id);
+    await ensureAccount(staff);
+    const invited = await inviteToTeam(shop.id, boss, staff, "member");
+    if (invited.status !== "invited") throw new Error(invited.status);
+    await answerInvite(staff, invited.invite.id, { accept: true, name: "小李" });
+    const job: Partial<Job> = { ...MOCK_JOBS[0], employerId: shop.id, titleZh: `${tag}服务员`, status: "active" };
+    delete job.id;
+    job.expiresAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const created = await createJob(job as Omit<Job, "id">);
+    const seeker = `${tag}.seeker@example.com`;
+    await signedIn(seeker);
+    await change({ type: "send", conversationId: `employer:${shop.id}:${created.id}`, text: "你好" });
+    return { shop, boss, staff, seeker, seekerId: `employer:${shop.id}:${created.id}` };
+  }
+
+  it("a mark on a shared conversation stays in the side's own record, and no read time moves", async () => {
+    const { shop, boss, staff, seeker } = await team("mark");
+    // Other tests' conversations are in the database too.
+    const readAtNow = async () =>
+      (await (await database()).select().from(t.conversations).where(eq(t.conversations.employerId, shop.id)))[0]
+        .employerReadAt;
+    await signedIn(staff, "employer");
+    const shared = (await my())!.extra.find((c) => c.id.startsWith("chat:"))!;
+    await change({ type: "read", conversationId: shared.id });
+    const readAt = await readAtNow();
+    expect(readAt).not.toBeNull();
+    const marked = await change({ type: "unreadMark", conversationId: shared.id, marked: true });
+    expect(Object.keys(marked!.unreadMarks!)).toEqual([shared.id]);
+    // The team shares it; the job seeker's 已读 is the read time it had.
+    await signedIn(boss, "employer");
+    expect(Object.keys((await my())!.unreadMarks!)).toEqual([shared.id]);
+    expect(await readAtNow()).toEqual(readAt);
+    await signedIn(seeker);
+    expect((await my())!.unreadMarks).toBeUndefined();
+
+    await signedIn(boss, "employer");
+    expect(
+      (await change({ type: "unreadMark", conversationId: shared.id, marked: false }))!.unreadMarks,
+    ).toBeUndefined();
+    for (const bad of [
+      { type: "unreadMark", conversationId: "nobody", marked: true },
+      { type: "unreadMark", conversationId: shared.id, marked: "yes" },
+    ])
+      expect((await change(bad as never))!.unreadMarks).toBeUndefined();
+  });
+
+  it("reading takes the mark off, on a shared conversation and on the own record's", async () => {
+    const { staff } = await team("clear");
+    await signedIn(staff, "employer");
+    const shared = (await my())!.extra.find((c) => c.id.startsWith("chat:"))!;
+    await change({ type: "unreadMark", conversationId: shared.id, marked: true });
+    await change({ type: "unreadMark", conversationId: "candidate-lin", marked: true });
+    expect(Object.keys((await my())!.unreadMarks!).sort()).toEqual(["candidate-lin", shared.id].sort());
+    expect(Object.keys((await change({ type: "read", conversationId: shared.id }))!.unreadMarks!)).toEqual([
+      "candidate-lin",
+    ]);
+    expect((await change({ type: "read", conversationId: "candidate-lin" }))!.unreadMarks).toBeUndefined();
+  });
+
+  it("two teammates' marks at once both stay", async () => {
+    const { staff } = await team("marks");
+    await signedIn(staff, "employer");
+    const read = store.getVersionedChat.bind(store);
+    let reads = 0;
+    let release!: () => void;
+    const bothRead = new Promise<void>((resolve) => (release = resolve));
+    store.getVersionedChat = async (scope) => {
+      const result = await read(scope);
+      reads += 1;
+      if (reads === 2) release();
+      if (reads <= 2) await bothRead;
+      return result;
+    };
+    await Promise.all([
+      change({ type: "unreadMark", conversationId: "candidate-lin", marked: true }),
+      change({ type: "unreadMark", conversationId: "candidate-chen", marked: true }),
+    ]);
+    expect(reads).toBe(3);
+    expect(Object.keys((await my())!.unreadMarks!).sort()).toEqual(["candidate-chen", "candidate-lin"]);
+  });
+});

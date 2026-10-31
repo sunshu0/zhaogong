@@ -40,6 +40,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     filters: { all: "All", new: "New", talking: "Talking", interview: "Interview" },
     filterEmpty: (filter) => `No chats in “${filter}” yet.`,
     pinned: "Pinned",
+    markedUnread: "Marked unread",
     /** Followed on the same line by emptyEmployer or emptySeeker, so it ends with the space between them. */
     empty: "No chats yet. ",
     emptyEmployer:
@@ -60,6 +61,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     report: "Report",
     pin: "Pin to top",
     unpin: "Unpin",
+    markUnread: "Mark as unread",
     back: "Back to the chat list",
     paused: "The other side can't reply for now, so messages can't be sent here.",
     more: (person) => `More: ${person}`,

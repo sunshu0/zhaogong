@@ -9,7 +9,9 @@ import {
   addSentResume,
   answerExchange,
   chatView,
+  clearUnreadMark,
   markConversationRead,
+  markConversationUnread,
   openConversation,
   parseChatRecord,
   parseChats,
@@ -338,5 +340,44 @@ describe("pins (C7, ADR 0053)", () => {
     const read = parseChatRecord({ ...EMPTY_CHAT, pinned: { ...pinned, bad: "yesterday" } })!;
     expect(Object.keys(read.pinned!).sort()).toEqual(Array.from({ length: PINS_MAX }, (_, i) => `c${i + 2}`).sort());
     expect(parseChatRecord(EMPTY_CHAT)).toEqual(EMPTY_CHAT);
+  });
+});
+
+describe("unread marks (C7 第 2 块)", () => {
+  const shown = new Set(["a", "b"]);
+  const t1 = "2026-10-31T01:00:00.000Z";
+  const t2 = "2026-10-31T02:00:00.000Z";
+
+  it("marks and takes the mark off, keeping when it was first marked, and leaves the record as it was with none", () => {
+    const one = markConversationUnread(EMPTY_CHAT, "a", true, t1, shown);
+    expect(one.unreadMarks).toEqual({ a: t1 });
+    expect(markConversationUnread(one, "a", true, t2, shown).unreadMarks).toEqual({ a: t1 });
+    expect(markConversationUnread(one, "a", false, t2, shown)).toEqual(EMPTY_CHAT);
+    expect(markConversationUnread(EMPTY_CHAT, "a", false, t2, shown)).toBe(EMPTY_CHAT);
+    const gone = markConversationUnread({ ...EMPTY_CHAT, unreadMarks: { old: t1 } }, "b", true, t2, shown);
+    expect(gone.unreadMarks).toEqual({ b: t2 });
+  });
+
+  it("reading the conversation takes its mark off, and only its own", () => {
+    const both = { ...EMPTY_CHAT, unreadMarks: { a: t1, b: t1 } };
+    const read = markConversationRead(both, "a", t2);
+    expect(read.unreadMarks).toEqual({ b: t1 });
+    expect(read.readAt).toEqual({ a: t2 });
+    expect(clearUnreadMark(read, "b")).toEqual({ ...EMPTY_CHAT, readAt: { a: t2 } });
+    expect(clearUnreadMark(EMPTY_CHAT, "b")).toBe(EMPTY_CHAT);
+  });
+
+  it("shows only the marks of conversations in the list, and counts none of them as unread", () => {
+    const record = { ...EMPTY_CHAT, unreadMarks: { "north-tea": t1, gone: t2 } };
+    const view = chatView(record, seekerDemo);
+    expect(view.unreadMarks).toEqual({ "north-tea": t1 });
+    expect(view.unread).toEqual(chatView(EMPTY_CHAT, seekerDemo).unread);
+  });
+
+  it("reads back what is stored, dropping bad times; an old record has none", () => {
+    const read = parseChatRecord({ ...EMPTY_CHAT, unreadMarks: { a: t1, bad: "yesterday", worse: 3 } })!;
+    expect(read.unreadMarks).toEqual({ a: t1 });
+    expect(parseChatRecord({ ...EMPTY_CHAT, unreadMarks: { bad: "yesterday" } })).toEqual(EMPTY_CHAT);
+    expect(parseChatRecord(EMPTY_CHAT)).not.toHaveProperty("unreadMarks");
   });
 });

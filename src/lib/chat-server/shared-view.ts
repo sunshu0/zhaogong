@@ -295,5 +295,6 @@ export function withShared(record: ChatRecord, part: SharedPart): ChatRecord {
     exchanges: { ...record.exchanges, ...part.exchanges },
     reports: record.reports,
     ...(record.pinned ? { pinned: record.pinned } : {}),
+    ...(record.unreadMarks ? { unreadMarks: record.unreadMarks } : {}),
   };
 }

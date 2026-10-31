@@ -109,6 +109,11 @@ export type ChatRecord = {
    * (a business's whole team shares its record), never the other side's. Left out while there are none.
    */
   pinned?: Record<string, string>;
+  /**
+   * C7 第 2 块: the conversations marked unread again, with when: a dot in the list until the conversation is opened.
+   * Not a read time (the other side's 已读 stays as it was) and not in any unread count. Left out while there are none.
+   */
+  unreadMarks?: Record<string, string>;
 };
 
 export const EMPTY_CHAT: ChatRecord = { added: {}, readAt: {}, extra: [], exchanges: {}, reports: [] };
@@ -128,6 +133,8 @@ export type ChatView = {
   reports: ChatReport[];
   /** C7: when each conversation in the list was pinned. */
   pinned: Record<string, string>;
+  /** C7: when each conversation in the list was marked unread. */
+  unreadMarks: Record<string, string>;
 };
 
 export function chatView(record: ChatRecord, demo: ChatDemo): ChatView {
@@ -145,8 +152,17 @@ export function chatView(record: ChatRecord, demo: ChatDemo): ChatView {
     unread[id] = (readAt ? 0 : (demo.unread[id] ?? 0)) + added.filter((m) => m.from === "them" && !m.readAt).length;
     exchanges[id] = mergeExchanges(demo.exchanges[id] ?? [], record.exchanges[id] ?? []);
   }
-  const pinned = Object.fromEntries(Object.entries(record.pinned ?? {}).filter(([id]) => id in messages));
-  return { conversations, messages, unread, exchanges, reports: record.reports, pinned };
+  const inList = (marks: Record<string, string> | undefined) =>
+    Object.fromEntries(Object.entries(marks ?? {}).filter(([id]) => id in messages));
+  return {
+    conversations,
+    messages,
+    unread,
+    exchanges,
+    reports: record.reports,
+    pinned: inList(record.pinned),
+    unreadMarks: inList(record.unreadMarks),
+  };
 }
 
 function mergeExchanges(demo: Exchange[], own: Exchange[]): Exchange[] {
@@ -187,8 +203,38 @@ export function pinsFull(record: ChatRecord, id: string, shown: ReadonlySet<stri
   return Object.keys(record.pinned ?? {}).filter((key) => shown.has(key)).length >= PINS_MAX;
 }
 
+/**
+ * Marks the conversation unread again, or takes the mark off (C7 第 2 块). Marks of conversations no longer in `shown`
+ * are dropped on the way, as pins are.
+ */
+export function markConversationUnread(
+  record: ChatRecord,
+  id: string,
+  marked: boolean,
+  now: string,
+  shown: ReadonlySet<string>,
+): ChatRecord {
+  if (!marked && !record.unreadMarks?.[id]) return record;
+  const kept = Object.entries(record.unreadMarks ?? {}).filter(([key]) => key !== id && shown.has(key));
+  return withUnreadMarks(record, Object.fromEntries(marked ? [...kept, [id, record.unreadMarks?.[id] ?? now]] : kept));
+}
+
+/** Opening a conversation takes its unread mark off (C7 第 2 块); the record stays as it was without one. */
+export function clearUnreadMark(record: ChatRecord, id: string): ChatRecord {
+  if (!record.unreadMarks?.[id]) return record;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the one taken off
+  const { [id]: _, ...kept } = record.unreadMarks;
+  return withUnreadMarks(record, kept);
+}
+
+function withUnreadMarks(record: ChatRecord, marks: Record<string, string>): ChatRecord {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- left out while there are none
+  const { unreadMarks: _, ...rest } = record;
+  return Object.keys(marks).length ? { ...rest, unreadMarks: marks } : rest;
+}
+
 export function markConversationRead(record: ChatRecord, id: string, now: string): ChatRecord {
-  return { ...record, readAt: { ...record.readAt, [id]: now } };
+  return clearUnreadMark({ ...record, readAt: { ...record.readAt, [id]: now } }, id);
 }
 
 export function addSentMessage(record: ChatRecord, id: string, text: string, now: string, by?: string): ChatRecord {
@@ -264,6 +310,7 @@ export function parseChatRecord(value: unknown): ChatRecord | undefined {
   const pins = Object.entries(mapOf(input.pinned, (at) => (validTimestamp(at) ? at : undefined)))
     .sort(([, a], [, b]) => b.localeCompare(a))
     .slice(0, PINS_MAX);
+  const marks = mapOf(input.unreadMarks, (at) => (validTimestamp(at) ? at : undefined));
   return {
     added: mapOf(input.added, (list) => (Array.isArray(list) ? list.flatMap(parseMessage) : undefined)),
     readAt: mapOf(input.readAt, (at) => (validTimestamp(at) ? at : undefined)),
@@ -271,6 +318,7 @@ export function parseChatRecord(value: unknown): ChatRecord | undefined {
     exchanges: mapOf(input.exchanges, (list) => (Array.isArray(list) ? list.flatMap(parseExchanges) : undefined)),
     reports: Array.isArray(input.reports) ? input.reports.flatMap((r) => optional(parseChatReport(r))) : [],
     ...(pins.length ? { pinned: Object.fromEntries(pins) } : {}),
+    ...(Object.keys(marks).length ? { unreadMarks: marks } : {}),
   };
 }
 

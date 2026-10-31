@@ -27,6 +27,7 @@ export function fitsOwnLimits(record: ChatRecord): boolean {
     ...Object.keys(record.added),
     ...Object.keys(record.readAt),
     ...Object.keys(record.exchanges),
+    ...Object.keys(record.unreadMarks ?? {}),
   ]);
   const short = (m: { text: string }) => m.text.length <= MESSAGE_MAX;
   return (

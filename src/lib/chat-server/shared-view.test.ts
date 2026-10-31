@@ -354,4 +354,12 @@ describe("已约面 and pins in the chat list (C7, ADR 0053)", () => {
     expect(full.pinned).toEqual(own.pinned);
     expect(mergeSharedChanges(full, own, sharedChanges([a, b], [], "seeker", now)).pinned).toEqual(own.pinned);
   });
+
+  it("keeps the own record's unread marks the same way (C7 第 2 块)", () => {
+    const own: ChatRecord = { ...empty, unreadMarks: { "employer:e1:j2": "2026-10-31T00:50:00.000Z" } };
+    const full = withShared(own, sharedPart([a, b], "seeker", now));
+    expect(full.unreadMarks).toEqual(own.unreadMarks);
+    const next = mergeSharedChanges(full, own, sharedChanges([a, b], [], "seeker", now));
+    expect(next.unreadMarks).toEqual(own.unreadMarks);
+  });
 });

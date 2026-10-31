@@ -29,12 +29,15 @@ export function ChatThread({
   draft,
   onDraftChange,
   onBack,
+  onMarkUnread,
 }: {
   conversation: Conversation;
   isEmployer: boolean;
   draft: string;
   onDraftChange: (draft: string) => void;
   onBack: () => void;
+  /** C7 第 2 块: 标为未读 in 更多, which goes back to the list. */
+  onMarkUnread: () => void;
 }) {
   crashForTests("chat");
   const t = useMessages(chatMessages).thread;
@@ -60,7 +63,7 @@ export function ChatThread({
 
   return (
     <section ref={thread} className="flex min-h-0 min-w-0 flex-col" aria-label={t.label(conversation.person)}>
-      <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} />
+      <ThreadHeader conversation={conversation} isEmployer={isEmployer} onBack={onBack} onMarkUnread={onMarkUnread} />
       {/* #405: while the phone's keyboard is up, the job bar and the marks fold away (kept, not reloaded) so the
           messages keep the room; they are back when it goes down. #415: the activity lines and the 常用语 row too
           (the row keeps its 管理 dialog showing, so a field in it can have the keyboard). DeliveryNote stays. */}
@@ -150,10 +153,12 @@ function ThreadHeader({
   conversation,
   isEmployer,
   onBack,
+  onMarkUnread,
 }: {
   conversation: Conversation;
   isEmployer: boolean;
   onBack: () => void;
+  onMarkUnread: () => void;
 }) {
   const t = useMessages(chatMessages).thread;
   const marks = useMessages(employerApplicantsMessages).chatMarks;
@@ -171,6 +176,8 @@ function ThreadHeader({
       : []),
     // C7: to the top of the list, or back among the others.
     { label: isPinned ? t.unpin : t.pin, onSelect: () => pin(conversation.id, !isPinned) },
+    // C7 第 2 块: a dot in the list to come back to; the other side's 已读 stays.
+    { label: t.markUnread, onSelect: onMarkUnread },
     { label: t.report, danger: true, onSelect: () => setReporting(true) },
   ];
   return (

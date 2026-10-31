@@ -59,7 +59,9 @@ import {
   addSentMessage,
   answerExchange,
   chatView,
+  clearUnreadMark,
   markConversationRead,
+  markConversationUnread,
   openConversation,
   parseChatRecord,
   pinConversation,
@@ -107,6 +109,8 @@ export type ChatChange =
   | { type: "report"; conversationId: string; reason: ChatReportReason; note: string; messageIndex?: number }
   /** C7 (ADR 0053): pinned to the top of the identity's own list, or not; the other side never hears of it. */
   | { type: "pin"; conversationId: string; pinned: boolean }
+  /** C7 第 2 块: a dot in the identity's own list until it opens the conversation; no read time changes either side. */
+  | { type: "unreadMark"; conversationId: string; marked: boolean }
   | {
       type: "open";
       conversation:
@@ -306,13 +310,15 @@ async function apply(record: ChatRecord, change: ChatChange, me: ChatIdentity): 
   const view = chatView(await withSharedOf(me, record), me.demo);
   const conversationId = "conversationId" in change ? change.conversationId : undefined;
   if (typeof conversationId !== "string") return { record };
-  // Reports and pins stay with the identity, whatever the conversation.
+  // Reports, pins and unread marks stay with the identity, whatever the conversation.
   const key = reader && parseSharedId(conversationId, reader.side);
-  if (reader && key && change.type !== "report" && change.type !== "pin") {
+  if (reader && key && change.type !== "report" && change.type !== "pin" && change.type !== "unreadMark") {
     const shared = (await findSharedConversation(reader, key)) ?? (await sharedToStart(me, key, change));
     if (shared) {
       const notice = await applyShared(shared, change, me, reader.side, view);
-      return notice ? { record, notice } : { record };
+      // Read on the shared rows, and the identity's own mark taken off (C7 第 2 块).
+      const next = change.type === "read" ? clearUnreadMark(record, conversationId) : record;
+      return notice ? { record: next, notice } : { record: next };
     }
   }
   // A résumé goes only to a business on the platform, in a conversation both share: never to a demo chat.
@@ -344,7 +350,7 @@ async function sharedToStart(
 /** A change to a conversation both sides share, written to its rows; what to tell the sender when it is not taken. */
 async function applyShared(
   row: ConversationRow,
-  change: Exclude<ChatChange, { type: "open" } | { type: "report" } | { type: "pin" }>,
+  change: Exclude<ChatChange, { type: "open" } | { type: "report" } | { type: "pin" } | { type: "unreadMark" }>,
   me: ChatIdentity,
   side: "seeker" | "employer",
   view: ReturnType<typeof chatView>,
@@ -441,7 +447,7 @@ async function applyShared(
 
 const shownIn = (view: ReturnType<typeof chatView>) => new Set(view.conversations.map((c) => c.id));
 
-/** A change to the identity's own record: demo chats, chats with demo candidates, reports, pins. */
+/** A change to the identity's own record: demo chats, chats with demo candidates, reports, pins, unread marks. */
 function applyOwn(
   record: ChatRecord,
   change: Exclude<ChatChange, { type: "open" }>,
@@ -455,6 +461,9 @@ function applyOwn(
     case "pin":
       if (typeof change.pinned !== "boolean") return record;
       return pinConversation(record, change.conversationId, change.pinned, now, shownIn(view));
+    case "unreadMark":
+      if (typeof change.marked !== "boolean") return record;
+      return markConversationUnread(record, change.conversationId, change.marked, now, shownIn(view));
     case "send": {
       const text = typeof change.text === "string" ? change.text.trim() : "";
       if (!text || text.length > MESSAGE_MAX) return record;

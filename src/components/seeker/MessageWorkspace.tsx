@@ -27,7 +27,8 @@ export function MessageWorkspace() {
   const t = useMessages(chatMessages).workspace;
   // T1 (ADR 0042): the open conversation is in the address, so the phone's back key closes it.
   const { selectedId, open, close } = useOpenConversation();
-  const { messages, unread, totalUnread, conversations, exchanges, pinned, markRead } = useChat();
+  const { messages, unread, totalUnread, conversations, exchanges, pinned, unreadMarks, markRead, markUnread } =
+    useChat();
   const session = useSession();
   const isEmployer = session?.activeRole === "employer";
   const demoAccount = isDemoAccount(session?.email);
@@ -36,11 +37,19 @@ export function MessageWorkspace() {
   const moderators = useModeratorChat();
   const moderatorsOpen = selectedId === MODERATOR_CHAT_ID && moderators.view ? moderators.view : undefined;
   const anyOpen = Boolean(selected || moderatorsOpen);
+  // C7 第 2 块: the conversation just marked unread is not read again while the address still names it (the phone's
+  // back is async); any other address ends that.
+  const [leaving, setLeaving] = useState<string | null>(null);
+  if (leaving && leaving !== selectedId) setLeaving(null);
   // #281: each conversation keeps its own draft in this tab, through a switch and a reload (chat-drafts.ts).
   const [draft, setDraft] = useChatDraft(identityScope(session), selected?.id ?? null);
   useChatRefresh();
   useUnreadInTitle(totalUnread);
-  useMarkReadWhileVisible(selectedId, selected ? messages[selected.id] : undefined, markRead);
+  useMarkReadWhileVisible(
+    selected && selected.id !== leaving ? selected.id : null,
+    selected ? messages[selected.id] : undefined,
+    markRead,
+  );
   useMarkReadWhileVisible(moderatorsOpen ? MODERATOR_CHAT_ID : null, moderatorsOpen?.lines, moderators.markRead);
   const board = useRef<HTMLDivElement>(null);
   useVisibleViewport(board, anyOpen);
@@ -48,6 +57,12 @@ export function MessageWorkspace() {
   function select(id: string) {
     if (id !== selectedId) open(id);
     markRead(id);
+  }
+
+  function leaveUnread(id: string) {
+    setLeaving(id);
+    markUnread(id, true);
+    close();
   }
 
   // Below 1024 px an open conversation fills the screen (fixed over the page; globals.css hides the site's header,
@@ -78,6 +93,7 @@ export function MessageWorkspace() {
           messages={messages}
           exchanges={exchanges}
           pinned={pinned}
+          unreadMarks={unreadMarks}
           unread={unread}
           selectedId={selected?.id ?? (moderatorsOpen ? MODERATOR_CHAT_ID : undefined)}
           isEmployer={isEmployer}
@@ -105,6 +121,7 @@ export function MessageWorkspace() {
               draft={draft}
               onDraftChange={setDraft}
               onBack={close}
+              onMarkUnread={() => leaveUnread(selected.id)}
             />
           </RetryBoundary>
         ) : (
@@ -133,12 +150,16 @@ function ConversationList({
   messages,
   exchanges,
   pinned,
+  unreadMarks,
   unread,
   selectedId,
   isEmployer,
   onSelect,
   moderators,
-}: Pick<ReturnType<typeof useChat>, "conversations" | "messages" | "exchanges" | "pinned" | "unread"> & {
+}: Pick<
+  ReturnType<typeof useChat>,
+  "conversations" | "messages" | "exchanges" | "pinned" | "unreadMarks" | "unread"
+> & {
   selectedId: string | undefined;
   isEmployer: boolean;
   onSelect: (id: string) => void;
@@ -197,6 +218,7 @@ function ConversationList({
               isEmployer={isEmployer}
               selected={selectedId === conversation.id}
               pinned={Boolean(pinned[conversation.id])}
+              marked={Boolean(unreadMarks[conversation.id])}
               preview={messages[conversation.id].at(-1)?.text ?? t.previewEmpty}
               unreadCount={unread[conversation.id]}
               onSelect={() => onSelect(conversation.id)}
@@ -213,6 +235,7 @@ function ConversationRow({
   isEmployer,
   selected,
   pinned,
+  marked,
   preview,
   unreadCount,
   onSelect,
@@ -221,12 +244,15 @@ function ConversationRow({
   isEmployer: boolean;
   selected: boolean;
   pinned: boolean;
+  /** C7 第 2 块: marked unread by hand — a dot where the count would be, and no count of its own. */
+  marked: boolean;
   preview: string;
   unreadCount: number;
   onSelect: () => void;
 }) {
   const lang = useLang();
   const t = useMessages(chatMessages).workspace;
+  const stands = Boolean(unreadCount) || marked;
   return (
     <button
       type="button"
@@ -239,7 +265,7 @@ function ConversationRow({
         <span className="flex items-center justify-between gap-2">
           <span
             lang={contentLang(conversation.person)}
-            className={`truncate text-body ${unreadCount ? "font-semibold" : "font-medium"}`}
+            className={`truncate text-body ${stands ? "font-semibold" : "font-medium"}`}
           >
             {conversation.person}
           </span>
@@ -255,14 +281,25 @@ function ConversationRow({
         </span>
         <span
           lang={contentLang(preview)}
-          className={`mt-0.5 block truncate text-meta ${unreadCount ? "text-foreground" : "text-muted"}`}
+          className={`mt-0.5 block truncate text-meta ${stands ? "text-foreground" : "text-muted"}`}
         >
           {preview}
         </span>
       </span>
-      <UnreadBadge count={unreadCount} />
-      {/* The badge is hidden from screen readers; this says it (UI audit 1 #6). */}
-      {unreadCount > 0 && <span className="sr-only">{t.unreadCount(unreadCount)}</span>}
+      {unreadCount ? (
+        <>
+          <UnreadBadge count={unreadCount} />
+          {/* The badge is hidden from screen readers; this says it (UI audit 1 #6). */}
+          <span className="sr-only">{t.unreadCount(unreadCount)}</span>
+        </>
+      ) : (
+        marked && (
+          <>
+            <span aria-hidden="true" data-unread-mark="" className="size-2.5 shrink-0 rounded-full bg-accent" />
+            <span className="sr-only">{t.markedUnread}</span>
+          </>
+        )
+      )}
     </button>
   );
 }
