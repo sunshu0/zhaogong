@@ -162,6 +162,7 @@ export const seekerJobsEn: Messages<(typeof seekerJobsMessages)["zh"]> = {
     save: "Save",
     saved: "Saved",
     label: (title) => `Save: ${title}`,
+    savedLabel: (title) => `Saved: ${title}`,
     savedToast: "Saved. You'll find it in Saved and applied",
     unsavedToast: "Removed from saved",
     saveFailed: "Couldn't save it because of a network problem. Try again",

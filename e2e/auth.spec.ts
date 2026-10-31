@@ -57,6 +57,7 @@ test("a mistyped mail domain gets its right spelling offered on both steps; send
   await fix.click();
   await expect(field).toHaveValue(`${name}@gmail.com`);
   await expect(fix).toBeHidden();
+  await expect(field).toBeFocused(); // the button went, so the focus goes back to the field (UI audit 1 #12)
 
   // Sent to a mistyped address all the same (the hint comes as the field is left, under the button): the code step
   // offers the right one, and the code goes there.

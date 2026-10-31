@@ -15,15 +15,31 @@ import { employerPostMessages } from "@/i18n/messages/employer-post";
 
 export type { FieldState };
 
-/** The form, how to change it, and each field's state and box style. */
+/** The form, how to change it, and each field's state, box style and what a control tells screen readers. */
 export type FieldKit = {
   form: PostForm;
   set: (patch: Partial<PostForm>) => void;
   config: CountryConfig;
   state: (field: keyof JobDraft) => FieldState;
   box: (field: keyof JobDraft) => string;
+  aria: (field: keyof JobDraft) => FieldAria;
   visaChoices: VisaAccepted[];
 };
+
+/** A control's link to its notes below it, and whether it holds the form back (UI audit 1 #11). */
+export type FieldAria = { "aria-describedby"?: string; "aria-invalid"?: true };
+
+/** The id of a field's notes (不能发布：…, 没有识别到…), there while it has any. */
+export const noteId = (name: string) => `note-${name}`;
+
+const hasNotes = ({ missing, findings }: FieldState) => missing || findings.length > 0;
+
+/** Describes the control by its notes; invalid while it is missing or has a finding that must be fixed. */
+export function fieldAria(name: string, state: FieldState): FieldAria {
+  if (!hasNotes(state)) return {};
+  const invalid = state.missing || state.findings.some((f) => f.level !== "review");
+  return { "aria-describedby": noteId(name), ...(invalid ? { "aria-invalid": true } : {}) };
+}
 
 export function fieldKit({
   form,
@@ -45,7 +61,8 @@ export function fieldKit({
     findings: findings.filter((f) => f.field === field),
   });
   const box = (field: keyof JobDraft) => `w-full rounded-control border bg-background px-3 ${fieldTone(state(field))}`;
-  return { form, set, config: COUNTRIES[country], state, box, visaChoices };
+  const aria = (field: keyof JobDraft) => fieldAria(field, state(field));
+  return { form, set, config: COUNTRIES[country], state, box, aria, visaChoices };
 }
 
 export const toggle = <T,>(list: T[], value: T) =>
@@ -62,15 +79,20 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-function Notes({ missing, findings, hint }: FieldState & { hint?: string }) {
+function Notes({ name, missing, findings, hint }: FieldState & { name: string; hint?: string }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
   return (
     <>
-      {missing && <p className="text-meta text-warn">{t.notRecognised}</p>}
-      {findings.map((f, i) => (
-        <FindingItem key={i} finding={f} lang={lang} />
-      ))}
+      {/* One element with an id, so the control can be described by it (fieldAria). */}
+      {hasNotes({ missing, findings }) && (
+        <div id={noteId(name)} className="space-y-1.5">
+          {missing && <p className="text-meta text-warn">{t.notRecognised}</p>}
+          {findings.map((f, i) => (
+            <FindingItem key={i} finding={f} lang={lang} />
+          ))}
+        </div>
+      )}
       {hint && <p className="text-meta text-muted">{hint}</p>}
     </>
   );
@@ -87,7 +109,7 @@ export function Field({ name, label, required, hint, children, ...state }: Label
         {required && <span className="text-danger"> *</span>}
       </label>
       {children}
-      <Notes {...state} hint={hint} />
+      <Notes name={name} {...state} hint={hint} />
     </div>
   );
 }
@@ -95,13 +117,17 @@ export function Field({ name, label, required, hint, children, ...state }: Label
 /** Several controls under one legend (checkboxes, a min–max pair). */
 export function Group({ name, legend, required, hint, children, ...state }: LabelledProps & { legend: string }) {
   return (
-    <fieldset id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
+    <fieldset
+      id={`field-${name}`}
+      aria-describedby={fieldAria(name, state)["aria-describedby"]}
+      className="scroll-mt-20 space-y-1.5"
+    >
       <legend className="mb-1.5 text-body font-medium">
         {legend}
         {required && <span className="text-danger"> *</span>}
       </legend>
       {children}
-      <Notes {...state} hint={hint} />
+      <Notes name={name} {...state} hint={hint} />
     </fieldset>
   );
 }

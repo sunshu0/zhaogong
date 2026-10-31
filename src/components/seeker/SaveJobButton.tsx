@@ -53,7 +53,9 @@ export function SaveJobButton({
       aria-disabled={busy || undefined}
       aria-busy={busy || undefined}
       aria-pressed={session ? on : undefined}
-      aria-label={t.label(title)}
+      // The inline one's name starts with what it shows, 收藏 or 已收藏, then the job (WCAG 2.5.3, UI audit 1 #7); the
+      // bar's is an icon only. In aria-label, not a sr-only span: Chromium puts a space before an absolutely placed one.
+      aria-label={look === "inline" && on ? t.savedLabel(title) : t.label(title)}
       title={look === "bar" ? (on ? t.saved : t.save) : undefined}
       onClick={() => {
         if (busy) return;

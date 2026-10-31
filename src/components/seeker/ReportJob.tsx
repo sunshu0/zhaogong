@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
 import { reportJob } from "@/app/[lang]/jobs/[id]/actions";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { rememberReport, useSentReports } from "@/components/seeker/activity-client";
@@ -46,6 +46,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
   const [picked, setPicked] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
+  const noteId = useId();
   const lang = useLang();
   const t = useMessages(seekerJobsMessages).report;
   const thanks = useRef<HTMLElement>(null);
@@ -118,9 +119,13 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
         </div>
       </fieldset>
 
-      <label className="mt-3 block">
-        <span className="mb-1 block text-sm">{t.note}</span>
+      {/* The label beside the box, not around it (design system, UI audit 1 #9). */}
+      <div className="mt-3">
+        <label htmlFor={noteId} className="mb-1 block text-sm">
+          {t.note}
+        </label>
         <textarea
+          id={noteId}
           name="note"
           rows={3}
           maxLength={NOTE_MAX}
@@ -128,7 +133,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
           onChange={(event) => setNoteLength([...event.currentTarget.value].length)}
           className={inputClass({ multiline: true })}
         />
-      </label>
+      </div>
       <p className="mt-1 text-right text-meta text-muted">
         {noteLength} / {NOTE_MAX}
       </p>

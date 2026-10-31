@@ -44,7 +44,7 @@ export function ConversationJob({
   return (
     <Link
       href={`/jobs/${jobId}`}
-      aria-label={job ? t.linkWithPay(job.title, job.pay) : t.link(fallbackTitle)}
+      aria-label={job ? t.linkWithPay(job.title, job.pay, !job.open) : t.link(fallbackTitle)}
       className={
         inRow
           ? "pressable-row flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-control text-body hover:bg-background"

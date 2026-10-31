@@ -48,12 +48,13 @@ export function RequirementsSection({ kit }: { kit: FieldKit }) {
 
 export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onRegenerateEn: () => void }) {
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, box } = kit;
+  const { form, set, state, box, aria } = kit;
   return (
     <Section title={t.descriptionSection}>
       <Field name="descriptionZh" label={t.descriptionZh} required {...state("descriptionZh")}>
         <textarea
           id="in-descriptionZh"
+          {...aria("descriptionZh")}
           lang="zh-CN"
           rows={5}
           value={form.descriptionZh}
@@ -70,6 +71,7 @@ export function DescriptionSection({ kit, onRegenerateEn }: { kit: FieldKit; onR
       >
         <textarea
           id="in-descriptionEn"
+          {...aria("descriptionEn")}
           lang="en"
           rows={4}
           value={form.descriptionEn}

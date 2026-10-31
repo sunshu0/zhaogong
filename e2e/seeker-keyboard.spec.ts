@@ -79,7 +79,7 @@ test("a Select from the keyboard: an arrow opens it, End and Enter pick, Esc clo
 test("收藏 on a job card works from the keyboard", async ({ page }) => {
   await signIn(page, "/jobs", freshEmail("keyboard.save"));
   const save = page
-    .getByRole("button", { name: /^收藏：/ })
+    .getByRole("button", { name: /^已?收藏：/ })
     .filter({ visible: true })
     .first();
   await expect(save).toBeEnabled();

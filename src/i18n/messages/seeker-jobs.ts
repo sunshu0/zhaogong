@@ -168,6 +168,8 @@ const seekerJobsZh = {
     save: "收藏",
     saved: "已收藏",
     label: (title: string) => `收藏：${title}`,
+    /** The inline button's name once saved: it starts with what it shows, 已收藏. */
+    savedLabel: (title: string) => `已收藏：${title}`,
     savedToast: "已收藏，可以在「收藏和进度」里查看",
     unsavedToast: "已取消收藏",
     saveFailed: "网络有问题，没有收藏上，请重试",

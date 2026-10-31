@@ -1,6 +1,6 @@
 "use client";
 // The sticky bars at the bottom of the form and preview steps of /employer/post.
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { holdReason, type DraftFormState } from "@/components/employer/use-draft-form";
 import { Button } from "@/components/ui/Button";
 import { BAR_TEXT_ACTION, STICKY_BAR } from "@/components/employer/app-style";
@@ -28,17 +28,36 @@ export function FormBar({
 }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).bars;
+  const statusId = useId();
   return (
     <div className="flex items-center gap-3">
       <button type="button" onClick={onBack} className={BAR_TEXT_ACTION}>
         {t.back}
       </button>
-      <p className="flex-1 text-meta text-muted">{formStatusText(form, t, lang)}</p>
-      <Button size="lg" disabled={!form.ready} onClick={onPreview} className="px-6">
+      <p id={statusId} className="flex-1 text-meta text-muted">
+        {formStatusText(form, t, lang)}
+      </p>
+      {/* Not ready: aria-disabled, not disabled, so the keyboard and screen readers still reach it and hear why; a
+          press goes to the first field that holds the form back (UI audit 1 #10). It looks as disabled as before:
+          dimmed, the not-allowed cursor, no press colour. */}
+      <Button
+        size="lg"
+        aria-disabled={!form.ready || undefined}
+        aria-describedby={form.ready ? undefined : statusId}
+        onClick={() => (form.ready ? onPreview() : focusFirstProblem())}
+        className="px-6 aria-disabled:pointer-events-auto! aria-disabled:cursor-not-allowed aria-disabled:active:bg-accent"
+      >
         {t.preview}
       </Button>
     </div>
   );
+}
+
+/** The first field with notes (不能发布：…, 没有识别到…), top to bottom: its control, or a group's first one. */
+function focusFirstProblem() {
+  const note = document.querySelector<HTMLElement>('[id^="note-"]');
+  const field = note?.closest<HTMLElement>('[id^="field-"]');
+  field?.querySelector<HTMLElement>("input, textarea, button")?.focus();
 }
 
 /** Below the form: whether it can be published, and if not, what is still open. */

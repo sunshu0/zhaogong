@@ -44,6 +44,7 @@ export function Select({
   id: triggerId,
   hideLabel = false,
   tone,
+  "aria-describedby": describedBy,
 }: {
   name?: string;
   label: string;
@@ -57,6 +58,8 @@ export function Select({
   hideLabel?: boolean;
   /** The trigger's border: a value is missing or unclear (`warn`), or not allowed (`danger`). */
   tone?: FieldTone;
+  /** Put on the trigger: the notes that explain its value (a button cannot be aria-invalid). */
+  "aria-describedby"?: string;
 }) {
   const hydrated = useHydrated();
   const anyWord = useMessages(uiMessages).any;
@@ -128,6 +131,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open !== null}
         aria-labelledby={`${id}-label ${triggerId ?? `${id}-trigger`}`}
+        aria-describedby={describedBy}
         onClick={() => (open ? close() : show())}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {

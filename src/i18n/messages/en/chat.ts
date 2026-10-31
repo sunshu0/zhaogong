@@ -74,7 +74,8 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
   conversationJob: {
     label: "Job",
     link: (title) => `This chat is about ${title}. View the job.`,
-    linkWithPay: (title, pay) => `This chat is about ${title}, ${pay}. View the job.`,
+    linkWithPay: (title, pay, closed) =>
+      `This chat is about ${title}, ${pay}.${closed ? " No longer hiring." : ""} View the job.`,
     closed: "No longer hiring",
   },
 

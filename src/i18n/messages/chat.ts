@@ -83,7 +83,9 @@ const chatZh = {
   conversationJob: {
     label: "职位",
     link: (title: string) => `聊的职位：${title}，查看职位详情`,
-    linkWithPay: (title: string, pay: string) => `聊的职位：${title}，${pay}，查看职位详情`,
+    /** `closed`: 已停止招聘 shows beside it, so the name says it too (UI audit 1 #8). */
+    linkWithPay: (title: string, pay: string, closed: boolean) =>
+      `聊的职位：${title}，${pay}${closed ? "，已停止招聘" : ""}，查看职位详情`,
     closed: "已停止招聘",
   },
 

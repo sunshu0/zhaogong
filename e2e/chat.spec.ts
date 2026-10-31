@@ -16,10 +16,10 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
   await expect(board).toBeVisible();
   const width = (await board.boundingBox())!.width;
   if (testInfo.project.name === "desktop") expect(width).toBeGreaterThan(1000);
-  await page
-    .getByRole("complementary", { name: "聊天列表" })
-    .getByRole("button", { name: /北岸早茶酒家/ })
-    .click();
+  // The unread count is a badge hidden from screen readers; the row says it in words (UI audit 1 #6).
+  const northTea = page.getByRole("complementary", { name: "聊天列表" }).getByRole("button", { name: /北岸早茶酒家/ });
+  await expect(northTea).toHaveAccessibleName(/2 条未读消息$/);
+  await northTea.click();
   // T1: a phone's open conversation hides the bottom bar; the tab's title carries the same count (#291).
   if (testInfo.project.name === "desktop") await expect(entry).toHaveAttribute("title", "聊天，1 条未读消息");
   else await expect(page).toHaveTitle(/^\(1\) /);
@@ -28,6 +28,12 @@ test("chat is prominent, unread counts sync and the composer stays visible", asy
   await input.fill("你好，我今天下午可以面谈。");
   await page.getByRole("button", { name: "发送", exact: true }).click();
   await expect(page.getByRole("log")).toContainText("你好，我今天下午可以面谈。");
+  // A message on two lines keeps them (UI audit 1 #1).
+  await input.fill("第一行\n第二行");
+  await page.getByRole("button", { name: "发送", exact: true }).click();
+  const twoLines = page.getByRole("log").getByText("第一行", { exact: false }).last();
+  await expect(twoLines).toHaveCSS("white-space", "pre-wrap");
+  expect(await twoLines.evaluate((p) => (p as HTMLElement).innerText)).toBe("第一行\n第二行");
   if (testInfo.project.name === "desktop") {
     const before = (await input.boundingBox())!;
     for (let i = 0; i < 12; i++) {

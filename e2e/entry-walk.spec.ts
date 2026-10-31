@@ -93,9 +93,11 @@ test("收藏和进度: home → 收藏 a job → 收藏和进度", async ({ page
   await toJobList(page);
   const first = page.getByRole("region", { name: "职位列表" }).getByRole("article").first();
   const title = (await first.getByRole("heading").textContent())!.trim();
-  await first.getByRole("button", { name: /^收藏：/ }).click();
-  await expect(first.getByRole("button", { name: /^收藏：/ })).toHaveText("已收藏");
-  await expect(first.getByRole("button", { name: /^收藏：/ })).not.toHaveAttribute("aria-busy");
+  // Named by what it shows (收藏, then 已收藏) and the job: the job's title follows for screen readers only.
+  const saveFirst = first.getByRole("button", { name: /^已?收藏：/ });
+  await saveFirst.click();
+  await expect(saveFirst).toHaveAccessibleName(`已收藏：${title}`);
+  await expect(saveFirst).not.toHaveAttribute("aria-busy");
 
   await openMine(page, testInfo, "收藏和进度");
   await expect(page).toHaveURL("/me/saved");
@@ -569,7 +571,7 @@ test("实习: home → 实习 → 筛选 → 保存为提醒; a job → 收藏 �
   await expect(page).toHaveURL(/\/external\//);
   const save = page.getByRole("button", { name: "收藏：Firmware Intern (Summer 2026/27)" }).filter({ visible: true });
   await save.click();
-  await expect(save).toHaveText("已收藏");
+  await expect(save).toHaveAccessibleName("已收藏：Firmware Intern (Summer 2026/27)");
   await expect(save).not.toHaveAttribute("aria-busy");
   await openMine(page, testInfo, "收藏和进度");
   await expect(page).toHaveURL("/me/saved");

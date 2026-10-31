@@ -261,6 +261,8 @@ function ConversationRow({
         </span>
       </span>
       <UnreadBadge count={unreadCount} />
+      {/* The badge is hidden from screen readers; this says it (UI audit 1 #6). */}
+      {unreadCount > 0 && <span className="sr-only">{t.unreadCount(unreadCount)}</span>}
     </button>
   );
 }
@@ -328,6 +330,7 @@ function ModeratorRow({
   onSelect: () => void;
 }) {
   const t = useMessages(moderatorChatMessages);
+  const workspace = useMessages(chatMessages).workspace;
   const preview = view.lines.at(-1)?.text ?? t.empty;
   return (
     <button
@@ -353,6 +356,7 @@ function ModeratorRow({
         </span>
       </span>
       <UnreadBadge count={view.unread} />
+      {view.unread > 0 && <span className="sr-only">{workspace.unreadCount(view.unread)}</span>}
     </button>
   );
 }

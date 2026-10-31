@@ -28,7 +28,19 @@ test("paste → findings hold publishing → fix → publish → the job is on t
   await expect(panel).toContainText("含有「押金」");
   await expect(panel).toContainText("请改写：含有「限华人」");
   await expect(page.getByText("3 个问题要处理").filter({ visible: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "预览", exact: true })).toBeDisabled();
+  const preview = page.getByRole("button", { name: "预览", exact: true });
+  await expect(preview).toBeDisabled();
+  // UI audit 1 #10, #11: the fields say what holds them back to screen readers, and 预览 stays reachable (aria-disabled,
+  // not disabled): it says why, and a press goes to the first field to fix, the pay above the description.
+  const description = page.getByLabel("中文描述");
+  await expect(description).toHaveAttribute("aria-invalid", "true");
+  await expect(description).toHaveAccessibleDescription(/押金/);
+  await expect(preview).toHaveAccessibleDescription(/3 个问题要处理/);
+  await preview.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("group", { name: /时薪/ }).getByRole("spinbutton", { name: "最低", exact: true }),
+  ).toBeFocused();
 
   // Fix pay and wording, then the preview opens.
   await page.getByRole("group", { name: /时薪/ }).getByRole("spinbutton", { name: "最低", exact: true }).fill("24.5");

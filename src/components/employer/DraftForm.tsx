@@ -53,12 +53,13 @@ export function DraftForm({ form, set, findings, missing, country, visaChoices, 
 function JobSection({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, box } = kit;
+  const { form, set, state, box, aria } = kit;
   return (
     <Section title={t.jobSection}>
       <Field name="titleZh" label={t.titleZh} required {...state("titleZh")}>
         <input
           id="in-titleZh"
+          {...aria("titleZh")}
           value={form.titleZh}
           onChange={(e) => set({ titleZh: e.target.value })}
           placeholder={t.titleZhPlaceholder}
@@ -68,6 +69,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
       <Field name="titleEn" label={t.titleEn} required {...state("titleEn")}>
         <input
           id="in-titleEn"
+          {...aria("titleEn")}
           lang="en"
           value={form.titleEn}
           onChange={(e) => set({ titleEn: e.target.value })}
@@ -78,6 +80,7 @@ function JobSection({ kit }: { kit: FieldKit }) {
       <Field name="industry" label={t.industry} required {...state("industry")}>
         <Select
           id="in-industry"
+          aria-describedby={aria("industry")["aria-describedby"]}
           label={t.industry}
           hideLabel
           placeholder={t.chooseOne}
@@ -126,12 +129,13 @@ function EmploymentTypeGroup({ kit }: { kit: FieldKit }) {
 function PlaceSection({ kit }: { kit: FieldKit }) {
   const lang = useLang();
   const t = useMessages(employerPostMessages).form;
-  const { form, set, state, box, config } = kit;
+  const { form, set, state, box, aria, config } = kit;
   return (
     <Section title={t.placeSection}>
       <Field name="regionId" label={t.region} required {...state("regionId")}>
         <Select
           id="in-regionId"
+          aria-describedby={aria("regionId")["aria-describedby"]}
           label={t.region}
           hideLabel
           placeholder={t.chooseOne}
@@ -144,6 +148,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
       <Field name="address" label={t.address} {...state("address")}>
         <input
           id="in-address"
+          {...aria("address")}
           value={form.address}
           onChange={(e) => set({ address: e.target.value })}
           className={`h-11 ${box("address")}`}
@@ -163,6 +168,7 @@ function PlaceSection({ kit }: { kit: FieldKit }) {
       <Field name="shiftsZh" label={t.shifts} {...state("shiftsZh")}>
         <input
           id="in-shiftsZh"
+          {...aria("shiftsZh")}
           value={form.shiftsZh}
           onChange={(e) => set({ shiftsZh: e.target.value })}
           placeholder={t.shiftsPlaceholder}

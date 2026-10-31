@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Flag } from "lucide-react";
 import { useChat, type Conversation } from "@/components/seeker/chat-client";
 import { useSession } from "@/components/seeker/session-client";
@@ -78,6 +78,7 @@ export function ChatReportDialog({
   const [sent, setSent] = useState(false);
   const [reason, setReason] = useState<ChatReportReason | "">(presetReason ?? "");
   const [note, setNote] = useState("");
+  const noteId = useId();
   const [range, setRange] = useState(messageIndex === undefined ? "" : String(messageIndex));
   const [error, setError] = useState("");
   const history = reports.filter((report) => report.conversationId === conversation.id);
@@ -142,16 +143,20 @@ export function ChatReportDialog({
               {thread[Number(range)]?.text}
             </p>
           )}
-          <label className="block space-y-1 text-body">
-            <span className="block text-meta text-muted">{reason === "other" ? t.noteRequired : t.noteOptional}</span>
+          {/* The label beside the box, not around it (design system, UI audit 1 #9). */}
+          <div className="space-y-1 text-body">
+            <label htmlFor={noteId} className="block text-meta text-muted">
+              {reason === "other" ? t.noteRequired : t.noteOptional}
+            </label>
             <textarea
+              id={noteId}
               rows={3}
               maxLength={CHAT_REPORT_NOTE_MAX}
               value={note}
               onChange={(event) => setNote(event.target.value)}
               className="w-full resize-y rounded-control border border-border bg-surface px-3 py-2 text-base focus:border-brand"
             />
-          </label>
+          </div>
           {/* The note's length against its limit, as the job report's and the application's notes show it. */}
           <p className="text-right text-meta text-muted">
             {note.length} / {CHAT_REPORT_NOTE_MAX}

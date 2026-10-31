@@ -103,8 +103,9 @@ export function LoginForm({
   const [leftEmail, setLeftEmail] = useState("");
   const typoFix = emailTypoFix(leftEmail);
   const sentTypoFix = emailTypoFix(email); // the code went to a mistyped address
-  // #189: signed in on the code step and the business step comes next: its heading takes the focus that 登录 had.
-  const [fromCodeStep, setFromCodeStep] = useState(false);
+  // #189: the business step comes after a button that goes away: 登录 on the code step, 开通雇主身份 when already signed
+  // in, or 重试 after the account check got no answer (UI audit 1 #13). Its heading takes the focus that button had.
+  const [focusBusinessStep, setFocusBusinessStep] = useState(false);
   // Round 20: sign-in switched the page's language to the account's; after the business step the next page loads
   // whole, in it.
   const [reloadNext, setReloadNext] = useState(false);
@@ -128,7 +129,7 @@ export function LoginForm({
       setCheckedFor(null);
       setResendAt(0);
       setLeftEmail("");
-      setFromCodeStep(false);
+      setFocusBusinessStep(false);
     };
   }, []);
 
@@ -180,6 +181,7 @@ export function LoginForm({
           onRetry={() => {
             setCheckFailed(null);
             setCheckTry((n) => n + 1);
+            setFocusBusinessStep(true);
           }}
         />
       );
@@ -188,7 +190,7 @@ export function LoginForm({
       <BusinessStep
         email={session.email}
         businesses={businesses}
-        focusHeading={fromCodeStep}
+        focusHeading={focusBusinessStep}
         onDone={(employer) => {
           setIdentity({ activeRole: "employer", employer });
           if (reloadNext) location.assign(next);
@@ -209,7 +211,14 @@ export function LoginForm({
           {t.signedIn.continue}
         </Button>
         {!session.employerId && !staff && (
-          <button type="button" onClick={() => setRole("employer")} className={linkButtonClass}>
+          <button
+            type="button"
+            onClick={() => {
+              setRole("employer");
+              setFocusBusinessStep(true);
+            }}
+            className={linkButtonClass}
+          >
             {t.signedIn.setUpHiring}
           </button>
         )}
@@ -279,7 +288,7 @@ export function LoginForm({
       // Signed in; the business step comes next.
       startSession(account.email, { activeRole: "seeker" });
       setCheckedFor(account.email);
-      setFromCodeStep(true);
+      setFocusBusinessStep(true);
       setReloadNext(Boolean(reload));
       return;
     }
@@ -342,6 +351,8 @@ export function LoginForm({
             onClick={() => {
               if (emailInput.current) emailInput.current.value = typoFix;
               setLeftEmail(typoFix);
+              // The button goes once the address is right: the focus goes back to the field (#202, UI audit 1 #12).
+              emailInput.current?.focus();
             }}
             className={fixButtonClass}
           >

@@ -165,6 +165,16 @@ test("a signed-in job seeker without a business: 开通雇主身份 goes to the 
   await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
 });
 
+test("signed in as a job seeker, 开通雇主身份 on the sign-in page gives the business step's heading the focus", async ({
+  page,
+}, testInfo) => {
+  // UI audit 1 #13: the button goes as the business step comes, so its heading takes the focus.
+  await signUpSeeker(page, email(testInfo, "sethire"));
+  await page.goto("/login");
+  await page.getByRole("button", { name: "开通雇主身份" }).click();
+  await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeFocused();
+});
+
 test("switching between the two identities from the account menu", async ({ page }, testInfo) => {
   const name = shop(testInfo);
   await signUpEmployer(page, email(testInfo, "switch"), name);

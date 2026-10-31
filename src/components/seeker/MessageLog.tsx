@@ -155,7 +155,9 @@ function MessageBubble({
         {message.resume ? (
           <ResumeCardView card={message.resume} mine={mine} />
         ) : (
-          <p lang={contentLang(message.text)}>{message.text}</p>
+          <p lang={contentLang(message.text)} className="whitespace-pre-wrap">
+            {message.text}
+          </p>
         )}
         <p
           className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta ${mine ? "text-white" : "text-muted"}`}

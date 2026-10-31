@@ -25,7 +25,7 @@ test("收藏和进度: empty, with a saved job, and with 进度 open", async ({ 
   await expectNoViolations(page, "/me/saved empty");
 
   await page.goto("/jobs/j3");
-  const save = page.getByRole("button", { name: "收藏：点心师傅", exact: true }).filter({ visible: true });
+  const save = page.getByRole("button", { name: "收藏：点心师傅" }).filter({ visible: true });
   await save.click();
   await expect(save).toHaveAttribute("aria-pressed", "true");
   await expect(save).not.toHaveAttribute("aria-busy");

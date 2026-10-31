@@ -3,7 +3,7 @@ import { chooseOption, fillSignInCode, freshEmail, selectTrigger, signIn } from 
 
 // #52 收藏和进度: saved per account on the server, stages only the account sees.
 const saveButton = (page: import("@playwright/test").Page, title: string) =>
-  page.getByRole("button", { name: `收藏：${title}`, exact: true }).filter({ visible: true });
+  page.getByRole("button", { name: `收藏：${title}` }).filter({ visible: true });
 
 test("收藏 signed out signs in and comes back saved; the list keeps stages and drops what is removed", async ({
   page,
