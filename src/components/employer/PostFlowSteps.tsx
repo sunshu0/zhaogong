@@ -13,6 +13,7 @@ import type { Mode, Step } from "@/components/employer/post-flow-state";
 import { JobDetail } from "@/components/seeker/JobDetail";
 import { WIDE_ON_DESKTOP } from "@/components/ui/wide";
 import { Button } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/input-class";
 import { pillTab } from "@/components/employer/Tabs";
 import { useLang, useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";
@@ -95,7 +96,8 @@ export function PasteStep({
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={SAMPLE_POST}
-        className="w-full rounded-control border border-border bg-surface p-3 leading-relaxed placeholder:text-muted/60 focus:border-brand"
+        // UI review 1 B: the example in the box is muted text (4.5:1), not 60% of it (3.1:1).
+        className={`${inputClass({ multiline: true })} leading-relaxed`}
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button size="lg" loading={pending} disabled={!text.trim()} onClick={onParse} className="flex-1">
