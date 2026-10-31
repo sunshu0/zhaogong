@@ -82,6 +82,9 @@ function Manage({ me }: { me: EmployerIdentity }) {
       {searchable && (
         <input
           type="search"
+          name="q"
+          autoComplete="off"
+          spellCheck={false}
           aria-label={t.manage.searchLabel}
           placeholder={t.manage.searchPlaceholder}
           value={query}

@@ -135,6 +135,9 @@ function Recommendations({ me }: { me: EmployerIdentity }) {
               <label className="block space-y-1 text-body">
                 <span className="block text-meta text-muted">{t.searchLabel}</span>
                 <input
+                  name="q"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={t.searchPlaceholder}

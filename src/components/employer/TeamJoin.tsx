@@ -46,6 +46,9 @@ export function TeamJoin({ token, email }: { token: string; email: string }) {
       <label className="block space-y-1 text-body">
         <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
         <input
+          name="title"
+          autoComplete="off"
+          spellCheck={false}
           className={INPUT}
           value={name}
           onChange={(e) => setName(e.target.value)}

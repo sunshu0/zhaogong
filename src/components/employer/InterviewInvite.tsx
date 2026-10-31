@@ -317,6 +317,8 @@ function InviteForm({
         <label className="block text-body">
           <span className="mb-1 block text-meta text-muted">{t.placeLabel}</span>
           <input
+            name="place"
+            autoComplete="off"
             value={place}
             maxLength={PLACE_MAX}
             onChange={(event) => setPlace(event.target.value)}

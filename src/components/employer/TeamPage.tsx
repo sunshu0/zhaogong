@@ -202,7 +202,15 @@ function MyName({ team, disabled, onSave }: { team: MyTeam; disabled: boolean; o
       </p>
       <label className="block space-y-1 text-body">
         <span>{t.nameLabel(TEAM_NAME_MAX)}</span>
-        <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} maxLength={TEAM_NAME_MAX} />
+        <input
+          name="title"
+          autoComplete="off"
+          spellCheck={false}
+          className={INPUT}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={TEAM_NAME_MAX}
+        />
       </label>
       <Button type="submit" variant="secondary" {...busyProps(disabled)}>
         {t.save}

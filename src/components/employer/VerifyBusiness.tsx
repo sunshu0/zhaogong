@@ -258,6 +258,9 @@ function ApplyForm({
         <div className="flex gap-2">
           <input
             id="verify-query"
+            name="query"
+            autoComplete="off"
+            spellCheck={false}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.queryPlaceholder}
@@ -347,9 +350,18 @@ function ApplyForm({
               ))}
             </fieldset>
           )}
-          <Field id="verify-name" label={t.contactNameLabel} value={contactName} onChange={setContactName} />
+          <Field
+            id="verify-name"
+            name="contactName"
+            autoComplete="name"
+            label={t.contactNameLabel}
+            value={contactName}
+            onChange={setContactName}
+          />
           <Field
             id="verify-role"
+            name="contactRole"
+            autoComplete="organization-title"
             label={t.contactRoleLabel}
             value={contactRole}
             onChange={setContactRole}
@@ -357,6 +369,8 @@ function ApplyForm({
           />
           <Field
             id="verify-phone"
+            name="companyPhone"
+            autoComplete="tel"
             label={t.companyPhoneLabel}
             value={companyPhone}
             onChange={setCompanyPhone}
@@ -365,6 +379,8 @@ function ApplyForm({
           />
           <Field
             id="verify-website"
+            name="website"
+            autoComplete="url"
             label={t.websiteLabel}
             value={website}
             onChange={setWebsite}
@@ -383,6 +399,8 @@ function ApplyForm({
 
 function Field({
   id,
+  name,
+  autoComplete,
   label,
   value,
   onChange,
@@ -392,6 +410,9 @@ function Field({
   hint,
 }: {
   id: string;
+  /** The field's name and what the browser may fill it with (Forms: autocomplete and a meaningful name). */
+  name: string;
+  autoComplete: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -408,6 +429,8 @@ function Field({
       </label>
       <input
         id={id}
+        name={name}
+        autoComplete={autoComplete}
         type={type}
         value={value}
         required={required}
