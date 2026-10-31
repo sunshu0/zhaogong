@@ -119,7 +119,7 @@ function RequiredMark() {
 
 export function Field({ name, label, required, hint, children, ...state }: LabelledProps & { label: string }) {
   return (
-    <div id={`field-${name}`} className="scroll-mt-20 space-y-1.5">
+    <div id={`field-${name}`} className="space-y-1.5">
       <label htmlFor={`in-${name}`} className="block text-body font-medium">
         {label}
         {required && <RequiredMark />}
@@ -136,7 +136,7 @@ export function Group({ name, legend, required, hint, children, ...state }: Labe
     <fieldset
       id={`field-${name}`}
       aria-describedby={fieldAria(name, state)["aria-describedby"]}
-      className="scroll-mt-20 space-y-1.5"
+      className="space-y-1.5"
     >
       <legend className="mb-1.5 text-body font-medium">
         {legend}

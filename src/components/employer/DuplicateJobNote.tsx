@@ -36,18 +36,32 @@ export function DuplicateJobNote({ titleZh }: { titleZh: string }) {
   const t = useMessages(employerJobsMessages).duplicate;
   const twins = useLiveTwins(titleZh);
   const first = twins[0];
-  if (!first) return null;
-  const more = twins.length > 1 ? t.andMore(twins.length) : "";
-  const when = first.status === "pending_review" ? t.pendingReview : t.closesOn(closeDateZh(first.expiresAt, lang));
-  return (
-    <p role="status" className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
-      {/* The other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
-      {t.noteBefore}
-      <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>
-      {t.noteAfter(when, more)}
-      <Link href={`/employer/jobs/${first.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
-        {t.link}
-      </Link>
+  const more = first && twins.length > 1 ? t.andMore(twins.length) : "";
+  const when = !first
+    ? ""
+    : first.status === "pending_review"
+      ? t.pendingReview
+      : t.closesOn(closeDateZh(first.expiresAt, lang));
+  // UI audit 1 B: the note comes ~400 ms after the page, so a status region that is always there (sr-only, so the
+  // empty one takes no room) reads it out when it does.
+  const status = (
+    <p role="status" className="sr-only">
+      {first ? `${t.noteBefore}${first.titleZh}${t.noteAfter(when, more)}` : ""}
     </p>
+  );
+  if (!first) return status;
+  return (
+    <>
+      {status}
+      <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">
+        {/* The other job's title is the employer's own, so it says which language it is in (ADR 0023 §6). */}
+        {t.noteBefore}
+        <span lang={contentLang(first.titleZh)}>{first.titleZh}</span>
+        {t.noteAfter(when, more)}
+        <Link href={`/employer/jobs/${first.id}`} className="ml-1 font-medium text-brand underline underline-offset-4">
+          {t.link}
+        </Link>
+      </p>
+    </>
   );
 }

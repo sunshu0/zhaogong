@@ -185,7 +185,7 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
         }
         aside={
           <>
-            <div id="contact" className="scroll-mt-20">
+            <div id="contact">
               {job.contactPublic ? (
                 <ContactReveal jobId={job.id} kinds={contactKinds(job, lang)} />
               ) : (

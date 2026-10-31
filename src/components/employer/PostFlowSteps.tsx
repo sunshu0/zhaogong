@@ -171,13 +171,14 @@ export function PreviewStep({
     .join(m.checklist.separator);
   return (
     <section onFocus={keepFocusClear} className={`space-y-4 ${CLEAR_OF_STICKY_BARS}`}>
-      <h2
+      {/* Not a heading: JobDetail's h1 (the job's title) is the page's only one (UI audit 1 B). Focus lands here. */}
+      <p
         ref={headingRef}
         tabIndex={-1}
         className="rounded-control bg-brand-soft px-3 py-2 text-body font-normal text-brand outline-none"
       >
         {t.previewHeading}
-      </h2>
+      </p>
       {needsReview && (
         <p className="rounded-control bg-warn-soft px-3 py-2 text-body text-warn">{t.previewNeedsReview}</p>
       )}

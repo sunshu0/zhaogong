@@ -81,9 +81,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
             }}
           />
         ) : !current.contact ? (
-          <p role="alert" className="mt-1 text-sm text-danger">
-            {t.contact.failed}
-          </p>
+          <p className="mt-1 text-sm text-danger">{t.contact.failed}</p>
         ) : (
           <>
             <ul className="mt-2 divide-y divide-border text-sm">
@@ -93,7 +91,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                     <a
                       href={`tel:${current.contact.phone.replace(/\s+/g, "")}`}
                       translate="no"
-                      className="min-w-0 text-brand underline underline-offset-2"
+                      className="min-w-0 break-all text-brand underline underline-offset-2"
                     >
                       {current.contact.phone}
                     </a>

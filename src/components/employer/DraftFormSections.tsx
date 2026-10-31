@@ -113,7 +113,7 @@ export function ContactSection({ kit }: { kit: FieldKit }) {
   ] as const;
   return (
     <Section title={t.contactSection}>
-      <fieldset id="field-contactPublic" className="scroll-mt-20 space-y-2">
+      <fieldset id="field-contactPublic" className="space-y-2">
         <legend className="mb-1.5 text-body font-medium">{t.contactChoiceLegend}</legend>
         {contactChoices.map(([value, label, note]) => (
           <label

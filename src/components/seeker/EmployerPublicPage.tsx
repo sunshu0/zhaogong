@@ -165,11 +165,7 @@ export function EmployerPublicPage({
               </div>
             )}
           </section>
-          <section
-            id="company-credentials"
-            aria-labelledby="company-credentials-title"
-            className={`scroll-mt-20 space-y-3 ${CARD}`}
-          >
+          <section id="company-credentials" aria-labelledby="company-credentials-title" className={`space-y-3 ${CARD}`}>
             <h2 id="company-credentials-title" className="flex items-center gap-2 text-subtitle font-semibold">
               <ShieldCheck aria-hidden="true" className="size-5 text-brand" />
               {t.verification}
@@ -199,7 +195,7 @@ export function EmployerPublicPage({
             )}
           </section>
         </div>
-        <section id="company-jobs" aria-labelledby="company-jobs-title" className="scroll-mt-20 pt-3">
+        <section id="company-jobs" aria-labelledby="company-jobs-title" className="pt-3">
           <h2 id="company-jobs-title" className="flex items-center gap-2 text-subtitle font-semibold">
             <BriefcaseBusiness aria-hidden="true" className="size-5 text-brand" />
             {t.openJobs} <span className="text-body font-normal text-muted">{t.openJobsCount(jobs.length)}</span>

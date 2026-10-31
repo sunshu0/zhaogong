@@ -345,7 +345,7 @@ async function LatestBand() {
   const lang = await serverLang();
   const t = (await messages(seekerHomeMessages)).featured;
   return (
-    <section id="featured" aria-labelledby="featured-heading" className={`${FULL_BLEED} scroll-mt-16`}>
+    <section id="featured" aria-labelledby="featured-heading" className={FULL_BLEED}>
       <div className={`${SITE_CONTAINER} py-12 lg:py-16`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

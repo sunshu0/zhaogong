@@ -158,7 +158,7 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   await expect(chatList(page)).toBeVisible();
   await expect(row).toHaveAccessibleName(/已标为未读$/);
   await expect(row.locator("[data-unread-mark]")).toBeVisible();
-  await expect(row).toHaveAttribute("aria-pressed", "false");
+  await expect(row).not.toHaveAttribute("aria-current");
   // The focus is on the row, not dropped to the page's top with the closed chat's 更多.
   await expect(row).toBeFocused();
   const marked = await box(row);

@@ -28,7 +28,7 @@ export function JobRolesField({ form, set }: { form: PostForm; set: (patch: Part
   const toggle = (id: JobRoleId) =>
     set({ roles: chosen.includes(id) ? chosen.filter((r) => r !== id) : [...chosen, id] });
   return (
-    <fieldset id="field-roles" className="scroll-mt-20 space-y-1.5">
+    <fieldset id="field-roles" className="space-y-1.5">
       <legend className="mb-1.5 text-body font-medium">{t.legend}</legend>
       <div className="flex flex-wrap gap-2">
         {offered.map((id) => (

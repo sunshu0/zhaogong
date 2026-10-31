@@ -22,7 +22,7 @@ test("signed out: the home page, the job list with filters, and a job page", asy
 
   await page.goto("/jobs?industry=hospitality&meals=1");
   await expect(page.getByRole("region", { name: "Jobs" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Remove filter: Hospitality" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Hospitality, remove this filter" })).toBeVisible();
   await expectEnglishPage(page, "/jobs with filters");
 
   await page.goto("/jobs/j5");

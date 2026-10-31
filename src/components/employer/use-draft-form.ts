@@ -71,11 +71,10 @@ export type DraftFormState = ReturnType<typeof useDraftForm>;
 
 /**
  * For the content above a sticky bottom bar (never on the bar itself): controls scrolled into view by
- * Tab keep clear of the sticky header (3.5rem) and the bar (about 4.5rem), so a focused field is never
- * hidden. Spread `{...clearOfBars}` on the content's container.
+ * Tab keep clear of the bar (about 4.5rem), so a focused field is never hidden; the sticky header is kept clear
+ * site-wide by :root's scroll-padding-top (UI audits 1 and 2). Spread `{...clearOfBars}` on the content's container.
  */
-export const CLEAR_OF_STICKY_BARS =
-  "[&_:is(a,button,input,select,textarea)]:scroll-mt-20 [&_:is(a,button,input,select,textarea)]:scroll-mb-28";
+export const CLEAR_OF_STICKY_BARS = "[&_:is(a,button,input,select,textarea)]:scroll-mb-28";
 
 /**
  * Tab scrolls a field into the window but not always clear of the sticky bars (tall fields on a
