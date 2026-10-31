@@ -14,7 +14,7 @@ import { VerificationBadge } from "@/components/ui/VerificationBadge";
 import { Tag } from "@/components/ui/Tag";
 import { Pay } from "@/components/ui/Pay";
 import { DescriptionTabs } from "@/components/seeker/DescriptionTabs";
-import { STICKY_COLUMN } from "@/components/ui/wide";
+import { SAFE_X, STICKY_COLUMN } from "@/components/ui/wide";
 import { EmployerAvatar } from "@/components/seeker/ProfileAvatar";
 import { SaveJobButton } from "@/components/seeker/SaveJobButton";
 import { DetailPageSkeleton } from "@/components/ui/Skeleton";
@@ -238,7 +238,9 @@ export function JobDetail({
             <p aria-hidden="true" className="hidden leading-none lg:block">
               <Pay pay={job.pay} country={job.country} size="card" lang={lang} />
             </p>
-            <div className="fixed inset-x-0 bottom-above-nav z-10 flex flex-wrap items-center gap-2 bg-surface/90 px-4 py-3 shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:static lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+            <div
+              className={`fixed inset-x-0 bottom-above-nav z-10 flex flex-wrap items-center gap-2 bg-surface/90 ${SAFE_X} pt-3 pb-[calc(0.75rem+max(0px,env(safe-area-inset-bottom)_-_var(--bottom-nav-space)))] shadow-[0_-1px_0_var(--border)] backdrop-blur-md lg:static lg:z-auto lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none`}
+            >
               {actionsNote && <SignedOutNote text={actionsNote} className="w-full text-meta text-muted" />}
               {actions}
             </div>
