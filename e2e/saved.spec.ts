@@ -42,6 +42,12 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
   await expect(selectTrigger(list.getByRole("article", { name: "点心师傅" }), "进度")).toHaveAccessibleName(
     "进度 已面试",
   );
+  // With progress set it asks once in the row (UI audit 3); 保留 keeps it.
+  const dimSumRow = list.getByRole("article", { name: "点心师傅" });
+  await dimSumRow.getByRole("button", { name: "取消收藏" }).click();
+  await expect(dimSumRow.getByRole("button", { name: "确认取消收藏" })).toBeFocused();
+  await dimSumRow.getByRole("button", { name: "保留" }).click();
+  await expect(dimSumRow.getByRole("button", { name: "取消收藏" })).toBeFocused();
 
   // Removing it from the list un-saves it on the job list too.
   await list.getByRole("article", { name: "超市理货员" }).getByRole("button", { name: "取消收藏" }).click();

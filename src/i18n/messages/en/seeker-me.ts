@@ -89,6 +89,9 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     stage: "Progress",
     swapped: "You swapped contact details in chat",
     unsave: "Remove from saved",
+    unsaveWarning: "Its progress goes too.",
+    confirmUnsave: "Remove it",
+    keep: "Keep",
     savedOn: (date) => `Saved ${date}`,
     stages: {
       saved: "Saved",

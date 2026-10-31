@@ -102,6 +102,9 @@ const seekerMeZh = {
     stage: "进度",
     swapped: "聊天里交换过联系方式",
     unsave: "取消收藏",
+    unsaveWarning: "进度会一起清掉。",
+    confirmUnsave: "确认取消收藏",
+    keep: "保留",
     savedOn: (date: string) => `${date}收藏`,
     stages: {
       saved: "已收藏",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { mySavedJobs, setMyJobStage, unsaveMyJob, type SavedJobView } from "@/app/[lang]/me/saved/actions";
 import { SAVED_STAGES, parseSavedStage } from "@/components/seeker/saved-jobs";
 import { useHydrated, useSession } from "@/components/seeker/session-client";
@@ -170,23 +170,70 @@ export function SavedJobsPage() {
                 {!job.picked && job.stage === "contacted" && (
                   <span className="pb-3 text-meta text-muted">{s.swapped}</span>
                 )}
-                <button
-                  type="button"
-                  onClick={() =>
+                <Unsave
+                  stage={job.stage}
+                  onUnsave={() =>
                     void change(async () => {
                       await unsaveMyJob(job.jobId);
                       return mySavedJobs();
                     })
                   }
-                  className="pressable ml-auto inline-flex min-h-11 items-center text-meta text-muted hover:text-danger"
-                >
-                  {s.unsave}
-                </button>
+                />
               </div>
             </article>
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * 取消收藏: at once while the progress is 已收藏; with progress set (已联系, 已面试…) it asks once in the row, as
+ * 提醒's 删除 does, since the progress goes with it (UI audit 3). The focus follows the swap.
+ */
+function Unsave({ stage, onUnsave }: { stage: SavedJobView["stage"]; onUnsave: () => void }) {
+  const s = useMessages(seekerMeMessages).saved;
+  const [confirming, setConfirming] = useState(false);
+  const swapped = useRef(false);
+  const unsaveButton = useRef<HTMLButtonElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  const warningId = useId();
+  useEffect(() => {
+    if (!swapped.current) return;
+    (confirming ? confirmButton : unsaveButton).current?.focus();
+  }, [confirming]);
+  const swap = (next: boolean) => {
+    swapped.current = true;
+    setConfirming(next);
+  };
+  const small = "pressable inline-flex min-h-11 items-center px-1 text-meta";
+  return confirming ? (
+    <span className="ml-auto flex flex-wrap items-center justify-end gap-x-2 text-meta">
+      <span id={warningId} className="text-muted">
+        {s.unsaveWarning}
+      </span>
+      <button
+        ref={confirmButton}
+        type="button"
+        aria-describedby={warningId}
+        onClick={onUnsave}
+        className={`${small} font-medium text-danger`}
+      >
+        {s.confirmUnsave}
+      </button>
+      <button type="button" onClick={() => swap(false)} className={`${small} text-brand hover:underline`}>
+        {s.keep}
+      </button>
+    </span>
+  ) : (
+    <button
+      ref={unsaveButton}
+      type="button"
+      onClick={() => (stage === "saved" ? onUnsave() : swap(true))}
+      className={`${small} ml-auto text-muted hover:text-danger`}
+    >
+      {s.unsave}
+    </button>
   );
 }
