@@ -99,7 +99,7 @@ export default async function Home({ searchParams }: PageProps<"/[lang]">) {
               <form
                 action={jobsHref("")}
                 role="search"
-                className="mt-5 flex h-14 max-w-xl items-center gap-2 rounded-control bg-surface p-1.5 pl-3.5 shadow-card focus-within:ring-2 focus-within:ring-brand/40"
+                className="mt-5 flex h-14 max-w-xl items-center gap-2 rounded-control bg-surface p-1.5 pl-3.5 shadow-card focus-within:ring-2 focus-within:ring-brand"
               >
                 <input
                   type="search"

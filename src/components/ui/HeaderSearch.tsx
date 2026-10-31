@@ -29,7 +29,7 @@ export function HeaderSearch() {
         enterKeyHint="search"
         placeholder={f.searchPlaceholder}
         aria-label={f.search}
-        className="h-10 w-64 rounded-full bg-neutral-soft pr-3.5 pl-9 text-body outline-none placeholder:text-muted focus:ring-2 focus:ring-brand/40"
+        className="h-10 w-64 rounded-full bg-neutral-soft pr-3.5 pl-9 text-body outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
     </form>
   );

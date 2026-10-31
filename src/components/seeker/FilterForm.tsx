@@ -245,7 +245,7 @@ function Form({
           enterKeyHint="search"
           placeholder={f.searchPlaceholder}
           aria-label={f.search}
-          className="h-11 min-w-0 flex-1 rounded-control bg-surface px-3 text-base shadow-card outline-none focus:ring-2 focus:ring-brand/40"
+          className="h-11 min-w-0 flex-1 rounded-control bg-surface px-3 text-base shadow-card outline-none focus:ring-2 focus:ring-brand"
         />
         <button
           type="button"
