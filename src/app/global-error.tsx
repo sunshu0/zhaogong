@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { ErrorFocus } from "@/components/seeker/ErrorFocus";
+import { ErrorFocus } from "@/components/ui/ErrorFocus";
 import { StatusCard } from "@/components/seeker/StatusCard";
 import "./globals.css";
 

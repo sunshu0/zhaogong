@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Building2, MapPin, MessageSquare, ShieldCheck, BriefcaseBusiness } from "lucide-react";
 import { COUNTRIES, regionById } from "@/config/countries";
 import { INDUSTRY_LABELS } from "@/i18n/labels";
@@ -48,6 +49,8 @@ export function EmployerPublicPage({
   const lang = useLang();
   const t = useMessages(seekerEmployerMessages);
   const shop = useMessages(employerPhotosMessages);
+  const [photoStrip, setPhotoStrip] = useState<HTMLUListElement | null>(null);
+  const photosScroll = useScrollsSideways(photoStrip);
   const name = profile?.name.trim() || employer.name;
   const industries = [...new Set(jobs.map((job) => INDUSTRY_LABELS[job.industry][lang]))];
   const isOwnEmployer = session?.activeRole === "employer" && session.employerId === employer.id;
@@ -122,10 +125,11 @@ export function EmployerPublicPage({
             <h2 id="company-photos" className="sr-only">
               {shop.public.photosHeading}
             </h2>
-            {/* Below 640px the photos scroll sideways: the list takes the focus, so the arrow keys scroll it too
-                (UI review 3, C4); the ring shows only for the keyboard. */}
+            {/* Below 640px the photos scroll sideways: then the list takes the focus, so the arrow keys scroll it too
+                (UI review 3, C4); the ring shows only for the keyboard. A grid that does not scroll is no Tab stop. */}
             <ul
-              tabIndex={0}
+              ref={setPhotoStrip}
+              tabIndex={photosScroll ? 0 : undefined}
               aria-labelledby="company-photos"
               className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:grid sm:grid-cols-3 sm:overflow-visible"
             >
@@ -235,6 +239,21 @@ export function EmployerPublicPage({
 
 /** A block that opens nothing (visual A, V2): a sheet, not a card. */
 const CARD = `${sheetClass({ padded: false })} p-4 lg:p-6`;
+
+/** True while the element is wider inside than it shows (it scrolls sideways); measured again when its size changes. */
+function useScrollsSideways(element: HTMLElement | null): boolean {
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    if (!element) return;
+    const measure = () => setScrolls(element.scrollWidth > element.clientWidth);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [element]);
+  return scrolls;
+}
 
 function Info({ term, value, empty }: { term: string; value?: string; empty: string }) {
   return (

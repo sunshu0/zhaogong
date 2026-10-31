@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { TriangleAlert } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { ErrorFocus } from "@/components/seeker/ErrorFocus";
+import { ErrorFocus } from "@/components/ui/ErrorFocus";
 import { StatusCard } from "@/components/seeker/StatusCard";
 import { useMessages } from "@/i18n/client";
 import { employerPostMessages } from "@/i18n/messages/employer-post";

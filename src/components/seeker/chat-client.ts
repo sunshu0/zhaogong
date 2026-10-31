@@ -250,7 +250,12 @@ async function openOnServer(
     toast(pick(chatMessages, lang).delivery.openFailed, 8000);
     return null;
   }
-  if (snapshot?.scope !== scope) return null;
+  if (snapshot === null) {
+    // Refused as a whole (signed out, or another identity since): said like any other refusal below.
+    toast(pick(chatMessages, lang).delivery.openRefused, 8000);
+    return null;
+  }
+  if (snapshot.scope !== scope) return null;
   keep(snapshot);
   if (snapshot.notice) toast(snapshot.notice, 8000);
   // Refused with no reason of its own (the job closed or expired, the application or the candidate's page gone since
