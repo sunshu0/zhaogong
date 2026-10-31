@@ -38,7 +38,7 @@ export function ActiveFilters({
       {chips.length > 1 && (
         <Link
           href={jobsHref(withJobOrder("", order))}
-          className="px-1 text-body text-muted underline underline-offset-2"
+          className="pressable inline-flex min-h-11 items-center px-1 text-body text-muted underline underline-offset-2"
         >
           {t.clearAll}
         </Link>
