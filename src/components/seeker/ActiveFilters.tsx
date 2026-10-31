@@ -27,7 +27,7 @@ export function ActiveFilters({
           key={chip.id}
           href={jobsHref(withJobOrder(chip.query, order))}
           aria-label={t.remove(chip.label)}
-          className="pressable inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-soft pr-2.5 pl-3 text-body text-brand"
+          className="pressable inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-soft pr-2.5 pl-3 text-body text-brand hover:bg-brand hover:text-white"
         >
           {chip.label}
           <span aria-hidden="true" className="text-base leading-none">
@@ -38,7 +38,7 @@ export function ActiveFilters({
       {chips.length > 1 && (
         <Link
           href={jobsHref(withJobOrder("", order))}
-          className="pressable inline-flex min-h-11 items-center px-1 text-body text-muted underline underline-offset-2"
+          className="pressable inline-flex min-h-11 items-center px-1 text-body text-muted underline underline-offset-2 hover:text-foreground"
         >
           {t.clearAll}
         </Link>

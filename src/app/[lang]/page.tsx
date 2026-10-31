@@ -358,11 +358,14 @@ async function LatestBand() {
             <a
               href={jobsHref("sort=recommended")}
               rel="nofollow"
-              className="pressable inline-flex min-h-11 items-center font-medium text-brand"
+              className="pressable inline-flex min-h-11 items-center font-medium text-brand underline-offset-4 hover:text-brand-strong hover:underline"
             >
               {t.recommended}
             </a>
-            <Link href={jobsHref("")} className="pressable inline-flex min-h-11 items-center font-medium text-brand">
+            <Link
+              href={jobsHref("")}
+              className="pressable inline-flex min-h-11 items-center font-medium text-brand underline-offset-4 hover:text-brand-strong hover:underline"
+            >
               {t.all}
             </Link>
           </div>
