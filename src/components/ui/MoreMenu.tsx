@@ -107,7 +107,7 @@ export function MoreMenu({
   }
 
   const itemClass = (item: MoreMenuItem) =>
-    `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none aria-disabled:opacity-50 ${
+    `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset aria-disabled:opacity-50 ${
       item.danger ? "text-danger" : ""
     }`;
 
