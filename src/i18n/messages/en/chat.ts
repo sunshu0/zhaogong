@@ -280,7 +280,7 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     dialogTitle: "Report the other person",
     sentTitle: "Report saved",
     sentNote:
-      "Demo: the report and the chat evidence are saved on this device only. Nothing has gone to 找工 yet, and the other person is not told.",
+      "The report and the chat you chose are saved on 找工's server. Chat reports aren't handled by a person yet, and the other person is not told.",
     close: "Close",
     toast: "Report saved",
     targetBefore: "Reporting: ",
@@ -295,13 +295,13 @@ export const chatEn: Messages<(typeof chatMessages)["zh"]> = {
     noteRequired: "More detail (required)",
     noteOptional: "More detail (optional)",
     evidenceNote:
-      "The report includes the chat you chose, and is used only to deal with the report. In this demo it stays on this device.",
+      "The report includes the chat you chose, which is saved with it on 找工's server and used only to deal with the report.",
     noReason: "Choose a reason",
     noNote: "Say what the problem is",
     notSaved: "The report wasn't saved. Try again.",
     cancel: "Cancel",
     submit: "Send the report",
-    history: (n) => `Reports saved on this device (${n})`,
+    history: (n) => `Your reports (${n})`,
     noExtraNote: "No extra detail",
   },
 

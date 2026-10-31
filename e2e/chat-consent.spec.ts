@@ -79,7 +79,7 @@ test("the side that asks offers first: the other side sees its details at once, 
   await dialog.getByRole("button", { name: "关闭", exact: true }).click();
   await page.reload();
   await (await chatMenuItem(page, "举报")).click();
-  await expect(dialog).toContainText("本机举报记录（1）");
+  await expect(dialog).toContainText("你的举报记录（1）");
   await dialog.getByRole("button", { name: "关闭弹窗", exact: true }).click();
 });
 

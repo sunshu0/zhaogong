@@ -133,8 +133,10 @@ export function ChatPost({
                   </p>
                 </li>
               ))}
+              {/* The key the sent message gets once the answer is back (withMessage: m<count + 1>), so that
+                  answer turns this bubble into the message in place: role=log does not get the same words twice. */}
               {sending && (
-                <li ref={lastMessage} className="ml-8 flex justify-end">
+                <li key={`m${chat.messages.length + 1}`} ref={lastMessage} className="ml-8 flex justify-end">
                   <p className="rounded-card rounded-tr-sm bg-brand/80 px-3.5 py-2.5 text-body whitespace-pre-line text-white">
                     <span className="sr-only">{t.fromYou}</span>
                     <span lang={contentLang(sending)}>{sending}</span>

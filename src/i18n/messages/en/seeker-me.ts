@@ -29,7 +29,8 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     noReports: "You haven't reported any jobs.",
     reportStatus: (reason) => `${reason} · Sent`,
     progress: "See progress",
-    demoNote: "Demo: these records are kept on this device only.",
+    storageNote: (demo) =>
+      `${demo ? "Demo: " : ""}The jobs you viewed and this list of reports are kept on this device only; the reports themselves have gone to 找工's server.`,
   },
   applications: {
     title: "My applications",

@@ -35,7 +35,10 @@ const seekerMeZh = {
     // Whether it is still being handled is on /me/reports (S2, #390).
     reportStatus: (reason: string) => `${reason} · 已提交`,
     progress: "看处理进度",
-    demoNote: "演示版：这些记录只保存在这台设备上。",
+    // activity-client.ts: the viewed jobs and the list of reports sent are this device's; ReportJob sends the report
+    // itself to the server (me/reports/actions.ts). 演示版 only on the demo data (demoDataWanted).
+    storageNote: (demo: boolean) =>
+      `${demo ? "演示版：" : ""}浏览记录和这份举报列表只保存在这台设备上；举报本身已经提交到找工的服务器。`,
   },
   // MyApplications.tsx, applications.ts
   applications: {

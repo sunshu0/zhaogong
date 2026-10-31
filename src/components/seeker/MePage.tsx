@@ -18,7 +18,7 @@ import { contentLang } from "@/i18n/lang";
  * /me (浏览与举报): jobs viewed and reports sent from this device. Account and sign-out are on 我的 (/account).
  * Round 19: the sample's type, each list a card, rows that darken while pressed.
  */
-export function MePage() {
+export function MePage({ demo = false }: { demo?: boolean }) {
   const lang = useLang();
   const t = useMessages(seekerMeMessages);
   const h = t.history;
@@ -133,7 +133,7 @@ export function MePage() {
         )}
       </Panel>
 
-      <p className="px-1 text-meta text-muted">{h.demoNote}</p>
+      <p className="px-1 text-meta text-muted">{h.storageNote(demo)}</p>
     </div>
   );
 }
