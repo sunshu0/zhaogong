@@ -67,7 +67,7 @@ export function ConversationJob({
 }
 
 /**
- * The pay as text from the server, set like Pay (Round 13): the figure narrow in brand colour, the unit small.
+ * The pay as text from the server, set like Pay: the figure narrow in the accent colour (pay is accent, design system), the unit small.
  * The unit comes at the end in either language and starts at the first 「/」 or space:「$25/小时」, "$25 an hour".
  */
 function PayText({ pay, className = "inline-flex" }: { pay: string; className?: string }) {
@@ -75,7 +75,7 @@ function PayText({ pay, className = "inline-flex" }: { pay: string; className?: 
   const amount = match?.[1] ?? pay;
   const unit = match?.[2] ?? "";
   return (
-    <span className={`${className} shrink-0 items-baseline text-brand`}>
+    <span className={`${className} shrink-0 items-baseline text-accent`}>
       <span className="font-figure text-[1.25rem]">{amount}</span>
       {unit && <span className={`${unit.startsWith("/") ? "ml-0.5" : "ml-1"} text-meta text-muted`}>{unit}</span>}
     </span>
