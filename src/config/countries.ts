@@ -83,6 +83,9 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
 
 export const DEFAULT_COUNTRY: CountryCode = "NZ";
 
+/** The areas' Chinese names, as people write them (the regions above name suburbs only). */
+export const AREA_ZH: Record<string, string> = { Auckland: "奥克兰" };
+
 export function regionById(country: CountryCode, id: string): Region | undefined {
   return COUNTRIES[country].regions.find((r) => r.id === id);
 }

@@ -1,6 +1,6 @@
 // Ready-made posts for the places employers already advertise. No contact details: seekers follow
 // the link, where contact shows after sign-in when the job makes it public, or they start a chat.
-import { COUNTRIES, regionById } from "@/config/countries";
+import { AREA_ZH, COUNTRIES, regionById } from "@/config/countries";
 import {
   EMPLOYMENT_TYPE_LABELS,
   INDUSTRY_LABELS,
@@ -19,8 +19,6 @@ export const SHARE_PLATFORMS: { key: SharePlatform; label: string; hint: string 
   { key: "xiaohongshu", label: "小红书", hint: "第一行做标题，话题标签放最后。" },
   { key: "skykiwi", label: "Skykiwi", hint: "论坛帖，中英文完整信息。" },
 ];
-
-const AREA_ZH: Record<string, string> = { Auckland: "奥克兰" };
 
 /** Joins lines, dropping the ones a condition left out (false / undefined); "" stays as a blank line. */
 const lines = (...parts: (string | false | undefined)[]) => parts.filter((p) => typeof p === "string").join("\n");

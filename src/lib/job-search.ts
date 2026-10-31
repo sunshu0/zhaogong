@@ -2,11 +2,8 @@
 // it by — its titles and descriptions, the business's name, the area (Chinese and English) and the street address.
 // Pure, so the list (listJobs) and saved alerts (matchJobAlerts) search alike. Plain substring matching in code, after
 // the database read: no SQL or LIKE pattern is built from the words, so % and _ are just characters.
-import { regionById } from "@/config/countries";
+import { AREA_ZH, regionById } from "@/config/countries";
 import type { Job } from "@/lib/types";
-
-/** The areas' Chinese names, as people write them (the config names suburbs only); share-texts.ts has the same. */
-const AREA_ZH: Record<string, string> = { Auckland: "奥克兰" };
 
 /** At most this many words are looked for; a pasted paragraph is not a search. */
 export const SEARCH_TERMS_MAX = 8;
