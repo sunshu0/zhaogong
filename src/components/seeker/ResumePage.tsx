@@ -270,6 +270,8 @@ function ContactChoice({
 
 /** 生成分享链接, which gets the focus back when the link is closed (#202). */
 const MAKE = "resume-share-make";
+const OFF = "resume-share-off";
+const CONFIRM_OFF = "resume-share-confirm-off";
 
 /**
  * 分享链接: off until the person opens it. The link shows a copy of the page as it was when shared, so a change
@@ -286,19 +288,25 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
   const [pending, startTransition] = useTransition();
   const [acting, setActing] = useState<"share" | "close" | null>(null);
   const link = useRef<HTMLAnchorElement>(null);
-  const focusAfter = useRef<"link" | "make" | null>(null);
+  const focusAfter = useRef<"link" | "make" | "off" | "confirm" | null>(null);
+  // 关闭链接 asks once first (UI audit 3): the address stops working for good.
+  const [confirmingOff, setConfirmingOff] = useState(false);
   // The buttons change with the link's state: the focus goes to the link once shared or updated, and to 生成分享链接
   // once closed (#202).
   useEffect(() => {
     const target =
       focusAfter.current === "link"
         ? link.current
-        : focusAfter.current === "make"
-          ? document.getElementById(MAKE)
+        : focusAfter.current
+          ? document.getElementById({ make: MAKE, off: OFF, confirm: CONFIRM_OFF }[focusAfter.current])
           : null;
     focusAfter.current = null;
     target?.focus();
-  }, [share]);
+  }, [share, confirmingOff]);
+  const askOff = (next: boolean) => {
+    focusAfter.current = next ? "confirm" : "off";
+    setConfirmingOff(next);
+  };
 
   useEffect(() => {
     let live = true;
@@ -337,6 +345,7 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
         return setError(t.shareNoAnswer);
       }
       setError("");
+      setConfirmingOff(false);
       focusAfter.current = "make";
       setShare(null);
     });
@@ -386,15 +395,32 @@ function ShareSection({ doc }: { doc: ResumeDoc }) {
               >
                 {t.shareUpdate}
               </Button>
-              <Button
-                variant="link"
-                onClick={close}
-                loading={pending && acting === "close"}
-                {...busyProps(pending && acting !== "close")}
-              >
-                {t.shareOff}
-              </Button>
+              {!confirmingOff && (
+                <Button id={OFF} variant="link" onClick={() => askOff(true)} {...busyProps(pending)}>
+                  {t.shareOff}
+                </Button>
+              )}
             </div>
+            {confirmingOff && (
+              <div className="flex flex-wrap items-center gap-3">
+                <p id={`${CONFIRM_OFF}-why`} className="w-full text-body text-muted">
+                  {t.shareOffWarning}
+                </p>
+                <Button
+                  id={CONFIRM_OFF}
+                  variant="danger"
+                  onClick={close}
+                  aria-describedby={`${CONFIRM_OFF}-why`}
+                  loading={pending && acting === "close"}
+                  {...busyProps(pending && acting !== "close")}
+                >
+                  {t.shareOffConfirm}
+                </Button>
+                <Button variant="link" onClick={() => askOff(false)} {...busyProps(pending)}>
+                  {t.shareOffCancel}
+                </Button>
+              </div>
+            )}
           </>
         ) : (
           <Button id={MAKE} variant="secondary" onClick={shareNow} loading={pending}>

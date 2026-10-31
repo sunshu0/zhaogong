@@ -96,7 +96,10 @@ test("shares a link without the email, updates what it shows, and closes it", as
   await expect(sheet(stranger.page)).toContainText("Two years in restaurants.");
   await stranger.close();
 
+  // It asks once first (UI audit 3).
   await page.getByRole("button", { name: "关闭链接" }).click();
+  await expect(page.getByRole("button", { name: "确认关闭" })).toBeFocused();
+  await page.getByRole("button", { name: "确认关闭" }).click();
   await expect(page.getByRole("button", { name: "生成分享链接" })).toBeVisible();
   stranger = await asStranger(browser, path);
   await expect(stranger.page.getByRole("heading", { name: "这份简历的分享链接已关闭或不存在" })).toBeVisible();

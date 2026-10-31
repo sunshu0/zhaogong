@@ -53,6 +53,7 @@ test("the CV's share link: no answer is said in the share card, the CV stays (#2
 
   cut.on = true;
   await card.getByRole("button", { name: "关闭链接" }).click();
+  await card.getByRole("button", { name: "确认关闭" }).click();
   await expect(card.getByRole("alert")).toHaveText("网络有问题，分享链接没有改成，请稍后再试。");
   await expect(card.getByRole("link", { name: /\/resume\// })).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
