@@ -9,7 +9,7 @@ export const seekerEmployerEn: Messages<(typeof seekerEmployerMessages)["zh"]> =
   missing: "Employer not found",
   loading: "Loading the business page…",
   back: "← Find jobs",
-  eyebrow: (id) => `Business page · Demo business · ID: ${id}`,
+  eyebrow: (demo) => (demo ? "Business page · Demo business" : "Business page"),
   noRegion: "No area yet",
   chooseJob: "Choose a job and chat",
   noOpenJobs: "No open jobs right now",
@@ -24,10 +24,12 @@ export const seekerEmployerEn: Messages<(typeof seekerEmployerMessages)["zh"]> =
   verification: "Business verification",
   legalName: "Legal name",
   accredited: "Accredited employer",
-  accreditedYes: "Accredited (demo)",
+  accreditedYes: "Accredited",
   accreditedNone: "No accreditation details given",
-  demoNote:
-    "Demo registration and verification details. Business verification doesn't guarantee the working conditions.",
+  verificationNote: (demo) =>
+    demo
+      ? "Demo registration and verification details. Business verification doesn't guarantee the working conditions."
+      : "Business verification doesn't guarantee the working conditions.",
   manageVerification: "Manage business verification",
   openJobs: "Open jobs",
   openJobsCount: (n) => String(n),

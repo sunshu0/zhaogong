@@ -67,7 +67,7 @@ test("profile avatar upload persists, and a demo business without a page on the 
     );
   }, AVATAR);
   await page.goto("/employers/e3");
-  await expect(page.getByText("企业主页 · 演示企业 · ID：e3", { exact: true })).toBeVisible();
+  await expect(page.getByText("企业主页 · 演示企业", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: "东区亚洲超市头像" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

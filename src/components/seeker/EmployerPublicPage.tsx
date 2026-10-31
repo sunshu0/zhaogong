@@ -68,7 +68,7 @@ export function EmployerPublicPage({
           <div className="flex items-start gap-4">
             <EmployerAvatar employerId={employer.id} fallback={name} industry={employerIndustry(jobs)} large />
             <div className="min-w-0 flex-1">
-              <p className="text-meta text-muted">{t.eyebrow(employer.id)}</p>
+              <p className="text-meta text-muted">{t.eyebrow(demo)}</p>
               <h1 lang={contentLang(name)} className="mt-1 text-title font-semibold break-words">
                 {name}
               </h1>
@@ -122,7 +122,13 @@ export function EmployerPublicPage({
             <h2 id="company-photos" className="sr-only">
               {shop.public.photosHeading}
             </h2>
-            <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible">
+            {/* Below 640px the photos scroll sideways: the list takes the focus, so the arrow keys scroll it too
+                (UI review 3, C4); the ring shows only for the keyboard. */}
+            <ul
+              tabIndex={0}
+              aria-labelledby="company-photos"
+              className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:grid sm:grid-cols-3 sm:overflow-visible"
+            >
               {photos.map((id, i) => (
                 <li key={id} className="w-4/5 shrink-0 snap-start sm:w-auto">
                   {/* eslint-disable-next-line @next/next/no-img-element -- our own route, already small and cached */}
@@ -184,7 +190,7 @@ export function EmployerPublicPage({
                 empty={t.notFilled}
               />
             </dl>
-            <p className="text-meta leading-relaxed text-muted">{t.demoNote}</p>
+            <p className="text-meta leading-relaxed text-muted">{t.verificationNote(demo)}</p>
             {isOwnEmployer && (
               <Link
                 href="/employer/verify"

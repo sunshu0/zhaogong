@@ -9,7 +9,8 @@ const employerZh = {
   missing: "雇主不存在",
   loading: "加载企业主页…",
   back: "← 找工作",
-  eyebrow: (id: string) => `企业主页 · 演示企业 · ID：${id}`,
+  // 演示企业 only on the demo data (user feedback 10-30 #2); the internal id is never shown (UI review 3).
+  eyebrow: (demo: boolean) => (demo ? "企业主页 · 演示企业" : "企业主页"),
   noRegion: "地区待补充",
   chooseJob: "选择岗位并沟通",
   noOpenJobs: "暂无在招岗位",
@@ -24,9 +25,10 @@ const employerZh = {
   verification: "公司资质",
   legalName: "登记名称",
   accredited: "认证雇主",
-  accreditedYes: "已认证（演示）",
+  accreditedYes: "已认证",
   accreditedNone: "未提供认证信息",
-  demoNote: "演示登记与资质数据；企业验证不代表对工作条件的担保。",
+  verificationNote: (demo: boolean) =>
+    demo ? "演示登记与资质数据；企业验证不代表对工作条件的担保。" : "企业验证不代表对工作条件的担保。",
   manageVerification: "管理企业验证",
   openJobs: "在招岗位",
   openJobsCount: (n: number) => `${n} 个`,
