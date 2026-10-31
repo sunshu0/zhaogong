@@ -207,9 +207,9 @@ function Unsave({ stage, onUnsave }: { stage: SavedJobView["stage"]; onUnsave: (
     swapped.current = true;
     setConfirming(next);
   };
-  const small = "pressable inline-flex min-h-11 items-center px-1 text-meta";
+  const small = "pressable inline-flex min-h-11 items-center px-1 text-body underline-offset-4";
   return confirming ? (
-    <span className="ml-auto flex flex-wrap items-center justify-end gap-x-2 text-meta">
+    <span className="ml-auto flex flex-wrap items-center justify-end gap-x-2 text-body">
       <span id={warningId} className="text-muted">
         {s.unsaveWarning}
       </span>
@@ -218,7 +218,7 @@ function Unsave({ stage, onUnsave }: { stage: SavedJobView["stage"]; onUnsave: (
         type="button"
         aria-describedby={warningId}
         onClick={onUnsave}
-        className={`${small} font-medium text-danger`}
+        className={`${small} font-medium text-danger hover:underline`}
       >
         {s.confirmUnsave}
       </button>

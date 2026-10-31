@@ -170,9 +170,9 @@ function ClearViews() {
     swapped.current = true;
     setConfirming(next);
   };
-  const small = "pressable inline-flex min-h-11 items-center px-1 text-meta underline-offset-2";
+  const small = "pressable inline-flex min-h-11 items-center px-1 text-body underline-offset-4";
   return confirming ? (
-    <span className="flex flex-wrap items-center justify-end gap-x-2 text-meta">
+    <span className="flex flex-wrap items-center justify-end gap-x-2 text-body">
       <span id={warningId} className="text-muted">
         {h.clearWarning}
       </span>
@@ -181,7 +181,7 @@ function ClearViews() {
         type="button"
         aria-describedby={warningId}
         onClick={forgetViews}
-        className={`${small} font-medium text-danger underline`}
+        className={`${small} font-medium text-danger hover:underline`}
       >
         {h.confirmClear}
       </button>
