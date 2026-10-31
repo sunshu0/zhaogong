@@ -13,8 +13,8 @@ const DAY = 86_400_000;
 describe("the demo shows the newer features in use (#88)", () => {
   it("gives 川味小馆 a job closing in 2 days to renew and one closed 20 days ago to publish again", async () => {
     const now = Date.now();
-    // Only the showcase's jobs, dated from the seeding: the other demo jobs have fixed dates (mock/data.ts), and
-    // 收银员 (j17, closed 2026-10-16) can be published again too from 2026-10-30.
+    // Only the showcase's jobs, dated from the seeding: the test is about them, not 川味小馆's other demo jobs
+    // (收银员 j17 is closed by its status, and whether it can be published again follows its own dates in mock/data.ts).
     const showcase = new Set(demoShowcase(now).jobs.map((j) => j.id));
     const jobs = (await listJobsByEmployer("e1")).filter((j) => showcase.has(j.id));
     const ending = jobs.filter((j) => jobPhase(j, now) === "ending");

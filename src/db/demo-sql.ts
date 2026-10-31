@@ -62,7 +62,7 @@ function lastMigration(): string {
 }
 
 /**
- * The fixed-date fixtures (src/mock: the jobs j1–j19 and their contact views, dated back from 2026-10-11) moved
+ * The fixed-date fixtures (src/mock: the jobs j1–j19 and their contact views, dated back from the day they are loaded) moved
  * forward by whole days so the newest is posted on the day of the export: a demo site imported weeks later still
  * lists open jobs. What is expired by its status stays expired, and its end date stays before the export (moved,
  * it would fall days after it); the rest of the demo is dated from `now` already.

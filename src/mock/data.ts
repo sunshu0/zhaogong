@@ -61,9 +61,12 @@ export const MOCK_EMPLOYERS: Employer[] = [
   },
 ];
 
-const days = (n: number) => new Date(Date.UTC(2026, 9, 11) - n * 86400000).toISOString();
-const expires = (postedDaysAgo: number) =>
-  new Date(Date.UTC(2026, 9, 11) + (30 - postedDaysAgo) * 86400000).toISOString();
+// Dates count from the start of today (UTC), not a fixed day: from a fixed 10-11 the demo jobs ran out one by one
+// as the days passed (店长 j14 on 10-31, 油漆工 j9 next), failing the tests that count them. Each job is as old, and
+// as near its end, as on the day the data was written.
+const TODAY = Math.floor(Date.now() / 86400000) * 86400000;
+const days = (n: number) => new Date(TODAY - n * 86400000).toISOString();
+const expires = (postedDaysAgo: number) => new Date(TODAY + (30 - postedDaysAgo) * 86400000).toISOString();
 
 export const MOCK_JOBS: Job[] = [
   {
