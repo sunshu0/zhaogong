@@ -113,7 +113,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
 
   if (state === "failed") return <LoadFailed what={t.heading} onRetry={load} />;
   if (state === undefined) return <SkeletonCard />;
-  if (state === null) return null;
+  // The server found no business for this account (not signed in as an employer, or no business yet): say so.
+  if (state === null) return <p className="text-body">{t.noBusiness}</p>;
   const shown = state.photos.filter((photo) => photo.status !== "rejected").length;
   const full = shown >= PHOTOS_MAX;
 

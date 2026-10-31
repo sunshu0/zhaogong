@@ -30,6 +30,7 @@ export const employerPhotosEn: Messages<(typeof employerPhotosMessages)["zh"]> =
     removed: "Photo deleted.",
     photoAlt: (n) => `Shop photo ${n}`,
     empty: "No shop photos yet.",
+    noBusiness: "Open your employer identity and fill in your business first, then you can upload shop photos.",
     notAdmin: "Only a team admin can upload or delete shop photos and change benefits.",
     full: "You already have 6: delete one to upload another.",
     tooMany: "Too many photos uploaded today. Please try again tomorrow.",

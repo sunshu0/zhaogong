@@ -29,6 +29,7 @@ const employerPhotosZh = {
     removed: "照片已删除。",
     photoAlt: (n: number) => `第 ${n} 张门店照片`,
     empty: "还没有门店照片。",
+    noBusiness: "需要先开通雇主身份、填好企业资料，才能上传门店照片。",
     notAdmin: "只有团队管理员能上传或删除门店照片、修改福利。",
     full: "已经有 6 张了：删掉一张再上传。",
     tooMany: "今天上传的照片太多了，请明天再试。",
