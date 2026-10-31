@@ -11,7 +11,9 @@ const MAX_PARTS = 40;
  * below its fixed content.
  */
 export function NoScriptStreams() {
-  const order = Array.from({ length: MAX_PARTS }, (_, i) => `body>div[id="S:${i}"]{order:${i + 1}}`).join("");
+  // React writes the part numbers in hexadecimal (S:9, S:a, …, S:10 is the 17th part).
+  const rule = (i: number) => `body>div[id="S:${i.toString(16)}"]{order:${i + 1}}`;
+  const order = Array.from({ length: MAX_PARTS }, (_, i) => rule(i)).join("");
   const css =
     "body{display:flex;flex-direction:column}" +
     // Tailwind's preflight hides [hidden] with !important in @layer base; an !important rule wins only from an
