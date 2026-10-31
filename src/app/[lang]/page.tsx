@@ -4,7 +4,6 @@ import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 import { DEFAULT_COUNTRY, regionById } from "@/config/countries";
-import { DEMO_DATA } from "@/config/landing";
 import { PRODUCT_NAME } from "@/i18n/labels";
 import type { Job, JobFilter } from "@/lib/types";
 import { englishSummary, parsePost } from "@/lib/ai-post";
@@ -299,7 +298,7 @@ async function HeroCount() {
           </span>
         </Fragment>
       ))}
-      {DEMO_DATA && (
+      {demo && (
         <span className="ml-2 inline-block rounded-sm bg-warn-soft px-1.5 py-0.5 text-meta whitespace-nowrap text-warn">
           {t.demoData}
         </span>

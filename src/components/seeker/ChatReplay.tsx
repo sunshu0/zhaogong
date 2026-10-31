@@ -9,9 +9,10 @@ import { seekerHomeMessages } from "@/i18n/messages/seeker-home";
 const CAN_ANIMATE = "(scripting: enabled) and (prefers-reduced-motion: no-preference)";
 /**
  * The whole conversation is in the HTML (for no JavaScript and reduced motion). Where the replay will run, all but
- * the first round is hidden until it takes over, so the window starts with that round instead of a blank box.
+ * the first round is out of sight until it takes over, so the window starts with that round instead of a blank box.
+ * Out of sight only: screen readers have the whole conversation from the start (UI review 2).
  */
-const HIDDEN_UNTIL_REPLAY = "[@media(scripting:enabled)_and_(prefers-reduced-motion:no-preference)]:hidden";
+const HIDDEN_UNTIL_REPLAY = "[@media(scripting:enabled)_and_(prefers-reduced-motion:no-preference)]:sr-only";
 
 const TYPING_MS = 500;
 const READ_MS = 600;
@@ -20,8 +21,8 @@ const noop = () => () => {};
 
 /**
  * A replay of a real AI chat post (see chat-replay.ts): messages appear one at a time once the window is about
- * 30% in view, the assistant "typing" first. With reduced motion or without JavaScript the whole conversation
- * shows at once.
+ * 30% in view, the assistant "typing" first; the ones still to come are there for screen readers all along. With
+ * reduced motion or without JavaScript the whole conversation shows at once.
  */
 export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const t = useMessages(seekerHomeMessages).replay;
@@ -44,6 +45,8 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   const [typing, setTyping] = useState(false);
   const [run, setRun] = useState(0);
   const [started, setStarted] = useState(false);
+  // Once the user is in the window (it took focus), the replay no longer scrolls it to the newest message.
+  const held = useRef(false);
 
   // Start once the window is about 30% in view.
   useEffect(() => {
@@ -95,10 +98,9 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   // Keep the newest message in view inside the window (not the page).
   useEffect(() => {
     const el = log.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && !held.current) el.scrollTop = el.scrollHeight;
   }, [shown, typing]);
 
-  const visible = canAnimate ? messages.slice(0, shown) : messages;
   const done = !canAnimate || shown === messages.length;
 
   return (
@@ -108,22 +110,26 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
         <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">{t.tag}</span>
       </div>
 
-      {/* The window scrolls, so it takes focus for the keyboard (UI review 2); screen readers read it as it is,
-          each message after who said it. */}
+      {/* The window scrolls, so it takes focus for the keyboard (UI review 2). Screen readers read the whole
+          conversation in it once, each message after who said it; the messages still to come are out of sight. */}
       <div
         ref={log}
         role="region"
         aria-label={t.log}
         tabIndex={0}
+        onFocus={() => {
+          held.current = true;
+        }}
         data-replay-log=""
-        className="h-[26rem] space-y-3 overflow-y-auto px-3 py-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+        className="relative h-[26rem] space-y-3 overflow-y-auto px-3 py-4 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
       >
-        {visible.map((m, i) => (
+        {messages.map((m, i) => (
           <div
             key={m.id}
             data-bubble=""
+            data-pending={canAnimate && i >= shown ? "" : undefined}
             className={`flex ${m.from === "employer" ? "justify-end" : "justify-start"} ${
-              !hydrated && i >= firstRound ? HIDDEN_UNTIL_REPLAY : ""
+              canAnimate && i >= shown ? "sr-only" : !hydrated && i >= firstRound ? HIDDEN_UNTIL_REPLAY : ""
             }`}
           >
             <div className="max-w-[85%]">
@@ -172,6 +178,7 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
           <button
             type="button"
             onClick={() => {
+              held.current = false;
               setShown(firstRound);
               setTyping(false);
               setRun((r) => r + 1);

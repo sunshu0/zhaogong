@@ -41,9 +41,11 @@ export function WindowNotices({
   return (
     <div>
       {/* Headings go h1 → h2 → h3 (UI review 2): the notices' titles are h3 under this one. */}
-      <h2 className="sr-only">{t.label}</h2>
+      <h2 id="window-notices-heading" className="sr-only">
+        {t.label}
+      </h2>
       <ul
-        aria-label={t.label}
+        aria-labelledby="window-notices-heading"
         data-window-notices=""
         className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pt-3 pb-6 lg:relative lg:mx-0 lg:block lg:h-[26rem] lg:overflow-visible lg:p-0"
       >

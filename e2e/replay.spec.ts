@@ -6,8 +6,20 @@ import { chooseOption, fillSignInCode } from "./helpers";
 // Feedback 8 (10-30): the AI chat post and its replay are in the employer band.
 const aiPost = (page: Page) =>
   page.getByRole("region", { name: "招人？一分钟发布招聘" }).getByRole("article", { name: "AI 对话发帖" });
-const bubbles = (page: Page) => aiPost(page).locator("[data-replay-log] [data-bubble]");
 const log = (page: Page) => aiPost(page).getByRole("region", { name: "对话记录" });
+// Every message is in the window for screen readers (UI review 2); the replay's ones still to come are data-pending,
+// out of sight. `bubbles` are the ones on screen.
+const allBubbles = (page: Page) => aiPost(page).locator("[data-replay-log] [data-bubble]");
+const bubbles = (page: Page) => aiPost(page).locator("[data-replay-log] [data-bubble]:not([data-pending])");
+// What a screen reader gets of each message: who said it and the text, not the aria-hidden quick-reply chips.
+const spoken = (page: Page) =>
+  allBubbles(page).evaluateAll((all) =>
+    all.map((bubble) => {
+      const copy = bubble.cloneNode(true) as Element;
+      for (const hidden of copy.querySelectorAll("[aria-hidden=true]")) hidden.remove();
+      return copy.textContent ?? "";
+    }),
+  );
 
 test("the landing page runs hero → latest jobs → features → employers (feedback 8)", async ({ page }) => {
   await page.goto("/");
@@ -25,15 +37,20 @@ test("the landing page runs hero → latest jobs → features → employers (fee
 test("screen readers get the whole conversation once, each message after who said it, with the three problems and the fix", async ({
   page,
 }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Motion as it comes (the replay runs): the messages still to come are there for screen readers from the start.
   await page.goto("/");
   // One copy (UI review 2: the window is no longer hidden from screen readers beside a second, hidden list).
   await expect(aiPost(page).locator("[aria-hidden=true] [data-bubble], ol.sr-only")).toHaveCount(0);
-  await expect(bubbles(page)).toHaveCount(13);
-  await expect(bubbles(page).first()).toContainText("助手：你好！");
-  await expect(bubbles(page).nth(1)).toContainText("雇主：奶茶店招兼职店员");
-  const all = (await bubbles(page).allTextContents()).join("\n");
+  await expect(allBubbles(page)).toHaveCount(13);
+  const said = await spoken(page);
+  expect(said[0]).toMatch(/^助手：你好！/);
+  expect(said[1]).toMatch(/^雇主：奶茶店招兼职店员/);
+  const all = said.join("\n");
   for (const text of ["低于新西兰成人最低工资", "押金", "限华人", "雇主：24", "都齐了"]) expect(all).toContain(text);
+  // In the accessibility tree, the last message too, once, before the replay has shown it.
+  const tree = await log(page).ariaSnapshot();
+  expect(tree.split("都齐了")).toHaveLength(2);
+  for (const text of ["低于新西兰成人最低工资", "押金", "限华人"]) expect(tree).toContain(text);
 });
 
 test("the conversation window scrolls from the keyboard (UI review 2)", async ({ page }) => {
@@ -59,6 +76,22 @@ test.describe("at 1280 × 800", () => {
     await expect(bubbles(page)).toHaveCount(3);
     await expect(bubbles(page).nth(1)).toContainText("奶茶店招兼职店员");
     for (let i = 0; i < 3; i += 1) await expect(bubbles(page).nth(i)).toBeVisible();
+  });
+
+  test("once the window has the focus, the replay no longer scrolls it to the newest message (UI review 2)", async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.goto("/");
+    const chat = log(page);
+    await chat.scrollIntoViewIfNeeded();
+    await expect.poll(() => bubbles(page).count()).toBeLessThan(13);
+    await chat.focus();
+    await page.keyboard.press("Home");
+    const again = aiPost(page).getByRole("button", { name: "重新播放" });
+    await expect(again).toBeVisible({ timeout: 40_000 });
+    await expect(bubbles(page)).toHaveCount(13);
+    expect(await chat.evaluate((el) => el.scrollTop)).toBe(0);
   });
 
   test("the replay plays message by message when it comes into view, and can play again", async ({ page }) => {
