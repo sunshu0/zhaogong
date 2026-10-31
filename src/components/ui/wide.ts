@@ -18,7 +18,7 @@ export const FULL_BLEED = "ml-[calc(50%_-_50vw)] w-screen";
 export const SAFE_X = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]";
 
 /** The site-wide content container: the main column's 48rem below 1024 px, min(72rem, window − 3rem) from 1024 px, like the header. */
-export const SITE_CONTAINER = "mx-auto w-full max-w-3xl px-4 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0";
+export const SITE_CONTAINER = `mx-auto w-full max-w-3xl ${SAFE_X} lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0`;
 
 /** A column that stays in view below the 3.5rem header while the page scrolls, scrolling inside when taller than the window. */
 export const STICKY_COLUMN = "lg:sticky lg:top-18 lg:max-h-[calc(100vh_-_5.5rem)] lg:overflow-y-auto";
