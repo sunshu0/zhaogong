@@ -138,7 +138,7 @@ export function SavedJobsPage() {
                   )}
                 </div>
                 {job.pay ? (
-                  <p className={`shrink-0 leading-none ${job.gone ? "opacity-60" : ""}`}>
+                  <p className="shrink-0 leading-none">
                     <Pay pay={job.pay} country={job.country} lang={lang} />
                   </p>
                 ) : (

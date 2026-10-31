@@ -132,7 +132,7 @@ function ApplicationCard({
           )}
           {a.gone && <Tag kind="neutral">{t.gone}</Tag>}
         </h4>
-        <p className={`shrink-0 leading-none ${a.gone ? "opacity-60" : ""}`}>
+        <p className="shrink-0 leading-none">
           <Pay pay={a.pay} country={a.country} lang={lang} />
         </p>
       </div>
