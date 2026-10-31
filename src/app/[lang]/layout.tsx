@@ -90,6 +90,13 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
       </head>
       <body className="min-h-full flex flex-col">
         <LangProvider lang={lang}>
+          {/* The first Tab stop, seen only when focused, above the sticky header (UI audits 1 and 2). */}
+          <a
+            href="#main"
+            className="sr-only z-30 rounded-control bg-surface px-4 py-3 font-medium text-brand shadow-pop focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+          >
+            {nav.skip}
+          </a>
           <StickyHeader>
             <div className="relative mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 md:gap-4 lg:h-16 lg:max-w-[min(72rem,_100vw_-_3rem)] lg:px-0">
               <Link
@@ -113,7 +120,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
               </div>
             </div>
           </StickyHeader>
-          <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4">
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-4 outline-none">
             <Suspense fallback={null}>
               <SignInNoticeBar />
             </Suspense>

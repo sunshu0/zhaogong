@@ -131,3 +131,13 @@ test("职位提醒 from the keyboard: a working button keeps the focus, one that
   await expect(alert).toBeHidden();
   await expect(page.getByText(/^有新职位符合条件时/)).toBeFocused();
 });
+
+test("the first Tab stop skips to the main content (UI audits 1 and 2)", async ({ page }) => {
+  await page.goto("/jobs");
+  await page.keyboard.press("Tab");
+  const skip = page.getByRole("link", { name: "跳到主要内容" });
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("main#main")).toBeFocused();
+});

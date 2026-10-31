@@ -25,6 +25,7 @@ const uiZh = {
     workspace: "工作台",
     admin: "审核后台",
     main: "主导航",
+    skip: "跳到主要内容",
     bottom: "底部导航",
     more: "更多",
   },
