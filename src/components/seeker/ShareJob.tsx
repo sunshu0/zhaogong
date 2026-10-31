@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Share2 } from "lucide-react";
 import { ChatDialog } from "@/components/seeker/ChatDialog";
 import { CopyButton } from "@/components/seeker/CopyButton";
+import { buttonClass } from "@/components/ui/Button";
 import { isWeChat, withLink } from "@/components/seeker/share";
 import { useMessages } from "@/i18n/client";
 import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
@@ -64,11 +65,7 @@ function SharePanel({ path, title, summary }: ShareProps) {
 
       <div className="mt-3 flex gap-2 first:mt-0">
         {canShare && (
-          <button
-            type="button"
-            onClick={share}
-            className="flex-1 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white"
-          >
+          <button type="button" onClick={share} className={`${buttonClass("secondary")} flex-1`}>
             {t.more}
           </button>
         )}
