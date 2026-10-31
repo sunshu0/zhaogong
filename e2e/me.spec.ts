@@ -38,7 +38,13 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await expect(page.getByRole("region", { name: "职位举报" }).getByRole("listitem")).toContainText("虚假职位 · 处理中");
   await page.goto("/me");
 
+  // It asks once, in the row (UI audit 3); 取消 keeps the history and the focus comes back.
   await viewed.getByRole("button", { name: "清除浏览记录" }).click();
+  await viewed.getByRole("button", { name: "取消" }).click();
+  await expect(viewed.getByRole("button", { name: "清除浏览记录" })).toBeFocused();
+  await viewed.getByRole("button", { name: "清除浏览记录" }).click();
+  await expect(viewed.getByRole("button", { name: "确认清除" })).toBeFocused();
+  await viewed.getByRole("button", { name: "确认清除" }).click();
   await expect(viewed).toContainText("还没有看过职位。");
 
   await page.goto("/account");

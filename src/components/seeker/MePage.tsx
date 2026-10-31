@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
 import { formatJobDate } from "@/components/seeker/job-facts";
@@ -48,21 +48,7 @@ export function MePage({ demo = false }: { demo?: boolean }) {
           <ManageJobs />
         </section>
       ) : (
-        <Panel
-          title={h.viewed}
-          count={views.length}
-          action={
-            views.length > 0 && (
-              <button
-                type="button"
-                onClick={forgetViews}
-                className="pressable inline-flex min-h-11 items-center text-meta text-muted underline underline-offset-2"
-              >
-                {h.clear}
-              </button>
-            )
-          }
-        >
+        <Panel title={h.viewed} count={views.length} action={views.length > 0 && <ClearViews />}>
           {views.length === 0 ? (
             <>
               <Empty>{h.noneViewed}</Empty>
@@ -162,6 +148,51 @@ function Panel({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * 清除浏览记录 asks once, in the row, as 提醒's 删除 does (UI audit 3): the history is on this device only and does
+ * not come back. The focus follows the swap, so the keyboard stays where it was.
+ */
+function ClearViews() {
+  const h = useMessages(seekerMeMessages).history;
+  const [confirming, setConfirming] = useState(false);
+  const swapped = useRef(false);
+  const clearButton = useRef<HTMLButtonElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+  const warningId = useId();
+  useEffect(() => {
+    if (!swapped.current) return;
+    (confirming ? confirmButton : clearButton).current?.focus();
+  }, [confirming]);
+  const swap = (next: boolean) => {
+    swapped.current = true;
+    setConfirming(next);
+  };
+  const small = "pressable inline-flex min-h-11 items-center px-1 text-meta underline-offset-2";
+  return confirming ? (
+    <span className="flex flex-wrap items-center justify-end gap-x-2 text-meta">
+      <span id={warningId} className="text-muted">
+        {h.clearWarning}
+      </span>
+      <button
+        ref={confirmButton}
+        type="button"
+        aria-describedby={warningId}
+        onClick={forgetViews}
+        className={`${small} font-medium text-danger underline`}
+      >
+        {h.confirmClear}
+      </button>
+      <button type="button" onClick={() => swap(false)} className={`${small} text-brand hover:underline`}>
+        {h.cancel}
+      </button>
+    </span>
+  ) : (
+    <button ref={clearButton} type="button" onClick={() => swap(true)} className={`${small} text-muted underline`}>
+      {h.clear}
+    </button>
   );
 }
 
