@@ -114,6 +114,10 @@ describe("hidesBottomNav", () => {
     expect(hidesBottomNav("/login")).toBe(true);
     expect(hidesBottomNav("/employer/post")).toBe(true);
     expect(hidesBottomNav("/employer/jobs/j1")).toBe(true);
+    expect(hidesBottomNav("/employer/jobs/j1/copy")).toBe(true);
+    expect(hidesBottomNav("/employer/jobs/j1/republish")).toBe(true);
+    expect(hidesBottomNav("/employer/jobs/j1/applicants")).toBe(false);
+    expect(hidesBottomNav("/employer/jobs/j1/stats")).toBe(false);
     expect(hidesBottomNav("/messages")).toBe(false);
     expect(hidesBottomNav("/employer/jobs")).toBe(false);
     expect(hidesBottomNav("/jobs/j1")).toBe(false);

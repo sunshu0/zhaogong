@@ -171,11 +171,12 @@ export function activeBottomKey(pathname: string): NavKey | null {
 }
 
 /**
- * Focused flows hide the bottom bar: they have their own bar at the bottom (posting, editing a job) or are a step
- * on the way somewhere (sign-in). /admin too, except for a staff account, whose home it is (ADR 0043).
+ * Focused flows hide the bottom bar: they have their own bar at the bottom (posting, editing a job, copying or
+ * republishing one: UI review 3, B2) or are a step on the way somewhere (sign-in). /admin too, except for a staff
+ * account, whose home it is (ADR 0043).
  */
 export function hidesBottomNav(pathname: string, role?: NavRole): boolean {
   if (under(pathname, ADMIN_PATH)) return role !== "staff";
   if (pathname === "/login" || under(pathname, POST_JOB_PATH)) return true;
-  return /^\/employer\/jobs\/[^/]+$/.test(pathname);
+  return /^\/employer\/jobs\/[^/]+(\/(copy|republish))?$/.test(pathname);
 }
