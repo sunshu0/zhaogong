@@ -64,12 +64,13 @@ export function MePage({ demo = false }: { demo?: boolean }) {
           }
         >
           {views.length === 0 ? (
-            <Empty>
-              {h.noneViewed}
-              <Link href="/jobs" className="text-brand underline underline-offset-2">
+            <>
+              <Empty>{h.noneViewed}</Empty>
+              {/* The way on is a button, as on the saved jobs and applications pages (UI audit 3). */}
+              <ButtonLink href="/jobs" variant="secondary" className="mb-1">
                 {h.browse}
-              </Link>
-            </Empty>
+              </ButtonLink>
+            </>
           ) : (
             <ul className="divide-y divide-border">
               {views.map((v) => (
