@@ -109,7 +109,7 @@ function ExchangeTool({
       <button type="button" disabled className={CHAT_COMMAND_CLASS}>
         <Icon aria-hidden="true" className="size-4" />
         {label}
-        <span className="text-xs">{statusLabel}</span>
+        <span className="text-meta">{statusLabel}</span>
       </button>
     );
   }
@@ -141,11 +141,11 @@ export function ChatExchangeList({ conversationId }: { conversationId: string })
               <h3 className="font-semibold">
                 {item.from === "me" ? t.titleMine(kinds[item.kind]) : t.titleTheirs(kinds[item.kind])}
               </h3>
-              {item.demo && <span className="text-xs text-muted">{t.demo}</span>}
+              {item.demo && <span className="text-meta text-muted">{t.demo}</span>}
             </div>
             {item.status === "pending" && (
               <>
-                <p className="text-xs leading-relaxed text-muted">
+                <p className="text-meta leading-relaxed text-muted">
                   {item.from === "me" ? t.pendingMine : t.pendingTheirs}
                 </p>
                 <div className="flex flex-wrap gap-2">

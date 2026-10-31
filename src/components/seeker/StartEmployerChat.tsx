@@ -52,7 +52,7 @@ export function StartEmployerChat({
     return <span className="inline-flex min-h-11 items-center text-body whitespace-nowrap text-muted">{t.closed}</span>;
   if (session?.employerId === employer.id)
     return (
-      <Link href="/employer/jobs" className="inline-flex min-h-11 items-center text-sm text-brand underline">
+      <Link href="/employer/jobs" className="inline-flex min-h-11 items-center text-body text-brand underline">
         {t.manageOwn}
       </Link>
     );
@@ -106,7 +106,7 @@ export function StartEmployerChat({
         {t.start}
       </button>
       {error && (
-        <p role="status" className="text-sm text-muted">
+        <p role="status" className="text-body text-muted">
           {error}
         </p>
       )}

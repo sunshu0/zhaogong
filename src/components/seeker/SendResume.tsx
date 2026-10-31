@@ -33,8 +33,8 @@ export function SendResume({ conversationId }: { conversationId: string }) {
         <ChatDialog title={t.title} onClose={() => setOpen(false)}>
           {resume ? (
             <>
-              <p className="text-sm leading-relaxed">{t.note}</p>
-              <p className="flex flex-wrap items-center gap-x-3 border-y border-border py-4 text-sm font-medium">
+              <p className="text-body leading-relaxed">{t.note}</p>
+              <p className="flex flex-wrap items-center gap-x-3 border-y border-border py-4 text-body font-medium">
                 <span data-resume-carries="">
                   {carried.length
                     ? t.carries(carried.map((key) => t.contactNames[key]).join(t.listJoin))
@@ -47,10 +47,10 @@ export function SendResume({ conversationId }: { conversationId: string }) {
                   {t.change}
                 </Link>
               </p>
-              <p className="text-xs leading-relaxed text-muted">{t.keepNote}</p>
+              <p className="text-meta leading-relaxed text-muted">{t.keepNote}</p>
             </>
           ) : (
-            <p className="space-x-2 text-sm leading-relaxed">
+            <p className="space-x-2 text-body leading-relaxed">
               <span>{t.noResume}</span>
               <Link href="/profile/resume" className="inline-flex min-h-11 items-center text-brand underline">
                 {t.makeResume}
@@ -69,7 +69,7 @@ export function SendResume({ conversationId }: { conversationId: string }) {
                 sendResume(conversationId, resume);
                 setOpen(false);
               }}
-              className="min-h-11 rounded-md bg-brand px-4 text-sm font-medium text-white disabled:opacity-50"
+              className="min-h-11 rounded-md bg-brand px-4 text-body font-medium text-white disabled:opacity-50"
             >
               {t.send}
             </button>

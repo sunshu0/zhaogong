@@ -159,7 +159,7 @@ export function ProfileAvatarEditor({
                 setError(removed ? "" : t.removeFailed);
                 if (removed) uploadButton.current?.focus(); // 移除头像 goes away with the photo (#202)
               }}
-              className="min-h-11 text-sm text-muted underline aria-disabled:opacity-50"
+              className="min-h-11 text-body text-muted underline aria-disabled:opacity-50"
               {...busyProps(busy)}
             >
               {t.remove}
@@ -167,7 +167,7 @@ export function ProfileAvatarEditor({
           )}
         </div>
         {error && (
-          <p role="alert" className="text-xs text-danger">
+          <p role="alert" className="text-meta text-danger">
             {error}
           </p>
         )}

@@ -192,12 +192,14 @@ export function ChatReportDialog({
           </div>
           {history.length > 0 && (
             <details className="border-t border-border pt-3">
-              <summary className="min-h-11 cursor-pointer py-2.5 text-body text-muted">{t.history(history.length)}</summary>
+              <summary className="min-h-11 cursor-pointer py-2.5 text-body text-muted">
+                {t.history(history.length)}
+              </summary>
               <ul className="mt-3 space-y-3">
                 {history.map((report) => (
-                  <li key={report.id} className="text-sm">
+                  <li key={report.id} className="text-body">
                     <p>{words.reportReasons[report.reason]}</p>
-                    <p className="mt-1 break-words text-xs text-muted">
+                    <p className="mt-1 break-words text-meta text-muted">
                       <span lang={contentLang(report.note)}>{report.note || t.noExtraNote}</span> ·{" "}
                       {formatDate(report.createdAt, lang, { year: "numeric", month: "numeric", day: "numeric" })}
                     </p>

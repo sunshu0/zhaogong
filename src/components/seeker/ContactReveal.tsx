@@ -59,7 +59,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
           <div className="mt-2 h-16 animate-pulse rounded-lg bg-background" aria-hidden="true" />
         ) : !session ? (
           <>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-body text-muted">
               {kinds.length ? t.contact.signInFor(kinds.join(t.detail.listJoin)) : t.contact.signInForAny}
             </p>
             <Link
@@ -70,7 +70,7 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
             </Link>
           </>
         ) : !current ? (
-          <p className="mt-1 text-sm text-muted">{t.contact.loading}</p>
+          <p className="mt-1 text-body text-muted">{t.contact.loading}</p>
         ) : current.failed ? (
           <RetryLine
             className="mt-1"
@@ -81,10 +81,10 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
             }}
           />
         ) : !current.contact ? (
-          <p className="mt-1 text-sm text-danger">{t.contact.failed}</p>
+          <p className="mt-1 text-body text-danger">{t.contact.failed}</p>
         ) : (
           <>
-            <ul className="mt-2 divide-y divide-border text-sm">
+            <ul className="mt-2 divide-y divide-border text-body">
               {current.contact.phone && (
                 <ContactRow label={t.contact.rows.phone}>
                   {DIALABLE.test(current.contact.phone) ? (
@@ -122,8 +122,8 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
                 </ContactRow>
               )}
             </ul>
-            <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs text-warn">{t.contact.warning}</p>
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-meta text-warn">{t.contact.warning}</p>
+            <p className="mt-2 text-meta text-muted">
               {t.contact.signedInAs(session.email)} ·{" "}
               <Link href="/me" className="underline underline-offset-2">
                 {t.contact.mine}

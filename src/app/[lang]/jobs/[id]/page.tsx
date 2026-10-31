@@ -196,11 +196,11 @@ async function Job({ params }: Pick<PageProps<"/[lang]/jobs/[id]">, "params">) {
                   <h2 id="contact-heading" className="font-medium">
                     {t.contact.title}
                   </h2>
-                  <p className="text-sm text-muted">{t.contact.notPublic}</p>
+                  <p className="text-body text-muted">{t.contact.notPublic}</p>
                   {employer && (
                     <Link
                       href={`/employers/${employer.id}`}
-                      className="inline-flex min-h-11 items-center text-sm text-brand underline"
+                      className="inline-flex min-h-11 items-center text-body text-brand underline"
                     >
                       {t.detail.employerPageShort}
                     </Link>

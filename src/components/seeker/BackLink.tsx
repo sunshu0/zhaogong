@@ -27,7 +27,7 @@ export function BackLink() {
         markReturn();
         router.push(list, { transitionTypes: BACK, scroll: false });
       }}
-      className="-my-2 inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-brand"
+      className="-my-2 inline-flex min-h-11 items-center gap-1 text-body text-muted hover:text-brand"
     >
       <span aria-hidden="true">←</span> {t.back}
     </Link>

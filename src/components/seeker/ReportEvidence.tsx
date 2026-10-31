@@ -46,7 +46,7 @@ export function ReportEvidence({
     formatDate(at, lang, { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
   return (
     <fieldset className="mt-3">
-      <legend className="text-sm">{t.legend}</legend>
+      <legend className="text-body">{t.legend}</legend>
       <p className="mt-1 text-meta text-muted">{t.hint(EVIDENCE_MESSAGES_MAX, EVIDENCE_KEEP_DAYS)}</p>
       <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto rounded-control border border-border p-2">
         {value.map((m, i) => {
@@ -104,7 +104,7 @@ export function ReportImages({
   const t = useMessages(seekerJobsMessages).report.evidence;
   return (
     <fieldset className="mt-3">
-      <legend className="text-sm">{t.imagesLegend}</legend>
+      <legend className="text-body">{t.imagesLegend}</legend>
       <p className="mt-1 text-meta text-muted">{t.imagesHint(EVIDENCE_IMAGES_MAX, MB)}</p>
       {files.length > 0 && (
         <ul className="mt-2 space-y-1">

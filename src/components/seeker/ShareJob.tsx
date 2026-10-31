@@ -61,7 +61,7 @@ function SharePanel({ path, title, summary }: ShareProps) {
 
   return (
     <div>
-      {inWeChat && <p className="text-sm text-muted">{t.inWeChat}</p>}
+      {inWeChat && <p className="text-body text-muted">{t.inWeChat}</p>}
 
       <div className="mt-3 flex gap-2 first:mt-0">
         {canShare && (
@@ -74,7 +74,7 @@ function SharePanel({ path, title, summary }: ShareProps) {
 
       <div className="mt-3 rounded-lg bg-background p-3">
         {/* The text for WeChat groups stays Chinese (like the employer's share texts). */}
-        <p lang="zh-CN" className="text-sm break-all whitespace-pre-line">
+        <p lang="zh-CN" className="text-body break-all whitespace-pre-line">
           {text}
         </p>
         <CopyButton text={text} label={t.copyText} className="mt-2" />

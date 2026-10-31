@@ -13,7 +13,7 @@ import { seekerJobsMessages } from "@/i18n/messages/seeker-jobs";
 function Tag({ children, urgent }: { children: string; urgent?: boolean }) {
   return (
     <li
-      className={`rounded px-1.5 py-0.5 text-xs ${urgent ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}
+      className={`rounded px-1.5 py-0.5 text-meta ${urgent ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand"}`}
     >
       {children}
     </li>
@@ -96,10 +96,10 @@ export function BeforeAfter({
   return (
     <figure className="grid items-center gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
       <div>
-        <p className="mb-2 text-xs text-white/75">{t.before}</p>
+        <p className="mb-2 text-meta text-white/75">{t.before}</p>
         <div
           lang="zh-CN"
-          className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-black"
+          className="relative rounded-lg bg-[#95ec69] px-4 py-3 text-body leading-relaxed whitespace-pre-line text-black"
         >
           <span aria-hidden="true" className="absolute top-4 -right-1.5 size-3 rotate-45 bg-[#95ec69]" />
           {message}
@@ -121,20 +121,20 @@ export function BeforeAfter({
       </svg>
 
       <div>
-        <p className="mb-2 text-xs text-white/75">{t.after}</p>
+        <p className="mb-2 text-meta text-white/75">{t.after}</p>
         <div className="rounded-md bg-surface p-4 text-foreground">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p lang={contentLang(draft.titleZh)} className="font-semibold">
                 {draft.titleZh}
               </p>
-              <p lang="en" className="text-xs text-muted">
+              <p lang="en" className="text-meta text-muted">
                 {draft.titleEn}
               </p>
             </div>
             {draft.pay && <p className="shrink-0 font-semibold text-brand">{formatPay(draft.pay, "NZ", lang)}</p>}
           </div>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-meta text-muted">
             {facts.join(" · ")}
             {draft.shiftsZh && (
               <>
@@ -153,14 +153,14 @@ export function BeforeAfter({
             </ul>
           )}
           {draft.languages && draft.languages.length > 0 && (
-            <p className="mt-2 text-xs">
+            <p className="mt-2 text-meta">
               {t.languages(draft.languages.map((l) => LANGUAGE_LABELS[l][lang]).join(t.listJoin))}
             </p>
           )}
-          <p lang="en" className="mt-2 border-t border-border pt-2 text-xs text-muted">
+          <p lang="en" className="mt-2 border-t border-border pt-2 text-meta text-muted">
             {summaryEn}
           </p>
-          <p className="mt-2 text-xs text-muted">{t.contact}</p>
+          <p className="mt-2 text-meta text-muted">{t.contact}</p>
         </div>
       </div>
       <figcaption className="sr-only">{t.caption}</figcaption>

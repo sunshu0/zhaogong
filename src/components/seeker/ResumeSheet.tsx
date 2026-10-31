@@ -66,7 +66,7 @@ export function ResumeSheet({ doc }: { doc: ResumeDoc }) {
         ))}
       </dl>
       {doc.workRights && (
-        <p className="mt-3 text-xs text-muted">
+        <p className="mt-3 text-meta text-muted">
           签证情况由本人填写。 <span lang="en">Work rights as stated by the job seeker.</span>
         </p>
       )}

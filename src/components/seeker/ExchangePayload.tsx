@@ -14,14 +14,14 @@ import { chatMessages } from "@/i18n/messages/chat";
 export function PayloadView({ payload }: { payload: ExchangePayload }) {
   const names = useMessages(chatMessages).payloadFields;
   return (
-    <dl className="space-y-2 text-sm">
+    <dl className="space-y-2 text-body">
       {payload.fields.map((field, index) => {
         const key = payloadFieldKey(field.label);
         const value =
           key === "experience" && /^\d+$/.test(field.value) ? names.experienceYears(Number(field.value)) : field.value;
         return (
           <div key={`${field.label}-${index}`}>
-            <dt className="text-xs text-muted">{key ? names[key] : field.label}</dt>
+            <dt className="text-meta text-muted">{key ? names[key] : field.label}</dt>
             <dd lang={contentLang(value)} className="mt-1 whitespace-pre-line break-words">
               {value}
             </dd>

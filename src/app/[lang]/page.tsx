@@ -204,7 +204,7 @@ async function NoScriptLanding() {
               <dl className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {stats.map((stat) => (
                   <div key={stat.key} className="flex flex-col-reverse">
-                    <dt className="text-xs text-muted">{stat.label}</dt>
+                    <dt className="text-meta text-muted">{stat.label}</dt>
                     <dd className="text-lg font-semibold text-brand">{stat.value}</dd>
                   </div>
                 ))}
@@ -226,7 +226,7 @@ async function NoScriptLanding() {
                       <span lang={contentLang(job.titleZh)} className="block font-medium">
                         {job.titleZh}
                       </span>
-                      <span className="block text-xs text-muted">
+                      <span className="block text-meta text-muted">
                         {formatPay(job.pay, job.country, lang)} ·{" "}
                         {placeName(regionById(job.country, job.regionId), lang) ?? t.featured.auckland}
                       </span>

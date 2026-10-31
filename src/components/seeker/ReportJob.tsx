@@ -29,7 +29,7 @@ export function ReportJob({ jobId, jobTitle }: { jobId: string; jobTitle: string
 function ClosedReport({ disabled = false, onOpen }: { disabled?: boolean; onOpen?: () => void }) {
   const t = useMessages(seekerJobsMessages).report;
   return (
-    <div className="flex items-center justify-between gap-3 px-1 text-sm text-muted">
+    <div className="flex items-center justify-between gap-3 px-1 text-body text-muted">
       <span>{t.prompt}</span>
       <Button variant="danger-secondary" disabled={disabled} onClick={onOpen}>
         {t.open}
@@ -90,8 +90,8 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     return (
       <section ref={thanks} tabIndex={-1} role="status" className="rounded-card bg-ok-soft p-4 outline-none lg:p-5">
         <h2 className="font-medium text-ok">{t.thanks}</h2>
-        <p className="mt-1 text-sm">{t.thanksDetail}</p>
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-1 text-body">{t.thanksDetail}</p>
+        <p className="mt-2 text-meta text-muted">
           {t.seeBefore}
           <Link href="/me" className="mx-0.5 underline underline-offset-2">
             {t.seeLink}
@@ -104,7 +104,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
 
   if (state === "closed") {
     return reportedBefore ? (
-      <p className="px-1 text-sm text-muted">{t.already}</p>
+      <p className="px-1 text-body text-muted">{t.already}</p>
     ) : (
       <ClosedReport onOpen={() => setState("open")} />
     );
@@ -114,7 +114,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
     <form onSubmit={submit} noValidate className={cardClass()}>
       <fieldset>
         <legend className="font-medium">{t.legend}</legend>
-        <p className="mt-1 text-sm text-muted">{t.hint}</p>
+        <p className="mt-1 text-body text-muted">{t.hint}</p>
         <div className="mt-3 space-y-1">
           {REPORT_REASONS.map((reason) => (
             <Radio key={reason} name="reason" value={reason}>
@@ -126,7 +126,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
 
       {/* The label beside the box, not around it (design system, UI audit 1 #9). */}
       <div className="mt-3">
-        <label htmlFor={noteId} className="mb-1 block text-sm">
+        <label htmlFor={noteId} className="mb-1 block text-body">
           {t.note}
         </label>
         <textarea
@@ -147,7 +147,7 @@ function ReportForm({ jobId, jobTitle, owner }: { jobId: string; jobTitle: strin
       {owner && <ReportImages files={images} onChange={setImages} onError={setError} />}
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-danger">
+        <p role="alert" className="mt-2 text-body text-danger">
           {error}
         </p>
       )}

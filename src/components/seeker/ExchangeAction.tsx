@@ -38,22 +38,22 @@ export function ExchangeAction({
       </button>
       {open && (
         <ChatDialog title={incoming ? t.agreeTitle(kindLabel) : t.askTitle(kindLabel)} onClose={() => setOpen(false)}>
-          <p className="text-sm leading-relaxed">{incoming ? t.agreeNote : t.askNote}</p>
+          <p className="text-body leading-relaxed">{incoming ? t.agreeNote : t.askNote}</p>
           <section aria-label={t.mineLabel} className="space-y-3 border-y border-border py-4">
-            <h3 className="text-sm font-semibold">{incoming ? t.agreeHeading : t.askHeading}</h3>
+            <h3 className="text-body font-semibold">{incoming ? t.agreeHeading : t.askHeading}</h3>
             {payload ? (
               <PayloadView payload={payload} />
             ) : (
-              <p className="text-sm text-muted">
+              <p className="text-body text-muted">
                 {t.nothingYet(kindLabel)}
                 {incoming ? t.nothingYetAgree : t.nothingYetAsk}
               </p>
             )}
-            <Link href="/profile" className="inline-flex min-h-11 items-center text-sm text-brand underline">
+            <Link href="/profile" className="inline-flex min-h-11 items-center text-body text-brand underline">
               {payload ? t.editMine : t.fillMine(kindLabel)}
             </Link>
           </section>
-          <p className="text-xs leading-relaxed text-muted">{t.keepNote}</p>
+          <p className="text-meta leading-relaxed text-muted">{t.keepNote}</p>
           <div className="flex flex-wrap justify-end gap-2">
             <button type="button" className={CHAT_COMMAND_CLASS} onClick={() => setOpen(false)}>
               {t.cancel}
@@ -67,7 +67,7 @@ export function ExchangeAction({
                 else requestInfo(conversationId, kind, payload);
                 setOpen(false);
               }}
-              className="min-h-11 rounded-md bg-brand px-4 text-sm font-medium text-white disabled:opacity-50"
+              className="min-h-11 rounded-md bg-brand px-4 text-body font-medium text-white disabled:opacity-50"
             >
               {incoming ? t.agree : t.ask}
             </button>

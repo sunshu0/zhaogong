@@ -108,8 +108,8 @@ export function ChatReplay({ messages }: { messages: ReplayMessage[] }) {
   return (
     <div ref={root} className="overflow-hidden rounded-card bg-background ring-1 ring-border">
       <div className="flex items-center justify-between gap-3 bg-surface px-4 py-2.5 shadow-[0_1px_0_var(--border)]">
-        <p className="text-sm font-medium">{t.assistant}</p>
-        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand">{t.tag}</span>
+        <p className="text-body font-medium">{t.assistant}</p>
+        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-meta text-brand">{t.tag}</span>
       </div>
 
       {/* The window scrolls, so it takes focus for the keyboard (UI review 2). Screen readers read the whole

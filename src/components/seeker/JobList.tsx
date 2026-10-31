@@ -37,7 +37,7 @@ export function JobList({
         className={`px-4 py-10 text-center ${look === "app" ? "rounded-card bg-surface shadow-card" : "rounded-md border border-border bg-surface"}`}
       >
         <p className="font-medium">{t.emptyTitle}</p>
-        <p className="mt-1 text-sm text-muted">{t.emptyHint}</p>
+        <p className="mt-1 text-body text-muted">{t.emptyHint}</p>
         {empty && <div className="mt-4">{empty}</div>}
       </div>
     );
