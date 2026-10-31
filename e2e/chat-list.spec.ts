@@ -156,9 +156,11 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   await page.getByRole("button", { name: /^更多：/ }).click();
   await page.getByRole("menuitem", { name: "标为未读" }).click();
   await expect(chatList(page)).toBeVisible();
-  await expect(row).toHaveAccessibleName(/标为未读/);
+  await expect(row).toHaveAccessibleName(/已标为未读$/);
   await expect(row.locator("[data-unread-mark]")).toBeVisible();
   await expect(row).toHaveAttribute("aria-pressed", "false");
+  // The focus is on the row, not dropped to the page's top with the closed chat's 更多.
+  await expect(row).toBeFocused();
   const marked = await box(row);
   expect(Math.abs(marked.height - before.height)).toBeLessThanOrEqual(1);
   if (testInfo.project.name === "mobile")
@@ -166,7 +168,7 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   // The dot is not an unread message: no count in the row, the page's line, or the tab's title.
   await expect(page.getByText("消息已全部读完")).toBeVisible();
   await expect(row.getByText(/^\d+$/)).toHaveCount(0);
-  expect(await page.title()).not.toMatch(/^\(\d+\) /);
+  await expect(page).not.toHaveTitle(/^\(\d+\) /);
 
   // Kept on the server; the job seeker's 已读 is as it was.
   await page.reload();
@@ -178,8 +180,10 @@ test("C7 标为未读: a dot in the list until the chat is opened again; counts 
   await row.click();
   await expect(page.getByRole("log", { name: "消息记录" })).toContainText("你好，周末可以上班吗？");
   await backToList(page, testInfo);
+  // A phone's 返回 leaves the focus on the row too.
+  if (testInfo.project.name === "mobile") await expect(row).toBeFocused();
   await expect(row.locator("[data-unread-mark]")).toHaveCount(0);
-  await expect(row).not.toHaveAccessibleName(/标为未读/);
+  await expect(row).not.toHaveAccessibleName(/已标为未读/);
   await page.reload();
   await expect(row).toBeVisible();
   await expect(row.locator("[data-unread-mark]")).toHaveCount(0);

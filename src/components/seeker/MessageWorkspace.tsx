@@ -59,10 +59,25 @@ export function MessageWorkspace() {
     markRead(id);
   }
 
+  // Leaving a conversation from inside it (返回, 标为未读) unmounts the button that had the focus: the focus goes to
+  // the conversation's row in the list instead of the page's top, once the address no longer names it.
+  const focusRow = useRef<string | null>(null);
+  useEffect(() => {
+    const id = focusRow.current;
+    if (!id || selectedId === id) return;
+    focusRow.current = null;
+    board.current?.querySelector<HTMLElement>(`[data-conversation-row="${CSS.escape(id)}"]`)?.focus();
+  }, [selectedId]);
+
+  function leave(id: string) {
+    focusRow.current = id;
+    close();
+  }
+
   function leaveUnread(id: string) {
     setLeaving(id);
     markUnread(id, true);
-    close();
+    leave(id);
   }
 
   // Below 1024 px an open conversation fills the screen (fixed over the page; globals.css hides the site's header,
@@ -120,7 +135,7 @@ export function MessageWorkspace() {
               isEmployer={isEmployer}
               draft={draft}
               onDraftChange={setDraft}
-              onBack={close}
+              onBack={() => leave(selected.id)}
               onMarkUnread={() => leaveUnread(selected.id)}
             />
           </RetryBoundary>
@@ -258,6 +273,7 @@ function ConversationRow({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      data-conversation-row={conversation.id}
       className={`pressable-row flex w-full items-center gap-3 rounded-control px-3 py-3 text-left hover:bg-background ${selected ? "bg-brand-soft hover:bg-brand-soft" : ""}`}
     >
       <CounterpartAvatar conversation={conversation} isEmployer={isEmployer} />
