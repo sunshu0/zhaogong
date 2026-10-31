@@ -39,7 +39,8 @@ export function WindowNotices({
   if (jobs.length === 0) return null;
   const t = pick(seekerHomeMessages, lang).window;
   return (
-    <div>
+    // min-w-0: a grid item in the hero, it would otherwise be as wide as the sideways-scrolling notices on phones.
+    <div className="min-w-0">
       {/* Headings go h1 → h2 → h3 (UI review 2): the notices' titles are h3 under this one. */}
       <h2 id="window-notices-heading" className="sr-only">
         {t.label}
