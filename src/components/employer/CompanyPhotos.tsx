@@ -80,8 +80,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
         (snapshot) => {
           if (!live()) return;
           setState(snapshot);
-          // Rework 2 #8: read afresh, the boxes are what the server has; 没有保存成功 no longer stays under them.
-          if (snapshot && saver.reset(snapshot.benefits)) setBenefitsNote(undefined);
+          // Read afresh, the boxes are what the server has; the saver clears 没有保存成功 (rework 2 #8, rework 3 #1).
+          if (snapshot) saver.reset(snapshot.benefits);
         },
         () => live() && setState("failed"),
       );
@@ -104,7 +104,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
   const answered = (result: CompanyPhotosResult | null) => {
     if (!result) return load();
     setState(result.snapshot);
-    saver.reset(result.snapshot.benefits); // kept back while a benefits save with a newer list is on its way
+    // Kept back while a benefits save with a newer list is on its way; taken, it clears 没有保存成功 (rework 3 #1).
+    saver.reset(result.snapshot.benefits);
     setMessage({ ok: !result.error, text: result.said });
   };
   const act = (key: string, run: () => Promise<CompanyPhotosResult | null>) => {

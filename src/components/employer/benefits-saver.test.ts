@@ -13,7 +13,7 @@ const answer = (benefits: Benefit[], extra: Partial<CompanyPhotosResult> = {}): 
 function setUp() {
   const pending: { list: Benefit[]; resolve: (r: CompanyPhotosResult | null) => void; reject: () => void }[] = [];
   const lists: Benefit[][] = [];
-  const notes: BenefitsNote[] = [];
+  const notes: (BenefitsNote | undefined)[] = [];
   const saver = createBenefitsSaver({
     save: (list) =>
       new Promise((resolve, reject) => pending.push({ list: [...list], resolve, reject: () => reject(new Error()) })),
@@ -120,5 +120,26 @@ describe("createBenefitsSaver", () => {
     pending[0].resolve(answer(["meals"]));
     await done;
     expect(saver.reset(["meals"])).toBe(true);
+  });
+
+  it("clears 没有保存成功 when a snapshot is taken afterwards, an upload's answer too (rework 3 #1)", async () => {
+    const { saver, pending, notes } = setUp();
+    const done = saver.toggle("meals", true);
+    pending[0].reject();
+    await done;
+    expect(notes.at(-1)).toEqual({ kind: "failed" });
+    expect(saver.reset(["tips"])).toBe(true);
+    expect(notes.at(-1)).toBeUndefined();
+  });
+
+  it("does not ask the page to read itself after no answer; the next save's answer replaces the note (rework 3 #2)", async () => {
+    const { saver, pending, notes } = setUp();
+    const lost = saver.toggle("meals", true);
+    pending[0].reject();
+    expect(await lost).toBeUndefined();
+    const next = saver.toggle("meals", true);
+    pending[1].resolve(answer(["meals"]));
+    await next;
+    expect(notes.at(-1)).toEqual({ kind: "said", ok: true, text: "已自动保存" });
   });
 });

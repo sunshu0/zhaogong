@@ -4,7 +4,9 @@
 // a save's answer: its photos are older than an upload made meanwhile (rework 1 #2). So a save's answer no longer
 // sets the page's state: a change it carries, such as `canEdit` after the account stopped being a team admin, shows
 // only when the page next reads itself (load, an upload's answer). A save that fails puts the boxes back to the list
-// the server last said it had (rework 2 #8).
+// the server last said it had (rework 2 #8). Its 没有保存成功 stays until the next save says otherwise or the page reads
+// itself again (any snapshot taken clears the line, rework 3 #1, #2); a save with no answer at all (the network) does
+// not make the page read itself, which could only fail the same way and swap the page for 加载失败.
 import type { CompanyPhotosResult } from "@/app/[lang]/employer/photo-actions";
 import { BENEFITS, type Benefit } from "@/lib/company-photos";
 
@@ -19,7 +21,8 @@ export function createBenefitsSaver({
   save: (list: Benefit[]) => Promise<CompanyPhotosResult | null>;
   /** The boxes to show ticked. */
   onList: (list: Benefit[]) => void;
-  onNote: (note: BenefitsNote) => void;
+  /** Undefined: nothing to say (a snapshot read afresh was taken). */
+  onNote: (note: BenefitsNote | undefined) => void;
 }) {
   let list: Benefit[] = [];
   let turn = 0;
@@ -34,14 +37,15 @@ export function createBenefitsSaver({
   };
   return {
     /**
-     * A snapshot read afresh (load, an upload's answer): taken unless a save is still on its way with a newer list.
-     * Says whether it was taken.
+     * A snapshot read afresh (load, an upload's or a removal's answer): taken unless a save is still on its way with a
+     * newer list. Taken, it also clears the line under the boxes (rework 3 #1). Says whether it was taken.
      */
     reset(next: Benefit[]): boolean {
       if (answered !== turn) return false;
       list = confirmed = next;
       confirmedTurn = turn;
       onList(list);
+      onNote(undefined);
       return true;
     },
     /**
@@ -80,6 +84,7 @@ export function createBenefitsSaver({
         },
         () =>
           settle(() => {
+            // No answer (the network): 没有保存成功 stays until the next save or read (see the top of this file).
             onNote({ kind: "failed" });
             rollBack();
             return undefined;
