@@ -12,6 +12,7 @@ import { EmployerGate, type EmployerIdentity } from "@/components/employer/Emplo
 import { useFocusOnChange } from "@/components/employer/use-focus-on-change";
 import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { busyFor } from "@/components/employer/busy-for";
+import { createBenefitsSaver, type BenefitsNote } from "@/components/employer/benefits-saver";
 import { APP_SHEET, BACK_LINK, noticeClass } from "@/components/employer/app-style";
 import { Button, Spinner } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -64,23 +65,27 @@ function Photos({ me }: { me: EmployerIdentity }) {
   const [pressed, setPressed] = useState<string>();
   const working = busy ? pressed : undefined;
   const input = useRef<HTMLInputElement>(null);
-  // The benefits save themselves on each tick (design-system「资料类表单自动保存」): where the last one stands, and
-  // which save is the last, so an answer that comes back late does not undo a newer tick.
-  const [benefitsNote, setBenefitsNote] = useState<{ ok: boolean; text: string }>();
-  const benefitsTurn = useRef(0);
-  const benefitsAnswered = useRef(0);
+  // The benefits save themselves on each tick (design-system「资料类表单自动保存」); benefits-saver keeps the list and
+  // which save is the last one.
+  const [benefitsNote, setBenefitsNote] = useState<BenefitsNote>();
+  const [saver] = useState(() =>
+    createBenefitsSaver({ save: saveCompanyBenefits, onList: setBenefits, onNote: setBenefitsNote }),
+  );
 
   /** Asks for the snapshot; `live` says whether its answer is still wanted. */
-  const fetchSnapshot = useCallback((live: () => boolean) => {
-    myCompanyPhotos().then(
-      (snapshot) => {
-        if (!live()) return;
-        setState(snapshot);
-        if (snapshot) setBenefits(snapshot.benefits);
-      },
-      () => live() && setState("failed"),
-    );
-  }, []);
+  const fetchSnapshot = useCallback(
+    (live: () => boolean) => {
+      myCompanyPhotos().then(
+        (snapshot) => {
+          if (!live()) return;
+          setState(snapshot);
+          if (snapshot) saver.reset(snapshot.benefits);
+        },
+        () => live() && setState("failed"),
+      );
+    },
+    [saver],
+  );
   // Loaded again for another identity; an answer for the one before is dropped.
   useEffect(() => {
     let live = true;
@@ -97,27 +102,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
   const answered = (result: CompanyPhotosResult | null) => {
     if (!result) return load();
     setState(result.snapshot);
-    // A benefits save still on its way has the newer list.
-    if (benefitsAnswered.current === benefitsTurn.current) setBenefits(result.snapshot.benefits);
+    saver.reset(result.snapshot.benefits); // kept back while a benefits save with a newer list is on its way
     setMessage({ ok: !result.error, text: result.said });
-  };
-  const saveBenefits = (next: Benefit[]) => {
-    setBenefits(next);
-    const turn = ++benefitsTurn.current;
-    setBenefitsNote({ ok: true, text: words.benefits.saving });
-    const done = (note: { ok: boolean; text: string }, result?: CompanyPhotosResult) => {
-      if (turn !== benefitsTurn.current) return;
-      benefitsAnswered.current = turn;
-      if (result) {
-        setState(result.snapshot);
-        setBenefits(result.snapshot.benefits);
-      }
-      setBenefitsNote(note);
-    };
-    saveCompanyBenefits(next).then(
-      (result) => (result ? done({ ok: !result.error, text: result.said }, result) : load()),
-      () => done({ ok: false, text: words.benefits.failed }),
-    );
   };
   const act = (key: string, run: () => Promise<CompanyPhotosResult | null>) => {
     setPressed(key);
@@ -242,8 +228,7 @@ function Photos({ me }: { me: EmployerIdentity }) {
               checked={benefits.includes(benefit)}
               disabled={!state.canEdit}
               onChange={(event) => {
-                const on = event.currentTarget.checked;
-                saveBenefits(BENEFITS.filter((b) => (b === benefit ? on : benefits.includes(b))));
+                void saver.toggle(benefit, event.currentTarget.checked).then((left) => left === "gone" && load());
               }}
             >
               {words.benefits.labels[benefit]}
@@ -253,9 +238,13 @@ function Photos({ me }: { me: EmployerIdentity }) {
         {/* Polite, not a status: the focus stays on the box just ticked, and the page's one status is the photos'. */}
         <p
           aria-live="polite"
-          className={`text-meta ${benefitsNote && !benefitsNote.ok ? "text-danger" : "text-muted"}`}
+          className={`text-meta ${benefitsNote?.kind === "failed" || (benefitsNote?.kind === "said" && !benefitsNote.ok) ? "text-danger" : "text-muted"}`}
         >
-          {benefitsNote?.text}
+          {benefitsNote?.kind === "saving"
+            ? words.benefits.saving
+            : benefitsNote?.kind === "failed"
+              ? words.benefits.failed
+              : benefitsNote?.text}
         </p>
       </section>
     </div>
