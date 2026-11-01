@@ -440,7 +440,7 @@ function QueueCard({
         {reports ? (
           <ConfirmButton
             variant="secondary"
-            confirmVariant="primary"
+            confirmVariant="danger"
             disabled={another("dismiss")}
             loading={busy("dismiss")}
             confirmLabel={t.queue.confirmDismiss}
