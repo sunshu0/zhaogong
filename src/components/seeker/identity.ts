@@ -26,6 +26,9 @@ export const POST_JOB_PATH = "/employer/post";
 /** A new business's name is at most this long; the sign-up page's name box stops there too. */
 export const NAME_MAX = 40;
 
+/** The box a business-step error is about, for the page to mark (UI review 1 B); none for 请选择一家店. */
+export type BusinessField = "name" | "regionId";
+
 export type BusinessChoice = { kind: "existing"; employerId: string } | { kind: "new"; name: string; regionId: string };
 
 export function parseRole(value: string | string[] | undefined): ActiveRole {
@@ -37,15 +40,15 @@ export function parseBusinessChoice(
   input: unknown,
   country: CountryCode,
   lang: Lang = DEFAULT_LANG,
-): { ok: true; choice: BusinessChoice } | { ok: false; error: string } {
+): { ok: true; choice: BusinessChoice } | { ok: false; error: string; field?: BusinessField } {
   const t = pick(loginMessages, lang).identity;
   const value = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
   if (value.kind === "new") {
     const name = typeof value.name === "string" ? value.name.trim() : "";
-    if (!name) return { ok: false, error: t.nameMissing };
-    if (name.length > NAME_MAX) return { ok: false, error: t.nameTooLong(NAME_MAX) };
+    if (!name) return { ok: false, error: t.nameMissing, field: "name" };
+    if (name.length > NAME_MAX) return { ok: false, error: t.nameTooLong(NAME_MAX), field: "name" };
     const regionId = COUNTRIES[country].regions.find((r) => r.id === value.regionId)?.id;
-    if (!regionId) return { ok: false, error: t.areaMissing };
+    if (!regionId) return { ok: false, error: t.areaMissing, field: "regionId" };
     return { ok: true, choice: { kind: "new", name, regionId } };
   }
   const id = DEMO_BUSINESS_IDS.find((d) => d === value.employerId);

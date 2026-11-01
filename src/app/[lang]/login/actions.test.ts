@@ -256,6 +256,17 @@ describe("openEmployerForAccount", () => {
     expect((await listEmployers()).length).toBe(before);
     expect(await getAccountEmployer("careful@example.com")).toBeUndefined();
   });
+
+  it("says which box a refused new business is about, for the page to mark (rework 2.6)", async () => {
+    await signIn("which.box@example.com");
+    const open = (name: string, regionId: string) =>
+      openEmployerForAccount("which.box@example.com", { kind: "new", name, regionId });
+    expect(await open(" ", "akl-cbd")).toEqual({ ok: false, error: "请填写店名", field: "name" });
+    expect(await open("店".repeat(41), "akl-cbd")).toEqual({ ok: false, error: "店名最多 40 个字", field: "name" });
+    expect(await open("老王面馆", "akl-nowhere")).toEqual({ ok: false, error: "请选择地区", field: "regionId" });
+    const other = await openEmployerForAccount("which.box@example.com", { kind: "existing", employerId: "e7" });
+    expect(other).toEqual({ ok: false, error: "请选择一家店" });
+  });
 });
 
 describe("businessBanNotice (ADR 0044)", () => {

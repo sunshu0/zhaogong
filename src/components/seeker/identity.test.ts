@@ -69,18 +69,21 @@ describe("parseBusinessChoice", () => {
     });
   });
 
-  it("asks for a name and a region for a new business", () => {
+  it("asks for a name and a region for a new business, naming the box each error is about", () => {
     expect(parseBusinessChoice({ kind: "new", name: " ", regionId: "akl-cbd" }, "NZ")).toEqual({
       ok: false,
       error: "请填写店名",
+      field: "name",
     });
     expect(parseBusinessChoice({ kind: "new", name: "店".repeat(41), regionId: "akl-cbd" }, "NZ")).toEqual({
       ok: false,
       error: "店名最多 40 个字",
+      field: "name",
     });
     expect(parseBusinessChoice({ kind: "new", name: "老王面馆", regionId: "akl-nowhere" }, "NZ")).toEqual({
       ok: false,
       error: "请选择地区",
+      field: "regionId",
     });
     expect(parseBusinessChoice(null, "NZ")).toEqual({ ok: false, error: "请选择一家店" });
   });

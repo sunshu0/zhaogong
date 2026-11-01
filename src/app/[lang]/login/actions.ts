@@ -33,7 +33,7 @@ import {
 } from "@/lib/data";
 import { currentBan, isBanned } from "@/lib/employer-ban";
 import { banNotice } from "@/components/employer/ban-notice";
-import { openErrorMessage, parseBusinessChoice } from "@/components/seeker/identity";
+import { openErrorMessage, parseBusinessChoice, type BusinessField } from "@/components/seeker/identity";
 import {
   isValidCode,
   isValidEmail,
@@ -190,7 +190,10 @@ export async function businessBanNotice(): Promise<string | null> {
 export async function openEmployerForAccount(
   email: string,
   choice: unknown,
-): Promise<{ ok: true; employer: { id: string; name: string } } | (Failure & { reason?: "taken" })> {
+): Promise<
+  | { ok: true; employer: { id: string; name: string } }
+  | { ok: false; error: string; field?: BusinessField; reason?: "taken" }
+> {
   const lang = await requestLang();
   const session = await accountStatus(typeof email === "string" ? email : "");
   if (!session) return { ok: false, error: pick(loginMessages, lang).errors.signInFirst };

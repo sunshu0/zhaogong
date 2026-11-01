@@ -23,6 +23,7 @@ import {
   NAME_MAX,
   parseBusinessChoice,
   reconcileIdentity,
+  type BusinessField,
 } from "@/components/seeker/identity";
 import { resendLabel, secondsLeft } from "@/components/seeker/code-resend";
 import { emailTypoFix } from "@/components/seeker/email-typos";
@@ -511,7 +512,7 @@ function BusinessStep({
   const regions = COUNTRIES.NZ.regions;
   const nameInput = useRef<HTMLInputElement>(null);
   // UI review 1 B: 请填写店名 and 店名最多… go under the name box and mark it; 请选择地区 marks the area.
-  const [errorField, setErrorField] = useState<"name" | "regionId">();
+  const [errorField, setErrorField] = useState<BusinessField>();
   const nameWrong = !!error && errorField === "name";
   const areaWrong = !!error && errorField === "regionId";
   // ADR 0044: the account's business is banned; nothing to set up here until it is over.
@@ -527,6 +528,14 @@ function BusinessStep({
     };
   }, []);
 
+  /** Shows an error; one about the name or the area marks that box and takes the focus there (rework 6). */
+  function failAt(text: string, field: BusinessField | undefined) {
+    setError(text);
+    setErrorField(field);
+    if (field === "name") nameInput.current?.focus();
+    else if (field === "regionId") document.getElementById(AREA_TRIGGER)?.focus();
+  }
+
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -536,16 +545,7 @@ function BusinessStep({
         : { kind: "existing", employerId: choice };
     // The server checks the same; asked here first, the person goes straight back to the box.
     const checked = choice === "new" ? parseBusinessChoice(payload, "NZ", lang) : null;
-    if (checked && !checked.ok) {
-      // parseBusinessChoice asks for the name first, then the area.
-      const field = checked.error === t.identity.areaMissing ? "regionId" : "name";
-      setError(checked.error);
-      setErrorField(field);
-      // Rework 6: to the box to fix, the area's Select trigger too.
-      if (field === "name") nameInput.current?.focus();
-      else document.getElementById(AREA_TRIGGER)?.focus();
-      return;
-    }
+    if (checked && !checked.ok) return failAt(checked.error, checked.field);
     setError(null);
     setErrorField(undefined);
     startTransition(async () => {
@@ -555,7 +555,8 @@ function BusinessStep({
         if (choice !== "new" && result.reason === "taken") {
           setTakenHere([...takenHere, choice]); // the choice moves on by itself (businessChoice)
         }
-        return setError(result.error);
+        // Rework 2.6: the server's 店名 / 地区 errors mark their box like the page's own check.
+        return failAt(result.error, result.field);
       }
       onDone(result.employer);
     });
