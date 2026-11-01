@@ -4,7 +4,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { fieldBorder, type FieldTone } from "@/components/ui/input-class";
-import { clickFromKeyboard, keyboardRing } from "@/components/ui/keyboard-ring";
+import { keyboardRing, pressedByKey } from "@/components/ui/keyboard-ring";
 import { listboxKey, shownLabel, typeAhead } from "@/components/ui/select-keys";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -72,6 +72,8 @@ export function Select({
   const [open, setOpen] = useState<"sheet" | "dropdown" | null>(null);
   // Opened with the keyboard: the current option shows the ring from the start (keyboard-ring.ts).
   const [byKeyboard, setByKeyboard] = useState(false);
+  // What the trigger's next click comes from (keyboard-ring.ts): the last key or pointerdown on it.
+  const keyPress = useRef(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const choices = required ? options : [{ value: "", label: placeholder }, ...options];
@@ -146,8 +148,12 @@ export function Select({
         aria-expanded={open !== null}
         aria-labelledby={`${id}-label ${triggerId ?? `${id}-trigger`}`}
         aria-describedby={describedBy}
-        onClick={(event) => (open ? close() : show(clickFromKeyboard(event)))}
+        onClick={() => (open ? close() : show(keyPress.current))}
+        onPointerDown={() => {
+          keyPress.current = pressedByKey(keyPress.current, { kind: "pointer" });
+        }}
         onKeyDown={(event) => {
+          keyPress.current = pressedByKey(keyPress.current, { kind: "key", key: event.key });
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
             show(true);

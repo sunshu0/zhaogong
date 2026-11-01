@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clickFromKeyboard, keyboardRing } from "./keyboard-ring";
+import { keyboardRing, pressedByKey } from "./keyboard-ring";
 
 describe("keyboardRing", () => {
   it("comes on with a key, also after the list was opened with a click", () => {
@@ -20,9 +20,21 @@ describe("keyboardRing", () => {
   });
 });
 
-describe("clickFromKeyboard", () => {
-  it("tells a keyboard click (detail 0) from a pointer one", () => {
-    expect(clickFromKeyboard({ detail: 0 })).toBe(true);
-    expect(clickFromKeyboard({ detail: 1 })).toBe(false);
+describe("pressedByKey", () => {
+  it("is the keyboard after Enter, Space, ↑ or ↓ on the trigger", () => {
+    for (const key of ["Enter", " ", "ArrowDown", "ArrowUp"])
+      expect(pressedByKey(false, { kind: "key", key })).toBe(true);
+  });
+
+  it("is the pointer after a pointerdown, also a touch whose click looks like the keyboard's (detail 0)", () => {
+    expect(pressedByKey(true, { kind: "pointer" })).toBe(false);
+    // Tab onto it, then a tap: the tap decides.
+    expect(pressedByKey(pressedByKey(false, { kind: "key", key: "Enter" }), { kind: "pointer" })).toBe(false);
+  });
+
+  it("does not change for other keys", () => {
+    expect(pressedByKey(false, { kind: "key", key: "Tab" })).toBe(false);
+    expect(pressedByKey(false, { kind: "key", key: "Shift" })).toBe(false);
+    expect(pressedByKey(true, { kind: "key", key: "a" })).toBe(true);
   });
 });

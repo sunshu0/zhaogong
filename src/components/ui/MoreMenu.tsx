@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { clickFromKeyboard, keyboardRing } from "@/components/ui/keyboard-ring";
+import { keyboardRing, pressedByKey } from "@/components/ui/keyboard-ring";
 import { nextMenuIndex } from "@/components/ui/menu-keys";
 import { sheetFromBottom } from "@/components/ui/use-sheet";
 import { useMessages } from "@/i18n/client";
@@ -44,6 +44,8 @@ export function MoreMenu({
   // The keyboard ring on the focused item: on when opened or moved with keys, off when the pointer moves or presses,
   // so it also shows after a click opened the menu and the arrows move in it (keyboard-ring.ts).
   const [keyboard, setKeyboard] = useState(false);
+  // What the button's next click comes from (keyboard-ring.ts): the last key or pointerdown on it.
+  const keyPress = useRef(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
@@ -87,6 +89,7 @@ export function MoreMenu({
   }
 
   function onButtonKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
+    keyPress.current = pressedByKey(keyPress.current, { kind: "key", key: e.key });
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       openAt(e.key === "ArrowDown" ? 0 : items.length - 1, true);
@@ -167,7 +170,10 @@ export function MoreMenu({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={showLabel ? undefined : name}
-        onClick={(event) => (open ? close(false) : openAt(0, clickFromKeyboard(event)))}
+        onClick={() => (open ? close(false) : openAt(0, keyPress.current))}
+        onPointerDown={() => {
+          keyPress.current = pressedByKey(keyPress.current, { kind: "pointer" });
+        }}
         onKeyDown={onButtonKeyDown}
         className="pressable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-control px-2 text-body text-muted hover:bg-background hover:text-foreground"
       >
