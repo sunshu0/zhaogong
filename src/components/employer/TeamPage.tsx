@@ -286,7 +286,7 @@ function MemberRow({
       {confirming ? (
         <div ref={form} className="flex flex-wrap gap-2">
           <Button
-            variant="secondary"
+            variant="danger"
             {...busyFor(working, removeKey)}
             onClick={() => {
               setConfirming(false);
@@ -317,7 +317,8 @@ function MemberRow({
             </Button>
           )}
           {(mine || isAdmin) && !lastAdmin && (
-            <Button variant="link" onClick={() => setConfirming(true)} {...busyFor(working, removeKey)}>
+            // UI review 3: red, as an action that takes someone out leads (danger-secondary) and is confirmed (danger).
+            <Button variant="danger-secondary" onClick={() => setConfirming(true)} {...busyFor(working, removeKey)}>
               {mine ? t.leave : t.remove}
             </Button>
           )}
