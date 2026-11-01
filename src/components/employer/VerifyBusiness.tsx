@@ -113,7 +113,12 @@ function Verify({ me }: { me: EmployerIdentity }) {
         request && <LatestRequest request={request} />
       )}
 
-      {employer.bannedAt && <p className="text-body text-danger">{banNotice(employer, lang, t.banned)}</p>}
+      {/* UI review 3: the same notice as 职位管理 and 门店照片, said when it comes in after the profile loads. */}
+      {employer.bannedAt && (
+        <p role="status" className={noticeClass(false)}>
+          {banNotice(employer, lang, t.banned)}
+        </p>
+      )}
       {request !== undefined && kinds.length === 0 && (
         <p className="text-body text-muted">{t.nothingLeft(kindLabel.accredited_employer)}</p>
       )}
