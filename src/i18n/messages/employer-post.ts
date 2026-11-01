@@ -22,6 +22,13 @@ const employerPostZh = {
   },
 
   /** PostFlow.tsx: the kept draft and the step's own error boundary. */
+  postFlow: {
+    restored: "接着上次没写完的继续（草稿只存在这个标签页里）。",
+    startOver: "清空重来",
+    stepFailedTitle: "这一步没显示出来",
+    stepFailedNote: "你填的内容还在，点重试接着填。",
+  },
+
   /** AskFirst.tsx: the question before an action throws away what was written (UI review 1 B). */
   askFirst: {
     cancel: "取消",
@@ -31,13 +38,6 @@ const employerPostZh = {
     confirmEmptyForm: "确定换成空表",
     regenerateEn: "你手改过的英文描述会被按表格重新生成的那段替换。",
     confirmRegenerateEn: "确定重新生成",
-  },
-
-  postFlow: {
-    restored: "接着上次没写完的继续（草稿只存在这个标签页里）。",
-    startOver: "清空重来",
-    stepFailedTitle: "这一步没显示出来",
-    stepFailedNote: "你填的内容还在，点重试接着填。",
   },
 
   /** app/employer/post/error.tsx: the whole posting page failed. */

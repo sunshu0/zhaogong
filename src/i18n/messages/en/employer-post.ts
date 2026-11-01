@@ -14,6 +14,13 @@ export const employerPostEn: Messages<(typeof employerPostMessages)["zh"]> = {
     republishTitle: "Repost a job",
   },
 
+  postFlow: {
+    restored: "Picking up where you left off (the draft is only kept in this tab).",
+    startOver: "Clear and start over",
+    stepFailedTitle: "This step didn't load",
+    stepFailedNote: "What you filled in is still here. Tap Try again to carry on.",
+  },
+
   askFirst: {
     cancel: "Cancel",
     startOver: "This clears the chat, the pasted text and everything in the form.",
@@ -22,13 +29,6 @@ export const employerPostEn: Messages<(typeof employerPostMessages)["zh"]> = {
     confirmEmptyForm: "Yes, empty form",
     regenerateEn: "The English description you changed will be replaced by one written from the form.",
     confirmRegenerateEn: "Yes, write it again",
-  },
-
-  postFlow: {
-    restored: "Picking up where you left off (the draft is only kept in this tab).",
-    startOver: "Clear and start over",
-    stepFailedTitle: "This step didn't load",
-    stepFailedNote: "What you filled in is still here. Tap Try again to carry on.",
   },
 
   postError: {
