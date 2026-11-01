@@ -52,6 +52,9 @@ test("收藏 signed out signs in and comes back saved; the list keeps stages and
   // Removing it from the list un-saves it on the job list too.
   await list.getByRole("article", { name: "超市理货员" }).getByRole("button", { name: "取消收藏" }).click();
   await expect(list.getByRole("article")).toHaveCount(1);
+  // Its card went with the button: the focus is on the list and the status line names the job.
+  await expect(list).toBeFocused();
+  await expect(page.getByRole("status").filter({ hasText: "已取消收藏" })).toHaveText("已取消收藏「超市理货员」。");
   await page.goto("/jobs?industry=retail");
   await expect(saveButton(page, "超市理货员")).toHaveAttribute("aria-pressed", "false");
   await expect(saveButton(page, "超市理货员")).not.toHaveAttribute("aria-busy");

@@ -46,6 +46,9 @@ test("/me (浏览与举报) lists jobs viewed and reports sent and clears histor
   await expect(viewed.getByRole("button", { name: "确认清除" })).toBeFocused();
   await viewed.getByRole("button", { name: "确认清除" }).click();
   await expect(viewed).toContainText("还没有看过职位。");
+  // The confirm went with the list: the focus is on the panel's heading and the status line says so.
+  await expect(viewed.getByRole("heading", { name: "最近看过的职位" })).toBeFocused();
+  await expect(viewed.getByRole("status")).toHaveText("浏览记录已清除。");
 
   await page.goto("/account");
   await expect(page.getByText(email, { exact: true }).filter({ visible: true })).toBeVisible();

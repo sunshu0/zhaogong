@@ -31,6 +31,8 @@ const seekerMeZh = {
     clearWarning: "只存在这台设备上，清除后找不回来。",
     confirmClear: "确认清除",
     cancel: "取消",
+    // Said by the status line after 确认清除; the focus goes to the panel's heading.
+    cleared: "浏览记录已清除。",
     noneViewed: "还没有看过职位。",
     browse: "去看看",
     reports: "我发出的举报",
@@ -105,6 +107,9 @@ const seekerMeZh = {
     unsaveWarning: "进度会一起清掉。",
     confirmUnsave: "确认取消收藏",
     keep: "保留",
+    // Said by the status line after a job is taken off the list (named, so a second one is said too); the focus
+    // goes to the list.
+    removed: (title: string) => `已取消收藏「${title}」。`,
     savedOn: (date: string) => `${date}收藏`,
     stages: {
       saved: "已收藏",

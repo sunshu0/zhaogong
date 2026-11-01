@@ -41,6 +41,14 @@ export function SavedJobsPage() {
   // is not hidden behind it.
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
+  // After 取消收藏 the job's card goes, and the focus with it: it goes to the list (or the empty state's title when
+  // that was the last one) and the status line says which job went (visual-1 review).
+  const [removed, setRemoved] = useState<{ title: string } | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const emptyTitle = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (removed) (listRef.current ?? emptyTitle.current)?.focus();
+  }, [removed]);
 
   const scope = identityScope(session);
   const loadFailed = failedFor === scope;
@@ -85,7 +93,12 @@ export function SavedJobsPage() {
   if (!jobs || jobs.length === 0) {
     return (
       <div className={`py-10 text-center ${sheetClass()}`}>
-        <p className="text-body font-medium">{s.emptyTitle}</p>
+        <p role="status" className="sr-only">
+          {removed ? s.removed(removed.title) : ""}
+        </p>
+        <p ref={emptyTitle} tabIndex={-1} className="text-body font-medium outline-none">
+          {s.emptyTitle}
+        </p>
         <p className="mt-1 text-body text-muted">{s.emptyHint}</p>
         <ButtonLink href="/jobs" variant="secondary" className="mt-4">
           {s.browse}
@@ -94,12 +107,14 @@ export function SavedJobsPage() {
     );
   }
 
-  async function change(run: () => Promise<SavedJobView[] | null>) {
+  async function change(run: () => Promise<SavedJobView[] | null>): Promise<boolean> {
     setFailedChange(null);
     try {
       setJobs(await run());
+      return true;
     } catch {
       setFailedChange(() => run);
+      return false;
     }
   }
 
@@ -107,7 +122,10 @@ export function SavedJobsPage() {
     <div>
       <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
       {failedChange && <RetryLine text={s.saveFailed} onRetry={() => void change(failedChange)} className="mb-2" />}
-      <ul aria-label={s.list} className="space-y-3">
+      <p role="status" className="sr-only">
+        {removed ? s.removed(removed.title) : ""}
+      </p>
+      <ul ref={listRef} tabIndex={-1} aria-label={s.list} className="space-y-3 outline-none">
         {jobs.map((job) => (
           <li key={job.jobId} className={cardClass()}>
             <article aria-label={job.titleZh}>
@@ -176,7 +194,7 @@ export function SavedJobsPage() {
                     void change(async () => {
                       await unsaveMyJob(job.jobId);
                       return mySavedJobs();
-                    })
+                    }).then((done) => done && setRemoved({ title: job.titleZh }))
                   }
                 />
               </div>

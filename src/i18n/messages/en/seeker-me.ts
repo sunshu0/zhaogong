@@ -26,6 +26,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     clearWarning: "It is kept on this device only and cannot be brought back.",
     confirmClear: "Clear it",
     cancel: "Cancel",
+    cleared: "Viewing history cleared.",
     noneViewed: "You haven't viewed any jobs yet.",
     browse: "Have a look",
     reports: "Reports you've sent",
@@ -92,6 +93,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     unsaveWarning: "Its progress goes too.",
     confirmUnsave: "Remove it",
     keep: "Keep",
+    removed: (title) => `Removed “${title}” from saved.`,
     savedOn: (date) => `Saved ${date}`,
     stages: {
       saved: "Saved",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { REPORT_REASON_LABELS } from "@/i18n/labels";
 import { forgetViews, useSentReports, useViewedJobs } from "@/components/seeker/activity-client";
 import { formatJobDate } from "@/components/seeker/job-facts";
@@ -26,6 +26,13 @@ export function MePage({ demo = false }: { demo?: boolean }) {
   const session = useSession();
   const views = useViewedJobs();
   const reports = useSentReports();
+  // After 确认清除 the whole confirm goes with the list: the focus goes to the panel's heading and the status line
+  // says it was cleared, so the keyboard is not dropped on <body> (visual-1 review).
+  const [cleared, setCleared] = useState(false);
+  const viewedHeading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (cleared) viewedHeading.current?.focus();
+  }, [cleared]);
 
   if (!hydrated) return <SkeletonList count={2} label={t.pages.loadingHistory} />;
 
@@ -48,7 +55,24 @@ export function MePage({ demo = false }: { demo?: boolean }) {
           <ManageJobs />
         </section>
       ) : (
-        <Panel title={h.viewed} count={views.length} action={views.length > 0 && <ClearViews />}>
+        <Panel
+          title={h.viewed}
+          count={views.length}
+          headingRef={viewedHeading}
+          action={
+            views.length > 0 && (
+              <ClearViews
+                onClear={() => {
+                  forgetViews();
+                  setCleared(true);
+                }}
+              />
+            )
+          }
+        >
+          <p role="status" className="sr-only">
+            {cleared ? h.cleared : ""}
+          </p>
           {views.length === 0 ? (
             <>
               <Empty>{h.noneViewed}</Empty>
@@ -129,18 +153,26 @@ function Panel({
   title,
   count,
   action,
+  headingRef,
   children,
 }: {
   title: string;
   count: number;
   action?: ReactNode;
+  /** Set where the focus may be sent to the heading. */
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   children: ReactNode;
 }) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={sheetClass()}>
       <div className="mb-1 flex min-h-11 items-center justify-between gap-3">
-        <h2 id={headingId} className="text-subtitle font-semibold">
+        <h2
+          id={headingId}
+          ref={headingRef}
+          tabIndex={headingRef ? -1 : undefined}
+          className="text-subtitle font-semibold outline-none"
+        >
           {title}
           {count > 0 && <span className="ml-1.5 text-body font-normal text-muted">{count}</span>}
         </h2>
@@ -155,7 +187,7 @@ function Panel({
  * 清除浏览记录 asks once, in the row, as 提醒's 删除 does (UI audit 3): the history is on this device only and does
  * not come back. The focus follows the swap, so the keyboard stays where it was.
  */
-function ClearViews() {
+function ClearViews({ onClear }: { onClear: () => void }) {
   const h = useMessages(seekerMeMessages).history;
   const [confirming, setConfirming] = useState(false);
   const swapped = useRef(false);
@@ -180,7 +212,7 @@ function ClearViews() {
         ref={confirmButton}
         type="button"
         aria-describedby={warningId}
-        onClick={forgetViews}
+        onClick={onClear}
         className={`${small} font-medium text-danger hover:underline`}
       >
         {h.confirmClear}
