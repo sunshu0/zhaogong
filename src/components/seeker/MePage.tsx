@@ -28,10 +28,11 @@ export function MePage({ demo = false }: { demo?: boolean }) {
   const reports = useSentReports();
   // After 确认清除 the whole confirm goes with the list: the focus goes to the panel's heading and the status line
   // says it was cleared, so the keyboard is not dropped on <body> (visual-1 review).
-  const [cleared, setCleared] = useState(false);
+  // Counted, so a second 确认清除 moves the focus and is said again; the line goes once there is history again.
+  const [cleared, setCleared] = useState(0);
   const viewedHeading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    if (cleared) viewedHeading.current?.focus();
+    if (cleared > 0) viewedHeading.current?.focus();
   }, [cleared]);
 
   if (!hydrated) return <SkeletonList count={2} label={t.pages.loadingHistory} />;
@@ -64,14 +65,14 @@ export function MePage({ demo = false }: { demo?: boolean }) {
               <ClearViews
                 onClear={() => {
                   forgetViews();
-                  setCleared(true);
+                  setCleared((n) => n + 1);
                 }}
               />
             )
           }
         >
           <p role="status" className="sr-only">
-            {cleared ? h.cleared : ""}
+            {cleared > 0 && views.length === 0 && <span key={cleared}>{h.cleared}</span>}
           </p>
           {views.length === 0 ? (
             <>
