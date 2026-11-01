@@ -21,6 +21,7 @@ describe("sign-in in English", () => {
     expect(parseBusinessChoice({ kind: "new", name: " " }, "NZ", "en")).toEqual({
       ok: false,
       error: "Enter the business name",
+      field: "name",
     });
     expect(resendLabel(42, "en")).toBe("New code in 42 s");
   });
