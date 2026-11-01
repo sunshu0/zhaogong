@@ -4,6 +4,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { fieldBorder, type FieldTone } from "@/components/ui/input-class";
+import { clickFromKeyboard, keyboardRing } from "@/components/ui/keyboard-ring";
 import { listboxKey, shownLabel, typeAhead } from "@/components/ui/select-keys";
 import { useMessages } from "@/i18n/client";
 import { uiMessages } from "@/i18n/messages/ui";
@@ -69,6 +70,8 @@ export function Select({
   const value = controlled ?? own;
   const labelClass = hideLabel ? "sr-only" : "block text-meta text-muted";
   const [open, setOpen] = useState<"sheet" | "dropdown" | null>(null);
+  // Opened with the keyboard: the current option shows the ring from the start (keyboard-ring.ts).
+  const [byKeyboard, setByKeyboard] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const choices = required ? options : [{ value: "", label: placeholder }, ...options];
@@ -113,10 +116,21 @@ export function Select({
     if (next !== value) onChange?.(next);
     close();
   };
-  const show = () => setOpen(window.matchMedia(DESKTOP).matches ? "dropdown" : "sheet");
+  const show = (keyboard: boolean) => {
+    setByKeyboard(keyboard);
+    setOpen(window.matchMedia(DESKTOP).matches ? "dropdown" : "sheet");
+  };
 
   const list = (
-    <Listbox id={id} labelId={`${id}-label`} choices={choices} value={value} onPick={pick} onClose={() => close()} />
+    <Listbox
+      id={id}
+      labelId={`${id}-label`}
+      choices={choices}
+      value={value}
+      keyboard={byKeyboard}
+      onPick={pick}
+      onClose={() => close()}
+    />
   );
 
   return (
@@ -132,11 +146,11 @@ export function Select({
         aria-expanded={open !== null}
         aria-labelledby={`${id}-label ${triggerId ?? `${id}-trigger`}`}
         aria-describedby={describedBy}
-        onClick={() => (open ? close() : show())}
+        onClick={(event) => (open ? close() : show(clickFromKeyboard(event)))}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            show();
+            show(true);
           }
         }}
         className={`pressable flex h-11 w-full items-center justify-between gap-2 rounded-control border bg-surface px-3 text-left focus-visible:outline-2 focus-visible:outline-brand aria-expanded:border-brand ${fieldBorder(tone)}`}
@@ -170,6 +184,7 @@ function Listbox({
   labelId,
   choices,
   value,
+  keyboard,
   onPick,
   onClose,
 }: {
@@ -177,6 +192,8 @@ function Listbox({
   labelId: string;
   choices: SelectOption[];
   value: string;
+  /** Opened with the keyboard. */
+  keyboard: boolean;
   onPick: (value: string) => void;
   onClose: () => void;
 }) {
@@ -186,6 +203,9 @@ function Listbox({
       choices.findIndex((option) => option.value === value),
     ),
   );
+  // The keyboard ring on the current option: on after a key, off when the pointer moves or presses, so it also shows
+  // after a click opened the list and the arrows move in it (keyboard-ring.ts).
+  const [ring, setRing] = useState(keyboard);
   const ref = useRef<HTMLUListElement>(null);
   const optionId = (index: number) => `${id}-option-${index}`;
 
@@ -197,6 +217,7 @@ function Listbox({
   });
 
   const onKeyDown = (event: KeyboardEvent) => {
+    setRing((before) => keyboardRing(before, { kind: "key", key: event.key }));
     const action = listboxKey(event.key, active, choices.length);
     const jump = action
       ? -1
@@ -221,7 +242,9 @@ function Listbox({
       aria-activedescendant={optionId(active)}
       tabIndex={0}
       data-autofocus
+      data-keyboard={ring || undefined}
       onKeyDown={onKeyDown}
+      onPointerDown={() => setRing(false)}
       className="group space-y-0.5 outline-none"
     >
       {choices.map((option, index) => {
@@ -233,11 +256,14 @@ function Listbox({
             role="option"
             aria-selected={selected}
             onClick={() => onPick(option.value)}
-            onPointerMove={() => setActive(index)}
+            onPointerMove={() => {
+              setActive(index);
+              setRing(false);
+            }}
             className={`pressable-row flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-control px-3 md:min-h-10 ${
               // Keyboard: a brand ring (3:1 on the menu, UI audit 1); the pointer: the tint only.
               index === active
-                ? "bg-background group-focus-visible:ring-2 group-focus-visible:ring-brand group-focus-visible:ring-inset"
+                ? "bg-background group-data-keyboard:ring-2 group-data-keyboard:ring-brand group-data-keyboard:ring-inset"
                 : ""
             } ${selected ? "font-medium text-brand" : ""}`}
           >

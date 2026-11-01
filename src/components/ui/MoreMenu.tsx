@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { clickFromKeyboard, keyboardRing } from "@/components/ui/keyboard-ring";
 import { nextMenuIndex } from "@/components/ui/menu-keys";
 import { sheetFromBottom } from "@/components/ui/use-sheet";
 import { useMessages } from "@/i18n/client";
@@ -40,6 +41,9 @@ export function MoreMenu({
   const [open, setOpen] = useState(false);
   // Decided when it opens: a sheet on a phone-sized window, else the dropdown.
   const [sheet, setSheet] = useState(false);
+  // The keyboard ring on the focused item: on when opened or moved with keys, off when the pointer moves or presses,
+  // so it also shows after a click opened the menu and the arrows move in it (keyboard-ring.ts).
+  const [keyboard, setKeyboard] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
@@ -64,8 +68,9 @@ export function MoreMenu({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  function openAt(index: number) {
+  function openAt(index: number, byKeyboard: boolean) {
     firstFocus.current = index;
+    setKeyboard(byKeyboard);
     setSheet(sheetFromBottom());
     setOpen(true);
   }
@@ -84,11 +89,12 @@ export function MoreMenu({
   function onButtonKeyDown(e: KeyboardEvent<HTMLButtonElement>) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      openAt(e.key === "ArrowDown" ? 0 : items.length - 1);
+      openAt(e.key === "ArrowDown" ? 0 : items.length - 1, true);
     }
   }
 
   function onMenuKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    setKeyboard((before) => keyboardRing(before, { kind: "key", key: e.key }));
     if (e.key === "Escape") {
       e.preventDefault();
       close(true);
@@ -107,9 +113,19 @@ export function MoreMenu({
   }
 
   const itemClass = (item: MoreMenuItem) =>
-    `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset aria-disabled:opacity-50 ${
+    `pressable-row flex min-h-11 w-full items-center rounded-control px-3 text-left text-body hover:bg-background focus:bg-background focus:outline-none group-data-keyboard:focus:ring-2 group-data-keyboard:focus:ring-brand group-data-keyboard:focus:ring-inset aria-disabled:opacity-50 ${
       item.danger ? "text-danger" : ""
     }`;
+
+  const menuProps = {
+    id: menuId,
+    role: "menu",
+    "aria-label": name,
+    "data-keyboard": keyboard || undefined,
+    onKeyDown: onMenuKeyDown,
+    onPointerMove: () => setKeyboard(false),
+    onPointerDown: () => setKeyboard(false),
+  } as const;
 
   const menuItems = items.map((item, i) => {
     const common = {
@@ -151,7 +167,7 @@ export function MoreMenu({
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         aria-label={showLabel ? undefined : name}
-        onClick={() => (open ? close(false) : openAt(0))}
+        onClick={(event) => (open ? close(false) : openAt(0, clickFromKeyboard(event)))}
         onKeyDown={onButtonKeyDown}
         className="pressable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-control px-2 text-body text-muted hover:bg-background hover:text-foreground"
       >
@@ -160,11 +176,8 @@ export function MoreMenu({
       </button>
       {open && !sheet && (
         <div
-          id={menuId}
-          role="menu"
-          aria-label={name}
-          onKeyDown={onMenuKeyDown}
-          className={`absolute top-full z-30 mt-1 min-w-40 animate-pop-in rounded-control bg-surface p-1 shadow-pop ${
+          {...menuProps}
+          className={`group absolute top-full z-30 mt-1 min-w-40 animate-pop-in rounded-control bg-surface p-1 shadow-pop ${
             align === "end" ? "right-0" : "left-0"
           }`}
         >
@@ -173,7 +186,7 @@ export function MoreMenu({
       )}
       {open && sheet && (
         <BottomSheet open onClose={() => close(true)} title={name}>
-          <div id={menuId} role="menu" aria-label={name} onKeyDown={onMenuKeyDown}>
+          <div {...menuProps} className="group">
             {menuItems}
           </div>
         </BottomSheet>
