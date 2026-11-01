@@ -212,6 +212,8 @@ function Listbox({
   // The keyboard ring on the current option: on after a key, off when the pointer moves or presses, so it also shows
   // after a click opened the list and the arrows move in it (keyboard-ring.ts).
   const [ring, setRing] = useState(keyboard);
+  // …and only while the list has the focus, as a menu item's ring needs its focus (MoreMenu).
+  const [focused, setFocused] = useState(false);
   const ref = useRef<HTMLUListElement>(null);
   const optionId = (index: number) => `${id}-option-${index}`;
 
@@ -248,7 +250,9 @@ function Listbox({
       aria-activedescendant={optionId(active)}
       tabIndex={0}
       data-autofocus
-      data-keyboard={ring || undefined}
+      data-keyboard={(ring && focused) || undefined}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onKeyDown={onKeyDown}
       onPointerDown={() => setRing(false)}
       className="group space-y-0.5 outline-none"
