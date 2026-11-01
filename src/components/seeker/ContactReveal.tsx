@@ -123,7 +123,8 @@ export function ContactReveal({ jobId, kinds }: { jobId: string; kinds: string[]
               )}
             </ul>
             <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-meta text-warn">{t.contact.warning}</p>
-            <p className="mt-2 text-meta text-muted">
+            {/* break-all: a long sign-in address in text-meta is wider than a 375 px phone's card (visual-12 gate). */}
+            <p className="mt-2 break-all text-meta text-muted">
               {t.contact.signedInAs(session.email)} ·{" "}
               <Link href="/me" className="underline underline-offset-2">
                 {t.contact.mine}
