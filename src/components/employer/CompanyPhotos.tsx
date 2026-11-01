@@ -14,7 +14,8 @@ import { useSwapFocus } from "@/components/ui/use-swap-focus";
 import { busyFor } from "@/components/employer/busy-for";
 import { createBenefitsSaver, type BenefitsNote } from "@/components/employer/benefits-saver";
 import { APP_SHEET, BACK_LINK, noticeClass } from "@/components/employer/app-style";
-import { Button, Spinner } from "@/components/ui/Button";
+import { Button, ButtonLink, Spinner } from "@/components/ui/Button";
+import { Section } from "@/components/ui/Section";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { SkeletonCard } from "@/components/ui/Skeleton";
@@ -130,7 +131,17 @@ function Photos({ me }: { me: EmployerIdentity }) {
   if (state === "failed") return <LoadFailed what={t.heading} onRetry={load} />;
   if (state === undefined) return <SkeletonCard />;
   // The server found no business for this account (not signed in as an employer, or no business yet): say so.
-  if (state === null) return <p className="text-body">{t.noBusiness}</p>;
+  if (state === null)
+    return (
+      // Rework 7: a sheet with the page's title and somewhere to go, as the team page's.
+      <Section look="sheet" className="space-y-3">
+        <h1 className="text-title font-semibold">{words.page.title}</h1>
+        <p className="text-body">{t.noBusiness}</p>
+        <ButtonLink variant="secondary" href="/employer">
+          {t.toEmployer}
+        </ButtonLink>
+      </Section>
+    );
   const shown = state.photos.filter((photo) => photo.status !== "rejected").length;
   const full = shown >= PHOTOS_MAX;
   const uploading = working === "upload";
