@@ -40,14 +40,25 @@ test("the business step sends the focus to the name, then to the area (rework 6)
   await expect(page.getByText("请选择地区")).toBeVisible();
   await expect(page.locator("#business-area")).toBeFocused();
   await expect(name).not.toHaveAttribute("aria-invalid", "true");
+});
 
-  // Rework 3 #3: another choice clears the error, whose box went with 新建企业; back on it, nothing is marked. A demo
-  // shop is the other choice only while one is free (the demo data is shared by the whole run).
+test("another business choice clears the business step's error (rework 3 #3)", async ({ page }) => {
+  await page.goto("/login?role=employer&next=%2Femployer%2Fpost");
+  await page.getByLabel("邮箱", { exact: true }).fill(freshEmail("e2e.b.confirm"));
+  await page.getByRole("button", { name: "获取验证码" }).click();
+  await fillSignInCode(page);
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "开通雇主身份" })).toBeVisible();
+  // The other choice is a demo shop, and those are free only until other specs in the run claim them (e1, e2 and e4
+  // are shared by every account; a new business is never one). The same rule is unit-tested in identity.test.ts
+  // (businessErrorAt), which runs every time.
   const freeShop = page.locator('input[name="business"]:not([value="new"]):not(:disabled)').first();
-  if ((await freeShop.count()) === 0) {
-    test.info().annotations.push({ type: "note", description: "no free demo shop: rework 3 #3 not checked" });
-    return;
-  }
+  test.skip((await freeShop.count()) === 0, "every demo shop is claimed by an earlier spec in this run");
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  const name = page.getByLabel("店名", { exact: true });
+  await name.fill("确认测试店");
+  await page.getByRole("button", { name: "开通并开始发布招聘" }).click();
+  await expect(page.getByText("请选择地区")).toBeVisible();
   await freeShop.check();
   await expect(page.getByText("请选择地区")).toBeHidden();
   await page.getByRole("radio", { name: /新建企业/ }).check();
