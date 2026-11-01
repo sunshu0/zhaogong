@@ -66,7 +66,7 @@ export function TeamLinks({
         )}
         {made && (
           <div className="space-y-2 rounded-control bg-ok-soft p-3">
-            <h3 ref={madeRef} tabIndex={-1} className="text-body font-medium outline-none">
+            <h3 ref={madeRef} tabIndex={-1} className="text-subtitle font-medium outline-none">
               {t.createdHeading}
             </h3>
             <p className="text-meta">{t.createdNote}</p>
@@ -95,7 +95,7 @@ export function TeamLinks({
       </div>
       {team.links.length > 0 && (
         <section aria-labelledby="team-open-links" className="space-y-2">
-          <h3 id="team-open-links" className="text-body font-medium">
+          <h3 id="team-open-links" className="text-subtitle font-medium">
             {t.openHeading}
           </h3>
           <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
