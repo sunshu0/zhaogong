@@ -48,7 +48,9 @@ export function HiresQuestion({
         {t.question(PRODUCT_NAME)}
         {optional && <span className="font-normal text-muted">{t.optional}</span>}
       </legend>
-      <div className="flex flex-wrap items-center gap-2">
+      {/* clear-both: beside the floated full-width legend the flex row would get no width at all, and its choices
+          stood one character per line past the card (rework 5). */}
+      <div className="clear-both flex flex-wrap items-center gap-2">
         <label className={CHOICE_PILL}>
           <input
             type="radio"

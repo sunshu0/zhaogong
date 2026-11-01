@@ -45,7 +45,9 @@ export function RenewQuestion({
   return (
     <fieldset className="mt-3 w-full space-y-3 rounded-card bg-background p-4">
       <legend className="float-left mb-3 w-full text-body font-medium">{t.question}</legend>
-      <div className="flex flex-wrap items-center gap-2">
+      {/* clear-both: beside the floated full-width legend the flex row would get no width at all, and its choices
+          stood one character per line past the card (rework 5). */}
+      <div className="clear-both flex flex-wrap items-center gap-2">
         {choices.map((choice) => (
           <label key={choice.days} className={CHOICE_PILL}>
             <input
