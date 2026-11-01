@@ -154,10 +154,12 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
                 </th>
                 <td className="py-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 text-right font-figure tabular-nums">{formatNumber(d.views, lang)}</span>
+                    <span className="min-w-6 shrink-0 text-right font-figure tabular-nums">
+                      {formatNumber(d.views, lang)}
+                    </span>
                     <span
                       aria-hidden
-                      className="h-2 rounded-sm bg-brand/60"
+                      className="h-2 shrink rounded-sm bg-brand/60"
                       style={{ width: `${(d.views / most) * 100}%`, maxWidth: "6rem" }}
                     />
                   </div>
