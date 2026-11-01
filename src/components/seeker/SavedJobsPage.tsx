@@ -36,7 +36,8 @@ export function SavedJobsPage() {
   // undefined: loading.
   const [jobs, setJobs] = useState<SavedJobView[] | null | undefined>(undefined);
   // A change (进度, 取消收藏) that got no answer: said above the list with 重试, which sends it again; the list stays.
-  const [failedChange, setFailedChange] = useState<(() => Promise<SavedJobView[] | null>) | null>(null);
+  // `done` runs once it went through, on the first try or on 重试.
+  const [failedChange, setFailedChange] = useState<Change | null>(null);
   // The list got no answer (#254): said with 重试, which asks again; kept per identity, so another identity's list
   // is not hidden behind it.
   const [failedFor, setFailedFor] = useState<string | null>(null);
@@ -114,15 +115,15 @@ export function SavedJobsPage() {
     );
   }
 
-  async function change(run: () => Promise<SavedJobView[] | null>): Promise<boolean> {
+  async function change({ run, done }: Change) {
     setFailedChange(null);
     try {
       setJobs(await run());
-      return true;
     } catch {
-      setFailedChange(() => run);
-      return false;
+      setFailedChange({ run, done });
+      return;
     }
+    done?.();
   }
 
   return (
@@ -130,7 +131,16 @@ export function SavedJobsPage() {
       {status}
       <div>
         <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
-        {failedChange && <RetryLine text={s.saveFailed} onRetry={() => void change(failedChange)} className="mb-2" />}
+        {failedChange && (
+          <RetryLine
+            text={s.saveFailed}
+            onRetry={() =>
+              // 重试 goes once it went through: a 取消收藏 is said as from its card; else the focus goes to the list.
+              void change({ run: failedChange.run, done: failedChange.done ?? (() => listRef.current?.focus()) })
+            }
+            className="mb-2"
+          />
+        )}
         <ul ref={listRef} tabIndex={-1} aria-label={s.list} className="space-y-3 outline-none">
           {jobs.map((job) => (
             <li key={job.jobId} className={cardClass()}>
@@ -187,7 +197,7 @@ export function SavedJobsPage() {
                       options={SAVED_STAGES.map((stage) => ({ value: stage, label: s.stages[stage] }))}
                       onChange={(value) => {
                         const stage = parseSavedStage(value);
-                        if (stage) void change(() => setMyJobStage(job.jobId, stage));
+                        if (stage) void change({ run: () => setMyJobStage(job.jobId, stage) });
                       }}
                     />
                   </div>
@@ -197,10 +207,13 @@ export function SavedJobsPage() {
                   <Unsave
                     stage={job.stage}
                     onUnsave={() =>
-                      void change(async () => {
-                        await unsaveMyJob(job.jobId);
-                        return mySavedJobs();
-                      }).then((done) => done && setRemoved({ title: job.titleZh }))
+                      void change({
+                        run: async () => {
+                          await unsaveMyJob(job.jobId);
+                          return mySavedJobs();
+                        },
+                        done: () => setRemoved({ title: job.titleZh }),
+                      })
                     }
                   />
                 </div>
@@ -212,6 +225,8 @@ export function SavedJobsPage() {
     </>
   );
 }
+
+type Change = { run: () => Promise<SavedJobView[] | null>; done?: () => void };
 
 /**
  * 取消收藏: at once while the progress is 已收藏; with progress set (已联系, 已面试…) it asks once in the row, as
