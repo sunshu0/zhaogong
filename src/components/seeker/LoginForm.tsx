@@ -64,6 +64,8 @@ const fixButtonClass =
   "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50 aria-disabled:opacity-50";
 
 const ROLES: readonly ActiveRole[] = ["seeker", "employer"];
+/** The business step's area Select: its trigger takes this id, for the focus on 请选择地区. */
+const AREA_TRIGGER = "business-area";
 
 /**
  * 注册或登录 (the email code does both; A12-1: the code is checked and the session started on the server). Job seekers: email → code → `next`. Employers: email → code → their
@@ -538,7 +540,9 @@ function BusinessStep({
       const field = checked.error === t.identity.areaMissing ? "regionId" : "name";
       setError(checked.error);
       setErrorField(field);
+      // Rework 6: to the box to fix, the area's Select trigger too.
       if (field === "name") nameInput.current?.focus();
+      else document.getElementById(AREA_TRIGGER)?.focus();
       return;
     }
     setError(null);
@@ -613,6 +617,7 @@ function BusinessStep({
           </label>
           {nameWrong && <ErrorText id="business-name-error">{error}</ErrorText>}
           <Select
+            id={AREA_TRIGGER}
             name="regionId"
             label={t.hiring.areaLabel}
             placeholder={t.hiring.areaPlaceholder}
