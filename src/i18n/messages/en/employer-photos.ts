@@ -27,6 +27,7 @@ export const employerPhotosEn: Messages<(typeof employerPhotosMessages)["zh"]> =
     confirmRemove: "Yes, delete",
     confirmRemoveLabel: (n) => `Yes, delete photo ${n}`,
     cancel: "Cancel",
+    cancelRemoveLabel: (n) => `Keep photo ${n}`,
     removed: "Photo deleted.",
     photoAlt: (n) => `Shop photo ${n}`,
     empty: "No shop photos yet.",

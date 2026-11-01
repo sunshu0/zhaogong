@@ -294,7 +294,7 @@ function RemovePhoto({
       >
         {t.confirmRemove}
       </Button>
-      <Button variant="link" onClick={() => setConfirming(false)}>
+      <Button variant="link" aria-label={t.cancelRemoveLabel(n)} onClick={() => setConfirming(false)}>
         {t.cancel}
       </Button>
     </div>

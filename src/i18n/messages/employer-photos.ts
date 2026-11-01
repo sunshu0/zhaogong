@@ -26,6 +26,7 @@ const employerPhotosZh = {
     confirmRemove: "确认删除",
     confirmRemoveLabel: (n: number) => `确认删除第 ${n} 张照片`,
     cancel: "取消",
+    cancelRemoveLabel: (n: number) => `不删第 ${n} 张照片`,
     removed: "照片已删除。",
     photoAlt: (n: number) => `第 ${n} 张门店照片`,
     empty: "还没有门店照片。",
