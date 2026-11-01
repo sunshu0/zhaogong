@@ -40,6 +40,20 @@ test("the business step sends the focus to the name, then to the area (rework 6)
   await expect(page.getByText("请选择地区")).toBeVisible();
   await expect(page.locator("#business-area")).toBeFocused();
   await expect(name).not.toHaveAttribute("aria-invalid", "true");
+
+  // Rework 3 #3: another choice clears the error, whose box went with 新建企业; back on it, nothing is marked. A demo
+  // shop is the other choice only while one is free (the demo data is shared by the whole run).
+  const freeShop = page.locator('input[name="business"]:not([value="new"]):not(:disabled)').first();
+  if ((await freeShop.count()) === 0) {
+    test.info().annotations.push({ type: "note", description: "no free demo shop: rework 3 #3 not checked" });
+    return;
+  }
+  await freeShop.check();
+  await expect(page.getByText("请选择地区")).toBeHidden();
+  await page.getByRole("radio", { name: /新建企业/ }).check();
+  await expect(name).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#business-area")).not.toHaveAttribute("aria-describedby", "business-area-error");
+  await expect(page.getByText("请选择地区")).toBeHidden();
 });
 
 test("驳回举报 asks first; 取消 gives the focus back (rework 13)", async ({ browser, page }, testInfo) => {

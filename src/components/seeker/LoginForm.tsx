@@ -528,6 +528,16 @@ function BusinessStep({
     };
   }, []);
 
+  /**
+   * Another choice of business: an error about the one before goes (rework 3 #3), else 请填写店名 would stay marked on
+   * a name box no longer there and its words go with the box.
+   */
+  function pickChoice(value: string) {
+    setChoice(value);
+    setError(null);
+    setErrorField(undefined);
+  }
+
   /** Shows an error; one about the name or the area marks that box and takes the focus there (rework 6). */
   function failAt(text: string, field: BusinessField | undefined) {
     setError(text);
@@ -590,14 +600,14 @@ function BusinessStep({
         <legend className={labelClass}>{t.hiring.legend}</legend>
         <div className="grid gap-2">
           {shops.map((b) => (
-            <Choice key={b.id} value={b.id} current={choice} onPick={setChoice} disabled={b.claimed}>
+            <Choice key={b.id} value={b.id} current={choice} onPick={pickChoice} disabled={b.claimed}>
               <ChoiceText
                 title={b.name}
                 text={t.hiring.businessMeta(b.regionName, VERIFICATION_LABELS[b.verification][lang], b.claimed)}
               />
             </Choice>
           ))}
-          <Choice value="new" current={choice} onPick={setChoice}>
+          <Choice value="new" current={choice} onPick={pickChoice}>
             <ChoiceText title={t.hiring.newTitle} text={t.hiring.newText} />
           </Choice>
         </div>
