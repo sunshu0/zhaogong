@@ -76,12 +76,13 @@ function Photos({ me }: { me: EmployerIdentity }) {
   /** Asks for the snapshot; `live` says whether its answer is still wanted. */
   const fetchSnapshot = useCallback(
     (live: () => boolean) => {
+      const askedAt = saver.stamp();
       myCompanyPhotos().then(
         (snapshot) => {
           if (!live()) return;
           setState(snapshot);
           // Read afresh, the boxes are what the server has; the saver clears 没有保存成功 (rework 2 #8, rework 3 #1).
-          if (snapshot) saver.reset(snapshot.benefits);
+          if (snapshot) saver.reset(snapshot.benefits, askedAt);
         },
         () => live() && setState("failed"),
       );
@@ -101,18 +102,20 @@ function Photos({ me }: { me: EmployerIdentity }) {
     fetchSnapshot(() => true);
   }, [fetchSnapshot]);
 
-  const answered = (result: CompanyPhotosResult | null) => {
+  const answered = (result: CompanyPhotosResult | null, askedAt: number) => {
     if (!result) return load();
     setState(result.snapshot);
-    // Kept back while a benefits save with a newer list is on its way; taken, it clears 没有保存成功 (rework 3 #1).
-    saver.reset(result.snapshot.benefits);
+    // Kept back while a benefits save with a newer list is on its way; taken, it clears 没有保存成功 if asked for after
+    // the save that said it (rework 3 #1, rework 4 #1).
+    saver.reset(result.snapshot.benefits, askedAt);
     setMessage({ ok: !result.error, text: result.said });
   };
   const act = (key: string, run: () => Promise<CompanyPhotosResult | null>) => {
     setPressed(key);
     startTransition(async () => {
+      const askedAt = saver.stamp();
       try {
-        answered(await run());
+        answered(await run(), askedAt);
       } catch {
         setMessage({ ok: false, text: t.failed });
       }

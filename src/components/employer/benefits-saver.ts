@@ -5,7 +5,7 @@
 // sets the page's state: a change it carries, such as `canEdit` after the account stopped being a team admin, shows
 // only when the page next reads itself (load, an upload's answer). A save that fails puts the boxes back to the list
 // the server last said it had (rework 2 #8). Its 没有保存成功 stays until the next save says otherwise or the page reads
-// itself again (any snapshot taken clears the line, rework 3 #1, #2); a save with no answer at all (the network) does
+// itself again (a snapshot asked for after that save clears the line, rework 3 #1, #2, rework 4 #1); a save with no answer at all (the network) does
 // not make the page read itself, which could only fail the same way and swap the page for 加载失败.
 import type { CompanyPhotosResult } from "@/app/[lang]/employer/photo-actions";
 import { BENEFITS, type Benefit } from "@/lib/company-photos";
@@ -30,23 +30,29 @@ export function createBenefitsSaver({
   // The list the server last said it had, and the turn that said it (0: a snapshot read afresh).
   let confirmed: Benefit[] = [];
   let confirmedTurn = 0;
+  // The turn whose save last set the line under the boxes; a snapshot asked for before it says nothing about it.
+  let noteTurn = 0;
   /** A failed save: the boxes go back to what the server has. */
   const rollBack = () => {
     list = confirmed;
     onList(list);
   };
   return {
+    /** Where the saves stand now: taken when a snapshot is asked for (load, an upload, a removal), for `reset`. */
+    stamp(): number {
+      return turn;
+    },
     /**
-     * A snapshot read afresh (load, an upload's or a removal's answer): taken unless a save is still on its way with a
-     * newer list. Taken, it also clears the line under the boxes (rework 3 #1). Says whether it was taken.
+     * A snapshot read afresh, asked for at `askedAt` (`stamp`): taken unless a save is still on its way with a newer
+     * list. Taken, it clears the line under the boxes (rework 3 #1) only when it was asked for after the save that set
+     * the line: an upload sent before a tick that then failed keeps 没有保存成功 (rework 4 #1).
      */
-    reset(next: Benefit[]): boolean {
-      if (answered !== turn) return false;
+    reset(next: Benefit[], askedAt: number) {
+      if (answered !== turn) return;
       list = confirmed = next;
       confirmedTurn = turn;
       onList(list);
-      onNote(undefined);
-      return true;
+      if (askedAt >= noteTurn) onNote(undefined);
     },
     /**
      * Ticks or unticks one box and saves. Settles on "gone" when the server found no business to save for (signed
@@ -57,6 +63,7 @@ export function createBenefitsSaver({
       const mine = ++turn;
       onList(list);
       onNote({ kind: "saving" });
+      noteTurn = mine;
       const settle = (then: () => "gone" | undefined) => {
         if (mine !== turn) return undefined;
         answered = mine;
