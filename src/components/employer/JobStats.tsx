@@ -104,7 +104,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           ).map(([label, n]) => (
             <div key={label}>
               <dt className="text-meta text-muted">{label}</dt>
-              <dd className="font-figure text-title">{n == null ? "—" : formatNumber(n, lang)}</dd>
+              <dd className="font-figure text-title tabular-nums">{n == null ? "—" : formatNumber(n, lang)}</dd>
             </div>
           ))}
         </dl>
@@ -121,7 +121,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
           ).map(([label, n]) => (
             <div key={label}>
               <dt className="text-meta text-muted">{label}</dt>
-              <dd className="font-figure text-title">{formatNumber(n, lang)}</dd>
+              <dd className="font-figure text-title tabular-nums">{formatNumber(n, lang)}</dd>
             </div>
           ))}
         </dl>
@@ -154,7 +154,7 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
                 </th>
                 <td className="py-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 text-right font-figure">{formatNumber(d.views, lang)}</span>
+                    <span className="w-6 text-right font-figure tabular-nums">{formatNumber(d.views, lang)}</span>
                     <span
                       aria-hidden
                       className="h-2 rounded-sm bg-brand/60"
@@ -162,8 +162,8 @@ function Stats({ jobId, me }: { jobId: string; me: EmployerIdentity }) {
                     />
                   </div>
                 </td>
-                <td className="py-2 text-right font-figure">{formatNumber(d.chats, lang)}</td>
-                <td className="py-2 text-right font-figure">
+                <td className="py-2 text-right font-figure tabular-nums">{formatNumber(d.chats, lang)}</td>
+                <td className="py-2 text-right font-figure tabular-nums">
                   {job.contactPublic ? formatNumber(d.contactViews, lang) : "—"}
                 </td>
               </tr>
