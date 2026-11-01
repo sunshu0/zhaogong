@@ -29,6 +29,7 @@ export const employerTeamEn: Messages<(typeof employerTeamMessages)["zh"]> = {
   teamPage: {
     loading: "Loading the team",
     noEmployerRole: "Set up hiring first.",
+    setUpHiring: "Set up hiring",
     networkError: "Network problem. Try again shortly.",
     title: "Team",
     intro: (max) =>

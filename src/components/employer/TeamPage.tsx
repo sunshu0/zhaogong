@@ -1,6 +1,8 @@
 "use client";
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Section } from "@/components/ui/Section";
+import { employerSignUpHref } from "@/components/seeker/identity";
 import { Radio } from "@/components/ui/Checkbox";
 import { SkeletonList } from "@/components/ui/Skeleton";
 import { LoadFailed } from "@/components/ui/LoadFailed";
@@ -73,7 +75,16 @@ function Team({ me }: { me: EmployerIdentity }) {
 
   if (failed) return <LoadFailed what={names.team} onRetry={reload} />;
   if (team === undefined) return <SkeletonList count={2} label={t.loading} />;
-  if (team === null) return <p className="text-body">{t.noEmployerRole}</p>;
+  // UI review 3: an empty state is a sheet with somewhere to go, not a bare line on the page.
+  if (team === null)
+    return (
+      <Section look="sheet" className="space-y-3">
+        <p className="text-body">{t.noEmployerRole}</p>
+        <ButtonLink variant="secondary" href={employerSignUpHref("/employer/team")}>
+          {t.setUpHiring}
+        </ButtonLink>
+      </Section>
+    );
   const isAdmin = team.me.role === "admin";
   // #296: the team's only admin can neither step down nor leave (the server refuses both); those buttons are not
   // offered, and the row says why.

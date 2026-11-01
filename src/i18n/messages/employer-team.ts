@@ -33,6 +33,7 @@ const employerTeamZh = {
   teamPage: {
     loading: "正在读取团队",
     noEmployerRole: "需要先开通雇主身份。",
+    setUpHiring: "开通雇主身份",
     networkError: "网络有问题，请稍后再试。",
     title: "团队",
     /** After the business's name, which leads the line in its own lang. */
