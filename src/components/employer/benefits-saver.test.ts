@@ -158,4 +158,27 @@ describe("createBenefitsSaver", () => {
     saver.reset(["meals", "tips"], saver.stamp()); // a read sent after the save is taken
     expect(lists.at(-1)).toEqual(["meals", "tips"]);
   });
+
+  it("does not take an upload's answer asked for after the tick but before its save answered (followups #1)", async () => {
+    const { saver, pending, notes, lists } = setUp();
+    saver.reset([], saver.stamp());
+    const done = saver.toggle("meals", true);
+    const uploadAskedAt = saver.stamp(); // sent while the save is on its way; the server may read before it writes
+    pending[0].resolve(answer(["meals"]));
+    await done;
+    saver.reset([], uploadAskedAt);
+    expect(lists.at(-1)).toEqual(["meals"]);
+    expect(notes.at(-1)).toEqual({ kind: "said", ok: true, text: "已自动保存" });
+  });
+
+  it("takes an upload's answer asked for after the save answered, and clears its note (followups #1)", async () => {
+    const { saver, pending, notes, lists } = setUp();
+    const done = saver.toggle("meals", true);
+    pending[0].resolve(answer(["meals"]));
+    await done;
+    const uploadAskedAt = saver.stamp();
+    saver.reset(["meals", "tips"], uploadAskedAt);
+    expect(lists.at(-1)).toEqual(["meals", "tips"]);
+    expect(notes.at(-1)).toBeUndefined();
+  });
 });

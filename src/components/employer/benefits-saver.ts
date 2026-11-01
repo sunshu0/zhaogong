@@ -27,35 +27,41 @@ export function createBenefitsSaver({
   let list: Benefit[] = [];
   let turn = 0;
   let answered = 0;
-  // The list the server last said it had, and the turn it is from: a save's own turn, or the `stamp` a snapshot was
-  // asked for at. Anything older is not taken.
+  // How many save answers (or failures) have come back. A snapshot is stamped with it when asked for: one asked for
+  // before an answer came may have been read before that save was written (followups #1), so it counts as older.
+  let answers = 0;
+  // The list the server last said it had; the newest save that said it (to order the saves' own answers); and how
+  // many answers had come when it was known (a save's answer, or the `stamp` of a snapshot). An older snapshot is not
+  // taken.
   let confirmed: Benefit[] = [];
   let confirmedTurn = 0;
-  // The turn whose save last set the line under the boxes; a snapshot asked for before it says nothing about it.
-  let noteTurn = 0;
+  let confirmedAt = 0;
+  // How many answers had come when an answer last set the line under the boxes; an older snapshot does not clear it.
+  let noteAt = 0;
   /** A failed save: the boxes go back to what the server has. */
   const rollBack = () => {
     list = confirmed;
     onList(list);
   };
   return {
-    /** Where the saves stand now: taken when a snapshot is asked for (load, an upload, a removal), for `reset`. */
+    /** How many save answers have come: taken when a snapshot is asked for (load, an upload, a removal), for `reset`. */
     stamp(): number {
-      return turn;
+      return answers;
     },
     /**
      * A snapshot read afresh, asked for at `askedAt` (`stamp`): taken unless a save is still on its way with a newer
-     * list, or a save sent after it was asked for has answered already (an upload sent before a tick that then saved
-     * would tick the box back, rework 5 #1). Taken, it clears the line under the boxes (rework 3 #1) only when it was
-     * asked for after the save that set the line: an upload sent before a tick that then failed keeps 没有保存成功
-     * (rework 4 #1).
+     * list, or a save answered after it was asked for (an upload sent before a save's answer, even after the tick,
+     * would tick the box back: rework 5 #1, followups #1). Taken, it clears the line under the boxes (rework 3 #1)
+     * only when it was asked for after the answer that set the line: an upload sent before a save that then failed
+     * keeps 没有保存成功 (rework 4 #1).
      */
     reset(next: Benefit[], askedAt: number) {
-      if (answered !== turn || askedAt < confirmedTurn) return;
+      if (answered !== turn || askedAt < confirmedAt) return;
       list = confirmed = next;
-      confirmedTurn = askedAt;
+      confirmedTurn = turn;
+      confirmedAt = askedAt;
       onList(list);
-      if (askedAt >= noteTurn) onNote(undefined);
+      if (askedAt >= noteAt) onNote(undefined);
     },
     /**
      * Ticks or unticks one box and saves. Settles on "gone" when the server found no business to save for (signed
@@ -66,18 +72,20 @@ export function createBenefitsSaver({
       const mine = ++turn;
       onList(list);
       onNote({ kind: "saving" });
-      noteTurn = mine;
       const settle = (then: () => "gone" | undefined) => {
         if (mine !== turn) return undefined;
         answered = mine;
+        noteAt = answers;
         return then();
       };
       return save(list).then(
         (result) => {
+          answers++;
           // An answer dropped for a newer tick still says what the server had then.
           if (result && mine > confirmedTurn) {
             confirmed = result.snapshot.benefits;
             confirmedTurn = mine;
+            confirmedAt = answers;
           }
           return settle(() => {
             if (!result) {
@@ -92,13 +100,15 @@ export function createBenefitsSaver({
             return undefined;
           });
         },
-        () =>
-          settle(() => {
+        () => {
+          answers++;
+          return settle(() => {
             // No answer (the network): 没有保存成功 stays until the next save or read (see the top of this file).
             onNote({ kind: "failed" });
             rollBack();
             return undefined;
-          }),
+          });
+        },
       );
     },
   };
