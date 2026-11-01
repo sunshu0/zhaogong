@@ -7,6 +7,7 @@ import {
   employerSignUpHref,
   identityLabel,
   openErrorMessage,
+  businessErrorAt,
   parseBusinessChoice,
   parseRole,
   postJobHref,
@@ -86,6 +87,18 @@ describe("parseBusinessChoice", () => {
       field: "regionId",
     });
     expect(parseBusinessChoice(null, "NZ")).toEqual({ ok: false, error: "请选择一家店" });
+  });
+});
+
+describe("businessErrorAt (rework 4 #2)", () => {
+  it("puts a name or area error under its box only while 新建企业 is chosen, else under the form", () => {
+    expect(businessErrorAt("new", "name")).toBe("name");
+    expect(businessErrorAt("new", "regionId")).toBe("regionId");
+    expect(businessErrorAt("new", undefined)).toBe("form");
+    // 新建企业 sent, another shop picked before the answer came: the boxes are gone, the words stay.
+    expect(businessErrorAt("e2", "name")).toBe("form");
+    expect(businessErrorAt("e2", "regionId")).toBe("form");
+    expect(businessErrorAt("e2", undefined)).toBe("form");
   });
 });
 

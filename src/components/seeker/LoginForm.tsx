@@ -19,6 +19,7 @@ import { loginMessages } from "@/i18n/messages/login";
 import type { EmployerVerification } from "@/lib/types";
 import {
   businessChoice,
+  businessErrorAt,
   defaultBusinessChoice,
   NAME_MAX,
   parseBusinessChoice,
@@ -513,8 +514,9 @@ function BusinessStep({
   const nameInput = useRef<HTMLInputElement>(null);
   // UI review 1 B: 请填写店名 and 店名最多… go under the name box and mark it; 请选择地区 marks the area.
   const [errorField, setErrorField] = useState<BusinessField>();
-  const nameWrong = !!error && errorField === "name";
-  const areaWrong = !!error && errorField === "regionId";
+  const errorAt = businessErrorAt(choice, errorField);
+  const nameWrong = !!error && errorAt === "name";
+  const areaWrong = !!error && errorAt === "regionId";
   // ADR 0044: the account's business is banned; nothing to set up here until it is over.
   const [banned, setBanned] = useState<string | null>(null);
   useEffect(() => {
@@ -642,7 +644,7 @@ function BusinessStep({
         </div>
       )}
 
-      {error && !nameWrong && !areaWrong && <ErrorText>{error}</ErrorText>}
+      {error && errorAt === "form" && <ErrorText>{error}</ErrorText>}
       <Button type="submit" size="lg" block loading={pending}>
         {pending ? t.hiring.submitting : t.hiring.submit}
       </Button>

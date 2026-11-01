@@ -29,6 +29,14 @@ export const NAME_MAX = 40;
 /** The box a business-step error is about, for the page to mark (UI review 1 B); none for 请选择一家店. */
 export type BusinessField = "name" | "regionId";
 
+/**
+ * Where the business step shows its error: under the name or the area box, which are there only for 新建企业, else
+ * under the form (rework 4 #2: an answer about a box can come back after another choice took the box away).
+ */
+export function businessErrorAt(choice: string, field: BusinessField | undefined): BusinessField | "form" {
+  return choice === "new" && field ? field : "form";
+}
+
 export type BusinessChoice = { kind: "existing"; employerId: string } | { kind: "new"; name: string; regionId: string };
 
 export function parseRole(value: string | string[] | undefined): ActiveRole {
