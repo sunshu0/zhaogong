@@ -71,7 +71,8 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
         </p>
       )}
       {posting.restored && (
-        <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
+        // A div: AskFirst's question is a block (rework 4: no <div> inside a <p>).
+        <div role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
           {t.restored}
           {/* A kept draft always has something in it, so this one always asks. */}
           <AskFirst
@@ -83,7 +84,7 @@ function Posting({ me, country }: { me: EmployerIdentity; country: CountryCode }
           >
             {t.startOver}
           </AskFirst>
-        </p>
+        </div>
       )}
       {/* #178: a step that fails shows 重试 in its place; the posting state is up here, so nothing typed is lost. */}
       <RetryBoundary title={t.stepFailedTitle} note={t.stepFailedNote}>
