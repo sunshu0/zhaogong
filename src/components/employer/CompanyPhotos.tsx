@@ -134,12 +134,14 @@ function Photos({ me }: { me: EmployerIdentity }) {
   if (state === null)
     return (
       // Rework 7: a sheet with the page's title and somewhere to go, as the team page's.
-      <Section look="sheet" className="space-y-3">
-        <h1 className="text-title font-semibold">{words.page.title}</h1>
-        <p className="text-body">{t.noBusiness}</p>
-        <ButtonLink variant="secondary" href="/employer">
-          {t.toEmployer}
-        </ButtonLink>
+      <Section look="sheet">
+        <div className="space-y-3 py-group">
+          <h1 className="text-title font-semibold">{words.page.title}</h1>
+          <p className="text-body">{t.noBusiness}</p>
+          <ButtonLink variant="secondary" href="/employer">
+            {t.toEmployer}
+          </ButtonLink>
+        </div>
       </Section>
     );
   const shown = state.photos.filter((photo) => photo.status !== "rejected").length;
