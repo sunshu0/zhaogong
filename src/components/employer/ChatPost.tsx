@@ -178,7 +178,7 @@ export function ChatPost({
               </div>
             )}
             {unavailable && !pending && (
-              <div className="rounded-control bg-warn-soft px-3 pt-2 text-body text-warn">
+              <div className="rounded-control bg-warn-soft px-3 pt-2 pb-2 text-body text-warn">
                 <p>{t.unavailable}</p>
                 <button
                   type="button"
