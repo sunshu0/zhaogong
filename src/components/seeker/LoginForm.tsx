@@ -9,6 +9,7 @@ import {
   requestSignInCode,
   signInAccount,
   type AccountStatus,
+  type SignInField,
 } from "@/app/[lang]/login/actions";
 import { COUNTRIES } from "@/config/countries";
 import { useLang, useMessages } from "@/i18n/client";
@@ -63,10 +64,6 @@ const fixButtonClass =
   "pressable inline-flex min-h-11 items-center rounded-control font-medium break-all text-brand underline underline-offset-2 disabled:opacity-50 aria-disabled:opacity-50";
 
 const ROLES: readonly ActiveRole[] = ["seeker", "employer"];
-/** The tries a wrong code can leave (lib/auth/config MAX_ATTEMPTS is 5; server-only, so not imported here). */
-const WRONG_CODE_TRIES = [0, 1, 2, 3, 4, 5];
-/** A new business's name, as long as identity.ts NAME_MAX allows. */
-const NAME_MAX = 40;
 
 /**
  * 注册或登录 (the email code does both; A12-1: the code is checked and the session started on the server). Job seekers: email → code → `next`. Employers: email → code → their
@@ -96,10 +93,15 @@ export function LoginForm({
   // How long a code works and how soon another may be asked for, as the server says (lib/auth/config.ts).
   const [codeTimes, setCodeTimes] = useState({ validMinutes: 10, resendMinutes: 1 });
   const [error, setError] = useState<string | null>(null);
-  // UI review 1 B: the box is marked (red, aria-invalid) only when the error is about what is in it — not for a
-  // network error, a sign-in limit or 只开放给受邀的账号.
-  const emailWrong = error === t.email.invalid;
-  const codeWrong = error === t.code.invalid || WRONG_CODE_TRIES.some((left) => error === t.errors.wrongCode(left));
+  // UI review 1 B: the box is marked (red, aria-invalid) only when the error is about what is in it (the server's
+  // `field`) — not for a network error, a sign-in limit or 只开放给受邀的账号.
+  const [errorField, setErrorField] = useState<SignInField>();
+  const fail = (text: string | null, field?: SignInField) => {
+    setError(text);
+    setErrorField(text ? field : undefined);
+  };
+  const emailWrong = !!error && errorField === "email";
+  const codeWrong = !!error && errorField === "code";
   const [pending, startTransition] = useTransition();
   // Employer route, signed in: the server says whether the account already has a business.
   const [checkedFor, setCheckedFor] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export function LoginForm({
       setStep("email");
       setEmail("");
       setDevCode(null);
-      setError(null);
+      fail(null);
       setCheckedFor(null);
       setResendAt(0);
       setLeftEmail("");
@@ -249,14 +251,14 @@ export function LoginForm({
   }
 
   function sendCode(address: string, sent?: () => void) {
-    setError(null);
+    fail(null);
     startTransition(async () => {
       const result = await requestSignInCode(address).catch(() => null);
-      if (!result) return setError(t.networkError);
+      if (!result) return fail(t.networkError);
       if (!result.ok) {
         // Asked too soon (another tab, say): count down from what the server says is left.
         if (result.retryAfterSec) waitBeforeResend(result.retryAfterSec);
-        return setError(result.error);
+        return fail(result.error, result.field);
       }
       waitBeforeResend(result.resendInSec);
       setEmail(address);
@@ -271,7 +273,7 @@ export function LoginForm({
     e.preventDefault();
     const value = normalizeEmail(String(new FormData(e.currentTarget).get("email") ?? ""));
     if (!isValidEmail(value)) {
-      setError(t.email.invalid);
+      fail(t.email.invalid, "email");
       emailInput.current?.focus(); // UI audit 1 B: to the box that needs fixing
       return;
     }
@@ -282,17 +284,17 @@ export function LoginForm({
     e.preventDefault();
     const code = normalizeCode(String(new FormData(e.currentTarget).get("code") ?? ""));
     if (!isValidCode(code)) {
-      setError(t.code.invalid);
+      fail(t.code.invalid, "code");
       codeInput.current?.focus();
       codeInput.current?.select();
       return;
     }
-    setError(null);
+    fail(null);
     startTransition(async () => {
       const result = await signInAccount(email, code, role).catch(() => null);
-      if (!result) return setError(t.networkError);
+      if (!result) return fail(t.networkError);
       if (!result.ok) {
-        setError(result.error);
+        fail(result.error, result.field);
         codeInput.current?.focus(); // a wrong or used-up code: ready to type the next one
         codeInput.current?.select();
         return;
@@ -466,7 +468,7 @@ export function LoginForm({
             backToEmail.current = true;
             setStep("email");
             setDevCode(null);
-            setError(null);
+            fail(null);
           }}
           className={linkButtonClass}
         >
@@ -506,8 +508,9 @@ function BusinessStep({
   const regions = COUNTRIES.NZ.regions;
   const nameInput = useRef<HTMLInputElement>(null);
   // UI review 1 B: 请填写店名 and 店名最多… go under the name box and mark it; 请选择地区 marks the area.
-  const nameWrong = error === t.identity.nameMissing || error === t.identity.nameTooLong(NAME_MAX);
-  const areaWrong = error === t.identity.areaMissing;
+  const [errorField, setErrorField] = useState<"name" | "regionId">();
+  const nameWrong = !!error && errorField === "name";
+  const areaWrong = !!error && errorField === "regionId";
   // ADR 0044: the account's business is banned; nothing to set up here until it is over.
   const [banned, setBanned] = useState<string | null>(null);
   useEffect(() => {
@@ -531,11 +534,15 @@ function BusinessStep({
     // The server checks the same; asked here first, the person goes straight back to the box.
     const checked = choice === "new" ? parseBusinessChoice(payload, "NZ", lang) : null;
     if (checked && !checked.ok) {
+      // parseBusinessChoice asks for the name first, then the area.
+      const field = checked.error === t.identity.areaMissing ? "regionId" : "name";
       setError(checked.error);
-      if (checked.error !== t.identity.areaMissing) nameInput.current?.focus();
+      setErrorField(field);
+      if (field === "name") nameInput.current?.focus();
       return;
     }
     setError(null);
+    setErrorField(undefined);
     startTransition(async () => {
       const result = await openEmployerForAccount(email, payload).catch(() => null);
       if (!result) return setError(t.networkError);
@@ -597,7 +604,7 @@ function BusinessStep({
             <input
               ref={nameInput}
               name="name"
-              maxLength={NAME_MAX}
+              maxLength={40}
               autoComplete="organization"
               aria-invalid={nameWrong || undefined}
               aria-describedby={nameWrong ? "business-name-error" : undefined}

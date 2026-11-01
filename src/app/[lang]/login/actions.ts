@@ -59,7 +59,10 @@ async function withStaff(session: SessionView): Promise<AccountStatus> {
   return staff ? { ...session, staff } : session;
 }
 
-type Failure = { ok: false; error: string };
+/** The box a sign-in error is about, for the page to mark (UI review 1 B); none for a limit, the network and the like. */
+export type SignInField = "email" | "code";
+
+type Failure = { ok: false; error: string; field?: SignInField };
 
 /** The visitor's IP as Cloudflare passes it on, for the sign-in limits (ADR 0033); none in development. */
 async function asker() {
@@ -85,7 +88,7 @@ export async function requestSignInCode(
   const lang = await requestLang();
   const t = pick(loginMessages, lang);
   const address = validEmail(email);
-  if (!address) return { ok: false, error: t.email.invalid };
+  if (!address) return { ok: false, error: t.email.invalid, field: "email" };
   const result = await requestCode(address, new Date(), lang, await asker());
   const resendInSec = RESEND_AFTER_MS / 1000;
   const validMinutes = CODE_TTL_MS / 60_000;
@@ -119,10 +122,10 @@ export async function signInAccount(
   const browserLang = await requestLang();
   const t = pick(loginMessages, browserLang);
   const address = validEmail(email);
-  if (!address) return { ok: false, error: t.email.invalid };
+  if (!address) return { ok: false, error: t.email.invalid, field: "email" };
   // Cleaned before both the check and the verification (#290): " 123 456" passed the check and then failed here.
   const clean = typeof code === "string" ? normalizeCode(code) : "";
-  if (!isValidCode(clean)) return { ok: false, error: t.code.invalid };
+  if (!isValidCode(clean)) return { ok: false, error: t.code.invalid, field: "code" };
   const result = await verifyCode(address, clean, new Date(), await asker());
   if (!result.ok) {
     switch (result.reason) {
@@ -137,7 +140,7 @@ export async function signInAccount(
       case "limited":
         return { ok: false, error: t.errors.limited[result.scope](t.errors.waitText(result.retryAfterSec)) };
       case "wrong":
-        return { ok: false, error: t.errors.wrongCode(result.attemptsLeft) };
+        return { ok: false, error: t.errors.wrongCode(result.attemptsLeft), field: "code" };
     }
   }
   const isNew = !(await getAccount(address));

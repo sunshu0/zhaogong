@@ -44,10 +44,18 @@ afterEach(() => {
 
 describe("注册或登录", () => {
   it("sends a code (shown on the page outside production), at most once a minute, and refuses a bad email", async () => {
-    expect(await requestSignInCode("nope")).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
+    expect(await requestSignInCode("nope")).toEqual({ ok: false, error: "请输入正确的邮箱地址", field: "email" });
     // Security review: no longer than an address can be (254), so a huge string never becomes a code row or a mail.
-    expect(await requestSignInCode(`${"a".repeat(250)}@x.co`)).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
-    expect(await requestSignInCode("x".repeat(100_000))).toEqual({ ok: false, error: "请输入正确的邮箱地址" });
+    expect(await requestSignInCode(`${"a".repeat(250)}@x.co`)).toEqual({
+      ok: false,
+      error: "请输入正确的邮箱地址",
+      field: "email",
+    });
+    expect(await requestSignInCode("x".repeat(100_000))).toEqual({
+      ok: false,
+      error: "请输入正确的邮箱地址",
+      field: "email",
+    });
     expect(await requestSignInCode("New@Example.com")).toEqual({
       ok: true,
       devCode: expect.stringMatching(/^\d{6}$/),
@@ -104,9 +112,17 @@ describe("注册或登录", () => {
   it("refuses a wrong code with the tries left, a code never sent, and a malformed one", async () => {
     const sent = (await requestSignInCode("li@example.com")) as { devCode: string };
     const wrong = sent.devCode === "000000" ? "111111" : "000000";
-    expect(await signInAccount("li@example.com", wrong)).toEqual({ ok: false, error: "验证码不对，还可以再试 4 次" });
-    expect(await signInAccount("li@example.com", "12345")).toEqual({ ok: false, error: "请输入 6 位数字验证码" });
-    expect(await signInAccount("never@example.com", "123456")).toEqual({ ok: false, error: "请先获取验证码" });
+    expect(await signInAccount("li@example.com", wrong)).toEqual({
+      ok: false,
+      error: "验证码不对，还可以再试 4 次",
+      field: "code",
+    });
+    expect(await signInAccount("li@example.com", "12345")).toEqual({
+      ok: false,
+      error: "请输入 6 位数字验证码",
+      field: "code",
+    });
+    expect(await signInAccount("never@example.com", "123456")).toEqual({ ok: false, error: "请先获取验证码" }); // no field: no box to fix (UI review 1 B)
     expect(await accountStatus()).toBeNull();
   });
 
