@@ -80,7 +80,8 @@ function Photos({ me }: { me: EmployerIdentity }) {
         (snapshot) => {
           if (!live()) return;
           setState(snapshot);
-          if (snapshot) saver.reset(snapshot.benefits);
+          // Rework 2 #8: read afresh, the boxes are what the server has; 没有保存成功 no longer stays under them.
+          if (snapshot && saver.reset(snapshot.benefits)) setBenefitsNote(undefined);
         },
         () => live() && setState("failed"),
       );

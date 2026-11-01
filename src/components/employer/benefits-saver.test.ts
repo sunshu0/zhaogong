@@ -87,4 +87,38 @@ describe("createBenefitsSaver", () => {
     expect(lists.at(-1)).toEqual(["meals"]);
     expect(notes.at(-1)).toEqual({ kind: "said", ok: false, text: "只有团队管理员能…" });
   });
+
+  it("puts the boxes back to what the server has when a save fails or finds no business (rework 2 #8)", async () => {
+    const { saver, pending, lists } = setUp();
+    saver.reset(["meals"]);
+    const lost = saver.toggle("housing", true);
+    pending[0].reject();
+    await lost;
+    expect(lists.at(-1)).toEqual(["meals"]);
+    const gone = saver.toggle("tips", true);
+    pending[1].resolve(null);
+    expect(await gone).toBe("gone");
+    expect(lists.at(-1)).toEqual(["meals"]);
+  });
+
+  it("rolls back to the last list a save's answer confirmed, even one dropped for a newer tick", async () => {
+    const { saver, pending, lists } = setUp();
+    const first = saver.toggle("meals", true);
+    const second = saver.toggle("housing", true);
+    pending[0].resolve(answer(["meals"]));
+    await first;
+    expect(lists.at(-1)).toEqual(["meals", "housing"]); // dropped: the newer tick stays on screen
+    pending[1].reject();
+    await second;
+    expect(lists.at(-1)).toEqual(["meals"]);
+  });
+
+  it("says whether a snapshot read afresh was taken, for the page to clear its note", async () => {
+    const { saver, pending } = setUp();
+    const done = saver.toggle("meals", true);
+    expect(saver.reset([])).toBe(false);
+    pending[0].resolve(answer(["meals"]));
+    await done;
+    expect(saver.reset(["meals"])).toBe(true);
+  });
 });
