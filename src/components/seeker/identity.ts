@@ -23,7 +23,8 @@ export const DEMO_BUSINESS_IDS = ["e1", "e2", "e4"] as const;
 
 export const POST_JOB_PATH = "/employer/post";
 
-const NAME_MAX = 40;
+/** A new business's name is at most this long; the sign-up page's name box stops there too. */
+export const NAME_MAX = 40;
 
 export type BusinessChoice = { kind: "existing"; employerId: string } | { kind: "new"; name: string; regionId: string };
 

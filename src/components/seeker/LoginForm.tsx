@@ -20,6 +20,7 @@ import type { EmployerVerification } from "@/lib/types";
 import {
   businessChoice,
   defaultBusinessChoice,
+  NAME_MAX,
   parseBusinessChoice,
   reconcileIdentity,
 } from "@/components/seeker/identity";
@@ -608,7 +609,7 @@ function BusinessStep({
             <input
               ref={nameInput}
               name="name"
-              maxLength={40}
+              maxLength={NAME_MAX}
               autoComplete="organization"
               aria-invalid={nameWrong || undefined}
               aria-describedby={nameWrong ? "business-name-error" : undefined}
