@@ -48,7 +48,7 @@ export function WorkHubFrame({ look, children }: { look?: "app"; children: React
         <div className="rounded-card bg-surface p-3 ring-1 ring-border">
           <div className="border-b border-border px-2 pb-3">
             <p className="text-meta font-medium text-brand">找工</p>
-            <h2 className="mt-1 text-lg font-semibold">{t.title}</h2>
+            <h2 className="mt-1 text-subtitle font-semibold">{t.title}</h2>
           </div>
           <WorkspaceNav pathname={pathname} isEmployer={isEmployer} />
           {session && (
