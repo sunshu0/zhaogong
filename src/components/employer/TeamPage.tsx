@@ -78,11 +78,13 @@ function Team({ me }: { me: EmployerIdentity }) {
   // UI review 3: an empty state is a sheet with somewhere to go, not a bare line on the page.
   if (team === null)
     return (
-      <Section look="sheet" className="space-y-3">
-        <p className="text-body">{t.noEmployerRole}</p>
-        <ButtonLink variant="secondary" href={employerSignUpHref("/employer/team")}>
-          {t.setUpHiring}
-        </ButtonLink>
+      <Section look="sheet">
+        <div className="space-y-3 py-group">
+          <p className="text-body">{t.noEmployerRole}</p>
+          <ButtonLink variant="secondary" href={employerSignUpHref("/employer/team")}>
+            {t.setUpHiring}
+          </ButtonLink>
+        </div>
       </Section>
     );
   const isAdmin = team.me.role === "admin";
@@ -406,7 +408,7 @@ function Invite({
       </form>
       {team.invites.length > 0 && (
         <section aria-labelledby="team-pending" className="space-y-2">
-          <h3 id="team-pending" className="text-body font-medium">
+          <h3 id="team-pending" className="text-subtitle font-medium">
             {t.pendingHeading}
           </h3>
           <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
