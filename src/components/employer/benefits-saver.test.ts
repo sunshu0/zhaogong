@@ -144,4 +144,18 @@ describe("createBenefitsSaver", () => {
     await next;
     expect(notes.at(-1)).toEqual({ kind: "said", ok: true, text: "已自动保存" });
   });
+
+  it("does not tick the boxes back for an upload's answer older than a save that went through (rework 5 #1)", async () => {
+    const { saver, pending, notes, lists } = setUp();
+    saver.reset([], saver.stamp());
+    const uploadAskedAt = saver.stamp(); // an upload on its way
+    const done = saver.toggle("meals", true);
+    pending[0].resolve(answer(["meals"]));
+    await done;
+    saver.reset([], uploadAskedAt); // the upload's answer, from before the tick
+    expect(lists.at(-1)).toEqual(["meals"]);
+    expect(notes.at(-1)).toEqual({ kind: "said", ok: true, text: "已自动保存" });
+    saver.reset(["meals", "tips"], saver.stamp()); // a read sent after the save is taken
+    expect(lists.at(-1)).toEqual(["meals", "tips"]);
+  });
 });

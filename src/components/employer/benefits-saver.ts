@@ -27,7 +27,8 @@ export function createBenefitsSaver({
   let list: Benefit[] = [];
   let turn = 0;
   let answered = 0;
-  // The list the server last said it had, and the turn that said it (0: a snapshot read afresh).
+  // The list the server last said it had, and the turn it is from: a save's own turn, or the `stamp` a snapshot was
+  // asked for at. Anything older is not taken.
   let confirmed: Benefit[] = [];
   let confirmedTurn = 0;
   // The turn whose save last set the line under the boxes; a snapshot asked for before it says nothing about it.
@@ -44,13 +45,15 @@ export function createBenefitsSaver({
     },
     /**
      * A snapshot read afresh, asked for at `askedAt` (`stamp`): taken unless a save is still on its way with a newer
-     * list. Taken, it clears the line under the boxes (rework 3 #1) only when it was asked for after the save that set
-     * the line: an upload sent before a tick that then failed keeps 没有保存成功 (rework 4 #1).
+     * list, or a save sent after it was asked for has answered already (an upload sent before a tick that then saved
+     * would tick the box back, rework 5 #1). Taken, it clears the line under the boxes (rework 3 #1) only when it was
+     * asked for after the save that set the line: an upload sent before a tick that then failed keeps 没有保存成功
+     * (rework 4 #1).
      */
     reset(next: Benefit[], askedAt: number) {
-      if (answered !== turn) return;
+      if (answered !== turn || askedAt < confirmedTurn) return;
       list = confirmed = next;
-      confirmedTurn = turn;
+      confirmedTurn = askedAt;
       onList(list);
       if (askedAt >= noteTurn) onNote(undefined);
     },
