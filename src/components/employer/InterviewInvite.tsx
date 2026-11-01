@@ -251,7 +251,7 @@ function InviteForm({
       ref={form}
       id={id}
       aria-label={t.formLabel(name)}
-      className={`space-y-3 rounded-card ${id ? "px-2 pt-1" : "bg-background p-4"}`}
+      className={`space-y-3 ${id ? "rounded-card px-2 pt-1" : "border-t border-border pt-4"}`}
       onSubmit={(event) => {
         event.preventDefault();
         send();

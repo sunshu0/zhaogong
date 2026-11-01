@@ -43,7 +43,7 @@ export function RenewQuestion({
   const name = useId();
 
   return (
-    <fieldset className="mt-3 w-full space-y-3 rounded-card bg-background p-4">
+    <fieldset className="mt-3 w-full space-y-3 border-t border-border pt-4">
       <legend className="float-left mb-3 w-full text-body font-medium">{t.question}</legend>
       <div className="flex flex-wrap items-center gap-2">
         {choices.map((choice) => (
