@@ -107,9 +107,9 @@ const seekerMeZh = {
     unsaveWarning: "进度会一起清掉。",
     confirmUnsave: "确认取消收藏",
     keep: "保留",
-    // Said by the status line after a job is taken off the list (named, so a second one is said too); the focus
-    // goes to the list.
-    removed: (title: string) => `已取消收藏「${title}」。`,
+    // Said by the status line after a job is taken off the list, around its title (marked with the title's own
+    // language); the focus goes to the list.
+    removed: { before: "已取消收藏「", after: "」。" },
     savedOn: (date: string) => `${date}收藏`,
     stages: {
       saved: "已收藏",

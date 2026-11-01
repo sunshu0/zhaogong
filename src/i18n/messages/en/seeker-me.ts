@@ -93,7 +93,7 @@ export const seekerMeEn: Messages<(typeof seekerMeMessages)["zh"]> = {
     unsaveWarning: "Its progress goes too.",
     confirmUnsave: "Remove it",
     keep: "Keep",
-    removed: (title) => `Removed “${title}” from saved.`,
+    removed: { before: "Removed “", after: "” from saved." },
     savedOn: (date) => `Saved ${date}`,
     stages: {
       saved: "Saved",

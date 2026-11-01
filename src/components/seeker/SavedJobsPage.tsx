@@ -44,7 +44,7 @@ export function SavedJobsPage() {
   const [asked, setAsked] = useState(0);
   // After 取消收藏 the job's card goes, and the focus with it: it goes to the list (or the empty state's title when
   // that was the last one) and the status line says which job went (visual-1 review).
-  const [removed, setRemoved] = useState<{ title: string } | null>(null);
+  const [removed, setRemoved] = useState<{ title: string; lang: string | undefined } | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const emptyTitle = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
@@ -94,7 +94,13 @@ export function SavedJobsPage() {
   // Above both the list and the empty state, so it stays when the last job goes and is said then too.
   const status = (
     <p role="status" className="sr-only">
-      {removed ? s.removed(removed.title) : ""}
+      {removed && (
+        <>
+          {s.removed.before}
+          <span lang={removed.lang}>{removed.title}</span>
+          {s.removed.after}
+        </>
+      )}
     </p>
   );
 
@@ -212,7 +218,11 @@ export function SavedJobsPage() {
                           await unsaveMyJob(job.jobId);
                           return mySavedJobs();
                         },
-                        done: () => setRemoved({ title: job.titleZh }),
+                        done: () =>
+                          setRemoved({
+                            title: job.titleZh,
+                            lang: job.external && !job.gone ? "en" : contentLang(job.titleZh),
+                          }),
                       })
                     }
                   />
