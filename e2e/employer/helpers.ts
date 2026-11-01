@@ -1,5 +1,12 @@
 // Helpers for line B's browser tests. Run them on line B's server: `E2E_PORT=8703 npx playwright test e2e/employer`.
-import { expect, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  type Browser,
+  type BrowserContextOptions,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
 import { chooseOption, fillSignInCode } from "../helpers";
 
 /** The demo moderator (DEMO_MODERATOR in src/db/seed.ts), signed in once by e2e/moderator.setup.ts. */
@@ -8,10 +15,15 @@ export const MODERATOR_STATE = "e2e/.auth/moderator.json";
 
 /**
  * A second browser, signed in as the demo moderator (#50), beside the test's own page (usually an employer). Same
- * viewport as the test's project. Close it with `moderator.context().close()`.
+ * viewport as the test's project. Close it with `moderator.context().close()`. A spec's own `test.use` does not reach
+ * this context (only the project's settings do): pass what it needs, e.g. `{ reducedMotion: "reduce" }`.
  */
-export async function moderatorPage(browser: Browser, testInfo: TestInfo): Promise<Page> {
-  const context = await browser.newContext({ ...testInfo.project.use, storageState: MODERATOR_STATE });
+export async function moderatorPage(
+  browser: Browser,
+  testInfo: TestInfo,
+  options: BrowserContextOptions = {},
+): Promise<Page> {
+  const context = await browser.newContext({ ...testInfo.project.use, ...options, storageState: MODERATOR_STATE });
   return context.newPage();
 }
 

@@ -6,6 +6,9 @@ import { waitForTitle } from "../helpers/title";
 // Round 19 pages pop in and fade (animate-pop-in, transitions): axe scans the settled page, as with "reduce motion",
 // not one caught mid-animation with half-faded colours.
 test.use({ reducedMotion: "reduce" });
+// The moderator's own browser too: axe once caught 通过 halfway from disabled to enabled, a pale brand on white
+// (visual-12 gate, e2 mobile, contrast 2.39); with no transitions it is checked as it ends.
+const STILL = { reducedMotion: "reduce" } as const;
 
 // 企业验证 by a person (#78, PRD R-16): the employer applies, a moderator works through the checklist and approves
 // or rejects with a reason. Each test applies with an NZBN of its own from the demo register's range 9429999xxxxxx.
@@ -48,7 +51,7 @@ test("an application waits for a moderator, who approves it after the checklist;
   await expect(page.getByRole("main")).toContainText("现在是 未验证");
   await page.screenshot({ path: testInfo.outputPath("pending.png"), fullPage: true });
 
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await moderatorPage(browser, testInfo, STILL);
   const card = await cardFor(admin, shop);
   await expect(card).toContainText(`Demo Company ${nzbn.slice(-6)} Limited`);
   const approve = card.getByRole("button", { name: "通过", exact: true });
@@ -82,7 +85,7 @@ test("a rejection reaches the employer with its reason, who corrects the details
   const nzbn = nzbnFor(testInfo);
   await apply(page, nzbn, "09 000 0000");
 
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await moderatorPage(browser, testInfo, STILL);
   const card = await cardFor(admin, shop);
   await card.getByRole("button", { name: "驳回", exact: true }).click();
   const confirm = card.getByRole("button", { name: "确定驳回" });
@@ -119,7 +122,7 @@ test("opening an application is recorded in 查看记录 with its number, not it
   const shop = await signUpEmployer(page, testInfo, "/employer/verify");
   await apply(page, nzbnFor(testInfo), "09 055 0336");
 
-  const admin = await moderatorPage(browser, testInfo);
+  const admin = await moderatorPage(browser, testInfo, STILL);
   const card = await cardFor(admin, shop);
   const number = (await card.getByText(/^编号 v\d+$/).textContent())!.replace("编号 ", "");
 
