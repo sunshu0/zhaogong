@@ -70,7 +70,8 @@ export function KeptChangesNote({ onStartOver }: { onStartOver: () => void }) {
   const t = useMessages(employerPostMessages).keptForm;
   return (
     <p role="status" className={`${noticeClass(true)} flex flex-wrap items-center justify-between gap-2`}>
-      {t.restored}
+      {/* Its own item, wrapping between words: noticeClass's wrap-anywhere would let the flex row split words. */}
+      <span className="min-w-0 break-words">{t.restored}</span>
       <button type="button" onClick={onStartOver} className="pressable min-h-11 underline">
         {t.discard}
       </button>

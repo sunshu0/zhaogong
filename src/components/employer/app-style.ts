@@ -39,6 +39,9 @@ export const BAR_TEXT_ACTION = "pressable inline-flex min-h-11 shrink-0 items-ce
 export const BACK_LINK =
   "pressable -my-2 inline-flex min-h-11 items-center text-body text-brand underline-offset-4 hover:underline";
 
-/** A notice line under a form (saved, failed): 12px corners like the controls; a long email in it wraps (rework 5). */
+/**
+ * A notice line under a form (saved, failed): 12px corners like the controls; a long email in it wraps (rework 5).
+ * In a flex row, put the words in their own `min-w-0 break-words` item, or wrap-anywhere splits English words.
+ */
 export const noticeClass = (ok: boolean) =>
   `rounded-control px-3 py-2 text-body outline-none wrap-anywhere ${ok ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`;
