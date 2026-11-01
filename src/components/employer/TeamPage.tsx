@@ -119,7 +119,7 @@ function Team({ me }: { me: EmployerIdentity }) {
       />
 
       <section aria-labelledby="team-members" className="space-y-2">
-        <h2 id="team-members" className="font-semibold">
+        <h2 id="team-members" className="text-subtitle font-semibold">
           {t.membersHeading(team.members.length)}
         </h2>
         <ul className="divide-y divide-border rounded-card bg-surface ring-1 ring-border">
@@ -216,7 +216,7 @@ function MyName({
       aria-labelledby="team-my-name"
       className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border"
     >
-      <h2 id="team-my-name" className="font-semibold">
+      <h2 id="team-my-name" className="text-subtitle font-semibold">
         {t.heading}
       </h2>
       {/* The example is the business's name with the name being typed: both are their own words. */}
@@ -355,7 +355,7 @@ function Invite({
   };
   return (
     <section aria-labelledby="team-invite" className="space-y-3">
-      <h2 id="team-invite" className="font-semibold">
+      <h2 id="team-invite" className="text-subtitle font-semibold">
         {t.heading}
       </h2>
       <form onSubmit={submit} className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border">

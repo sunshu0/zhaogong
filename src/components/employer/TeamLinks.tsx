@@ -54,7 +54,7 @@ export function TeamLinks({
 
   return (
     <section aria-labelledby="team-links" className="space-y-3">
-      <h2 id="team-links" className="font-semibold">
+      <h2 id="team-links" className="text-subtitle font-semibold">
         {t.heading}
       </h2>
       <div className="space-y-2 rounded-card bg-surface p-4 ring-1 ring-border">
