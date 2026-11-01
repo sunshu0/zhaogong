@@ -90,20 +90,27 @@ export function SavedJobsPage() {
       />
     );
 
+  // Above both the list and the empty state, so it stays when the last job goes and is said then too.
+  const status = (
+    <p role="status" className="sr-only">
+      {removed ? s.removed(removed.title) : ""}
+    </p>
+  );
+
   if (!jobs || jobs.length === 0) {
     return (
-      <div className={`py-10 text-center ${sheetClass()}`}>
-        <p role="status" className="sr-only">
-          {removed ? s.removed(removed.title) : ""}
-        </p>
-        <p ref={emptyTitle} tabIndex={-1} className="text-body font-medium outline-none">
-          {s.emptyTitle}
-        </p>
-        <p className="mt-1 text-body text-muted">{s.emptyHint}</p>
-        <ButtonLink href="/jobs" variant="secondary" className="mt-4">
-          {s.browse}
-        </ButtonLink>
-      </div>
+      <>
+        {status}
+        <div className={`py-10 text-center ${sheetClass()}`}>
+          <p ref={emptyTitle} tabIndex={-1} className="text-body font-medium outline-none">
+            {s.emptyTitle}
+          </p>
+          <p className="mt-1 text-body text-muted">{s.emptyHint}</p>
+          <ButtonLink href="/jobs" variant="secondary" className="mt-4">
+            {s.browse}
+          </ButtonLink>
+        </div>
+      </>
     );
   }
 
@@ -119,90 +126,90 @@ export function SavedJobsPage() {
   }
 
   return (
-    <div>
-      <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
-      {failedChange && <RetryLine text={s.saveFailed} onRetry={() => void change(failedChange)} className="mb-2" />}
-      <p role="status" className="sr-only">
-        {removed ? s.removed(removed.title) : ""}
-      </p>
-      <ul ref={listRef} tabIndex={-1} aria-label={s.list} className="space-y-3 outline-none">
-        {jobs.map((job) => (
-          <li key={job.jobId} className={cardClass()}>
-            <article aria-label={job.titleZh}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
-                    {job.gone ? (
-                      <span lang={contentLang(job.titleZh)} className="text-muted">
-                        {job.titleZh}
-                      </span>
-                    ) : (
-                      <Link
-                        href={job.href}
-                        lang={job.external ? "en" : contentLang(job.titleZh)}
-                        className="hover:text-brand"
-                      >
-                        {job.titleZh}
-                      </Link>
+    <>
+      {status}
+      <div>
+        <p className="mb-2 text-body text-muted">{s.onlyYou}</p>
+        {failedChange && <RetryLine text={s.saveFailed} onRetry={() => void change(failedChange)} className="mb-2" />}
+        <ul ref={listRef} tabIndex={-1} aria-label={s.list} className="space-y-3 outline-none">
+          {jobs.map((job) => (
+            <li key={job.jobId} className={cardClass()}>
+              <article aria-label={job.titleZh}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="flex flex-wrap items-center gap-2 text-subtitle font-semibold">
+                      {job.gone ? (
+                        <span lang={contentLang(job.titleZh)} className="text-muted">
+                          {job.titleZh}
+                        </span>
+                      ) : (
+                        <Link
+                          href={job.href}
+                          lang={job.external ? "en" : contentLang(job.titleZh)}
+                          className="hover:text-brand"
+                        >
+                          {job.titleZh}
+                        </Link>
+                      )}
+                      {job.external && <SoftTag tone="neutral">{s.external}</SoftTag>}
+                      {job.gone && <SoftTag tone="neutral">{s.gone}</SoftTag>}
+                      {applied?.has(job.jobId) && <SoftTag tone="brand">{s.applied}</SoftTag>}
+                    </h2>
+                    {job.titleEn && (
+                      <p lang="en" className="truncate font-latin text-meta text-muted">
+                        {job.titleEn}
+                      </p>
                     )}
-                    {job.external && <SoftTag tone="neutral">{s.external}</SoftTag>}
-                    {job.gone && <SoftTag tone="neutral">{s.gone}</SoftTag>}
-                    {applied?.has(job.jobId) && <SoftTag tone="brand">{s.applied}</SoftTag>}
-                  </h2>
-                  {job.titleEn && (
-                    <p lang="en" className="truncate font-latin text-meta text-muted">
-                      {job.titleEn}
+                  </div>
+                  {job.pay ? (
+                    <p className="shrink-0 leading-none">
+                      <Pay pay={job.pay} country={job.country} lang={lang} />
                     </p>
+                  ) : (
+                    job.payText && <p className="shrink-0 text-meta text-muted">{job.payText}</p>
                   )}
                 </div>
-                {job.pay ? (
-                  <p className="shrink-0 leading-none">
-                    <Pay pay={job.pay} country={job.country} lang={lang} />
-                  </p>
-                ) : (
-                  job.payText && <p className="shrink-0 text-meta text-muted">{job.payText}</p>
-                )}
-              </div>
-              <p className="mt-1 text-body text-muted">
-                {job.region && `${job.region} · `}
-                {job.employerName && (
-                  <>
-                    <span lang={contentLang(job.employerName)}>{job.employerName}</span> ·{" "}
-                  </>
-                )}
-                {t.saved.savedOn(formatJobDate(job.savedAt, job.country, lang))}
-              </p>
-              <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
-                <div className="w-36">
-                  <Select
-                    label={s.stage}
-                    required
-                    value={job.stage}
-                    options={SAVED_STAGES.map((stage) => ({ value: stage, label: s.stages[stage] }))}
-                    onChange={(value) => {
-                      const stage = parseSavedStage(value);
-                      if (stage) void change(() => setMyJobStage(job.jobId, stage));
-                    }}
+                <p className="mt-1 text-body text-muted">
+                  {job.region && `${job.region} · `}
+                  {job.employerName && (
+                    <>
+                      <span lang={contentLang(job.employerName)}>{job.employerName}</span> ·{" "}
+                    </>
+                  )}
+                  {t.saved.savedOn(formatJobDate(job.savedAt, job.country, lang))}
+                </p>
+                <div className="mt-3 flex flex-wrap items-end gap-x-3 gap-y-2">
+                  <div className="w-36">
+                    <Select
+                      label={s.stage}
+                      required
+                      value={job.stage}
+                      options={SAVED_STAGES.map((stage) => ({ value: stage, label: s.stages[stage] }))}
+                      onChange={(value) => {
+                        const stage = parseSavedStage(value);
+                        if (stage) void change(() => setMyJobStage(job.jobId, stage));
+                      }}
+                    />
+                  </div>
+                  {!job.picked && job.stage === "contacted" && (
+                    <span className="pb-3 text-meta text-muted">{s.swapped}</span>
+                  )}
+                  <Unsave
+                    stage={job.stage}
+                    onUnsave={() =>
+                      void change(async () => {
+                        await unsaveMyJob(job.jobId);
+                        return mySavedJobs();
+                      }).then((done) => done && setRemoved({ title: job.titleZh }))
+                    }
                   />
                 </div>
-                {!job.picked && job.stage === "contacted" && (
-                  <span className="pb-3 text-meta text-muted">{s.swapped}</span>
-                )}
-                <Unsave
-                  stage={job.stage}
-                  onUnsave={() =>
-                    void change(async () => {
-                      await unsaveMyJob(job.jobId);
-                      return mySavedJobs();
-                    }).then((done) => done && setRemoved({ title: job.titleZh }))
-                  }
-                />
-              </div>
-            </article>
-          </li>
-        ))}
-      </ul>
-    </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }
 
